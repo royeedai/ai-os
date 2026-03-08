@@ -1,87 +1,83 @@
-# AI 项目交付操作系统 V2
+# AI-OS
 
-一套适用于任何技术栈的 AI 驱动项目交付框架。目标不是“帮 AI 写代码”，而是让 AI 能从需求开始，沿着固定工件、任务状态、验收门禁、发布回滚和复盘记忆，尽量独立地完成一个项目，减少你反复补提醒的次数。
+AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。  
+它不是业务模板，也不是单纯的提示词集合，而是一套把“需求澄清 -> 项目规划 -> 任务拆解 -> 开发实现 -> 验收交付 -> 发布回滚 -> 复盘沉淀”固化下来的规则、skills、workflows 和初始化 CLI。
 
-## 推荐接入方式
+目标很明确：让 AI 按项目方式完成交付，而不是只完成一段代码，减少你反复手动提醒遗漏项的次数。
 
-当前推荐方式是：**直接通过 Git 仓库执行 `create-ai-os` CLI**。
+## 适合谁
 
-```bash
-# 你的仓库（SSH）
-npx --yes git+ssh://git@github.com:royeedai/ai-os.git my-project --with-project-files
+适合已经在用 AI 开发，但经常遇到这些问题的人：
 
-# 更显式的写法
-npm exec --yes --package=git+ssh://git@github.com:royeedai/ai-os.git -- create-ai-os my-project --with-project-files
-```
+- 需求一句话就开始写，后面不断返工
+- 功能做完了，但任务、验收、发布、回滚没人管
+- 同样的坑每个项目都要重新提醒 AI 一遍
+- 每个项目都复制一份规则，后续升级越来越难
 
-如果仓库是私有的，先确认本机 SSH 到 GitHub 正常：
+适用项目类型：
 
-```bash
-ssh -T git@github.com
-```
+- Web 产品 / SaaS 后台
+- API / 服务端项目
+- AI Agent / Workflow 应用
+- 数据处理 / ETL / 报表系统
+- CLI / SDK / 工具类项目
+- 轻量移动端 / H5
 
-这个模式的特点：
+## 它的核心思路
 
-- 用户不用手动复制 `agent.md` 和 `.agents`
-- 暂时不需要发布到 npm registry
-- 仓库本身就是唯一真源
-- 以后发布 npm 时，CLI 结构可以直接复用
+- 母仓库只维护通用规则、skills、workflows、模板和 CLI
+- 新项目通过 `create-ai-os` 一次性初始化
+- 项目里保留本地稳定工件，不依赖临时聊天上下文
+- 项目经验通过 `memory` 和 `evals` 回流，持续增强系统
 
-## 管理模型
+如果只记一条原则，就是：
 
-最合理的管理方式是两层分离：
+> 通用规则在 AI-OS 仓库里维护，项目事实在项目仓库里维护。
 
-1. **框架母仓库**
-   这个仓库本身，只维护通用规则、skills、workflows、模板和 CLI。
-2. **项目本地状态**
-   每个项目只保存自己的 `project-charter.md`、`specs/`、`tasks.yaml`、`acceptance.yaml`、`release-plan.md`、`memory.md`。
+## 快速开始
 
-初始化时，CLI 会把框架文件生成到目标项目，并写入一份项目元数据：
+### 环境要求
 
-```text
-.ai-os-project/
-└── framework.toml
-```
+- Node.js 18+
+- npm / npx
+- 能访问公开 GitHub 仓库
 
-它用于记录：
+### 推荐用法
 
-- 当前项目采用的分发模式
-- 框架版本
-- 当前使用的包名与包版本
-
-## 当前 CLI
-
-本仓库已经提供一个可执行包入口：
-
-- `create-ai-os`
-
-本地直接运行：
+仓库是公开的，直接通过 GitHub repo 执行即可：
 
 ```bash
-node ./bin/create-ai-os.js my-project --with-project-files
+npx --yes github:royeedai/ai-os my-project --with-project-files
 ```
 
-Git 仓库远程执行：
+参数说明：
+
+- `my-project`：目标项目目录
+- `--with-project-files`：额外生成项目章程、任务、验收、发布、记忆等初始文件
+
+### 固定版本初始化
+
+如果你希望新项目稳定复现，不要永远追主分支，直接固定 tag 或 commit：
 
 ```bash
-npx --yes git+ssh://git@github.com:royeedai/ai-os.git my-project --with-project-files
+npm exec --yes --package=github:royeedai/ai-os#v2.2.0 -- create-ai-os my-project --with-project-files
 ```
 
-帮助：
+## 初始化后会生成什么
 
-```bash
-node ./bin/create-ai-os.js --help
-```
+AI-OS 会在目标项目里生成两类内容。
 
-## 生成内容
-
-CLI 会把以下内容生成到目标项目：
+### 1. 框架受管文件
 
 - `agent.md`
 - `.agents/`
 - `.ai-os-project/framework.toml`
 
-如果加了 `--with-project-files`，还会补齐：
+这部分由 AI-OS 框架负责，属于“通用交付能力”。
+
+### 2. 项目状态文件
+
+加了 `--with-project-files` 后，还会生成：
 
 - `project-charter.md`
 - `risk-register.md`
@@ -92,107 +88,180 @@ CLI 会把以下内容生成到目标项目：
 - `specs/`
 - `evals/`
 
-## 备用方案
+这部分属于项目自己，记录当前项目的事实、范围、验收和经验。
 
-如果你需要更强的版本锁定或团队内部统一升级策略，还保留了两个备用方案，但它们不再是默认入口：
+## 一个新项目应该怎么使用
 
-### 1. Submodule 模式
+推荐流程如下：
 
-- `scripts/attach-ai-os-submodule.sh`
-- `scripts/update-ai-os-submodule.sh`
+1. 初始化项目
 
-适合内部团队、Git 熟练用户、希望显式锁定框架仓库版本的场景。
-
-### 2. Copy 模式
-
-- `scripts/init-ai-os.sh`
-- `scripts/upgrade-ai-os.sh`
-
-只作为 fallback，不推荐作为默认方案。
-
-## 框架组成
-
-```text
-项目根目录/
-├── agent.md                            ← 宪法（项目交付铁律）
-├── .agents/
-│   ├── skills/                         ← 核心 Skills
-│   │   ├── project-planner/            ← 新项目章程、范围、里程碑、风险
-│   │   ├── task-orchestrator/          ← 任务图、依赖、DoR/DoD、证据要求
-│   │   ├── acceptance-gate/            ← 阶段验收与 Evidence Pack
-│   │   ├── change-impact-analyzer/     ← 需求变更影响分析与同步
-│   │   ├── release-manager/            ← 发布、回滚、Smoke Check
-│   │   ├── memory-manager/             ← 项目记忆与经验沉淀
-│   │   ├── agent-evals-guard/          ← 规则/Skill 自身回归验证
-│   │   ├── spec-validator/             ← 模块 spec 完整性
-│   │   ├── fullstack-dev-checklist/    ← 默认全栈质量清单
-│   │   ├── code-review-guard/          ← 交付前结构化自审
-│   │   ├── security-guard/             ← 安全审计
-│   │   ├── architecture-reviewer/      ← 架构审查
-│   │   ├── database-schema-design/     ← 数据库设计
-│   │   ├── api-design/                 ← API 设计
-│   │   ├── testing-strategies/         ← 测试策略
-│   │   ├── systematic-debugging/       ← 系统化调试
-│   │   ├── performance-optimization/   ← 性能优化
-│   │   ├── git-workflow/               ← Git 规范
-│   │   └── find-skills/                ← 搜索安装新 Skills
-│   └── workflows/                      ← 交付工作流
-│       ├── new-project.md              ← 新项目启动
-│       ├── new-module.md               ← 新模块开发
-│       ├── review.md                   ← 阶段/交付审查
-│       ├── change-request.md           ← 需求变更
-│       ├── ship.md                     ← 发布上线
-│       ├── debug.md                    ← 调试修复
-│       ├── incident.md                 ← 线上事故处置
-│       └── postmortem.md               ← 复盘与规则回流
+```bash
+npx --yes github:royeedai/ai-os my-project --with-project-files
 ```
 
-## 推荐工件
+2. 在项目里先走 `/new-project`
 
-- `project-charter.md`：项目章程、边界、目标、非功能需求、里程碑
-- `specs/*.spec.md`：模块级规格
-- `tasks.yaml`：任务图、依赖、状态、证据要求
-- `acceptance.yaml`：验收条件与 Evidence Pack
-- `risk-register.md`：项目风险与审批点
-- `release-plan.md`：发布计划、回滚策略、Smoke Check
-- `memory.md`：项目稳定记忆、决策与坑点
-- `evals/`：系统规则/Skill 的基准任务与回归样例
+- 明确目标、范围边界、约束、里程碑
+- 补全 `project-charter.md` 和 `risk-register.md`
 
-## 工作流
+3. 每做一个模块走 `/new-module`
 
-| 命令 | 触发方式 | 用途 |
-|------|---------|------|
-| `/new-project` | “做一个新项目” | 项目章程 → 模块规划 → 任务图 → 风险/验收 |
-| `/new-module` | “开发一个新模块” | 模块 spec → 设计 → 编码 → 测试 → 验收 |
-| `/review` | “检查下代码/能交付了吗” | 自审 + 验收门禁 + 专项审查 |
-| `/change-request` | “需求改一下/范围变了” | 影响分析 → 更新 spec/tasks/tests/release |
-| `/ship` | “准备上线/交付用户” | 发布检查、回滚、Smoke Check、观测性 |
-| `/debug` | “有个 Bug/测试挂了” | 系统化调试 → 修复 → 回归 → 沉淀 |
-| `/incident` | “线上出问题了” | 先止血，再排障，再评估是否回滚 |
-| `/postmortem` | “复盘这次事故/漏项” | 结论 → memory → evals → 规则修正 |
+- 为模块产出 `specs/*.spec.md`
+- 更新 `tasks.yaml`
+- 明确 `acceptance.yaml`
 
-## 适用项目类型
+4. 模块完成前走 `/review`
 
-V2 默认支持以下 archetype，并要求先选择类型再套用清单：
+- 做结构化自审
+- 检查需求、实现、测试、验收是否对齐
 
-- 全栈业务系统 / SaaS 后台
-- 面向用户的 Web 产品
-- API / 服务端项目
-- AI Agent / Workflow 应用
-- 数据处理 / ETL / 定时报表
-- CLI / SDK / 开发工具
-- 轻量移动端 / H5 项目
+5. 准备交付时走 `/ship`
 
-## 使用原则
+- 检查发布步骤、Smoke Check、回滚预案
+- 完成 `release-plan.md`
 
-1. 无项目章程，不启动项目级开发。
-2. 无 `.spec.md`、无 `tasks.yaml`、无验收条件，不开始模块编码。
-3. 无 Evidence Pack，不允许宣称“完成”。
-4. 需求变更必须全链同步，不允许只改代码不改工件。
-5. 每次事故、Bug、漏项，都必须回流到 `memory` 或 `evals`。
+6. 出问题时走 `/debug` 或 `/incident`
 
-## 适用范围
+- 定位问题
+- 控制影响面
+- 记录修复过程和处置动作
 
-- 适用于任何语言（Go/Java/Python/Node/Rust 等）
-- 适用于任何前端框架（Vue/React/Angular 等）
-- 适用于所有支持 Rules / Skills / Workflows 的 AI 编程环境
+7. 收尾时走 `/postmortem`
+
+- 把重复性坑和有效做法沉淀进 `memory.md`
+- 把关键回归场景沉淀进 `evals/`
+
+## 项目里最重要的工件
+
+- `project-charter.md`：项目章程、范围边界、成功标准、非功能要求
+- `specs/*.spec.md`：模块需求规格
+- `tasks.yaml`：任务图、依赖、DoR/DoD、证据要求
+- `acceptance.yaml`：验收门禁和 Evidence Pack
+- `release-plan.md`：发布、回滚、Smoke Check
+- `memory.md`：稳定记忆、设计决策、常见坑
+- `evals/`：回归用例和系统防退化样例
+
+## 仓库结构
+
+```text
+agent.md                         宪法层
+.agents/skills/                 能力模块
+.agents/workflows/              交付工作流
+bin/create-ai-os.js             Git 仓库可执行 CLI
+VERSION                         框架版本
+```
+
+核心 Skills：
+
+- `project-planner`
+- `task-orchestrator`
+- `acceptance-gate`
+- `change-impact-analyzer`
+- `release-manager`
+- `memory-manager`
+- `agent-evals-guard`
+- `spec-validator`
+- `fullstack-dev-checklist`
+- `code-review-guard`
+- `security-guard`
+- `architecture-reviewer`
+- `database-schema-design`
+- `api-design`
+- `testing-strategies`
+- `systematic-debugging`
+- `performance-optimization`
+- `git-workflow`
+
+核心 Workflows：
+
+- `/new-project`
+- `/new-module`
+- `/review`
+- `/change-request`
+- `/ship`
+- `/debug`
+- `/incident`
+- `/postmortem`
+
+## 这个仓库应该怎么维护
+
+把它当成唯一的 AI-OS 母仓库维护，不要把规则分散到每个项目里。
+
+### 母仓库负责什么
+
+- `agent.md`
+- `.agents/skills/`
+- `.agents/workflows/`
+- 模板和 CLI
+- 通用规则、公共经验、回归样例
+
+### 项目仓库负责什么
+
+- `project-charter.md`
+- `specs/`
+- `tasks.yaml`
+- `acceptance.yaml`
+- `release-plan.md`
+- `memory.md`
+- `evals/`
+
+### 推荐维护方式
+
+1. 小改动直接在母仓库迭代
+2. 稳定节点更新 `VERSION` 和 `package.json`
+3. 打 tag，例如 `v2.2.0`
+4. 新项目初始化优先使用 tag
+5. 多个项目里反复出现的问题，回到母仓库补 rule、skill、workflow 或 eval
+
+## 当前版本下的升级建议
+
+现在已经有初始化 CLI，但还没有完整的 `upgrade` / `doctor` / `diff` CLI。  
+所以当前阶段推荐这样管理：
+
+- 新项目：固定 tag 初始化
+- 老项目要同步框架：先人工评估差异，再决定是否重跑初始化
+- 如果明确要覆盖框架文件，可以在项目根目录重新执行并加 `--force-framework`
+
+例如：
+
+```bash
+npm exec --yes --package=github:royeedai/ai-os#v2.2.0 -- create-ai-os . --force-framework
+```
+
+注意：
+
+- `--force-framework` 只应该用于替换 `agent.md` 和 `.agents/`
+- 项目自己的 `specs/`、`tasks.yaml`、`memory.md` 不应该被母仓库覆盖
+
+## 本地开发
+
+直接运行 CLI：
+
+```bash
+node ./bin/create-ai-os.js my-project --with-project-files
+```
+
+查看帮助：
+
+```bash
+node ./bin/create-ai-os.js --help
+```
+
+## 当前状态
+
+当前版本：`v2.2.0`
+
+当前已经具备：
+
+- 公开 Git 仓库可执行初始化 CLI
+- 项目章程 / 任务 / 验收 / 发布 / 记忆模板
+- 面向项目交付的 skills 和 workflows
+
+下一步优先补：
+
+- `upgrade` CLI
+- `doctor` CLI
+- `diff` CLI
+
+这三项补上后，AI-OS 就不只是“能初始化”，而是能持续管理整个 AI 项目开发流程。
