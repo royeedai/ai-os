@@ -6,8 +6,6 @@ description: 模块完成后的质量审查流程（一键触发全套检查）
 
 当用户说"检查下代码"、"review一下"、"模块做完了"、"能交付了吗"时触发此流程。
 
-// turbo-all
-
 ## 步骤
 
 1. 定位当前模块对应的 `.spec.md`、`tasks.yaml`、`acceptance.yaml`

@@ -7,7 +7,8 @@ usage() {
 Usage:
   ./scripts/upgrade-ai-os.sh <target-project-dir> [--force-framework]
 
-Copy-mode fallback. Prefer ./scripts/update-ai-os-submodule.sh when the target project uses the recommended submodule layout.
+Legacy copy-mode upgrader. Use this only for projects originally initialized by
+./scripts/init-ai-os.sh. Public/default distribution is GitHub + npx.
 
 Options:
   --force-framework  Overwrite framework-managed files even if the target project modified them
@@ -51,7 +52,7 @@ copy_framework_file() {
 }
 
 write_manifest() {
-  local meta_dir="${TARGET_DIR}/.ai-os"
+  local meta_dir="${TARGET_DIR}/.ai-os-project"
   local manifest="${meta_dir}/managed-files.tsv"
 
   mkdir -p "${meta_dir}"
@@ -62,6 +63,19 @@ write_manifest() {
   done < <(managed_files)
 
   printf '%s\n' "${FRAMEWORK_VERSION}" > "${meta_dir}/installed-version"
+}
+
+write_framework_metadata() {
+  local meta_dir="${TARGET_DIR}/.ai-os-project"
+  local metadata_file="${meta_dir}/framework.toml"
+
+  mkdir -p "${meta_dir}"
+  cat > "${metadata_file}" <<EOF
+mode = "copy-fallback"
+framework_version = "${FRAMEWORK_VERSION}"
+framework_source = "local-copy"
+managed_files_manifest = ".ai-os-project/managed-files.tsv"
+EOF
 }
 
 while [[ $# -gt 0 ]]; do
@@ -97,12 +111,20 @@ if [[ -z "${TARGET_DIR}" ]]; then
 fi
 
 TARGET_DIR="$(cd "${TARGET_DIR}" && pwd)"
-META_DIR="${TARGET_DIR}/.ai-os"
-MANIFEST="${META_DIR}/managed-files.tsv"
-INSTALLED_VERSION_FILE="${META_DIR}/installed-version"
+CURRENT_META_DIR="${TARGET_DIR}/.ai-os-project"
+LEGACY_META_DIR="${TARGET_DIR}/.ai-os"
+MANIFEST="${CURRENT_META_DIR}/managed-files.tsv"
+INSTALLED_VERSION_FILE="${CURRENT_META_DIR}/installed-version"
+USED_LEGACY_METADATA=0
 
 if [[ ! -f "${MANIFEST}" ]]; then
-  echo "missing ${MANIFEST}" >&2
+  MANIFEST="${LEGACY_META_DIR}/managed-files.tsv"
+  INSTALLED_VERSION_FILE="${LEGACY_META_DIR}/installed-version"
+  USED_LEGACY_METADATA=1
+fi
+
+if [[ ! -f "${MANIFEST}" ]]; then
+  echo "missing .ai-os-project/managed-files.tsv (or legacy .ai-os/managed-files.tsv)" >&2
   echo "run ./scripts/init-ai-os.sh on the target project first" >&2
   exit 1
 fi
@@ -164,6 +186,7 @@ while IFS= read -r rel_path; do
 done < "${TMP_SOURCE_LIST}"
 
 write_manifest
+write_framework_metadata
 
 cat <<EOF
 
@@ -173,6 +196,13 @@ Previous version: ${INSTALLED_VERSION}
 Current version: ${FRAMEWORK_VERSION}
 Target project: ${TARGET_DIR}
 EOF
+
+if [[ "${USED_LEGACY_METADATA}" -eq 1 ]]; then
+  echo
+  echo "Legacy metadata was detected in .ai-os/."
+  echo "New metadata has been written to .ai-os-project/."
+  echo "Review and remove the old .ai-os/ directory manually when it is no longer needed."
+fi
 
 if [[ "${#STALE_FILES[@]}" -gt 0 ]]; then
   echo

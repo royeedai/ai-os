@@ -7,6 +7,10 @@ usage() {
 Usage:
   ./scripts/attach-ai-os-submodule.sh <target-project-dir> <framework-repo-path-or-url> [--ref <git-ref>] [--with-project-files] [--force-links]
 
+Internal submodule fallback for teams that want explicit git pinning.
+Public/default distribution remains:
+  npx --yes github:royeedai/ai-os <target-project-dir> --with-project-files
+
 Options:
   --ref <git-ref>       Checkout a specific branch, tag, or commit after adding the submodule
   --with-project-files  Create missing project-local files such as project-charter.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/

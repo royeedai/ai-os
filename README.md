@@ -223,6 +223,18 @@ VERSION                         框架版本
 4. 新项目初始化优先使用已存在的 tag
 5. 多个项目里反复出现的问题，回到母仓库补 rule、skill、workflow 或 eval
 
+### Legacy 脚本说明
+
+仓库里仍然保留了一组 `scripts/*.sh`，用于内部维护或手工迁移：
+
+- `scripts/init-ai-os.sh`
+- `scripts/upgrade-ai-os.sh`
+- `scripts/attach-ai-os-submodule.sh`
+- `scripts/update-ai-os-submodule.sh`
+
+它们不是公开默认入口。  
+对外和新项目的默认入口仍然是 GitHub + `npx` / `npm exec`。
+
 ## 当前版本下的升级建议
 
 现在已经有初始化 CLI，但还没有完整的 `upgrade` / `doctor` / `diff` CLI。  
@@ -265,7 +277,12 @@ node ./bin/create-ai-os.js --help
 
 ## 当前状态
 
-当前版本：`v2.2.0`
+当前仓库版本号：`2.2.0`
+
+说明：
+
+- 这是当前仓库内的 framework/package version
+- 固定版本初始化仍以远端已经存在的 tag 或 commit 为准
 
 当前已经具备：
 
@@ -280,3 +297,7 @@ node ./bin/create-ai-os.js --help
 - `diff` CLI
 
 这三项补上后，AI-OS 就不只是“能初始化”，而是能持续管理整个 AI 项目开发流程。
+
+## License
+
+MIT

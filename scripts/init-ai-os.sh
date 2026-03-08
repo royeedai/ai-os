@@ -5,15 +5,17 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/init-ai-os.sh <target-project-dir> [--with-scaffold] [--force-framework]
+  ./scripts/init-ai-os.sh <target-project-dir> [--with-project-files] [--force-framework]
 
-Copy-mode fallback. Prefer ./scripts/attach-ai-os-submodule.sh when the target project is a git repository.
+Legacy copy-mode fallback. Public/default distribution is:
+  npx --yes github:royeedai/ai-os <target-project-dir> --with-project-files
 
 Options:
-  --with-scaffold    Create missing project scaffold files such as project-charter.md,
-                     tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
-  --force-framework  Overwrite existing framework-managed files: agent.md and .agents/
-  -h, --help         Show this help message
+  --with-project-files  Create missing project files such as project-charter.md,
+                        tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
+  --with-scaffold       Deprecated alias for --with-project-files
+  --force-framework     Overwrite existing framework-managed files: agent.md and .agents/
+  -h, --help            Show this help message
 EOF
 }
 
@@ -21,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FRAMEWORK_VERSION="$(tr -d '[:space:]' < "${SOURCE_ROOT}/VERSION")"
 
-WITH_SCAFFOLD=0
+WITH_PROJECT_FILES=0
 FORCE_FRAMEWORK=0
 TARGET_DIR=""
 
@@ -63,7 +65,7 @@ copy_template_if_missing() {
 }
 
 write_manifest() {
-  local meta_dir="${TARGET_DIR}/.ai-os"
+  local meta_dir="${TARGET_DIR}/.ai-os-project"
   local manifest="${meta_dir}/managed-files.tsv"
 
   mkdir -p "${meta_dir}"
@@ -74,6 +76,19 @@ write_manifest() {
   done < <(managed_files)
 
   printf '%s\n' "${FRAMEWORK_VERSION}" > "${meta_dir}/installed-version"
+}
+
+write_framework_metadata() {
+  local meta_dir="${TARGET_DIR}/.ai-os-project"
+  local metadata_file="${meta_dir}/framework.toml"
+
+  mkdir -p "${meta_dir}"
+  cat > "${metadata_file}" <<EOF
+mode = "copy-fallback"
+framework_version = "${FRAMEWORK_VERSION}"
+framework_source = "local-copy"
+managed_files_manifest = ".ai-os-project/managed-files.tsv"
+EOF
 }
 
 create_scaffold() {
@@ -106,8 +121,12 @@ create_scaffold() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --with-project-files)
+      WITH_PROJECT_FILES=1
+      shift
+      ;;
     --with-scaffold)
-      WITH_SCAFFOLD=1
+      WITH_PROJECT_FILES=1
       shift
       ;;
     --force-framework)
@@ -157,11 +176,12 @@ while IFS= read -r rel_path; do
   copy_framework_file "${rel_path}"
 done < <(managed_files)
 
-if [[ "${WITH_SCAFFOLD}" -eq 1 ]]; then
+if [[ "${WITH_PROJECT_FILES}" -eq 1 ]]; then
   create_scaffold
 fi
 
 write_manifest
+write_framework_metadata
 
 cat <<EOF
 
@@ -171,7 +191,7 @@ Framework version: ${FRAMEWORK_VERSION}
 Target project: ${TARGET_DIR}
 
 Next steps:
-1. Open ${TARGET_DIR}/project-charter.md if you created scaffold files.
+1. Open ${TARGET_DIR}/project-charter.md if you created project files.
 2. Start with the /new-project workflow for a new project.
-3. Keep .ai-os/installed-version and .ai-os/managed-files.tsv in the target project so upgrades can detect conflicts safely.
+3. Keep .ai-os-project/framework.toml, installed-version, and managed-files.tsv in the target project so legacy copy-mode upgrades can detect conflicts safely.
 EOF

@@ -2,6 +2,11 @@
   "name": "create-ai-os",
   "version": "2.2.0",
   "description": "Bootstrap the AI project delivery operating system into a target project.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/royeedai/ai-os.git"
+  },
+  "homepage": "https://github.com/royeedai/ai-os",
   "bin": {
     "create-ai-os": "./bin/create-ai-os.js"
   },
@@ -9,8 +14,9 @@
     "bin",
     ".agents",
     "agent.md",
+    "LICENSE",
     "README.md",
     "VERSION"
   ],
-  "license": "UNLICENSED"
+  "license": "MIT"
 }

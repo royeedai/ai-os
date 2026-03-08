@@ -7,6 +7,8 @@ usage() {
 Usage:
   ./scripts/update-ai-os-submodule.sh <target-project-dir> [--ref <git-ref>] [--remote]
 
+Internal submodule updater. Public/default distribution remains GitHub + npx.
+
 Options:
   --ref <git-ref>  Fetch and checkout a specific branch, tag, or commit in the framework submodule
   --remote         Update the submodule from its configured remote tracking branch
