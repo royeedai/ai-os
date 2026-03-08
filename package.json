@@ -1,0 +1,16 @@
+{
+  "name": "create-ai-os",
+  "version": "2.2.0",
+  "description": "Bootstrap the AI project delivery operating system into a target project.",
+  "bin": {
+    "create-ai-os": "./bin/create-ai-os.js"
+  },
+  "files": [
+    "bin",
+    ".agents",
+    "agent.md",
+    "README.md",
+    "VERSION"
+  ],
+  "license": "UNLICENSED"
+}

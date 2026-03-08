@@ -1,0 +1,17 @@
+---
+description: 发布与交付流程（发布前检查、回滚准备、Smoke Check）
+---
+
+# 发布与交付流程
+
+当用户说"准备上线"、"可以发布了吗"、"交付给用户"时触发此流程。
+
+## 步骤
+
+1. 调用 `release-manager` 检查发布输入是否完整
+2. 确认构建、测试、迁移、配置、环境变量、密钥、Feature Flag、兼容性已准备完毕
+3. 调用 `acceptance-gate` 确认项目或模块满足 Definition of Done
+4. 生成或更新 `release-plan.md`，写明发布步骤、Smoke Check、回滚方案、负责人
+5. 对高风险变更明确人工审批点
+6. 发布后执行 Smoke Check，并记录结果
+7. 若出现问题，立即转入 `/incident`

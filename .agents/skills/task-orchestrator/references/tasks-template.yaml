@@ -1,0 +1,34 @@
+version: 1
+milestones:
+  - id: M1
+    title: "Milestone 1"
+    goal: "可验证的阶段目标"
+
+tasks:
+  - id: TASK-001
+    title: "示例任务"
+    milestone: M1
+    parent: null
+    status: todo
+    owner: ai
+    risk: medium
+    depends_on: []
+    inputs:
+      - "project-charter.md"
+      - "specs/example.spec.md"
+    outputs:
+      - "src/example.ts"
+      - "tests/example.test.ts"
+    definition_of_ready:
+      - "关联 spec 已确认"
+      - "依赖任务已完成"
+    definition_of_done:
+      - "代码实现完成"
+      - "测试通过"
+      - "已更新相关文档"
+    evidence_required:
+      - "build-log"
+      - "test-log"
+      - "api-sample-or-screenshot"
+    blockers: []
+    notes: ""

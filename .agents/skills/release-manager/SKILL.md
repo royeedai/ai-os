@@ -1,0 +1,26 @@
+---
+name: release-manager
+description: >
+  发布与回滚守卫。在准备上线、交付用户、执行迁移、紧急修复或需要发布检查时必须使用。
+  它负责确认发布输入、Smoke Check、回滚方案和高风险审批点。
+---
+
+# 发布管理器
+
+本 Skill 用于把“代码写好了”变成“可以安全交付”。
+
+## 使用方式
+
+1. 使用 `references/release-plan-template.md` 生成或更新 `release-plan.md`
+2. 检查构建、测试、迁移、配置、Feature Flag、环境变量、兼容性
+3. 为每次发布写明执行步骤、Smoke Check、回滚触发条件、负责人
+4. 高风险发布必须明确人工审批
+5. 发布后记录结果；若异常，转入 `incident`
+
+## 必查项
+
+- 是否有数据库迁移和回滚方案
+- 是否需要 Feature Flag 或灰度
+- 是否定义 Smoke Check
+- 是否具备最小必要观测性
+- 是否识别高风险步骤和审批点

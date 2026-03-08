@@ -1,0 +1,40 @@
+version: 1
+scope:
+  type: module
+  name: "example-module"
+  spec: "specs/example.spec.md"
+
+gates:
+  - id: GATE-001
+    title: "需求对齐"
+    status: pending
+    checks:
+      - "spec 已确认"
+      - "变更已同步"
+    evidence: []
+
+  - id: GATE-002
+    title: "实现与测试"
+    status: pending
+    checks:
+      - "核心功能已实现"
+      - "构建通过"
+      - "测试通过"
+    evidence:
+      - "build-log"
+      - "test-log"
+
+  - id: GATE-003
+    title: "交付证据"
+    status: pending
+    checks:
+      - "关键接口样例或截图齐全"
+      - "风险与剩余问题已记录"
+    evidence:
+      - "api-sample-or-screenshot"
+      - "risk-note"
+
+result:
+  decision: blocked
+  blockers: []
+  advisories: []
