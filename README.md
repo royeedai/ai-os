@@ -57,7 +57,16 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 
 ### 固定版本初始化
 
-如果你希望新项目稳定复现，不要永远追主分支，直接固定 tag 或 commit：
+如果你希望新项目稳定复现，不要永远追主分支，可以固定 tag 或 commit。  
+但要注意：只有当仓库已经对外创建并推送了对应 tag 或 commit 时，这种写法才可用。
+
+示例：
+
+```bash
+npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --with-project-files
+```
+
+例如在你发布了 `v2.2.0` 之后，再使用：
 
 ```bash
 npm exec --yes --package=github:royeedai/ai-os#v2.2.0 -- create-ai-os my-project --with-project-files
@@ -210,8 +219,8 @@ VERSION                         框架版本
 
 1. 小改动直接在母仓库迭代
 2. 稳定节点更新 `VERSION` 和 `package.json`
-3. 打 tag，例如 `v2.2.0`
-4. 新项目初始化优先使用 tag
+3. 创建并推送 tag，例如 `v2.2.0`
+4. 新项目初始化优先使用已存在的 tag
 5. 多个项目里反复出现的问题，回到母仓库补 rule、skill、workflow 或 eval
 
 ## 当前版本下的升级建议
@@ -219,14 +228,20 @@ VERSION                         框架版本
 现在已经有初始化 CLI，但还没有完整的 `upgrade` / `doctor` / `diff` CLI。  
 所以当前阶段推荐这样管理：
 
-- 新项目：固定 tag 初始化
+- 新项目：如果已经发布 tag，就固定 tag 初始化；否则先用主分支
 - 老项目要同步框架：先人工评估差异，再决定是否重跑初始化
 - 如果明确要覆盖框架文件，可以在项目根目录重新执行并加 `--force-framework`
 
-例如：
+主分支示例：
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#v2.2.0 -- create-ai-os . --force-framework
+npx --yes github:royeedai/ai-os . --force-framework
+```
+
+固定版本示例：
+
+```bash
+npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os . --force-framework
 ```
 
 注意：
