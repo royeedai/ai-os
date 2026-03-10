@@ -13,10 +13,13 @@ function printHelp() {
   process.stdout.write(`Usage:
   create-ai-os [target-dir] [--target <dir>] [--with-project-files] [--force-framework]
 
+  Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
+  are open standards supported by Antigravity, Cursor, and Codex.
+
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
   --with-project-files  Create missing project-local files such as project-charter.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
-  --force-framework     Overwrite existing framework-managed files: agent.md and .agents/
+  --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
 `);
 }
@@ -63,7 +66,7 @@ function listFilesRecursively(rootDir) {
 }
 
 function copyFramework(targetDir) {
-  const managedRoots = ["agent.md", ".agents"];
+  const managedRoots = ["AGENTS.md", ".agents"];
 
   for (const rootRel of managedRoots) {
     const srcRoot = path.join(PACKAGE_ROOT, rootRel);
@@ -175,7 +178,7 @@ function writeMetadata(targetDir) {
 }
 
 function removeManagedPaths(targetDir) {
-  for (const relPath of ["agent.md", ".agents"]) {
+  for (const relPath of ["AGENTS.md", ".agents"]) {
     const absolutePath = path.join(targetDir, relPath);
     let exists = false;
     try {
@@ -239,7 +242,7 @@ const TARGET_DIR = path.resolve(targetArg || ".");
 ensureDir(TARGET_DIR);
 
 if (!forceFramework) {
-  const existingFrameworkPaths = ["agent.md", ".agents"]
+  const existingFrameworkPaths = ["AGENTS.md", ".agents"]
     .map((relPath) => path.join(TARGET_DIR, relPath))
     .filter((absolutePath) => fs.existsSync(absolutePath));
 
@@ -277,4 +280,8 @@ Next steps:
 1. Open ${path.join(TARGET_DIR, "project-charter.md")} if you created project-local files.
 2. Start with the /new-project workflow for a new project.
 3. Commit the generated framework and project state files into the target repository.
+
+Cross-tool compatibility:
+- AGENTS.md: supported by Antigravity, Cursor, and Codex
+- .agents/skills/*/SKILL.md: supported by Antigravity, Cursor, and Codex
 `);

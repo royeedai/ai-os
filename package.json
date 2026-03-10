@@ -13,7 +13,7 @@
   "files": [
     "bin",
     ".agents",
-    "agent.md",
+    "AGENTS.md",
     "LICENSE",
     "README.md",
     "VERSION"

@@ -14,7 +14,7 @@ Options:
   --with-project-files  Create missing project files such as project-charter.md,
                         tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
   --with-scaffold       Deprecated alias for --with-project-files
-  --force-framework     Overwrite existing framework-managed files: agent.md and .agents/
+  --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
 EOF
 }
@@ -34,7 +34,7 @@ sha256_file() {
 managed_files() {
   (
     cd "${SOURCE_ROOT}"
-    printf '%s\n' "agent.md"
+    printf '%s\n' "AGENTS.md"
     find .agents -type f ! -name '.DS_Store' | sort
   )
 }
@@ -163,7 +163,7 @@ mkdir -p "${TARGET_DIR}"
 TARGET_DIR="$(cd "${TARGET_DIR}" && pwd)"
 
 if [[ "${FORCE_FRAMEWORK}" -ne 1 ]]; then
-  if [[ -e "${TARGET_DIR}/agent.md" || -e "${TARGET_DIR}/.agents" ]]; then
+  if [[ -e "${TARGET_DIR}/AGENTS.md" || -e "${TARGET_DIR}/.agents" ]]; then
     echo "target project already contains framework files" >&2
     echo "use --force-framework to overwrite them, or use ./scripts/upgrade-ai-os.sh if the project was already initialized" >&2
     exit 1

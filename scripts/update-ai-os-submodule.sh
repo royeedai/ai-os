@@ -122,7 +122,7 @@ if [[ ! -d "${TARGET_DIR}/${SUBMODULE_PATH}" ]]; then
   exit 1
 fi
 
-ensure_symlink "${TARGET_DIR}/agent.md" "${SUBMODULE_PATH}/agent.md"
+ensure_symlink "${TARGET_DIR}/AGENTS.md" "${SUBMODULE_PATH}/AGENTS.md"
 ensure_symlink "${TARGET_DIR}/.agents" "${SUBMODULE_PATH}/.agents"
 
 echo "Updating AI-OS submodule in ${TARGET_DIR}"

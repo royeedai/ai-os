@@ -30,7 +30,7 @@ sha256_file() {
 managed_files() {
   (
     cd "${SOURCE_ROOT}"
-    printf '%s\n' "agent.md"
+    printf '%s\n' "AGENTS.md"
     find .agents -type f ! -name '.DS_Store' | sort
   )
 }

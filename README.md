@@ -3,6 +3,8 @@
 AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。  
 它不是业务模板，也不是单纯的提示词集合，而是一套把“需求澄清 -> 项目规划 -> 任务拆解 -> 开发实现 -> 验收交付 -> 发布回滚 -> 复盘沉淀”固化下来的规则、skills、workflows 和初始化 CLI。
 
+**跨工具兼容：** AI-OS 基于 `AGENTS.md` 和 `SKILL.md` 两个开放标准构建，原生支持 Google Antigravity、Cursor、OpenAI Codex 以及其他兼容工具（Copilot、Claude Code、Gemini CLI 等）。
+
 目标很明确：让 AI 按项目方式完成交付，而不是只完成一段代码，减少你反复手动提醒遗漏项的次数。
 
 ## 适合谁
@@ -78,8 +80,8 @@ AI-OS 会在目标项目里生成两类内容。
 
 ### 1. 框架受管文件
 
-- `agent.md`
-- `.agents/`
+- `AGENTS.md`（跨工具通用宪法层，Antigravity / Cursor / Codex 共读）
+- `.agents/`（内含 `SKILL.md` 标准的技能模块和工作流）
 - `.ai-os-project/framework.toml`
 
 这部分由 AI-OS 框架负责，属于“通用交付能力”。
@@ -154,9 +156,11 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 ## 仓库结构
 
 ```text
-agent.md                         宪法层
-.agents/skills/                 能力模块
+AGENTS.md                        宪法层（AGENTS.md 开放标准）
+.agents/skills/                 能力模块（SKILL.md 开放标准）
+.agents/skills/AGENTS.md        Skills 触发规则索引
 .agents/workflows/              交付工作流
+.agents/workflows/AGENTS.md     Workflows 用法索引
 bin/create-ai-os.js             Git 仓库可执行 CLI
 VERSION                         框架版本
 ```
@@ -193,13 +197,24 @@ VERSION                         框架版本
 - `/incident`
 - `/postmortem`
 
+## 跨工具兼容
+
+AI-OS 使用两个开放标准，无需为每种工具维护独立配置文件：
+
+| 标准 | 用途 | 支持的工具 |
+|------|------|----------|
+| `AGENTS.md` | 项目级规则和宪法 | Antigravity、Cursor、Codex、Copilot、Claude Code、Gemini CLI |
+| `SKILL.md` | 可复用技能模块 | Antigravity、Cursor、Codex、Claude Code、Gemini CLI |
+
+在任何工具中打开项目，均可自动读取 `AGENTS.md` 和 `.agents/skills/*/SKILL.md`。
+
 ## 这个仓库应该怎么维护
 
 把它当成唯一的 AI-OS 母仓库维护，不要把规则分散到每个项目里。
 
 ### 母仓库负责什么
 
-- `agent.md`
+- `AGENTS.md`
 - `.agents/skills/`
 - `.agents/workflows/`
 - 模板和 CLI
@@ -258,7 +273,7 @@ npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os .
 
 注意：
 
-- `--force-framework` 只应该用于替换 `agent.md` 和 `.agents/`
+- `--force-framework` 只应该用于替换 `AGENTS.md` 和 `.agents/`
 - 项目自己的 `specs/`、`tasks.yaml`、`memory.md` 不应该被母仓库覆盖
 
 ## 本地开发

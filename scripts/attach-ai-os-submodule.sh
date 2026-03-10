@@ -14,7 +14,7 @@ Public/default distribution remains:
 Options:
   --ref <git-ref>       Checkout a specific branch, tag, or commit after adding the submodule
   --with-project-files  Create missing project-local files such as project-charter.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
-  --force-links         Replace existing root-level agent.md and .agents with symlinks to the submodule
+  --force-links         Replace existing root-level AGENTS.md and .agents with symlinks to the submodule
   -h, --help            Show this help message
 EOF
 }
@@ -198,7 +198,7 @@ if [[ -n "${FRAMEWORK_REF}" ]]; then
   echo "checked out framework ref: ${FRAMEWORK_REF}"
 fi
 
-ensure_symlink "${TARGET_DIR}/agent.md" "${SUBMODULE_PATH}/agent.md"
+ensure_symlink "${TARGET_DIR}/AGENTS.md" "${SUBMODULE_PATH}/AGENTS.md"
 ensure_symlink "${TARGET_DIR}/.agents" "${SUBMODULE_PATH}/.agents"
 
 if [[ "${WITH_PROJECT_FILES}" -eq 1 ]]; then
