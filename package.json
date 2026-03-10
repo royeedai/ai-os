@@ -1,6 +1,6 @@
 {
   "name": "create-ai-os",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Bootstrap the AI project delivery operating system into a target project.",
   "repository": {
     "type": "git",
@@ -8,7 +8,10 @@
   },
   "homepage": "https://github.com/royeedai/ai-os",
   "bin": {
-    "create-ai-os": "./bin/create-ai-os.js"
+    "create-ai-os": "./bin/create-ai-os.js",
+    "ai-os-doctor": "./bin/ai-os-doctor.js",
+    "ai-os-diff": "./bin/ai-os-diff.js",
+    "ai-os-upgrade": "./bin/ai-os-upgrade.js"
   },
   "files": [
     "bin",

@@ -1,17 +1,42 @@
 #!/usr/bin/env node
 
+// ---------------------------------------------------------------------------
+// Subcommand routing: doctor / diff / upgrade
+// ---------------------------------------------------------------------------
+
+const _sub = process.argv[2];
+if (["doctor", "diff", "upgrade"].includes(_sub)) {
+  process.argv.splice(2, 1);
+  require(`./ai-os-${_sub}`);
+  // Subcommand scripts call process.exit() themselves; this is a safety fallback.
+  return;
+}
+
+// ---------------------------------------------------------------------------
+// create-ai-os (init)
+// ---------------------------------------------------------------------------
+
 const fs = require("fs");
 const path = require("path");
+const {
+  PACKAGE_ROOT,
+  readFrameworkVersion,
+  readPackageJson,
+  ensureDir,
+  fail,
+  listFilesRecursively,
+  copyFileWithMode,
+} = require("./shared");
 
-const PACKAGE_ROOT = path.resolve(__dirname, "..");
-const FRAMEWORK_VERSION = fs.readFileSync(path.join(PACKAGE_ROOT, "VERSION"), "utf8").trim();
-const PACKAGE_JSON = JSON.parse(
-  fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")
-);
+const FRAMEWORK_VERSION = readFrameworkVersion();
+const PACKAGE_JSON = readPackageJson();
 
 function printHelp() {
   process.stdout.write(`Usage:
   create-ai-os [target-dir] [--target <dir>] [--with-project-files] [--force-framework]
+  create-ai-os doctor [target-dir]     Check project health
+  create-ai-os diff   [target-dir]     Compare framework files against source
+  create-ai-os upgrade [target-dir]    Upgrade framework files to latest
 
   Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
   are open standards supported by Antigravity, Cursor, and Codex.
@@ -24,46 +49,9 @@ Options:
 `);
 }
 
-function fail(message) {
-  process.stderr.write(`${message}\n`);
-  process.exit(1);
-}
+// Utility functions are now imported from ./shared.js
 
-function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
-}
-
-function copyFileWithMode(src, dst) {
-  ensureDir(path.dirname(dst));
-  fs.copyFileSync(src, dst);
-  fs.chmodSync(dst, fs.statSync(src).mode);
-}
-
-function listFilesRecursively(rootDir) {
-  const results = [];
-
-  function walk(currentDir) {
-    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === ".DS_Store") {
-        continue;
-      }
-
-      const absolutePath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        walk(absolutePath);
-        continue;
-      }
-
-      if (entry.isFile()) {
-        results.push(absolutePath);
-      }
-    }
-  }
-
-  walk(rootDir);
-  return results.sort();
-}
+// listFilesRecursively is now imported from ./shared.js
 
 function copyFramework(targetDir) {
   const managedRoots = ["AGENTS.md", ".agents"];
