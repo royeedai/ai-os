@@ -8,10 +8,7 @@ const _sub = process.argv[2];
 if (["doctor", "diff", "upgrade"].includes(_sub)) {
   process.argv.splice(2, 1);
   require(`./ai-os-${_sub}`);
-  // Subcommand scripts call process.exit() themselves; this is a safety fallback.
-  return;
-}
-
+} else {
 // ---------------------------------------------------------------------------
 // create-ai-os (init)
 // ---------------------------------------------------------------------------
@@ -273,3 +270,5 @@ Cross-tool compatibility:
 - AGENTS.md: supported by Antigravity, Cursor, and Codex
 - .agents/skills/*/SKILL.md: supported by Antigravity, Cursor, and Codex
 `);
+
+} // end else (init)

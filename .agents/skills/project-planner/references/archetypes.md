@@ -34,3 +34,13 @@
 
 - 重点：终端兼容、网络弱场景、交互反馈、发布节奏
 - 默认组合：`spec-validator` + `fullstack-dev-checklist` + `release-manager`
+
+## 8. 复刻 / 仿制项目
+
+- 重点：功能逻辑还原、素材逆向分析、范围控制、信息置信度管理
+- 默认组合：`reverse-engineer` + `spec-validator` + `fullstack-dev-checklist`
+- 特殊约束：
+  - 必须声明还原度要求（功能逻辑级 / UI 参考级）
+  - 必须声明与原型的计划差异（哪些功能不做、哪些替换）
+  - 每个 spec 条目必须标记信息来源置信度（`[确认]` / `[推断]` / `[待确认]`）
+  - 素材覆盖度低的模块不得直接进入开发

@@ -12,6 +12,7 @@
 | 模块拆分/排期 | `task-orchestrator` |
 | 阶段验收/准备交付 | `acceptance-gate` |
 | 需求变更/补充需求 | `change-impact-analyzer` |
+| 复刻/仿制已有系统 | `reverse-engineer` |
 | 准备上线/交付用户 | `release-manager` |
 | 重复漏项/事故复盘 | `memory-manager`、`agent-evals-guard` |
 
@@ -22,7 +23,7 @@
 | 创建/修改 spec | `spec-validator` |
 | 设计数据库 | `database-schema-design` |
 | 设计 API | `api-design` |
-| 编码过程中 | `fullstack-dev-checklist` |
+| 编码过程中（全栈/CRUD 项目） | `fullstack-dev-checklist` |
 | 每次提交代码 | `git-workflow` |
 | 模块完成 | `code-review-guard` |
 

@@ -16,6 +16,8 @@ description: 遇到 Bug 时的系统化调试流程
 6. **回归检查**：修改了共享代码时，确认关联模块不受影响
 7. 执行相关测试用例确认修复有效
 8. 若该问题来自需求遗漏、任务拆分不足或验收口径不清，触发 `change-impact-analyzer`
-9. 使用 `memory-manager` 记录稳定经验，避免同类问题重复出现
-10. 若该问题具有通用性或曾重复出现，使用 `agent-evals-guard` 新增回归样例
+9. 若该 Bug **不会后续触发 `/incident` → `/postmortem`**，使用 `memory-manager` 记录稳定经验
+10. 若该问题具有通用性或曾重复出现，且不走 `/postmortem`，使用 `agent-evals-guard` 新增回归样例
 11. 向用户报告根因、修复内容和新增的防再发措施
+
+> **注意**：如果问题严重到需要走 `/incident` → `/postmortem`，memory 和 evals 由 `/postmortem` 流程统一处理，此处不重复执行。

@@ -8,11 +8,15 @@ description: 新模块开发完整流程（从需求到交付的闭环）
 
 ## 阶段一：需求定义
 
+> **条件入口**：如果从 `/clone-project` 阶段三进入，spec、tasks、acceptance 已在复刻流程中完成，**跳过本阶段**，直接进入阶段二。
+
 1. 在 `specs/` 目录下创建 `[模块名].spec.md`，使用 `spec-validator` 的 `references/spec-template.md` 作为模板
 2. 调用 `spec-validator` 验证 spec 完整性（8 个章节 + 5 类常见遗漏）
 3. 使用 `task-orchestrator` 基于 spec 生成 `tasks.yaml` 中的任务拆解、依赖、DoR/DoD、Evidence Pack
 4. 使用 `acceptance-gate` 为当前模块生成或更新验收条件，确认本模块“如何算完成”
 5. 将 spec 和任务拆解展示给用户确认，**用户确认前不进入下一阶段**
+
+> **门禁检查点**：进入阶段二前，必须同时具备：① 经 `spec-validator` 验证的 `.spec.md`；② `tasks.yaml` 中的任务拆解；③ `acceptance.yaml` 中的验收条件。三者缺一不可。
 
 ## 阶段二：技术设计
 

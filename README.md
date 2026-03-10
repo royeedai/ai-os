@@ -24,6 +24,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 - 数据处理 / ETL / 报表系统
 - CLI / SDK / 工具类项目
 - 轻量移动端 / H5
+- 复刻 / 仿制项目（从截图、URL、API 文档逆向还原）
 
 ## 它的核心思路
 
@@ -143,6 +144,35 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 - 把重复性坑和有效做法沉淀进 `memory.md`
 - 把关键回归场景沉淀进 `evals/`
 
+## 复刻项目应该怎么使用
+
+如果你要复刻/仿制一个已有系统，推荐流程如下：
+
+1. 初始化项目
+
+```bash
+npx --yes github:royeedai/ai-os my-clone-project --with-project-files
+```
+
+2. 收集素材
+
+   - 在项目里创建 `references/clone-materials/` 目录
+   - 按类型放入素材：截图放 `screenshots/`、API 文档放 `api/`、URL 写入 `urls.md`、描述写入 `descriptions.md`
+
+3. 启动复刻流程 `/clone-project`
+
+   - AI 自动评估素材覆盖度，提醒你补充不足的部分
+   - AI 调用 `reverse-engineer` 逆向分析所有素材
+   - 反推出模块清单和每个模块的 `.spec.md` 草稿
+   - 你只需要**审阅和修正**，不需要从零写 spec
+   - 每条信息标记置信度：`[确认]` / `[推断]` / `[待确认]`
+
+4. 确认后自动合流到标准交付
+
+   - 按模块走 `/new-module`（从技术设计阶段起）
+   - 中途对方补充新素材，走 `/change-request` 自动同步
+   - 模块完成走 `/review`，准备交付走 `/ship`
+
 ## 项目里最重要的工件
 
 - `project-charter.md`：项目章程、范围边界、成功标准、非功能要求
@@ -185,10 +215,12 @@ VERSION                         框架版本
 - `systematic-debugging`
 - `performance-optimization`
 - `git-workflow`
+- `reverse-engineer`
 
 核心 Workflows：
 
 - `/new-project`
+- `/clone-project`
 - `/new-module`
 - `/review`
 - `/change-request`
