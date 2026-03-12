@@ -72,16 +72,7 @@ Skill 和 Workflow 的完整触发规则分别由各自的索引文件维护：
 - **Skill 触发规则**：详见 `.agents/skills/AGENTS.md`
 - **Workflow 触发规则**：详见 `.agents/workflows/AGENTS.md`
 
-以上两份索引是触发规则的 Single Source of Truth。本宪法只列出核心约束：
-
-- 启动新项目 → 必须先调用 `project-planner`
-- 新模块 → 必须先创建 `.spec.md` 并经 `spec-validator` 校验
-- 编码中 → 按项目 archetype 组合适用的 Skills（全栈项目默认 `fullstack-dev-checklist`）
-- 模块完成 → 必须调用 `code-review-guard` + `acceptance-gate`
-- 需求变更 → 必须调用 `change-impact-analyzer`
-- 准备上线 → 必须调用 `release-manager`
-- 复刻项目 → 必须调用 `reverse-engineer`
-- 重复漏项 → 必须沉淀到 `memory-manager` 和 `agent-evals-guard`
+以上两份索引是触发规则的 Single Source of Truth，不在本宪法中重复列出。
 
 ## 十、双向溯源与高压线
 

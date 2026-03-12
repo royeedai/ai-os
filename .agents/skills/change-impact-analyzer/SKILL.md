@@ -12,7 +12,7 @@ description: >
 
 ## 使用方式
 
-1. 使用 `references/change-request-template.md` 记录变更
+1. 使用下方模板记录变更
 2. 判断影响维度：范围、页面、API、数据、权限、安全、测试、发布、memory、evals
 3. 明确哪些工件必须同步更新
 4. 标记新增 blocker、风险和审批点
@@ -28,3 +28,41 @@ description: >
 - `release-plan.md`
 - `memory.md`
 - `evals/`
+
+---
+
+## 模板
+
+```markdown
+# 变更请求
+
+- **变更标题**：
+- **提出时间**：
+- **变更原因**：
+- **优先级**：
+
+## 变更内容
+
+- [具体新增 / 删除 / 修改内容]
+
+## 影响分析
+
+| 维度 | 是否受影响 | 说明 |
+|------|------------|------|
+| project-charter | 否 / 是 | |
+| spec | 否 / 是 | |
+| tasks | 否 / 是 | |
+| tests | 否 / 是 | |
+| acceptance | 否 / 是 | |
+| release | 否 / 是 | |
+| memory | 否 / 是 | |
+| evals | 否 / 是 | |
+
+## 新增风险 / blocker
+
+- [风险项]
+
+## 后续动作
+
+- [需要更新的文件和负责人]
+```
