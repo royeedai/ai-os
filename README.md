@@ -468,6 +468,7 @@ node ./bin/create-ai-os.js --help
 
 ## 设计文档
 
+- [Changelog](CHANGELOG.md)
 - [Agent Control Plane](docs/agent-control-plane.md)
 - [Approval Policy](.agents/policies/approval-policy.md)
 
