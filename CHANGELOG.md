@@ -8,12 +8,15 @@
 - `tasks.yaml` 统一为带 `wave` 和 `context_files` 的 schema。
 - `memory.md` 统一为结构化条目格式，与 `memory-manager` 和 `validate` 对齐。
 - `acceptance.yaml` 统一包含 UAT gate，和 `acceptance-gate` / `review` 流程对齐。
+- README、workflow 索引、示例项目和 CLI help 统一改为 `Start / Continue / Finish` 的首次成功路径分层。
+- 文档统一主推 `create-ai-os <command>` 这一套 CLI 心智，`ai-os-*` 保留为兼容别名。
 
 ### Added
 - `ai-os-diff` 现在区分 `modified` 和 `outdated`，避免把“仅版本落后”误判为本地冲突。
 - 新初始化项目会写入 `.ai-os-project/managed-files.tsv`，用于后续框架升级判断。
 - `validate`、`status`、`next`、`resume`、`release-check` 全部切换到读取 `.ai-os-project/`。
 - 新增隐藏目录布局回归样例，防止后续再次退回到根目录散落模式。
+- 新增“首次成功路径路由”回归样例，防止入口说明再次分叉。
 
 ### Breaking
 - 新规范只保证 `.ai-os-project/` 布局。

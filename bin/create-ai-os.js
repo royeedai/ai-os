@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // ---------------------------------------------------------------------------
-// Subcommand routing: doctor / diff / upgrade
+// Stable CLI entrypoint: init + lifecycle subcommands
 // ---------------------------------------------------------------------------
 
 const _sub = process.argv[2];
@@ -40,17 +40,36 @@ const PACKAGE_JSON = readPackageJson();
 function printHelp() {
   process.stdout.write(`Usage:
   create-ai-os [target-dir] [--target <dir>] [--with-project-files] [--force-framework]
-  create-ai-os doctor [target-dir]     Check project health
-  create-ai-os diff   [target-dir]     Compare framework files against source
-  create-ai-os upgrade [target-dir]    Upgrade framework files to latest
-  create-ai-os validate [target-dir]   Validate delivery artifacts
-  create-ai-os status [target-dir]     Show current delivery status
-  create-ai-os next [target-dir]       Show next ready tasks
-  create-ai-os resume [target-dir]     Print resume context pack
+  create-ai-os <command> [target-dir]
+
+First workflow to use:
+  /new-project              Start a new project from scratch
+  /map-codebase -> /new-module
+                            Add a feature in an existing repository
+  /quick                    Handle a small 1-3 file change
+  /clone-project            Rebuild an existing product from references
+
+Check your setup:
+  create-ai-os doctor [target-dir]         Check framework health
+  create-ai-os validate [target-dir]       Validate delivery artifacts
+
+Recover and continue:
+  create-ai-os status [target-dir]         Show current delivery status
+  create-ai-os next [target-dir]           Show next ready tasks
+  create-ai-os resume [target-dir]         Print resume context pack
+
+Maintain framework:
+  create-ai-os diff [target-dir]           Compare framework files against source
+  create-ai-os upgrade [target-dir]        Upgrade framework files to latest
+
+Prepare delivery:
   create-ai-os release-check [target-dir]  Check release readiness
 
   Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
   are open standards supported by Antigravity, Cursor, and Codex.
+
+  Compatibility aliases such as ai-os-validate and ai-os-status are still shipped,
+  but create-ai-os <command> is the primary documented entrypoint.
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
@@ -287,8 +306,9 @@ Target project: ${TARGET_DIR}
 
 Next steps:
 1. Open ${path.join(TARGET_DIR, getProjectRelativePath("project-charter.md"))} if you created project-local files.
-2. Start with the /new-project workflow for a new project.
-3. Commit the generated framework and project state files into the target repository.
+2. Pick the right start workflow: /new-project, /map-codebase -> /new-module, /quick, or /clone-project.
+3. When you come back later, use create-ai-os status/resume to recover context.
+4. Commit the generated framework and project state files into the target repository.
 
 Cross-tool compatibility:
 - AGENTS.md: supported by Antigravity, Cursor, and Codex

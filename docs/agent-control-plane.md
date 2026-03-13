@@ -11,6 +11,22 @@
 - MCP 适配层
 - 多 agent 协作模式
 
+## 对外命令面
+
+为了降低首次成功路径的复杂度，对外产品面应保持两层分工：
+
+- workflow 负责把用户送进正确场景，按 `Start -> Continue -> Finish / Govern` 分层
+- CLI 负责稳定、可脚本化的检查和状态恢复命令面
+
+建议长期保持下面这组稳定心智：
+
+- `Start`：`/new-project`、`/map-codebase -> /new-module`、`/quick`、`/clone-project`
+- `Continue`：`/status`、`/next`、`/resume`、`/auto-advance`
+- `Finish / Govern`：`/review`、`/ship`、`/change-request`、`/debug`、`/incident`、`/postmortem`
+- `CLI`：`create-ai-os <command>` 统一承载 `doctor`、`validate`、`status`、`next`、`resume`、`diff`、`upgrade`、`release-check`
+
+这意味着 AI-OS 的定位应当始终是“交付控制面”，而不是只做 spec authoring 的单点工具。
+
 ## 总体结构
 
 ```mermaid
@@ -90,6 +106,6 @@ flowchart TD
 
 ## 5. 先落地什么
 
-- 先把 `validate/status/next/resume/release-check` 这些 CLI 变成可被 MCP 暴露的稳定命令面
+- 先把 `doctor/validate/status/next/resume/diff/upgrade/release-check` 这些 CLI 变成可被 MCP 暴露的稳定命令面
 - 再为 workflow 执行补 trace schema
 - 最后引入 hosted MCP 与远端观测聚合
