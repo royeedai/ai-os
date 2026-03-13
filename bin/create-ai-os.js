@@ -5,9 +5,13 @@
 // ---------------------------------------------------------------------------
 
 const _sub = process.argv[2];
-if (["doctor", "diff", "upgrade", "validate", "status", "next", "resume", "release-check", "affected"].includes(_sub)) {
+if (["bootstrap", "doctor", "diff", "upgrade", "validate", "status", "next", "resume", "release-check", "affected"].includes(_sub)) {
   process.argv.splice(2, 1);
-  require(`./ai-os-${_sub}`);
+  if (_sub === "bootstrap") {
+    require("./ai-os-bootstrap");
+  } else {
+    require(`./ai-os-${_sub}`);
+  }
 } else {
 // ---------------------------------------------------------------------------
 // create-ai-os (init)
@@ -16,22 +20,17 @@ if (["doctor", "diff", "upgrade", "validate", "status", "next", "resume", "relea
 const fs = require("fs");
 const path = require("path");
 const {
-  PACKAGE_ROOT,
-  PROJECT_ARTIFACT_DIRS,
-  PROJECT_MANAGED_FILES_MANIFEST,
   PROJECT_STATE_ROOT,
   readFrameworkVersion,
   readPackageJson,
   ensureDir,
   fail,
-  listFilesRecursively,
-  listManagedFiles,
-  sha256File,
-  copyFileWithMode,
-  getProjectTemplatePath,
-  getProjectFilePath,
   getProjectRelativePath,
-  getProjectRoot,
+  copyFramework,
+  createProjectFiles,
+  writeMetadata,
+  writeManagedFilesManifest,
+  removeManagedPaths,
 } = require("./shared");
 
 const FRAMEWORK_VERSION = readFrameworkVersion();
@@ -50,6 +49,7 @@ First workflow to use:
   /clone-project            Rebuild an existing product from references
 
 Check your setup:
+  create-ai-os bootstrap [target-dir]      Bootstrap an existing repository into AI-OS
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
 
@@ -80,155 +80,6 @@ Options:
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
 `);
-}
-
-// Utility functions are now imported from ./shared.js
-
-// listFilesRecursively is now imported from ./shared.js
-
-function copyFramework(targetDir) {
-  const managedRoots = ["AGENTS.md", ".agents"];
-
-  for (const rootRel of managedRoots) {
-    const srcRoot = path.join(PACKAGE_ROOT, rootRel);
-    const dstRoot = path.join(targetDir, rootRel);
-
-    if (fs.statSync(srcRoot).isFile()) {
-      copyFileWithMode(srcRoot, dstRoot);
-      process.stdout.write(`copied: ${rootRel}\n`);
-      continue;
-    }
-
-    const files = listFilesRecursively(srcRoot);
-    for (const srcFile of files) {
-      const relativePath = path.relative(PACKAGE_ROOT, srcFile);
-      const dstFile = path.join(targetDir, relativePath);
-      copyFileWithMode(srcFile, dstFile);
-      process.stdout.write(`copied: ${relativePath}\n`);
-    }
-  }
-}
-
-function copyTemplateIfMissing(targetDir, src, dst) {
-  ensureDir(path.dirname(dst));
-  if (fs.existsSync(dst)) {
-    process.stdout.write(`keep existing project file: ${path.relative(targetDir, dst)}\n`);
-    return;
-  }
-
-  copyFileWithMode(src, dst);
-  process.stdout.write(`created project file: ${path.relative(targetDir, dst)}\n`);
-}
-
-function createProjectFiles(targetDir) {
-  for (const dirName of PROJECT_ARTIFACT_DIRS) {
-    ensureDir(getProjectFilePath(targetDir, dirName));
-  }
-  ensureDir(getProjectRoot(targetDir));
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("project-charter.md"),
-    getProjectFilePath(targetDir, "project-charter.md")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("risk-register.md"),
-    getProjectFilePath(targetDir, "risk-register.md")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("tasks.yaml"),
-    getProjectFilePath(targetDir, "tasks.yaml")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("acceptance.yaml"),
-    getProjectFilePath(targetDir, "acceptance.yaml")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("release-plan.md"),
-    getProjectFilePath(targetDir, "release-plan.md")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("memory.md"),
-    getProjectFilePath(targetDir, "memory.md")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("STATE.md"),
-    getProjectFilePath(targetDir, "STATE.md")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath("verification-matrix.yaml"),
-    getProjectFilePath(targetDir, "verification-matrix.yaml")
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath(path.join("specs", "example.spec.md")),
-    getProjectFilePath(targetDir, path.join("specs", "example.spec.md"))
-  );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath(path.join("evals", "eval-example.md")),
-    getProjectFilePath(targetDir, path.join("evals", "eval-example.md"))
-  );
-}
-
-function writeMetadata(targetDir) {
-  const metadataDir = getProjectRoot(targetDir);
-  const metadataFile = getProjectFilePath(targetDir, "framework.toml");
-
-  ensureDir(metadataDir);
-  fs.writeFileSync(
-    metadataFile,
-    [
-      'mode = "npx-git"',
-      `framework_version = "${FRAMEWORK_VERSION}"`,
-      `package_name = "${PACKAGE_JSON.name}"`,
-      `package_version = "${PACKAGE_JSON.version}"`,
-      `managed_files_manifest = "${getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST)}"`,
-      ""
-    ].join("\n"),
-    "utf8"
-  );
-}
-
-function writeManagedFilesManifest(targetDir) {
-  const manifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
-  const lines = listManagedFiles(targetDir).map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
-  ensureDir(path.dirname(manifestPath));
-  fs.writeFileSync(manifestPath, [...lines, ""].join("\n"), "utf8");
-}
-
-function removeManagedPaths(targetDir) {
-  for (const relPath of ["AGENTS.md", ".agents"]) {
-    const absolutePath = path.join(targetDir, relPath);
-    let exists = false;
-    try {
-      fs.lstatSync(absolutePath);
-      exists = true;
-    } catch (_error) {
-      exists = false;
-    }
-
-    if (!exists) {
-      continue;
-    }
-    fs.rmSync(absolutePath, { recursive: true, force: true });
-  }
 }
 
 const args = process.argv.slice(2);
@@ -297,7 +148,7 @@ if (!forceFramework) {
 
 process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${TARGET_DIR}\n`);
 
-copyFramework(TARGET_DIR);
+copyFramework(TARGET_DIR, { overwrite: true });
 
 if (withProjectFiles) {
   createProjectFiles(TARGET_DIR);

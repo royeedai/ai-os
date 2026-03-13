@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+- 新增 `create-ai-os bootstrap` / `ai-os-bootstrap`，用于在老项目中一次性补齐 AI-OS 框架文件、基础项目数据和 `codebase-map.md` 占位模板。
+- 新增 `codebase-map.md` 项目模板，作为 brownfield 项目执行 `/map-codebase` 前的统一落点。
+
+### Changed
+- README、CLI help 和控制面设计文档现在明确区分“老项目第一次接入 AI-OS”和“已接入项目上的后续 brownfield 开发”。
+
 ## 2.4.0
 
 ### Changed

@@ -231,6 +231,133 @@ function getProjectTemplatePath(fileName) {
   return templatePath;
 }
 
+function defaultLogger(message) {
+  process.stdout.write(`${message}\n`);
+}
+
+function copyFramework(targetDir, options = {}) {
+  const { overwrite = false, logger = defaultLogger } = options;
+
+  for (const rootRel of MANAGED_ROOTS) {
+    const srcRoot = path.join(PACKAGE_ROOT, rootRel);
+    const dstRoot = path.join(targetDir, rootRel);
+
+    if (fs.statSync(srcRoot).isFile()) {
+      if (fs.existsSync(dstRoot) && !overwrite) {
+        logger(`keep existing managed file: ${rootRel}`);
+        continue;
+      }
+      copyFileWithMode(srcRoot, dstRoot);
+      logger(`copied: ${rootRel}`);
+      continue;
+    }
+
+    const files = listFilesRecursively(srcRoot);
+    for (const srcFile of files) {
+      const relativePath = path.relative(PACKAGE_ROOT, srcFile);
+      const dstFile = path.join(targetDir, relativePath);
+      if (fs.existsSync(dstFile) && !overwrite) {
+        logger(`keep existing managed file: ${relativePath}`);
+        continue;
+      }
+      copyFileWithMode(srcFile, dstFile);
+      logger(`copied: ${relativePath}`);
+    }
+  }
+}
+
+function copyTemplateIfMissing(targetDir, src, dst, options = {}) {
+  const { logger = defaultLogger } = options;
+
+  ensureDir(path.dirname(dst));
+  if (fs.existsSync(dst)) {
+    logger(`keep existing project file: ${path.relative(targetDir, dst)}`);
+    return false;
+  }
+
+  copyFileWithMode(src, dst);
+  logger(`created project file: ${path.relative(targetDir, dst)}`);
+  return true;
+}
+
+function createProjectFiles(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+
+  for (const dirName of PROJECT_ARTIFACT_DIRS) {
+    ensureDir(getProjectFilePath(targetDir, dirName));
+  }
+  ensureDir(getProjectRoot(targetDir));
+
+  for (const fileName of PROJECT_ARTIFACT_FILES) {
+    copyTemplateIfMissing(
+      targetDir,
+      getProjectTemplatePath(fileName),
+      getProjectFilePath(targetDir, fileName),
+      { logger }
+    );
+  }
+
+  copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath(path.join("specs", "example.spec.md")),
+    getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
+    { logger }
+  );
+
+  copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath(path.join("evals", "eval-example.md")),
+    getProjectFilePath(targetDir, path.join("evals", "eval-example.md")),
+    { logger }
+  );
+}
+
+function writeMetadata(targetDir) {
+  const metadataDir = getProjectRoot(targetDir);
+  const metadataFile = getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
+  const frameworkVersion = readFrameworkVersion();
+  const packageJson = readPackageJson();
+
+  ensureDir(metadataDir);
+  fs.writeFileSync(
+    metadataFile,
+    [
+      'mode = "npx-git"',
+      `framework_version = "${frameworkVersion}"`,
+      `package_name = "${packageJson.name}"`,
+      `package_version = "${packageJson.version}"`,
+      `managed_files_manifest = "${getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST)}"`,
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+}
+
+function writeManagedFilesManifest(targetDir) {
+  const manifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
+  const lines = listManagedFiles(targetDir).map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
+  ensureDir(path.dirname(manifestPath));
+  fs.writeFileSync(manifestPath, [...lines, ""].join("\n"), "utf8");
+}
+
+function removeManagedPaths(targetDir) {
+  for (const relPath of MANAGED_ROOTS) {
+    const absolutePath = path.join(targetDir, relPath);
+    let exists = false;
+    try {
+      fs.lstatSync(absolutePath);
+      exists = true;
+    } catch (_error) {
+      exists = false;
+    }
+
+    if (!exists) {
+      continue;
+    }
+    fs.rmSync(absolutePath, { recursive: true, force: true });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -263,4 +390,10 @@ module.exports = {
   readInstalledMeta,
   copyFileWithMode,
   getProjectTemplatePath,
+  copyFramework,
+  copyTemplateIfMissing,
+  createProjectFiles,
+  writeMetadata,
+  writeManagedFilesManifest,
+  removeManagedPaths,
 };
