@@ -22,6 +22,7 @@
 
 ## 最近决策
 
+- 2026-03-13: 全面文档一致性审查，修复 8 处跨文件冲突/不一致（L3 release-manager 定位、路径前缀、阶段跳转描述等），版本升至 2.3.1
 - 2026-03-13: 用统一模板源替代散落在 skills references 下的项目模板
 - 2026-03-13: 将 `validate/status/next/resume` 纳入官方 CLI 与 workflow 入口
 - 2026-03-13: 对外入口统一采用 `Start / Continue / Finish` workflow 分层和 `create-ai-os <command>` CLI 主心智
@@ -36,4 +37,5 @@
 
 | ID | 描述 | 状态 | 日期 |
 |----|------|------|------|
+| DOC-001 | 全面文档一致性审查与修复（8 项） | 完成 | 2026-03-13 |
 | UX-001 | README / workflow / CLI / example 入口收口 | 完成 | 2026-03-13 |

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.3.1
+
+### Fixed
+- L3 交付等级表中 `release-manager` 从"可选追加"修正为"必须使用"，与宪法 AGENTS.md 对齐。
+- AGENTS.md 第二½节首次出现 STATE.md 处标注完整路径 `.ai-os-project/STATE.md`，消除路径歧义。
+- `review.md` 关于 `acceptance-gate` 包含关系的注释修正为更准确的描述。
+- `task-orchestrator` SKILL.md 增加路径约定说明：`context_files`/`inputs`/`outputs` 均相对于 `.ai-os-project/`。
+- `clone-project.md` 阶段跳转描述改为"跳过阶段零和阶段一"，与 `new-module.md` 对齐。
+- `map-codebase.md` 删除末尾重复的"使用时机"章节。
+- README 核心 Skills 列表补充遗漏的 `find-skills`。
+- `ship.md` 和 `release-manager` SKILL.md 中 CLI 引用从 `ai-os-release-check` 统一改为 `create-ai-os release-check`。
+
 ## Unreleased
 
 ### Changed
