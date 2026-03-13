@@ -8,6 +8,7 @@
 
 | 命令 | 用途 |
 |------|------|
+| `/init` | 老项目初始化（分析代码库 → 生成项目章程、任务图等基础文件） |
 | `/new-project` | 新项目启动（需求 → 章程 → 模块规划 → 任务图） |
 | `/map-codebase` | 分析已有代码库（技术栈、架构、约定、模式） |
 | `/new-module` | 新模块开发（澄清 → spec → 任务 → 编码 → 验收 → 重规划） |
@@ -40,7 +41,7 @@
 
 ## 项目文件自动创建
 
-`bootstrap` 只安装框架文件（`AGENTS.md`、`.agents/`）和元数据。项目工件（`project-charter.md`、`tasks.yaml`、`STATE.md` 等）由 workflow 在执行过程中按需创建，不需要用户手动初始化。如果 `.ai-os/` 目录不存在，workflow 应自动创建它。
+`npx create-ai-os .` 安装框架文件（`AGENTS.md`、`.agents/`）和元数据。项目工件（`project-charter.md`、`tasks.yaml`、`STATE.md` 等）通过 `/init` 工作流一次性生成，或由其他 workflow 在执行过程中按需创建。如果 `.ai-os/` 目录不存在，workflow 应自动创建它。
 
 ## 场景匹配指南
 
@@ -48,6 +49,7 @@
 
 | 用户说 | 触发 |
 |--------|------|
+| "初始化项目" / "初始化老项目" / "给项目建基础文件" / "init" | `/init` |
 | "做一个新项目" / "从 0 开始" | `/new-project` |
 | "复刻一个系统" / "仿制一个产品" | `/clone-project` |
 | "分析一下现有代码" / "先了解下代码库" | `/map-codebase` |

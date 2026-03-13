@@ -5,7 +5,6 @@
 // ---------------------------------------------------------------------------
 
 const SUBCOMMANDS = {
-  bootstrap:       "./ai-os-bootstrap",
   doctor:          "./ai-os-doctor",
   diff:            "./ai-os-diff",
   upgrade:         "./ai-os-upgrade",
@@ -51,6 +50,7 @@ function printHelp() {
   create-ai-os <command> [target-dir]
 
 First workflow to use:
+  /init                     Initialize project base files for an existing codebase
   /new-project              Start a new project from scratch
   /map-codebase -> /new-module
                             Add a feature in an existing repository
@@ -58,7 +58,6 @@ First workflow to use:
   /clone-project            Rebuild an existing product from references
 
 Check your setup:
-  create-ai-os bootstrap [target-dir]      Bootstrap an existing repository into AI-OS
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
 
@@ -130,27 +129,19 @@ for (let i = 0; i < args.length; i += 1) {
 const targetDir = path.resolve(targetArg || ".");
 ensureDir(targetDir);
 
-if (!forceFramework) {
-  const existingFrameworkPaths = ["AGENTS.md", ".agents"]
-    .map((relPath) => path.join(targetDir, relPath))
-    .filter((absolutePath) => fs.existsSync(absolutePath));
+const existingFrameworkPaths = ["AGENTS.md", ".agents"]
+  .map((relPath) => path.join(targetDir, relPath))
+  .filter((absolutePath) => fs.existsSync(absolutePath));
+const isExistingProject = existingFrameworkPaths.length > 0;
 
-  if (existingFrameworkPaths.length > 0) {
-    fail(
-      [
-        "target project already contains framework-managed paths:",
-        ...existingFrameworkPaths.map((absolutePath) => `- ${absolutePath}`),
-        "rerun with --force-framework to overwrite them"
-      ].join("\n")
-    );
-  }
-} else {
+if (forceFramework) {
   removeManagedPaths(targetDir);
 }
 
 process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${targetDir}\n`);
 
-copyFramework(targetDir, { overwrite: true });
+const overwrite = forceFramework || !isExistingProject;
+copyFramework(targetDir, { overwrite });
 
 if (withProjectFiles) {
   createProjectFiles(targetDir);
@@ -159,7 +150,27 @@ if (withProjectFiles) {
 writeMetadata(targetDir);
 writeManagedFilesManifest(targetDir);
 
-process.stdout.write(`
+if (isExistingProject && !forceFramework) {
+  process.stdout.write(`
+Initialization complete (existing project updated).
+
+Framework version: ${FRAMEWORK_VERSION}
+Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
+Target project: ${targetDir}
+
+AI-OS framework installed. Use /init in your AI tool to initialize project files
+(project-charter, tasks, STATE, etc.) with real content from your codebase.
+
+Pick a workflow to start:
+  /init              Initialize project base files for an existing codebase
+  /map-codebase      Analyze existing codebase first
+  /new-module        Add a feature or module
+  /quick             Small fix (1-3 files)
+
+Commit the framework files (AGENTS.md, .agents/, .ai-os/) into your repository.
+`);
+} else {
+  process.stdout.write(`
 Initialization complete.
 
 Framework version: ${FRAMEWORK_VERSION}
@@ -167,14 +178,14 @@ Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${targetDir}
 
 Next steps:
-1. Open ${path.join(targetDir, getProjectRelativePath("project-charter.md"))} if you created project-local files.
-2. Pick the right start workflow: /new-project, /map-codebase -> /new-module, /quick, or /clone-project.
-3. When you come back later, use create-ai-os status/resume to recover context.
-4. Commit the generated framework and project state files into the target repository.
+1. Pick the right start workflow: /init, /new-project, /map-codebase -> /new-module, /quick, or /clone-project.
+2. When you come back later, use create-ai-os status/resume to recover context.
+3. Commit the generated framework and project state files into the target repository.
 
 Cross-tool compatibility:
 - AGENTS.md: supported by Antigravity, Cursor, and Codex
 - .agents/skills/*/SKILL.md: supported by Antigravity, Cursor, and Codex
 `);
+}
 
 } // end else (init)

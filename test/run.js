@@ -102,6 +102,26 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md create
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
 
 // ---------------------------------------------------------------------------
+// Test: re-init on existing project (should not fail)
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== re-init on existing project ===\n");
+
+const agentsMdBefore = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
+fs.writeFileSync(path.join(initDir, "AGENTS.md"), agentsMdBefore + "\n<!-- custom -->\n");
+const customContent = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
+
+const reinitResult = run("create-ai-os.js", [initDir]);
+assert(reinitResult.status === 0, "re-init on existing project exits with code 0");
+assert(fs.existsSync(path.join(initDir, "AGENTS.md")), "AGENTS.md still exists after re-init");
+
+const agentsMdAfter = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
+assert(agentsMdAfter === customContent, "re-init preserves user-modified AGENTS.md (overwrite: false)");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml still exists after re-init");
+
+fs.writeFileSync(path.join(initDir, "AGENTS.md"), agentsMdBefore);
+
+// ---------------------------------------------------------------------------
 // Test: doctor
 // ---------------------------------------------------------------------------
 
