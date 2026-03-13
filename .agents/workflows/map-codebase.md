@@ -21,6 +21,7 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
 ## 会生成或更新什么
 
 - `.ai-os-project/codebase-map.md`：技术栈、架构、约定、现有模式、资产盘点
+- `.ai-os-project/verification-matrix.yaml`：路径到验证动作、重启命令、冷启动 Smoke 的基线
 - `.ai-os-project/memory.md`：沉淀稳定约束与编码约定
 - 后续 spec / tasks：必须引用 `.ai-os-project/codebase-map.md`
 
@@ -36,8 +37,9 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
    - API 风格（REST / GraphQL / RPC）
    - 状态管理（前端）
    - 环境配置方式
-5. **现有资产盘点**：识别已有的数据库 schema、API 端点、页面路由、共享组件
-6. **生成 `.ai-os-project/codebase-map.md`**：
+5. **运行拓扑识别**：梳理现有服务 / 进程、build/start/restart 命令、冷启动 Smoke Check 入口、共享代码影响面
+6. **现有资产盘点**：识别已有的数据库 schema、API 端点、页面路由、共享组件
+7. **生成 `.ai-os-project/codebase-map.md`**：
 
 ```markdown
 # 代码库分析报告
@@ -49,6 +51,11 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
 - **构建工具**：
 - **测试框架**：
 - **数据库**：
+
+## 运行拓扑与验证基线
+
+| 组件 | 启动命令 | 重启命令 | 冷启动 Smoke | 关键路径 |
+|------|----------|----------|--------------|----------|
 
 ## 目录结构与职责
 
@@ -91,6 +98,7 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
 - [基于分析得出的硬性约束]
 ```
 
-7. **写入 memory**：将分析结果中的稳定约束写入 `.ai-os-project/memory.md` 的"硬性约束"和"编码约定"部分
-8. **后续引用**：后续 spec 编写和编码实现**必须参考** `.ai-os-project/codebase-map.md`，确保新代码与现有风格一致
+8. **更新验证矩阵**：把路径到验证动作的稳定映射写入 `.ai-os-project/verification-matrix.yaml`，作为后续 `affected`、任务拆解、发布计划的单一真相源
+9. **写入 memory**：将分析结果中的稳定约束写入 `.ai-os-project/memory.md` 的"硬性约束"和"编码约定"部分
+10. **后续引用**：后续 spec 编写和编码实现**必须参考** `.ai-os-project/codebase-map.md` 与 `.ai-os-project/verification-matrix.yaml`，确保新代码与现有风格一致
 

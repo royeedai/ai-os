@@ -53,10 +53,11 @@ const sections = splitMarkdownSections(releasePlan);
 const requiredSections = [
   "1. 发布前检查",
   "2. 迁移与变更",
-  "3. 发布步骤",
-  "4. Smoke Check",
-  "5. 回滚触发条件",
-  "6. 发布后观察",
+  "3. 受影响服务与重启顺序",
+  "4. 发布步骤",
+  "5. Smoke Check",
+  "6. 回滚触发条件",
+  "7. 发布后观察",
 ];
 
 let hasFailure = false;
@@ -107,19 +108,25 @@ report(
   "Release preflight checklist is specific"
 );
 
-const releaseStepsSection = sections.get("3. 发布步骤") || "";
+const restartSection = sections.get("3. 受影响服务与重启顺序") || "";
+report(
+  hasConcreteChecklistItems(restartSection),
+  "Affected services and restart order are specific"
+);
+
+const releaseStepsSection = sections.get("4. 发布步骤") || "";
 report(
   hasConcreteNumberedSteps(releaseStepsSection),
   "Release steps are specific"
 );
 
-const smokeCheckSection = sections.get("4. Smoke Check") || "";
+const smokeCheckSection = sections.get("5. Smoke Check") || "";
 report(
   hasConcreteChecklistItems(smokeCheckSection),
   "Smoke Check list is specific"
 );
 
-const rollbackSection = sections.get("5. 回滚触发条件") || "";
+const rollbackSection = sections.get("6. 回滚触发条件") || "";
 report(
   hasConcreteChecklistItems(rollbackSection),
   "Rollback triggers are specific"

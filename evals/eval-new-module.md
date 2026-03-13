@@ -10,11 +10,13 @@
 - 应触发 `/new-module`、`spec-validator`、`task-orchestrator`、`acceptance-gate`
 - 应产出 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml`
 - 必须识别退款属于高风险场景，需要补充安全与审批
+- 必须根据 `.ai-os-project/verification-matrix.yaml` 或运行拓扑声明验证动作、重启要求和冷启动 Smoke
 
 ## 常见失败模式
 
 - 只有 spec 没有任务图
 - 退款逻辑未识别为高风险
+- 没有把 migration / worker / 配置变更映射为 restart 或 cold-start 验证
 
 ## 评分标准
 

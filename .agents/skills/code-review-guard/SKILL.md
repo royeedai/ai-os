@@ -12,7 +12,7 @@ description: >
 
 ## 使用方式
 
-1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml`
+1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml`、`.ai-os-project/verification-matrix.yaml`
 2. 逐项对照 .spec 中的功能需求，检查代码是否实现
 3. 对照 `.ai-os-project/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
 4. 使用 `fullstack-dev-checklist` Skill 的九大维度再次全面检查
@@ -29,6 +29,9 @@ description: >
 
 #### A. 编译与入口
 - [ ] 执行过项目级编译/构建命令且无错误？
+- [ ] 是否根据 `.ai-os-project/verification-matrix.yaml` 或 `verification_required` 明确了本次改动必须执行的动作？
+- [ ] 若命中了 `restart_required`，受影响服务是否真的完成了重启？
+- [ ] 若命中了 `cold_start_required`，是否真的执行了冷启动 Smoke Check？
 - [ ] 新模块的接口处理器已注册到路由文件？
 - [ ] 新模块的服务链路已在主入口文件中完成初始化？
 - [ ] 新增的 Model 已加入数据库迁移脚本？
@@ -100,6 +103,7 @@ description: >
 #### 回归影响
 - [ ] 本次修改是否涉及共享代码（Model、工具函数、中间件、共享组件）？
 - [ ] 若涉及共享代码，关联模块是否已重新编译/测试确认无影响？
+- [ ] 若涉及共享运行时代码，关联服务是否已重新启动并完成冷启动验证？
 - [ ] 修复 Bug 时，是否确认修复不会引入新的问题？
 
 #### 数据层面
@@ -111,6 +115,7 @@ description: >
 ### Step 4：交付证据与验收门禁
 
 - [ ] 是否存在构建结果、测试结果、关键日志、截图、接口样例等 Evidence Pack？
+- [ ] 若本次变更要求 restart / cold-start，是否存在 `restart-log`、`cold-start-log`、`post-restart-smoke-log`？
 - [ ] `.ai-os-project/tasks.yaml` 中的关键任务是否都附有完成证据？
 - [ ] 若存在 blocker，是否明确记录而不是模糊写成"待优化"？
 - [ ] 是否调用 `acceptance-gate` 给出最终通过 / 阻塞 / 建议优化结论？

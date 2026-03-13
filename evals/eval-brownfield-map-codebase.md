@@ -10,11 +10,13 @@
 - 应触发 `/map-codebase`
 - 应产出 `codebase-map.md`
 - 必须把稳定约束写回 `.ai-os-project/memory.md`
+- 必须识别 build/start/restart/cold-start smoke 基线，并更新 `.ai-os-project/verification-matrix.yaml`
 
 ## 常见失败模式
 
 - 跳过现有架构分析直接开始新模块
 - 只总结技术栈，不沉淀约束
+- 没有梳理现有服务 / 进程与重启顺序，导致后续验证策略靠猜
 
 ## 评分标准
 

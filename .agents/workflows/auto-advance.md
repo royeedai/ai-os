@@ -21,6 +21,7 @@ description: 自动推进模式（在用户授权后按 tasks.yaml 依赖图和 
 ## 会生成或更新什么
 
 - `.ai-os-project/tasks.yaml`：推进任务状态、补充证据
+- `.ai-os-project/verification-matrix.yaml`：作为变更感知验证的基线输入
 - `.ai-os-project/STATE.md`：同步当前位置、最近决策、下一步
 - 代码与测试文件：完成实现、编译与回归验证
 - 模块完成后触发 `/review` 与 `acceptance-gate`
@@ -43,9 +44,11 @@ description: 自动推进模式（在用户授权后按 tasks.yaml 依赖图和 
    - 检查该任务的 Definition of Ready 是否满足
    - 读取该任务的 `context_files`
    - 读取 `.ai-os-project/memory.md` 获取长期约束
+   - 读取 `.ai-os-project/verification-matrix.yaml`，确认当前任务的 `verification_required`
 2. **执行任务**：
    - 编码实现
    - 编译验证
+   - 若任务声明了 `verification_required` / `restart_required` / `cold_start_required`，执行对应动作并记录证据
    - 核心逻辑处加溯源注释 `// 对应 .spec: FR-XXX`
 3. **后置更新**：
    - 更新 `.ai-os-project/tasks.yaml` 状态和证据
@@ -58,6 +61,7 @@ description: 自动推进模式（在用户授权后按 tasks.yaml 依赖图和 
 每完成 **3 个任务**（或每个 wave 完成后），暂停做一次小型自审：
 
 - [ ] 项目级编译是否通过
+- [ ] 命中 `verification_required` 的任务是否完成了 restart / cold-start smoke
 - [ ] 已完成任务是否存在回归（特别是共享代码变更时）
 - [ ] 实现是否偏离 spec
 - [ ] 是否有新发现需要记录到 `.ai-os-project/STATE.md` 或 `.ai-os-project/memory.md`
@@ -74,6 +78,7 @@ description: 自动推进模式（在用户授权后按 tasks.yaml 依赖图和 
 | 任务 `risk: high` | 暂停，请求用户确认后继续 |
 | 遇到 blocker | 暂停，报告阻塞原因和建议 |
 | 自检发现回归 | 暂停，报告回归内容 |
+| 缺少 restart / cold-start 证据 | 暂停，报告缺失动作 |
 | 任务执行失败（编译不过 / 测试失败） | 暂停，报告失败原因 |
 | 当前模块所有任务完成 | 暂停，触发 `/review` |
 | 当前里程碑所有任务完成 | 暂停，触发 `acceptance-gate` |

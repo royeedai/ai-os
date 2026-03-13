@@ -14,10 +14,11 @@ description: >
 1. 输入来源可以是 `.ai-os-project/project-charter.md` 或某个模块的 `.spec.md`
 2. 使用下方模板生成或更新 `.ai-os-project/tasks.yaml`
 3. 对每个任务明确依赖、风险、输入、输出、DoR、DoD、Evidence Pack
-4. 将测试、文档、发布、回滚、验收任务显式拆出，不允许只拆开发任务
-5. 为任务分配 wave 编号（基于依赖图拓扑排序），同一 wave 内的任务可并行执行
-6. 为每个任务指定 `context_files`，列出执行该任务前必须加载的文件
-7. 每次任务状态变化都要回写 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/STATE.md`
+4. 结合 `.ai-os-project/verification-matrix.yaml`，为每个任务补齐 `affected_components`、`verification_required`、`restart_required`、`cold_start_required`
+5. 将测试、文档、发布、回滚、验收任务显式拆出，不允许只拆开发任务
+6. 为任务分配 wave 编号（基于依赖图拓扑排序），同一 wave 内的任务可并行执行
+7. 为每个任务指定 `context_files`，列出执行该任务前必须加载的文件
+8. 每次任务状态变化都要回写 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/STATE.md`
 
 ## 拆分原则
 
@@ -25,6 +26,7 @@ description: >
 - 一个任务必须有可验证的完成证据
 - 高风险任务要单独拆出并标记审批点
 - 共性基础设施、迁移、回归检查不得藏在"顺手做"
+- 命中 `verification-matrix.yaml` 的运行时变更，必须显式拆出重启 / 冷启动验证任务或在当前任务中写明验证动作
 - **上下文窗口约束**：一个任务的全部输入（spec 引用、依赖代码、实现代码、测试代码）加起来不应超出 AI 单次有效处理能力。经验法则：一个任务涉及的新增/修改代码不应超过 500 行。超过时必须拆成更小的子任务。
 - **拆分信号**：如果 AI 在执行任务时出现"我先做 A 部分，稍后再做 B 部分"的自述，说明任务粒度过大，应回退拆分。
 
@@ -83,16 +85,31 @@ tasks:
     outputs:
       - "src/example.ts"
       - "tests/example.test.ts"
+    affected_components:
+      - "api"
+    verification_required:
+      - "verify"
+      - "build"
+      - "restart_api"
+      - "cold-start-smoke_api"
+    restart_required: true
+    cold_start_required: true
     definition_of_ready:
       - "关联 spec 已确认"
+      - "verification-matrix 已确认"
       - "依赖任务已完成"
     definition_of_done:
       - "代码实现完成"
       - "测试通过"
+      - "受影响服务已完成重启与冷启动验证"
       - "已更新相关文档"
     evidence_required:
       - "build-log"
       - "test-log"
+      - "verification-plan"
+      - "restart-log"
+      - "cold-start-log"
+      - "post-restart-smoke-log"
       - "api-sample-or-screenshot"
     blockers: []
     notes: ""

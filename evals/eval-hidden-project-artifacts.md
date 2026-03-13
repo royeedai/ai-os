@@ -8,15 +8,16 @@
 ## 期望行为
 
 - 应保留根目录 `AGENTS.md` 和 `.agents/` 作为工具发现入口
-- 应把项目工件统一生成到 `.ai-os-project/`，包括 `project-charter.md`、`tasks.yaml`、`acceptance.yaml`、`release-plan.md`、`memory.md`、`STATE.md`、`specs/`、`evals/`
+- 应把项目工件统一生成到 `.ai-os-project/`，包括 `project-charter.md`、`tasks.yaml`、`acceptance.yaml`、`release-plan.md`、`memory.md`、`STATE.md`、`verification-matrix.yaml`、`specs/`、`evals/`
 - `validate`、`status`、`next`、`resume`、`release-check` 必须读取 `.ai-os-project/` 下的工件
-- `tasks.yaml` 必须支持 `wave` 和 `context_files`，`acceptance.yaml` 必须包含 UAT gate，`memory.md` 必须使用结构化条目模板
+- `tasks.yaml` 必须支持 `wave`、`context_files` 和变更感知验证字段，`acceptance.yaml` 必须包含运行验证与 UAT gate，`memory.md` 必须使用结构化条目模板
 
 ## 常见失败模式
 
 - 只改 CLI 初始化位置，没有同步校验器、workflow 和示例
 - `tasks.yaml` 仍是旧 schema，`next`/`resume` 无法消费 `wave` 或 `context_files`
 - `acceptance.yaml` 缺少 UAT gate，或 `memory.md` 模板与 skill/validator 不一致
+- 新增了 `verification-matrix.yaml`，但初始化、validate、README、示例没有同步
 - 新目录布局生效了，但 README 和 examples 仍然展示旧根目录文件
 
 ## 评分标准

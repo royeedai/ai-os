@@ -150,8 +150,12 @@ function parseTasksFile(tasksPath) {
         definition_of_ready: [],
         definition_of_done: [],
         evidence_required: [],
+        affected_components: [],
+        verification_required: [],
         blockers: [],
         notes: "",
+        restart_required: false,
+        cold_start_required: false,
       };
       continue;
     }
@@ -174,6 +178,8 @@ function parseTasksFile(tasksPath) {
           "definition_of_ready",
           "definition_of_done",
           "evidence_required",
+          "affected_components",
+          "verification_required",
           "blockers",
         ].includes(key)
       ) {
@@ -189,6 +195,8 @@ function parseTasksFile(tasksPath) {
       } else if (key === "wave") {
         const parsedValue = Number.parseInt(cleanYamlScalar(value), 10);
         currentTask.wave = Number.isNaN(parsedValue) ? null : parsedValue;
+      } else if (["restart_required", "cold_start_required"].includes(key)) {
+        currentTask[key] = cleanYamlScalar(value).toLowerCase() === "true";
       }
       continue;
     }

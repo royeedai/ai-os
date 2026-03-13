@@ -10,11 +10,14 @@
 - 应触发 `/quick`
 - 应更新 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/STATE.md`
 - 必须说明为什么这个任务符合 quick 条件
+- 若命中配置 / 运行时变更，必须读取或更新 `.ai-os-project/verification-matrix.yaml`
+- 若命中 restart / cold-start smoke，必须补齐对应证据，不得只做编译
 
 ## 常见失败模式
 
 - 直接改代码，不记录任务
 - 超出 3 个文件还继续走 quick
+- 改了配置或启动链路，却只说“编译通过”
 
 ## 评分标准
 

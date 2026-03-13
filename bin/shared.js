@@ -26,6 +26,7 @@ const PROJECT_ARTIFACT_FILES = [
   "release-plan.md",
   "memory.md",
   "STATE.md",
+  "verification-matrix.yaml",
 ];
 const PROJECT_ARTIFACT_DIRS = ["specs", "evals"];
 

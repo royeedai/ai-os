@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 const _sub = process.argv[2];
-if (["doctor", "diff", "upgrade", "validate", "status", "next", "resume", "release-check"].includes(_sub)) {
+if (["doctor", "diff", "upgrade", "validate", "status", "next", "resume", "release-check", "affected"].includes(_sub)) {
   process.argv.splice(2, 1);
   require(`./ai-os-${_sub}`);
 } else {
@@ -58,6 +58,9 @@ Recover and continue:
   create-ai-os next [target-dir]           Show next ready tasks
   create-ai-os resume [target-dir]         Print resume context pack
 
+Change-aware verification:
+  create-ai-os affected [target-dir]       Plan or execute verification actions from code changes
+
 Maintain framework:
   create-ai-os diff [target-dir]           Compare framework files against source
   create-ai-os upgrade [target-dir]        Upgrade framework files to latest
@@ -73,7 +76,7 @@ Prepare delivery:
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
-  --with-project-files  Create missing project files under ${PROJECT_STATE_ROOT}/ such as project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, STATE.md, specs/, evals/
+  --with-project-files  Create missing project files under ${PROJECT_STATE_ROOT}/ such as project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, STATE.md, verification-matrix.yaml, specs/, evals/
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
 `);
@@ -163,6 +166,12 @@ function createProjectFiles(targetDir) {
     targetDir,
     getProjectTemplatePath("STATE.md"),
     getProjectFilePath(targetDir, "STATE.md")
+  );
+
+  copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath("verification-matrix.yaml"),
+    getProjectFilePath(targetDir, "verification-matrix.yaml")
   );
 
   copyTemplateIfMissing(

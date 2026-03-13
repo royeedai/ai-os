@@ -26,13 +26,20 @@ gates:
       - "test-log"
 
   - id: GATE-003
-    title: "交付证据"
+    title: "运行验证与交付证据"
     status: pending
     checks:
+      - "本次变更要求的验证动作已执行"
+      - "triage worker 已完成重启"
+      - "冷启动 smoke 已完成"
       - "review-report 已输出"
       - "release-plan 已补全"
       - "关键 eval 已沉淀"
     evidence:
+      - "verification-plan"
+      - "restart-log"
+      - "cold-start-log"
+      - "post-restart-smoke-log"
       - "review-report"
       - "release-plan"
       - "eval-case"

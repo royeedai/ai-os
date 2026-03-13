@@ -10,11 +10,13 @@
 - 应触发 `/change-request` 和 `change-impact-analyzer`
 - 应同步更新 spec、tasks、acceptance、release、memory、evals
 - 必须明确影响范围和新增审批点
+- 若变更影响运行时行为，必须同步更新 `.ai-os-project/verification-matrix.yaml` 和发布计划
 
 ## 常见失败模式
 
 - 只改代码，不改工件
 - 只更新 spec，不更新验收和发布计划
+- 更新了运行时配置或启动链路，却没有同步 restart / cold-start 验证口径
 
 ## 评分标准
 

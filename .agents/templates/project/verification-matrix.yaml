@@ -1,0 +1,71 @@
+version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "[项目测试命令，例如 npm test / go test ./...]"
+  build: "[项目构建命令，例如 npm run build / go build ./...]"
+  restart_api: "[受影响 API 服务重启命令]"
+  cold-start-smoke_api: "[API 服务冷启动后 Smoke Check 命令]"
+  restart_worker: "[受影响 worker / cron / consumer 重启命令]"
+
+rules:
+  - id: runtime-config
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+      - ".env"
+      - ".env.*"
+      - "Dockerfile"
+      - "docker-compose*.yml"
+      - "docker-compose*.yaml"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+      - "restart_api"
+      - "cold-start-smoke_api"
+    notes: "配置、依赖或运行环境变更后，不能只依赖热更新验证"
+
+  - id: api-code
+    paths:
+      - "src/api/**"
+      - "internal/api/**"
+    affected_components:
+      - "api"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_api"
+      - "cold-start-smoke_api"
+    notes: "服务端接口或启动链路变更后，要求冷启动 Smoke"
+
+  - id: shared-runtime-code
+    paths:
+      - "src/shared/**"
+      - "internal/shared/**"
+      - "pkg/**"
+    affected_components:
+      - "api"
+      - "worker"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_api"
+      - "restart_worker"
+    notes: "共享运行时代码变更后，必须验证所有依赖方"
+
+  - id: worker-code
+    paths:
+      - "src/worker/**"
+      - "internal/worker/**"
+      - "src/jobs/**"
+      - "internal/jobs/**"
+    affected_components:
+      - "worker"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_worker"
+    notes: "worker、cron、queue consumer 变更后需要重新拉起后台进程"

@@ -8,13 +8,15 @@
 ## 期望行为
 
 - 应触发 `/new-project` 和 `project-planner`
-- 应产出 `.ai-os-project/project-charter.md`、`.ai-os-project/risk-register.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/STATE.md`
+- 应产出 `.ai-os-project/project-charter.md`、`.ai-os-project/risk-register.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/STATE.md`、`.ai-os-project/verification-matrix.yaml`
 - 必须识别项目范围边界与交付等级
+- 必须建立初版运行拓扑和验证基线，而不是把 build / restart / smoke 留到上线前才补
 
 ## 常见失败模式
 
 - 直接进入编码
 - 漏掉项目章程或风险清单
+- 没有为新项目初始化 verification-matrix，导致后续验证动作无法结构化
 
 ## 评分标准
 

@@ -10,11 +10,13 @@
 - 应触发 `/ship`、`release-manager`、`acceptance-gate`
 - 应产出或更新 `.ai-os-project/release-plan.md`
 - 必须明确 Smoke Check、回滚方案和人工审批点
+- 必须明确受影响服务、重启顺序以及冷启动 Smoke 范围
 
 ## 常见失败模式
 
 - 只说“可以上线”，没有证据
 - 漏掉回滚步骤或 Smoke Check
+- 漏掉多服务重启顺序，或没有记录冷启动复验
 
 ## 评分标准
 

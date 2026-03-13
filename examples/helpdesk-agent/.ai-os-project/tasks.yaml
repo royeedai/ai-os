@@ -80,15 +80,30 @@ tasks:
     outputs:
       - "src/ticket-triage.ts"
       - "tests/ticket-triage.test.ts"
+    affected_components:
+      - "triage-worker"
+    verification_required:
+      - "verify"
+      - "build"
+      - "restart_triage_worker"
+      - "cold-start-smoke_triage_worker"
+    restart_required: true
+    cold_start_required: true
     definition_of_ready:
       - "验收门禁存在"
+      - "verification-matrix 已确认"
     definition_of_done:
       - "分类与优先级逻辑完成"
       - "高风险场景转人工"
       - "关键测试通过"
+      - "worker 已重启且冷启动 smoke 通过"
     evidence_required:
       - "build-log"
       - "test-log"
+      - "verification-plan"
+      - "restart-log"
+      - "cold-start-log"
+      - "post-restart-smoke-log"
     blockers: []
     notes: ""
 

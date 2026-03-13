@@ -37,6 +37,13 @@ description: >
 - [ ] **依赖完整**：依赖锁文件是否存在且与依赖声明文件保持同步？
 - [ ] **字段类型合法**：Model 中的时间字段是否使用了正确的时间类型（而非其他类型）？金额字段是否标注了定点数 DB 类型？
 
+### 变更感知验证必须匹配
+- [ ] **验证基线存在**：是否存在 `.ai-os-project/verification-matrix.yaml`，并作为路径 -> 动作的单一真相源？
+- [ ] **动作匹配**：本次改动是否根据 `verification-matrix.yaml` 推导出 `verification_required`、`restart_required`、`cold_start_required`？
+- [ ] **运行时变更兜底**：若修改了配置、启动入口、DI、路由注册、共享代码、migration、worker 或构建配置，是否避免只依赖热更新验证？
+- [ ] **重启证据**：若命中重启要求，是否留下 `restart-log`？
+- [ ] **冷启动证据**：若命中冷启动要求，是否留下 `cold-start-log` 与 `post-restart-smoke-log`？
+
 ### 入口注册必须完整
 - [ ] **路由注册**：新增的接口处理器是否已在路由配置文件中注册？
 - [ ] **依赖注入**：新增的服务链路是否已在主入口文件中完成初始化和注入？

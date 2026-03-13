@@ -30,7 +30,7 @@ Validate the project-local delivery artifacts used by AI-OS.
 
 Checks:
   - .ai-os-project/project-charter.md / risk-register.md / tasks.yaml / acceptance.yaml
-  - .ai-os-project/release-plan.md / memory.md / STATE.md / specs/ / evals/
+  - .ai-os-project/release-plan.md / memory.md / STATE.md / verification-matrix.yaml / specs/ / evals/
   - key section completeness and cross-file references
 
 Options:
@@ -209,6 +209,10 @@ if (tasksContent !== null) {
     "definition_of_ready:",
     "definition_of_done:",
     "evidence_required:",
+    "affected_components:",
+    "verification_required:",
+    "restart_required:",
+    "cold_start_required:",
   ]) {
     if (!tasksContent.includes(marker)) {
       missingTaskMarkers.push(marker);
@@ -258,7 +262,7 @@ for (const specFile of specFiles) {
 const acceptanceContent = readUtf8IfExists(getProjectFilePath(TARGET_DIR, "acceptance.yaml"));
 if (acceptanceContent !== null) {
   const missingMarkers = [];
-  for (const marker of ["version:", "scope:", "gates:", "result:", "GATE-004", "uat-result"]) {
+  for (const marker of ["version:", "scope:", "gates:", "result:", "GATE-004", "uat-result", "verification-plan"]) {
     if (!acceptanceContent.includes(marker)) {
       missingMarkers.push(marker);
     }
@@ -291,16 +295,33 @@ if (releasePlan !== null) {
   const missingSections = markdownHasSections(releasePlan, [
     "1. 发布前检查",
     "2. 迁移与变更",
-    "3. 发布步骤",
-    "4. Smoke Check",
-    "5. 回滚触发条件",
-    "6. 发布后观察",
+    "3. 受影响服务与重启顺序",
+    "4. 发布步骤",
+    "5. Smoke Check",
+    "6. 回滚触发条件",
+    "7. 发布后观察",
   ]);
   report(
     missingSections.length === 0,
     `${getProjectRelativePath("release-plan.md")} sections complete`,
     false,
     missingSections.map((section) => `missing section: ${section}`)
+  );
+}
+
+const verificationMatrix = readUtf8IfExists(getProjectFilePath(TARGET_DIR, "verification-matrix.yaml"));
+if (verificationMatrix !== null) {
+  const missingMarkers = [];
+  for (const marker of ["version:", "commands:", "rules:", "affected_components:", "actions:"]) {
+    if (!verificationMatrix.includes(marker)) {
+      missingMarkers.push(marker);
+    }
+  }
+  report(
+    missingMarkers.length === 0,
+    `${getProjectRelativePath("verification-matrix.yaml")} structure complete`,
+    false,
+    missingMarkers.map((marker) => `missing marker: ${marker}`)
   );
 }
 

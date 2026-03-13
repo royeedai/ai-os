@@ -23,7 +23,7 @@
 - `Start`：`/new-project`、`/map-codebase -> /new-module`、`/quick`、`/clone-project`
 - `Continue`：`/status`、`/next`、`/resume`、`/auto-advance`
 - `Finish / Govern`：`/review`、`/ship`、`/change-request`、`/debug`、`/incident`、`/postmortem`
-- `CLI`：`create-ai-os <command>` 统一承载 `doctor`、`validate`、`status`、`next`、`resume`、`diff`、`upgrade`、`release-check`
+- `CLI`：`create-ai-os <command>` 统一承载 `doctor`、`validate`、`affected`、`status`、`next`、`resume`、`diff`、`upgrade`、`release-check`
 
 这意味着 AI-OS 的定位应当始终是“交付控制面”，而不是只做 spec authoring 的单点工具。
 
@@ -106,6 +106,6 @@ flowchart TD
 
 ## 5. 先落地什么
 
-- 先把 `doctor/validate/status/next/resume/diff/upgrade/release-check` 这些 CLI 变成可被 MCP 暴露的稳定命令面
+- 先把 `doctor/validate/affected/status/next/resume/diff/upgrade/release-check` 这些 CLI 变成可被 MCP 暴露的稳定命令面
 - 再为 workflow 执行补 trace schema
 - 最后引入 hosted MCP 与远端观测聚合

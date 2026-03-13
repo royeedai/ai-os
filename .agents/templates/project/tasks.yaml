@@ -24,16 +24,31 @@ tasks:
     outputs:
       - "src/example.ts"
       - "tests/example.test.ts"
+    affected_components:
+      - "api"
+    verification_required:
+      - "verify"
+      - "build"
+      - "restart_api"
+      - "cold-start-smoke_api"
+    restart_required: true
+    cold_start_required: true
     definition_of_ready:
       - "关联 spec 已确认"
+      - "verification-matrix 已确认"
       - "依赖任务已完成"
     definition_of_done:
       - "代码实现完成"
       - "测试通过"
+      - "受影响服务已完成重启与冷启动验证"
       - "已更新相关文档"
     evidence_required:
       - "build-log"
       - "test-log"
+      - "verification-plan"
+      - "restart-log"
+      - "cold-start-log"
+      - "post-restart-smoke-log"
       - "api-sample-or-screenshot"
     blockers: []
     notes: ""

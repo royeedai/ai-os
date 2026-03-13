@@ -79,7 +79,7 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 参数说明：
 
 - `my-project`：目标项目目录
-- `--with-project-files`：额外生成项目章程、任务、验收、发布、记忆等初始文件
+- `--with-project-files`：额外生成项目章程、任务、验收、发布、记忆、验证基线等初始文件
 
 ### 固定版本初始化
 
@@ -121,6 +121,7 @@ AI-OS 会在目标项目里生成两类内容。
 - `.ai-os-project/release-plan.md`
 - `.ai-os-project/memory.md`
 - `.ai-os-project/STATE.md`
+- `.ai-os-project/verification-matrix.yaml`
 - `.ai-os-project/specs/`
 - `.ai-os-project/evals/`
 
@@ -261,6 +262,7 @@ npx --yes github:royeedai/ai-os my-clone-project --with-project-files
 - `.ai-os-project/release-plan.md`：发布、回滚、Smoke Check
 - `.ai-os-project/memory.md`：结构化项目记忆（架构决策、编码约定、坑点、偏好、约束）
 - `.ai-os-project/STATE.md`：项目状态仪表盘，AI 恢复上下文的第一入口
+- `.ai-os-project/verification-matrix.yaml`：路径到验证动作、重启和冷启动 Smoke 的基线
 - `.ai-os-project/evals/`：回归用例和系统防退化样例
 
 ## 仓库结构
@@ -395,9 +397,22 @@ npx --yes github:royeedai/ai-os doctor . --strict
 
 - `.ai-os-project/project-charter.md` / `.ai-os-project/risk-register.md`
 - `.ai-os-project/tasks.yaml` / `.ai-os-project/acceptance.yaml`
-- `.ai-os-project/release-plan.md` / `.ai-os-project/memory.md` / `.ai-os-project/STATE.md`
+- `.ai-os-project/release-plan.md` / `.ai-os-project/memory.md` / `.ai-os-project/STATE.md` / `.ai-os-project/verification-matrix.yaml`
 - `.ai-os-project/specs/` / `.ai-os-project/evals/`
 - 关键引用是否存在
+
+### `affected` — 变更感知验证
+
+根据当前变更文件和 `.ai-os-project/verification-matrix.yaml`，规划或执行 `validate / verify / build / restart / cold-start smoke` 动作。
+
+```bash
+npx --yes github:royeedai/ai-os affected .
+npx --yes github:royeedai/ai-os affected . --staged
+npx --yes github:royeedai/ai-os affected . --base origin/main
+npx --yes github:royeedai/ai-os affected . --execute
+```
+
+`affected` 默认输出执行计划；带 `--execute` 时会按顺序真正执行动作，并在缺少命令配置或某一步失败时中止。
 
 ### `status` / `next` / `resume` — 状态恢复
 
@@ -451,6 +466,7 @@ npx --yes github:royeedai/ai-os release-check .
 node ./bin/create-ai-os.js my-project --with-project-files
 node ./bin/create-ai-os.js doctor my-project
 node ./bin/create-ai-os.js validate my-project
+node ./bin/create-ai-os.js affected my-project
 node ./bin/create-ai-os.js diff my-project
 node ./bin/create-ai-os.js upgrade my-project
 node ./bin/create-ai-os.js status my-project
@@ -480,6 +496,7 @@ node ./bin/create-ai-os.js --help
 - 项目章程 / 任务 / 验收 / 发布 / 记忆模板
 - 面向项目交付的 skills 和 workflows
 - 框架健康检查（`doctor`）、严格工件校验（`validate`）、状态恢复（`status` / `next` / `resume`）CLI
+- 变更感知验证（`affected`）CLI，可根据改动决定是否需要 build / restart / cold-start smoke
 - 发布前检查（`release-check`）、差异对比（`diff`）、版本升级（`upgrade`）CLI
 
 ## 设计文档

@@ -11,7 +11,7 @@ description: >
 
 ## 使用方式
 
-1. 读取 `.spec.md`、`.ai-os-project/tasks.yaml`、测试结果、构建结果、截图或接口样例
+1. 读取 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/verification-matrix.yaml`、测试结果、构建结果、截图或接口样例
 2. 使用下方模板生成或更新 `.ai-os-project/acceptance.yaml`
 3. 检查每个验收项是否有对应证据
 4. 输出通过项、阻塞项、建议优化项
@@ -22,6 +22,7 @@ description: >
 
 - Definition of Done 是否满足
 - Evidence Pack 是否完整
+- 本次变更要求的 restart / cold-start 验证是否已执行并留痕
 - blocker 是否被显式记录
 - 需求变更是否已同步到 spec / tasks / tests
 - 准备上线时是否还缺发布或回滚条件
@@ -58,12 +59,19 @@ gates:
       - "test-log"
 
   - id: GATE-003
-    title: "交付证据"
+    title: "运行验证与交付证据"
     status: pending
     checks:
+      - "本次变更要求的验证动作已执行"
+      - "需要重启的服务已完成重启"
+      - "需要冷启动的链路已完成 Smoke Check"
       - "关键接口样例或截图齐全"
       - "风险与剩余问题已记录"
     evidence:
+      - "verification-plan"
+      - "restart-log"
+      - "cold-start-log"
+      - "post-restart-smoke-log"
       - "api-sample-or-screenshot"
       - "risk-note"
 

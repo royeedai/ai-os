@@ -1,0 +1,34 @@
+version: 1
+
+commands:
+  validate: "node ../../bin/create-ai-os.js doctor . --strict"
+  verify: "echo \"示例项目无真实测试命令，使用占位验证\""
+  build: "echo \"示例项目无真实构建命令，使用占位验证\""
+  restart_triage_worker: "echo \"模拟重启分诊 worker\""
+  cold-start-smoke_triage_worker: "echo \"模拟 worker 冷启动 smoke check\""
+
+rules:
+  - id: triage-runtime
+    paths:
+      - "src/ticket-triage.ts"
+      - "tests/ticket-triage.test.ts"
+    affected_components:
+      - "triage-worker"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_triage_worker"
+      - "cold-start-smoke_triage_worker"
+    notes: "分诊运行时代码变更后，需要重新拉起 worker 并做冷启动 smoke"
+
+  - id: triage-config
+    paths:
+      - ".env"
+      - "config/**"
+    affected_components:
+      - "triage-worker"
+    actions:
+      - "build"
+      - "restart_triage_worker"
+      - "cold-start-smoke_triage_worker"
+    notes: "配置变更不能只依赖热更新"

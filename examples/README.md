@@ -12,6 +12,7 @@
 - `.ai-os-project/release-plan.md`
 - `.ai-os-project/memory.md`
 - `.ai-os-project/STATE.md`
+- `.ai-os-project/verification-matrix.yaml`
 - `.ai-os-project/specs/`
 - `.ai-os-project/evals/`
 - `.ai-os-project/review-report.md`

@@ -13,6 +13,7 @@
 - `.ai-os-project/release-plan.md`
 - `.ai-os-project/memory.md`
 - `.ai-os-project/STATE.md`
+- `.ai-os-project/verification-matrix.yaml`
 - `.ai-os-project/specs/`
 - `.ai-os-project/evals/`
 - `.ai-os-project/review-report.md`
@@ -26,7 +27,7 @@
 1. 先读 `.ai-os-project/STATE.md`
 2. 再读 `.ai-os-project/project-charter.md`
 3. 再读 `.ai-os-project/specs/ticket-triage.spec.md`
-4. 然后读 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/acceptance.yaml`
+4. 然后读 `.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml` 和 `.ai-os-project/verification-matrix.yaml`
 5. 最后看 `.ai-os-project/review-report.md` 和 `.ai-os-project/release-plan.md`
 
 ## 第一次上手怎么验证
@@ -42,6 +43,7 @@ node ../../bin/create-ai-os.js resume .
 
 ```bash
 node ../../bin/create-ai-os.js validate .
+node ../../bin/create-ai-os.js affected . --dry-run
 node ../../bin/create-ai-os.js next .
 node ../../bin/create-ai-os.js release-check .
 ```

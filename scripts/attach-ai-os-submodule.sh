@@ -15,7 +15,7 @@ Options:
   --ref <git-ref>       Checkout a specific branch, tag, or commit after adding the submodule
   --with-project-files  Create missing project files under .ai-os-project/ such as
                         project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml,
-                        release-plan.md, memory.md, STATE.md, specs/, evals/
+                        release-plan.md, memory.md, STATE.md, verification-matrix.yaml, specs/, evals/
   --force-links         Replace existing root-level AGENTS.md and .agents with symlinks to the submodule
   -h, --help            Show this help message
 EOF
@@ -103,6 +103,10 @@ create_project_files() {
   copy_template_if_missing \
     "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/STATE.md" \
     "${TARGET_DIR}/${PROJECT_STATE_ROOT}/STATE.md"
+
+  copy_template_if_missing \
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/verification-matrix.yaml" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/verification-matrix.yaml"
 
   copy_template_if_missing \
     "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/specs/example.spec.md" \
