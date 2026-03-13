@@ -1,4 +1,5 @@
 ---
+name: next
 description: 基于 tasks.yaml 依赖图推断当前最值得执行的就绪任务
 ---
 

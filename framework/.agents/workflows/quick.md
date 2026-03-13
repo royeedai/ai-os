@@ -1,4 +1,5 @@
 ---
+name: quick
 description: 小任务快速通道（无需完整 spec/tasks/acceptance 三件套）
 ---
 

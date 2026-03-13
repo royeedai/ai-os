@@ -52,17 +52,14 @@ let forceFramework = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
-
   if (arg === "-h" || arg === "--help") {
     printHelp();
     process.exit(0);
   }
-
   if (arg === "--force-framework") {
     forceFramework = true;
     continue;
   }
-
   if (arg === "--target") {
     if (i + 1 >= args.length) {
       fail("--target requires a value");
@@ -71,50 +68,47 @@ for (let i = 0; i < args.length; i += 1) {
     i += 1;
     continue;
   }
-
   if (arg.startsWith("-")) {
     fail(`unknown option: ${arg}`);
   }
-
   if (targetArg) {
     fail(`unexpected argument: ${arg}`);
   }
-
   targetArg = arg;
 }
 
-const TARGET_DIR = path.resolve(targetArg || ".");
-ensureDir(TARGET_DIR);
+const targetDir = path.resolve(targetArg || ".");
+ensureDir(targetDir);
 
 if (forceFramework) {
-  removeManagedPaths(TARGET_DIR);
+  removeManagedPaths(targetDir);
 }
 
-process.stdout.write(`Bootstrapping existing repository with AI-OS ${FRAMEWORK_VERSION} in ${TARGET_DIR}\n`);
+process.stdout.write(`Bootstrapping existing repository with AI-OS ${FRAMEWORK_VERSION} in ${targetDir}\n`);
 
-copyFramework(TARGET_DIR, { overwrite: forceFramework });
-createProjectFiles(TARGET_DIR);
+copyFramework(targetDir, { overwrite: forceFramework });
+createProjectFiles(targetDir);
 copyTemplateIfMissing(
-  TARGET_DIR,
+  targetDir,
   getProjectTemplatePath("codebase-map.md"),
-  getProjectFilePath(TARGET_DIR, "codebase-map.md")
+  getProjectFilePath(targetDir, "codebase-map.md")
 );
 
-writeMetadata(TARGET_DIR);
-writeManagedFilesManifest(TARGET_DIR);
+writeMetadata(targetDir);
+writeManagedFilesManifest(targetDir);
 
-const frameworkPresent = fs.existsSync(path.join(TARGET_DIR, "AGENTS.md")) && fs.existsSync(path.join(TARGET_DIR, ".agents"));
+const frameworkPresent = fs.existsSync(path.join(targetDir, "AGENTS.md")) && fs.existsSync(path.join(targetDir, ".agents"));
 
 process.stdout.write(`
 Bootstrap complete.
 
 Framework version: ${FRAMEWORK_VERSION}
 Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
-Target project: ${TARGET_DIR}
+Target project: ${targetDir}
 Framework files present: ${frameworkPresent ? "yes" : "no"}
 
 Next steps:
-1. Open ${path.join(TARGET_DIR, getProjectRelativePath("STATE.md"))} and ${path.join(TARGET_DIR, getProjectRelativePath("project-charter.md"))}.
+1. Open ${path.join(targetDir, getProjectRelativePath("STATE.md"))} and ${path.join(targetDir, getProjectRelativePath("project-charter.md"))}.
 2. In your AI tool, run /map-codebase to fill ${getProjectRelativePath("codebase-map.md")} and refine ${getProjectRelativePath("verification-matrix.yaml")} / ${getProjectRelativePath("memory.md")}.
 3. If you are adopting the whole repository into AI-OS, continue with /new-project to confirm charter, milestones, risks, and tasks.
 4. For actual delivery work after onboarding, continue with /new-module or /quick.

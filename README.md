@@ -29,7 +29,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | Continue | `/status`、`/next`、`/resume`、`/auto-advance` | 看当前位置、恢复上下文、继续推进 |
 | Finish / Govern | `/review`、`/ship`、`/change-request`、`/debug`、`/incident`、`/postmortem` | 做质量审查、交付、变更和事故处理 |
 
-如果你想先看一个完整样本，直接看 [官方示例](examples/helpdesk-agent/README.md)。
+如果你想先看一个完整样本，在初始化时使用 `--with-project-files`，然后查看 `.ai-os/` 下的工件。
 
 ## 适合谁
 
@@ -260,10 +260,6 @@ npx --yes github:royeedai/ai-os bootstrap .
 
 - 新功能、新模块走 `/new-module`
 - 1-3 文件的小改动走 `/quick`
-
-## 官方示例
-
-- [helpdesk-agent](examples/helpdesk-agent/README.md)：最小但完整的工件闭环样本，覆盖 `charter/spec/tasks/acceptance/STATE/review/ship/evals`
 
 ## 复刻项目应该怎么使用
 
@@ -552,8 +548,6 @@ node ./bin/create-ai-os.js --help
 
 ## 设计文档
 
-- [Changelog](CHANGELOG.md)
-- [Agent Control Plane](docs/agent-control-plane.md)
 - [Approval Policy](.agents/policies/approval-policy.md)
 
 ## License

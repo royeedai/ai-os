@@ -1,4 +1,5 @@
 ---
+name: debug
 description: 遇到 Bug 时的系统化调试流程
 ---
 

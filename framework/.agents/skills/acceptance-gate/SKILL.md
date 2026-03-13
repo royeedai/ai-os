@@ -29,66 +29,9 @@ description: >
 
 ---
 
-## 验收模板
+## 模板引用
 
-```yaml
-version: 1
-scope:
-  type: module
-  name: "example-module"
-  spec: "specs/example.spec.md"
-
-gates:
-  - id: GATE-001
-    title: "需求对齐"
-    status: pending
-    checks:
-      - "spec 已确认"
-      - "变更已同步"
-    evidence: []
-
-  - id: GATE-002
-    title: "实现与测试"
-    status: pending
-    checks:
-      - "核心功能已实现"
-      - "构建通过"
-      - "测试通过"
-    evidence:
-      - "build-log"
-      - "test-log"
-
-  - id: GATE-003
-    title: "运行验证与交付证据"
-    status: pending
-    checks:
-      - "本次变更要求的验证动作已执行"
-      - "需要重启的服务已完成重启"
-      - "需要冷启动的链路已完成 Smoke Check"
-      - "关键接口样例或截图齐全"
-      - "风险与剩余问题已记录"
-    evidence:
-      - "verification-plan"
-      - "restart-log"
-      - "cold-start-log"
-      - "post-restart-smoke-log"
-      - "api-sample-or-screenshot"
-      - "risk-note"
-
-  - id: GATE-004
-    title: "人工验证（UAT）"
-    status: pending
-    checks:
-      - "UAT 脚本已生成"
-      - "用户已执行 UAT 并确认结果"
-    evidence:
-      - "uat-result"
-
-result:
-  decision: blocked
-  blockers: []
-  advisories: []
-```
+- 验收清单：读取 `.agents/templates/project/acceptance.yaml` 作为模板生成 `.ai-os/acceptance.yaml`
 
 ---
 

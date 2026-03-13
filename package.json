@@ -20,6 +20,9 @@
     "ai-os-resume": "./bin/ai-os-resume.js",
     "ai-os-release-check": "./bin/ai-os-release-check.js"
   },
+  "scripts": {
+    "test": "node test/run.js"
+  },
   "files": [
     "bin",
     "framework",

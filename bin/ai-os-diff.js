@@ -18,18 +18,13 @@ const {
   readInstalledMeta,
   sha256File,
   fail,
+  C_RESET,
+  C_RED,
+  C_GREEN,
+  C_YELLOW,
+  C_CYAN,
+  C_DIM,
 } = require("./shared");
-
-// ---------------------------------------------------------------------------
-// Colors
-// ---------------------------------------------------------------------------
-
-const C_RESET = "\x1b[0m";
-const C_RED = "\x1b[31m";
-const C_GREEN = "\x1b[32m";
-const C_YELLOW = "\x1b[33m";
-const C_CYAN = "\x1b[36m";
-const C_DIM = "\x1b[2m";
 
 // ---------------------------------------------------------------------------
 // Diff logic (exported for reuse by upgrade)
@@ -165,13 +160,13 @@ Options:
     targetArg = arg;
   }
 
-  const TARGET_DIR = path.resolve(targetArg || ".");
+  const targetDir = path.resolve(targetArg || ".");
 
-  if (!fs.existsSync(TARGET_DIR)) {
-    fail(`target directory does not exist: ${TARGET_DIR}`);
+  if (!fs.existsSync(targetDir)) {
+    fail(`target directory does not exist: ${targetDir}`);
   }
 
-  const result = computeDiff(TARGET_DIR);
+  const result = computeDiff(targetDir);
 
   const header = `AI-OS diff: project v${result.targetVersion} ↔ source v${result.sourceVersion}\n`;
 

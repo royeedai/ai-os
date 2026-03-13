@@ -21,15 +21,10 @@ const {
   getProjectFilePath,
   getProjectRelativePath,
   fail,
+  SYM_OK,
+  SYM_FAIL,
+  SYM_WARN,
 } = require("./shared");
-
-// ---------------------------------------------------------------------------
-// Symbols
-// ---------------------------------------------------------------------------
-
-const SYM_OK = "\x1b[32m✓\x1b[0m";
-const SYM_FAIL = "\x1b[31m✗\x1b[0m";
-const SYM_WARN = "\x1b[33m⚠\x1b[0m";
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -70,10 +65,10 @@ for (let i = 0; i < args.length; i += 1) {
   targetArg = arg;
 }
 
-const TARGET_DIR = path.resolve(targetArg || ".");
+const targetDir = path.resolve(targetArg || ".");
 
-if (!fs.existsSync(TARGET_DIR)) {
-  fail(`target directory does not exist: ${TARGET_DIR}`);
+if (!fs.existsSync(targetDir)) {
+  fail(`target directory does not exist: ${targetDir}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -95,11 +90,11 @@ function check(ok, label, warnOnly) {
 
 const frameworkVersion = readFrameworkVersion();
 
-process.stdout.write(`\nAI-OS Doctor — ${TARGET_DIR}\n`);
+process.stdout.write(`\nAI-OS Doctor — ${targetDir}\n`);
 process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
 
 // 1. Metadata
-const meta = readInstalledMeta(TARGET_DIR);
+const meta = readInstalledMeta(targetDir);
 check(meta.exists, ".ai-os/framework.toml exists", false);
 
 if (meta.exists) {
@@ -113,19 +108,19 @@ if (meta.exists) {
 
 // 2. AGENTS.md
 check(
-  fs.existsSync(path.join(TARGET_DIR, "AGENTS.md")),
+  fs.existsSync(path.join(targetDir, "AGENTS.md")),
   "AGENTS.md exists",
   false
 );
 
 // 3. .agents/skills/
-const skillsDir = path.join(TARGET_DIR, ".agents", "skills");
+const skillsDir = path.join(targetDir, ".agents", "skills");
 const skillsOk = fs.existsSync(skillsDir) &&
   fs.readdirSync(skillsDir).filter((e) => e !== ".DS_Store").length > 0;
 check(skillsOk, ".agents/skills/ exists and is not empty", false);
 
 // 4. .agents/workflows/
-const workflowsDir = path.join(TARGET_DIR, ".agents", "workflows");
+const workflowsDir = path.join(targetDir, ".agents", "workflows");
 const workflowsOk = fs.existsSync(workflowsDir) &&
   fs.readdirSync(workflowsDir).filter((e) => e !== ".DS_Store").length > 0;
 check(workflowsOk, ".agents/workflows/ exists and is not empty", false);
@@ -134,7 +129,7 @@ check(workflowsOk, ".agents/workflows/ exists and is not empty", false);
 const sourceManaged = listManagedFiles(FRAMEWORK_ROOT);
 const missingFiles = [];
 for (const rel of sourceManaged) {
-  if (!fs.existsSync(path.join(TARGET_DIR, rel))) {
+  if (!fs.existsSync(path.join(targetDir, rel))) {
     missingFiles.push(rel);
   }
 }
@@ -152,11 +147,11 @@ if (missingFiles.length === 0) {
 process.stdout.write(`\n  Project state files:\n`);
 const projectFiles = [
   ...PROJECT_ARTIFACT_FILES.map((relPath) => ({
-    path: getProjectFilePath(TARGET_DIR, relPath),
+    path: getProjectFilePath(targetDir, relPath),
     label: getProjectRelativePath(relPath),
   })),
   ...PROJECT_ARTIFACT_DIRS.map((relPath) => ({
-    path: getProjectFilePath(TARGET_DIR, relPath),
+    path: getProjectFilePath(targetDir, relPath),
     label: `${getProjectRelativePath(relPath)}/`,
     isDir: true,
   })),
@@ -177,7 +172,7 @@ if (strict) {
   process.stdout.write(`\n  Strict validation:\n`);
   const validateResult = spawnSync(
     process.execPath,
-    [path.join(__dirname, "ai-os-validate.js"), TARGET_DIR],
+    [path.join(__dirname, "ai-os-validate.js"), targetDir],
     { stdio: "inherit" }
   );
   if (validateResult.status !== 0) {

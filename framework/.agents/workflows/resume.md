@@ -1,4 +1,5 @@
 ---
+name: resume
 description: 从 STATE.md 恢复上下文，给出最小阅读集和续做入口
 ---
 

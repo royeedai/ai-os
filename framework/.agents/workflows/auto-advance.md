@@ -1,4 +1,5 @@
 ---
+name: auto-advance
 description: 自动推进模式（在用户授权后按 tasks.yaml 依赖图和 wave 顺序自动执行）
 ---
 

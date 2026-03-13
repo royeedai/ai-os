@@ -1,4 +1,5 @@
 ---
+name: clone-project
 description: 复刻项目完整流程（从素材到逆向分析到标准交付）
 ---
 

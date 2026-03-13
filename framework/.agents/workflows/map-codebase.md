@@ -1,4 +1,5 @@
 ---
+name: map-codebase
 description: 分析已有代码库的技术栈、架构、约定和模式（Brownfield 项目入口）
 ---
 

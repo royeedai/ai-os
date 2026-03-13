@@ -360,6 +360,124 @@ function removeManagedPaths(targetDir) {
 }
 
 // ---------------------------------------------------------------------------
+// YAML utilities (shared by project-state and ai-os-affected)
+// ---------------------------------------------------------------------------
+
+function cleanYamlScalar(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function parseInlineArray(value) {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+    return [];
+  }
+  const body = trimmed.slice(1, -1).trim();
+  if (!body) {
+    return [];
+  }
+  return body
+    .split(",")
+    .map((item) => cleanYamlScalar(item))
+    .filter(Boolean);
+}
+
+// ---------------------------------------------------------------------------
+// ANSI output symbols and colors
+// ---------------------------------------------------------------------------
+
+const SYM_OK = "\x1b[32m✓\x1b[0m";
+const SYM_FAIL = "\x1b[31m✗\x1b[0m";
+const SYM_WARN = "\x1b[33m⚠\x1b[0m";
+
+const C_RESET = "\x1b[0m";
+const C_RED = "\x1b[31m";
+const C_GREEN = "\x1b[32m";
+const C_YELLOW = "\x1b[33m";
+const C_CYAN = "\x1b[36m";
+const C_DIM = "\x1b[2m";
+
+// ---------------------------------------------------------------------------
+// Validation schemas (section names for artifact validation)
+// ---------------------------------------------------------------------------
+
+const VALIDATION_SCHEMAS = {
+  projectCharter: [
+    "1. 项目概述",
+    "2. 范围边界",
+    "3. 关键场景",
+    "4. 非功能需求",
+    "5. 里程碑",
+    "6. 模块拆分",
+    "7. 外部依赖",
+    "8. 审批点",
+    "9. 风险摘要",
+  ],
+  releasePlan: [
+    "1. 发布前检查",
+    "2. 迁移与变更",
+    "3. 受影响服务与重启顺序",
+    "4. 发布步骤",
+    "5. Smoke Check",
+    "6. 回滚触发条件",
+    "7. 发布后观察",
+  ],
+  memory: [
+    "元数据",
+    "1. 架构决策（Architecture Decisions）",
+    "2. 编码约定（Conventions）",
+    "3. 已知坑点（Pitfalls）",
+    "4. 用户偏好（Preferences）",
+    "5. 硬性约束（Constraints）",
+  ],
+  state: [
+    "当前位置",
+    "进度概览",
+    "阻塞项",
+    "最近决策",
+    "下一步",
+    "快速任务记录",
+  ],
+  spec: [
+    "概述",
+    "页面/接口清单",
+    "功能需求",
+    "数据模型",
+    "API 定义",
+    "非功能需求",
+    "关联模块",
+    "验收标准",
+  ],
+  riskRegisterTablePattern: /\| ID \| 风险 \| 类型 \|/,
+  tasksMarkers: [
+    "version:",
+    "milestones:",
+    "tasks:",
+    "wave:",
+    "context_files:",
+    "definition_of_ready:",
+    "definition_of_done:",
+    "evidence_required:",
+    "affected_components:",
+    "verification_required:",
+    "restart_required:",
+    "cold_start_required:",
+  ],
+  acceptanceMarkers: ["version:", "scope:", "gates:", "result:", "GATE-004", "uat-result", "verification-plan"],
+  verificationMatrixMarkers: ["version:", "commands:", "rules:", "affected_components:", "actions:"],
+};
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -398,4 +516,16 @@ module.exports = {
   writeMetadata,
   writeManagedFilesManifest,
   removeManagedPaths,
+  cleanYamlScalar,
+  parseInlineArray,
+  SYM_OK,
+  SYM_FAIL,
+  SYM_WARN,
+  C_RESET,
+  C_RED,
+  C_GREEN,
+  C_YELLOW,
+  C_CYAN,
+  C_DIM,
+  VALIDATION_SCHEMAS,
 };

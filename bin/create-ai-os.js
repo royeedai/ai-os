@@ -4,14 +4,23 @@
 // Stable CLI entrypoint: init + lifecycle subcommands
 // ---------------------------------------------------------------------------
 
+const SUBCOMMANDS = {
+  bootstrap:       "./ai-os-bootstrap",
+  doctor:          "./ai-os-doctor",
+  diff:            "./ai-os-diff",
+  upgrade:         "./ai-os-upgrade",
+  validate:        "./ai-os-validate",
+  status:          "./ai-os-status",
+  next:            "./ai-os-next",
+  resume:          "./ai-os-resume",
+  "release-check": "./ai-os-release-check",
+  affected:        "./ai-os-affected",
+};
+
 const _sub = process.argv[2];
-if (["bootstrap", "doctor", "diff", "upgrade", "validate", "status", "next", "resume", "release-check", "affected"].includes(_sub)) {
+if (SUBCOMMANDS[_sub]) {
   process.argv.splice(2, 1);
-  if (_sub === "bootstrap") {
-    require("./ai-os-bootstrap");
-  } else {
-    require(`./ai-os-${_sub}`);
-  }
+  require(SUBCOMMANDS[_sub]);
 } else {
 // ---------------------------------------------------------------------------
 // create-ai-os (init)
@@ -89,22 +98,18 @@ let forceFramework = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
-
   if (arg === "-h" || arg === "--help") {
     printHelp();
     process.exit(0);
   }
-
   if (arg === "--with-project-files") {
     withProjectFiles = true;
     continue;
   }
-
   if (arg === "--force-framework") {
     forceFramework = true;
     continue;
   }
-
   if (arg === "--target") {
     if (i + 1 >= args.length) {
       fail("--target requires a value");
@@ -113,24 +118,21 @@ for (let i = 0; i < args.length; i += 1) {
     i += 1;
     continue;
   }
-
   if (arg.startsWith("-")) {
     fail(`unknown option: ${arg}`);
   }
-
   if (targetArg) {
     fail(`unexpected argument: ${arg}`);
   }
-
   targetArg = arg;
 }
 
-const TARGET_DIR = path.resolve(targetArg || ".");
-ensureDir(TARGET_DIR);
+const targetDir = path.resolve(targetArg || ".");
+ensureDir(targetDir);
 
 if (!forceFramework) {
   const existingFrameworkPaths = ["AGENTS.md", ".agents"]
-    .map((relPath) => path.join(TARGET_DIR, relPath))
+    .map((relPath) => path.join(targetDir, relPath))
     .filter((absolutePath) => fs.existsSync(absolutePath));
 
   if (existingFrameworkPaths.length > 0) {
@@ -143,29 +145,29 @@ if (!forceFramework) {
     );
   }
 } else {
-  removeManagedPaths(TARGET_DIR);
+  removeManagedPaths(targetDir);
 }
 
-process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${TARGET_DIR}\n`);
+process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${targetDir}\n`);
 
-copyFramework(TARGET_DIR, { overwrite: true });
+copyFramework(targetDir, { overwrite: true });
 
 if (withProjectFiles) {
-  createProjectFiles(TARGET_DIR);
+  createProjectFiles(targetDir);
 }
 
-writeMetadata(TARGET_DIR);
-writeManagedFilesManifest(TARGET_DIR);
+writeMetadata(targetDir);
+writeManagedFilesManifest(targetDir);
 
 process.stdout.write(`
 Initialization complete.
 
 Framework version: ${FRAMEWORK_VERSION}
 Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
-Target project: ${TARGET_DIR}
+Target project: ${targetDir}
 
 Next steps:
-1. Open ${path.join(TARGET_DIR, getProjectRelativePath("project-charter.md"))} if you created project-local files.
+1. Open ${path.join(targetDir, getProjectRelativePath("project-charter.md"))} if you created project-local files.
 2. Pick the right start workflow: /new-project, /map-codebase -> /new-module, /quick, or /clone-project.
 3. When you come back later, use create-ai-os status/resume to recover context.
 4. Commit the generated framework and project state files into the target repository.

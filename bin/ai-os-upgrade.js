@@ -77,22 +77,22 @@ for (let i = 0; i < args.length; i += 1) {
   targetArg = arg;
 }
 
-const TARGET_DIR = path.resolve(targetArg || ".");
+const targetDir = path.resolve(targetArg || ".");
 
-if (!fs.existsSync(TARGET_DIR)) {
-  fail(`target directory does not exist: ${TARGET_DIR}`);
+if (!fs.existsSync(targetDir)) {
+  fail(`target directory does not exist: ${targetDir}`);
 }
 
 // ---------------------------------------------------------------------------
 // Pre-flight
 // ---------------------------------------------------------------------------
 
-const meta = readInstalledMeta(TARGET_DIR);
+const meta = readInstalledMeta(targetDir);
 if (!meta.exists) {
   fail(
-    `No ${getProjectRelativePath("framework.toml")} found in ${TARGET_DIR}.\n` +
+    `No ${getProjectRelativePath("framework.toml")} found in ${targetDir}.\n` +
     `Initialize the project first:\n` +
-    `  npx --yes github:royeedai/ai-os ${TARGET_DIR === process.cwd() ? "." : TARGET_DIR}`
+    `  npx --yes github:royeedai/ai-os ${targetDir === process.cwd() ? "." : targetDir}`
   );
 }
 if (meta.mode === "submodule") {
@@ -111,7 +111,7 @@ const packageJson = readPackageJson();
 // Compute diff
 // ---------------------------------------------------------------------------
 
-const diff = computeDiff(TARGET_DIR);
+const diff = computeDiff(targetDir);
 
 const totalChanges = diff.modified.length + diff.outdated.length + diff.missing.length;
 
@@ -166,15 +166,6 @@ if (preflight) {
 }
 
 // ---------------------------------------------------------------------------
-// Detect stale files (in target but were previously managed, now removed from source)
-// ---------------------------------------------------------------------------
-
-// Files that exist in the target under managed roots but NOT in the source
-// (diff.extra already captures these, but we label them differently if they
-// were likely from a previous framework version rather than user-created)
-// For simplicity, we just report extra as "kept as-is" above.
-
-// ---------------------------------------------------------------------------
 // Dry-run exit
 // ---------------------------------------------------------------------------
 
@@ -203,12 +194,12 @@ const filesToWrite = force
 
 for (const rel of filesToWrite) {
   const src = path.join(FRAMEWORK_ROOT, rel);
-  const dst = path.join(TARGET_DIR, rel);
+  const dst = path.join(targetDir, rel);
   copyFileWithMode(src, dst);
 }
 
 // Update framework.toml
-const metaDir = path.dirname(getProjectFilePath(TARGET_DIR, "framework.toml"));
+const metaDir = path.dirname(getProjectFilePath(targetDir, "framework.toml"));
 ensureDir(metaDir);
 const nextMetaValues = {
   ...meta.values,
@@ -219,7 +210,7 @@ const nextMetaValues = {
   managed_files_manifest: meta.values?.managed_files_manifest || getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
 };
 fs.writeFileSync(
-  getProjectFilePath(TARGET_DIR, "framework.toml"),
+  getProjectFilePath(targetDir, "framework.toml"),
   [
     ...Object.entries(nextMetaValues).map(([key, value]) => `${key} = "${value}"`),
     "",
@@ -227,8 +218,8 @@ fs.writeFileSync(
   "utf8"
 );
 
-const manifestPath = getProjectFilePath(TARGET_DIR, PROJECT_MANAGED_FILES_MANIFEST);
-const manifestLines = listManagedFiles(TARGET_DIR).map((relPath) => `${sha256File(path.join(TARGET_DIR, relPath))}\t${relPath}`);
+const manifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
+const manifestLines = listManagedFiles(targetDir).map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
 fs.writeFileSync(manifestPath, [...manifestLines, ""].join("\n"), "utf8");
 
 // ---------------------------------------------------------------------------
@@ -240,7 +231,7 @@ Upgrade complete.
 
   Previous version: ${diff.targetVersion}
   Current version:  ${frameworkVersion}
-  Target project:   ${TARGET_DIR}
+  Target project:   ${targetDir}
   Updated files:    ${(force ? diff.modified.length : 0) + diff.outdated.length}
   Created files:    ${diff.missing.length}
 `);

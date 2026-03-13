@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { fail, getProjectFilePath } = require("./shared");
+const { fail, getProjectFilePath, getProjectRelativePath } = require("./shared");
 const {
   parseTasksFile,
   summarizeTasks,

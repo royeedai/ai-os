@@ -1,4 +1,5 @@
 ---
+name: new-module
 description: 新模块开发完整流程（从需求到交付的闭环）
 ---
 

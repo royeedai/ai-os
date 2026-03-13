@@ -1,4 +1,5 @@
 ---
+name: ship
 description: 发布与交付流程（发布前检查、回滚准备、Smoke Check）
 ---
 

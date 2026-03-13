@@ -2,11 +2,16 @@
 
 const fs = require("fs");
 const path = require("path");
-const { fail, getProjectFilePath, getProjectRelativePath } = require("./shared");
+const {
+  fail,
+  getProjectFilePath,
+  getProjectRelativePath,
+  SYM_OK,
+  SYM_FAIL,
+  SYM_WARN,
+  VALIDATION_SCHEMAS,
+} = require("./shared");
 const { readUtf8IfExists, splitMarkdownSections, parseTasksFile } = require("./project-state");
-
-const SYM_OK = "\x1b[32m✓\x1b[0m";
-const SYM_FAIL = "\x1b[31m✗\x1b[0m";
 
 function printHelp() {
   process.stdout.write(`Usage:
@@ -38,6 +43,7 @@ for (let i = 0; i < args.length; i += 1) {
 }
 
 const targetDir = path.resolve(targetArg || ".");
+
 if (!fs.existsSync(targetDir)) {
   fail(`target directory does not exist: ${targetDir}`);
 }
@@ -50,25 +56,18 @@ if (releasePlan === null) {
 }
 
 const sections = splitMarkdownSections(releasePlan);
-const requiredSections = [
-  "1. 发布前检查",
-  "2. 迁移与变更",
-  "3. 受影响服务与重启顺序",
-  "4. 发布步骤",
-  "5. Smoke Check",
-  "6. 回滚触发条件",
-  "7. 发布后观察",
-];
+const requiredSections = VALIDATION_SCHEMAS.releasePlan;
 
 let hasFailure = false;
 
 function report(ok, label, details = []) {
   if (ok) {
     process.stdout.write(`  ${SYM_OK}  ${label}\n`);
-    return;
+  } else {
+    hasFailure = true;
+    process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
   }
-  hasFailure = true;
-  process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
+
   for (const detail of details) {
     process.stdout.write(`       - ${detail}\n`);
   }

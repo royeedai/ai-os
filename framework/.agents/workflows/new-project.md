@@ -1,4 +1,5 @@
 ---
+name: new-project
 description: 新项目启动流程（从口头需求到项目章程、模块规划和任务图）
 ---
 

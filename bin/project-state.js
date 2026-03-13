@@ -4,6 +4,8 @@ const {
   PROJECT_ARTIFACT_FILES,
   getProjectFilePath,
   getProjectRelativePath,
+  cleanYamlScalar,
+  parseInlineArray,
 } = require("./shared");
 
 function readUtf8IfExists(filePath) {
@@ -64,35 +66,6 @@ function parseMarkdownBulletList(sectionContent) {
     }
   }
   return items;
-}
-
-function cleanYamlScalar(value) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "";
-  }
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
-}
-
-function parseInlineArray(value) {
-  const trimmed = value.trim();
-  if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
-    return [];
-  }
-  const body = trimmed.slice(1, -1).trim();
-  if (!body) {
-    return [];
-  }
-  return body
-    .split(",")
-    .map((item) => cleanYamlScalar(item))
-    .filter(Boolean);
 }
 
 function parseTasksFile(tasksPath) {

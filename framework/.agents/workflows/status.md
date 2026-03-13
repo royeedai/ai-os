@@ -1,4 +1,5 @@
 ---
+name: status
 description: 查看项目当前位置、任务概览、阻塞项和下一步
 ---
 
