@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+## 2.4.0
+
+### Changed
+- 新业务项目的 AI 工件不再散落在仓库根目录，统一收口到 `.ai-os-project/`。
+- 根目录只保留框架入口：`AGENTS.md`、`.agents/` 和 `.ai-os-project/`。
+- `tasks.yaml` 统一为带 `wave`、`context_files` 以及运行时验证字段的 schema。
+- `memory.md` 统一为结构化条目格式，与 `memory-manager` 和 `validate` 对齐。
+- `acceptance.yaml` 统一包含 UAT gate 与运行验证证据，和 `acceptance-gate` / `review` 流程对齐。
+- README、workflow 索引、示例项目和 CLI help 统一改为 `Start / Continue / Finish` 的首次成功路径分层。
+- 文档统一主推 `create-ai-os <command>` 这一套 CLI 心智，`ai-os-*` 保留为兼容别名。
+- `quick`、`new-module`、`auto-advance`、`review`、`ship` 等流程现在会显式检查 restart / cold-start smoke，而不是只检查 build/test。
+- `release-plan.md` 现在要求记录受影响服务、重启顺序与冷启动验证范围。
+
+### Added
+- `ai-os-diff` 现在区分 `modified` 和 `outdated`，避免把“仅版本落后”误判为本地冲突。
+- 新初始化项目会写入 `.ai-os-project/managed-files.tsv`，用于后续框架升级判断。
+- `validate`、`status`、`next`、`resume`、`release-check` 全部切换到读取 `.ai-os-project/`。
+- 新增 `create-ai-os affected` / `ai-os-affected`，可根据变更文件和 `.ai-os-project/verification-matrix.yaml` 规划或执行 `validate / verify / build / restart / cold-start smoke`。
+- 新增 `.ai-os-project/verification-matrix.yaml` 模板，作为路径到验证动作、重启命令和冷启动 Smoke 的基线。
+- 新增隐藏目录布局回归样例，防止后续再次退回到根目录散落模式。
+- 新增“首次成功路径路由”回归样例，防止入口说明再次分叉。
+- 新增 restart / cold-start smoke 相关 eval，防止“需要重启却只做编译”的回归。
+
+### Breaking
+- 新规范只保证 `.ai-os-project/` 布局。
+- 旧项目根目录布局不会被自动迁移到新布局。
+- `ai-os-upgrade` 只升级框架受管文件，不会帮你搬迁旧项目工件。
+- 严格校验现在要求 `.ai-os-project/verification-matrix.yaml`，并要求 `tasks.yaml`、`acceptance.yaml`、`release-plan.md` 满足新的运行时验证字段与章节。
+
 ## 2.3.1
 
 ### Fixed
@@ -11,29 +42,6 @@
 - `map-codebase.md` 删除末尾重复的"使用时机"章节。
 - README 核心 Skills 列表补充遗漏的 `find-skills`。
 - `ship.md` 和 `release-manager` SKILL.md 中 CLI 引用从 `ai-os-release-check` 统一改为 `create-ai-os release-check`。
-
-## Unreleased
-
-### Changed
-- 新业务项目的 AI 工件不再散落在仓库根目录，统一收口到 `.ai-os-project/`。
-- 根目录只保留框架入口：`AGENTS.md`、`.agents/` 和 `.ai-os-project/`。
-- `tasks.yaml` 统一为带 `wave` 和 `context_files` 的 schema。
-- `memory.md` 统一为结构化条目格式，与 `memory-manager` 和 `validate` 对齐。
-- `acceptance.yaml` 统一包含 UAT gate，和 `acceptance-gate` / `review` 流程对齐。
-- README、workflow 索引、示例项目和 CLI help 统一改为 `Start / Continue / Finish` 的首次成功路径分层。
-- 文档统一主推 `create-ai-os <command>` 这一套 CLI 心智，`ai-os-*` 保留为兼容别名。
-
-### Added
-- `ai-os-diff` 现在区分 `modified` 和 `outdated`，避免把“仅版本落后”误判为本地冲突。
-- 新初始化项目会写入 `.ai-os-project/managed-files.tsv`，用于后续框架升级判断。
-- `validate`、`status`、`next`、`resume`、`release-check` 全部切换到读取 `.ai-os-project/`。
-- 新增隐藏目录布局回归样例，防止后续再次退回到根目录散落模式。
-- 新增“首次成功路径路由”回归样例，防止入口说明再次分叉。
-
-### Breaking
-- 新规范只保证 `.ai-os-project/` 布局。
-- 旧项目根目录布局不会被自动迁移到新布局。
-- `ai-os-upgrade` 只升级框架受管文件，不会帮你搬迁旧项目工件。
 
 ## Upgrade Guide
 

@@ -22,7 +22,7 @@
 
 ## 最近决策
 
-- 2026-03-13: 新增 `create-ai-os affected` 与 `.ai-os-project/verification-matrix.yaml`，将 restart / cold-start smoke 纳入 CLI、模板、workflow、验收和 eval
+- 2026-03-13: 新增 `create-ai-os affected` 与 `.ai-os-project/verification-matrix.yaml`，将 restart / cold-start smoke 纳入 CLI、模板、workflow、验收和 eval，版本升至 2.4.0
 - 2026-03-13: 全面文档一致性审查，修复 8 处跨文件冲突/不一致（L3 release-manager 定位、路径前缀、阶段跳转描述等），版本升至 2.3.1
 - 2026-03-13: 用统一模板源替代散落在 skills references 下的项目模板
 - 2026-03-13: 将 `validate/status/next/resume` 纳入官方 CLI 与 workflow 入口
