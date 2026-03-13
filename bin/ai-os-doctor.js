@@ -10,11 +10,16 @@
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const {
   PACKAGE_ROOT,
+  PROJECT_ARTIFACT_DIRS,
+  PROJECT_ARTIFACT_FILES,
   readFrameworkVersion,
   listManagedFiles,
   readInstalledMeta,
+  getProjectFilePath,
+  getProjectRelativePath,
   fail,
 } = require("./shared");
 
@@ -32,23 +37,29 @@ const SYM_WARN = "\x1b[33m⚠\x1b[0m";
 
 function printHelp() {
   process.stdout.write(`Usage:
-  ai-os-doctor [target-dir]
+  ai-os-doctor [target-dir] [--strict]
 
 Check the health of an AI-OS enabled project.
 
 Options:
+  --strict     Also validate project-local delivery artifacts
   -h, --help   Show this help message
 `);
 }
 
 const args = process.argv.slice(2);
 let targetArg = "";
+let strict = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
   if (arg === "-h" || arg === "--help") {
     printHelp();
     process.exit(0);
+  }
+  if (arg === "--strict") {
+    strict = true;
+    continue;
   }
   if (arg.startsWith("-")) {
     fail(`unknown option: ${arg}`);
@@ -140,17 +151,19 @@ if (missingFiles.length === 0) {
 // 6. Project state files (warn only)
 process.stdout.write(`\n  Project state files:\n`);
 const projectFiles = [
-  { path: "project-charter.md", label: "project-charter.md" },
-  { path: "tasks.yaml", label: "tasks.yaml" },
-  { path: "acceptance.yaml", label: "acceptance.yaml" },
-  { path: "release-plan.md", label: "release-plan.md" },
-  { path: "memory.md", label: "memory.md" },
-  { path: "specs", label: "specs/", isDir: true },
-  { path: "evals", label: "evals/", isDir: true },
+  ...PROJECT_ARTIFACT_FILES.map((relPath) => ({
+    path: getProjectFilePath(TARGET_DIR, relPath),
+    label: getProjectRelativePath(relPath),
+  })),
+  ...PROJECT_ARTIFACT_DIRS.map((relPath) => ({
+    path: getProjectFilePath(TARGET_DIR, relPath),
+    label: `${getProjectRelativePath(relPath)}/`,
+    isDir: true,
+  })),
 ];
 
 for (const pf of projectFiles) {
-  const fullPath = path.join(TARGET_DIR, pf.path);
+  const fullPath = pf.path;
   let exists = false;
   if (pf.isDir) {
     exists = fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
@@ -158,6 +171,18 @@ for (const pf of projectFiles) {
     exists = fs.existsSync(fullPath);
   }
   check(exists, pf.label, true);
+}
+
+if (strict) {
+  process.stdout.write(`\n  Strict validation:\n`);
+  const validateResult = spawnSync(
+    process.execPath,
+    [path.join(__dirname, "ai-os-validate.js"), TARGET_DIR],
+    { stdio: "inherit" }
+  );
+  if (validateResult.status !== 0) {
+    hasFailure = true;
+  }
 }
 
 // ---------------------------------------------------------------------------

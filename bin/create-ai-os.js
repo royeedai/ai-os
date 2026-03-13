@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 const _sub = process.argv[2];
-if (["doctor", "diff", "upgrade"].includes(_sub)) {
+if (["doctor", "diff", "upgrade", "validate", "status", "next", "resume", "release-check"].includes(_sub)) {
   process.argv.splice(2, 1);
   require(`./ai-os-${_sub}`);
 } else {
@@ -17,12 +17,21 @@ const fs = require("fs");
 const path = require("path");
 const {
   PACKAGE_ROOT,
+  PROJECT_ARTIFACT_DIRS,
+  PROJECT_MANAGED_FILES_MANIFEST,
+  PROJECT_STATE_ROOT,
   readFrameworkVersion,
   readPackageJson,
   ensureDir,
   fail,
   listFilesRecursively,
+  listManagedFiles,
+  sha256File,
   copyFileWithMode,
+  getProjectTemplatePath,
+  getProjectFilePath,
+  getProjectRelativePath,
+  getProjectRoot,
 } = require("./shared");
 
 const FRAMEWORK_VERSION = readFrameworkVersion();
@@ -34,13 +43,18 @@ function printHelp() {
   create-ai-os doctor [target-dir]     Check project health
   create-ai-os diff   [target-dir]     Compare framework files against source
   create-ai-os upgrade [target-dir]    Upgrade framework files to latest
+  create-ai-os validate [target-dir]   Validate delivery artifacts
+  create-ai-os status [target-dir]     Show current delivery status
+  create-ai-os next [target-dir]       Show next ready tasks
+  create-ai-os resume [target-dir]     Print resume context pack
+  create-ai-os release-check [target-dir]  Check release readiness
 
   Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
   are open standards supported by Antigravity, Cursor, and Codex.
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
-  --with-project-files  Create missing project-local files such as project-charter.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
+  --with-project-files  Create missing project files under ${PROJECT_STATE_ROOT}/ such as project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, STATE.md, specs/, evals/
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
 `);
@@ -85,68 +99,69 @@ function copyTemplateIfMissing(targetDir, src, dst) {
 }
 
 function createProjectFiles(targetDir) {
-  ensureDir(path.join(targetDir, "specs"));
-  ensureDir(path.join(targetDir, "evals"));
-  ensureDir(path.join(targetDir, ".ai-os-project"));
+  for (const dirName of PROJECT_ARTIFACT_DIRS) {
+    ensureDir(getProjectFilePath(targetDir, dirName));
+  }
+  ensureDir(getProjectRoot(targetDir));
 
   copyTemplateIfMissing(
     targetDir,
-    path.join(
-      PACKAGE_ROOT,
-      ".agents/skills/project-planner/references/project-charter-template.md"
-    ),
-    path.join(targetDir, "project-charter.md")
+    getProjectTemplatePath("project-charter.md"),
+    getProjectFilePath(targetDir, "project-charter.md")
   );
 
   copyTemplateIfMissing(
     targetDir,
-    path.join(
-      PACKAGE_ROOT,
-      ".agents/skills/project-planner/references/risk-register-template.md"
-    ),
-    path.join(targetDir, "risk-register.md")
+    getProjectTemplatePath("risk-register.md"),
+    getProjectFilePath(targetDir, "risk-register.md")
   );
 
   copyTemplateIfMissing(
     targetDir,
-    path.join(
-      PACKAGE_ROOT,
-      ".agents/skills/task-orchestrator/references/tasks-template.yaml"
-    ),
-    path.join(targetDir, "tasks.yaml")
+    getProjectTemplatePath("tasks.yaml"),
+    getProjectFilePath(targetDir, "tasks.yaml")
   );
 
   copyTemplateIfMissing(
     targetDir,
-    path.join(
-      PACKAGE_ROOT,
-      ".agents/skills/acceptance-gate/references/acceptance-template.yaml"
-    ),
-    path.join(targetDir, "acceptance.yaml")
+    getProjectTemplatePath("acceptance.yaml"),
+    getProjectFilePath(targetDir, "acceptance.yaml")
   );
 
   copyTemplateIfMissing(
     targetDir,
-    path.join(
-      PACKAGE_ROOT,
-      ".agents/skills/release-manager/references/release-plan-template.md"
-    ),
-    path.join(targetDir, "release-plan.md")
+    getProjectTemplatePath("release-plan.md"),
+    getProjectFilePath(targetDir, "release-plan.md")
   );
 
   copyTemplateIfMissing(
     targetDir,
-    path.join(
-      PACKAGE_ROOT,
-      ".agents/skills/memory-manager/references/memory-template.md"
-    ),
-    path.join(targetDir, "memory.md")
+    getProjectTemplatePath("memory.md"),
+    getProjectFilePath(targetDir, "memory.md")
+  );
+
+  copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath("STATE.md"),
+    getProjectFilePath(targetDir, "STATE.md")
+  );
+
+  copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath(path.join("specs", "example.spec.md")),
+    getProjectFilePath(targetDir, path.join("specs", "example.spec.md"))
+  );
+
+  copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath(path.join("evals", "eval-example.md")),
+    getProjectFilePath(targetDir, path.join("evals", "eval-example.md"))
   );
 }
 
 function writeMetadata(targetDir) {
-  const metadataDir = path.join(targetDir, ".ai-os-project");
-  const metadataFile = path.join(metadataDir, "framework.toml");
+  const metadataDir = getProjectRoot(targetDir);
+  const metadataFile = getProjectFilePath(targetDir, "framework.toml");
 
   ensureDir(metadataDir);
   fs.writeFileSync(
@@ -156,10 +171,18 @@ function writeMetadata(targetDir) {
       `framework_version = "${FRAMEWORK_VERSION}"`,
       `package_name = "${PACKAGE_JSON.name}"`,
       `package_version = "${PACKAGE_JSON.version}"`,
+      `managed_files_manifest = "${getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST)}"`,
       ""
     ].join("\n"),
     "utf8"
   );
+}
+
+function writeManagedFilesManifest(targetDir) {
+  const manifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
+  const lines = listManagedFiles(targetDir).map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
+  ensureDir(path.dirname(manifestPath));
+  fs.writeFileSync(manifestPath, [...lines, ""].join("\n"), "utf8");
 }
 
 function removeManagedPaths(targetDir) {
@@ -253,6 +276,7 @@ if (withProjectFiles) {
 }
 
 writeMetadata(TARGET_DIR);
+writeManagedFilesManifest(TARGET_DIR);
 
 process.stdout.write(`
 Initialization complete.
@@ -262,7 +286,7 @@ Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${TARGET_DIR}
 
 Next steps:
-1. Open ${path.join(TARGET_DIR, "project-charter.md")} if you created project-local files.
+1. Open ${path.join(TARGET_DIR, getProjectRelativePath("project-charter.md"))} if you created project-local files.
 2. Start with the /new-project workflow for a new project.
 3. Commit the generated framework and project state files into the target repository.
 

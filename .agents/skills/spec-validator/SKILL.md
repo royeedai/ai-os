@@ -10,7 +10,7 @@ description: >
 
 本 Skill 用于确保 `.spec.md` 文件本身的质量。一个不完整的 .spec 会导致开发时必然遗漏功能。
 
-如果当前需求已经属于“新项目”或跨多个模块，先调用 `project-planner` 形成 `project-charter.md`，再为每个模块创建 `.spec.md`。
+如果当前需求已经属于“新项目”或跨多个模块，先调用 `project-planner` 形成 `.ai-os-project/project-charter.md`，再为每个模块创建 `.spec.md`。
 
 ## 使用方式
 
@@ -23,7 +23,7 @@ description: >
 ## .spec 文件必须包含的章节
 
 ### 0. 项目关联（必须）
-- [ ] 关联的 `project-charter.md` 或上级项目名称
+- [ ] 关联的 `.ai-os-project/project-charter.md` 或上级项目名称
 - [ ] 当前模块所属里程碑 / 任务阶段
 - [ ] 明确本模块**不包含**的范围边界
 

@@ -11,7 +11,12 @@
     "create-ai-os": "./bin/create-ai-os.js",
     "ai-os-doctor": "./bin/ai-os-doctor.js",
     "ai-os-diff": "./bin/ai-os-diff.js",
-    "ai-os-upgrade": "./bin/ai-os-upgrade.js"
+    "ai-os-upgrade": "./bin/ai-os-upgrade.js",
+    "ai-os-validate": "./bin/ai-os-validate.js",
+    "ai-os-status": "./bin/ai-os-status.js",
+    "ai-os-next": "./bin/ai-os-next.js",
+    "ai-os-resume": "./bin/ai-os-resume.js",
+    "ai-os-release-check": "./bin/ai-os-release-check.js"
   },
   "files": [
     "bin",

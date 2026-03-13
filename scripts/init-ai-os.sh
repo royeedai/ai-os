@@ -11,8 +11,9 @@ Legacy copy-mode fallback. Public/default distribution is:
   npx --yes github:royeedai/ai-os <target-project-dir> --with-project-files
 
 Options:
-  --with-project-files  Create missing project files such as project-charter.md,
-                        tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
+  --with-project-files  Create missing project files under .ai-os-project/ such as
+                        project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml,
+                        release-plan.md, memory.md, STATE.md, specs/, evals/
   --with-scaffold       Deprecated alias for --with-project-files
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
@@ -22,6 +23,7 @@ EOF
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FRAMEWORK_VERSION="$(tr -d '[:space:]' < "${SOURCE_ROOT}/VERSION")"
+PROJECT_STATE_ROOT=".ai-os-project"
 
 WITH_PROJECT_FILES=0
 FORCE_FRAMEWORK=0
@@ -65,7 +67,7 @@ copy_template_if_missing() {
 }
 
 write_manifest() {
-  local meta_dir="${TARGET_DIR}/.ai-os-project"
+  local meta_dir="${TARGET_DIR}/${PROJECT_STATE_ROOT}"
   local manifest="${meta_dir}/managed-files.tsv"
 
   mkdir -p "${meta_dir}"
@@ -79,7 +81,7 @@ write_manifest() {
 }
 
 write_framework_metadata() {
-  local meta_dir="${TARGET_DIR}/.ai-os-project"
+  local meta_dir="${TARGET_DIR}/${PROJECT_STATE_ROOT}"
   local metadata_file="${meta_dir}/framework.toml"
 
   mkdir -p "${meta_dir}"
@@ -87,36 +89,48 @@ write_framework_metadata() {
 mode = "copy-fallback"
 framework_version = "${FRAMEWORK_VERSION}"
 framework_source = "local-copy"
-managed_files_manifest = ".ai-os-project/managed-files.tsv"
+managed_files_manifest = "${PROJECT_STATE_ROOT}/managed-files.tsv"
 EOF
 }
 
 create_scaffold() {
-  mkdir -p "${TARGET_DIR}/specs" "${TARGET_DIR}/evals"
+  mkdir -p "${TARGET_DIR}/${PROJECT_STATE_ROOT}/specs" "${TARGET_DIR}/${PROJECT_STATE_ROOT}/evals"
 
   copy_template_if_missing \
-    "${SOURCE_ROOT}/.agents/skills/project-planner/references/project-charter-template.md" \
-    "${TARGET_DIR}/project-charter.md"
+    "${SOURCE_ROOT}/.agents/templates/project/project-charter.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/project-charter.md"
 
   copy_template_if_missing \
-    "${SOURCE_ROOT}/.agents/skills/project-planner/references/risk-register-template.md" \
-    "${TARGET_DIR}/risk-register.md"
+    "${SOURCE_ROOT}/.agents/templates/project/risk-register.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/risk-register.md"
 
   copy_template_if_missing \
-    "${SOURCE_ROOT}/.agents/skills/task-orchestrator/references/tasks-template.yaml" \
-    "${TARGET_DIR}/tasks.yaml"
+    "${SOURCE_ROOT}/.agents/templates/project/tasks.yaml" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/tasks.yaml"
 
   copy_template_if_missing \
-    "${SOURCE_ROOT}/.agents/skills/acceptance-gate/references/acceptance-template.yaml" \
-    "${TARGET_DIR}/acceptance.yaml"
+    "${SOURCE_ROOT}/.agents/templates/project/acceptance.yaml" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/acceptance.yaml"
 
   copy_template_if_missing \
-    "${SOURCE_ROOT}/.agents/skills/release-manager/references/release-plan-template.md" \
-    "${TARGET_DIR}/release-plan.md"
+    "${SOURCE_ROOT}/.agents/templates/project/release-plan.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/release-plan.md"
 
   copy_template_if_missing \
-    "${SOURCE_ROOT}/.agents/skills/memory-manager/references/memory-template.md" \
-    "${TARGET_DIR}/memory.md"
+    "${SOURCE_ROOT}/.agents/templates/project/memory.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/memory.md"
+
+  copy_template_if_missing \
+    "${SOURCE_ROOT}/.agents/templates/project/STATE.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/STATE.md"
+
+  copy_template_if_missing \
+    "${SOURCE_ROOT}/.agents/templates/project/specs/example.spec.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/specs/example.spec.md"
+
+  copy_template_if_missing \
+    "${SOURCE_ROOT}/.agents/templates/project/evals/eval-example.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/evals/eval-example.md"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -191,7 +205,7 @@ Framework version: ${FRAMEWORK_VERSION}
 Target project: ${TARGET_DIR}
 
 Next steps:
-1. Open ${TARGET_DIR}/project-charter.md if you created project files.
+1. Open ${TARGET_DIR}/${PROJECT_STATE_ROOT}/project-charter.md if you created project files.
 2. Start with the /new-project workflow for a new project.
-3. Keep .ai-os-project/framework.toml, installed-version, and managed-files.tsv in the target project so legacy copy-mode upgrades can detect conflicts safely.
+3. Keep ${PROJECT_STATE_ROOT}/framework.toml, installed-version, and managed-files.tsv in the target project so copy-mode upgrades can detect conflicts safely.
 EOF

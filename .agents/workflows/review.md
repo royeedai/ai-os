@@ -8,7 +8,7 @@ description: 模块完成后的质量审查流程（一键触发全套检查）
 
 ## 步骤
 
-1. 定位当前模块对应的 `.spec.md`、`tasks.yaml`、`acceptance.yaml`
+1. 定位当前模块对应的 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml`
 2. 调用 `code-review-guard`，执行完整结构化自审（含编译验证、spec 对照、九维度检查、交付证据与验收门禁）
 3. 若涉及金额/权限/状态流转 → 追加调用 `security-guard`
 4. 若涉及复杂架构/大重构 → 追加调用 `architecture-reviewer`

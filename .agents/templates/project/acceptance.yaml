@@ -30,9 +30,20 @@ gates:
     checks:
       - "关键接口样例或截图齐全"
       - "风险与剩余问题已记录"
+      - "review-report 或验收报告已输出"
     evidence:
       - "api-sample-or-screenshot"
       - "risk-note"
+      - "review-report"
+
+  - id: GATE-004
+    title: "人工验证（UAT）"
+    status: pending
+    checks:
+      - "UAT 脚本已生成"
+      - "用户已执行 UAT 并确认结果"
+    evidence:
+      - "uat-result"
 
 result:
   decision: blocked

@@ -12,11 +12,16 @@ const fs = require("fs");
 const path = require("path");
 const {
   PACKAGE_ROOT,
+  PROJECT_MANAGED_FILES_MANIFEST,
   readFrameworkVersion,
   readPackageJson,
   readInstalledMeta,
   copyFileWithMode,
   ensureDir,
+  listManagedFiles,
+  sha256File,
+  getProjectFilePath,
+  getProjectRelativePath,
   fail,
 } = require("./shared");
 const { computeDiff } = require("./ai-os-diff");
@@ -27,13 +32,14 @@ const { computeDiff } = require("./ai-os-diff");
 
 function printHelp() {
   process.stdout.write(`Usage:
-  ai-os-upgrade [target-dir] [--force] [--dry-run]
+  ai-os-upgrade [target-dir] [--force] [--dry-run] [--preflight]
 
 Upgrade a project's framework files to the latest AI-OS source.
 
 Options:
   --force     Skip conflict check and overwrite all framework files
   --dry-run   Show what would be done without making changes
+  --preflight Check whether upgrade can proceed safely
   -h, --help  Show this help message
 `);
 }
@@ -42,6 +48,7 @@ const args = process.argv.slice(2);
 let targetArg = "";
 let force = false;
 let dryRun = false;
+let preflight = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -55,6 +62,10 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--dry-run") {
     dryRun = true;
+    continue;
+  }
+  if (arg === "--preflight") {
+    preflight = true;
     continue;
   }
   if (arg.startsWith("-")) {
@@ -79,9 +90,17 @@ if (!fs.existsSync(TARGET_DIR)) {
 const meta = readInstalledMeta(TARGET_DIR);
 if (!meta.exists) {
   fail(
-    `No .ai-os-project/framework.toml found in ${TARGET_DIR}.\n` +
+    `No ${getProjectRelativePath("framework.toml")} found in ${TARGET_DIR}.\n` +
     `Initialize the project first:\n` +
     `  npx --yes github:royeedai/ai-os ${TARGET_DIR === process.cwd() ? "." : TARGET_DIR}`
+  );
+}
+if (meta.mode === "submodule") {
+  fail(
+    [
+      "ai-os-upgrade does not manage submodule installations.",
+      "Update the framework by moving the submodule pointer instead.",
+    ].join("\n")
   );
 }
 
@@ -94,7 +113,7 @@ const packageJson = readPackageJson();
 
 const diff = computeDiff(TARGET_DIR);
 
-const totalChanges = diff.modified.length + diff.missing.length;
+const totalChanges = diff.modified.length + diff.outdated.length + diff.missing.length;
 
 if (totalChanges === 0) {
   process.stdout.write(`\nAlready up to date (v${frameworkVersion}).\n\n`);
@@ -108,9 +127,17 @@ if (totalChanges === 0) {
 process.stdout.write(`\nAI-OS upgrade: v${diff.targetVersion} → v${diff.sourceVersion}\n\n`);
 
 if (diff.modified.length > 0) {
-  process.stdout.write(`  Files to update (${diff.modified.length}):\n`);
+  process.stdout.write(`  Conflicts detected (${diff.modified.length}):\n`);
   for (const f of diff.modified) {
-    process.stdout.write(`    ↻ ${f}\n`);
+    process.stdout.write(`    ! ${f}\n`);
+  }
+  process.stdout.write(`  These files differ from the source and will only be overwritten with --force.\n`);
+}
+
+if (diff.outdated.length > 0) {
+  process.stdout.write(`  Safe framework updates (${diff.outdated.length}):\n`);
+  for (const f of diff.outdated) {
+    process.stdout.write(`    ~ ${f}\n`);
   }
 }
 
@@ -126,6 +153,16 @@ if (diff.extra.length > 0) {
   for (const f of diff.extra) {
     process.stdout.write(`    · ${f}\n`);
   }
+}
+
+if (preflight) {
+  process.stdout.write("\n");
+  if (diff.modified.length > 0) {
+    process.stdout.write("Preflight result: BLOCKED — rerun with --force only if overwriting conflicts is intended.\n\n");
+    process.exit(1);
+  }
+  process.stdout.write("Preflight result: SAFE_TO_UPGRADE\n\n");
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,11 +183,23 @@ if (dryRun) {
   process.exit(0);
 }
 
+if (diff.modified.length > 0 && !force) {
+  fail(
+    [
+      "Upgrade blocked by modified framework-managed files.",
+      "Review the conflict list above.",
+      "Use --dry-run to preview again, or rerun with --force to overwrite conflicts."
+    ].join("\n")
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Execute upgrade
 // ---------------------------------------------------------------------------
 
-const filesToWrite = [...diff.modified, ...diff.missing];
+const filesToWrite = force
+  ? [...diff.modified, ...diff.outdated, ...diff.missing]
+  : [...diff.outdated, ...diff.missing];
 
 for (const rel of filesToWrite) {
   const src = path.join(PACKAGE_ROOT, rel);
@@ -159,19 +208,28 @@ for (const rel of filesToWrite) {
 }
 
 // Update framework.toml
-const metaDir = path.join(TARGET_DIR, ".ai-os-project");
+const metaDir = path.dirname(getProjectFilePath(TARGET_DIR, "framework.toml"));
 ensureDir(metaDir);
+const nextMetaValues = {
+  ...meta.values,
+  mode: meta.mode || "npx-git",
+  framework_version: frameworkVersion,
+  package_name: packageJson.name,
+  package_version: packageJson.version,
+  managed_files_manifest: meta.values?.managed_files_manifest || getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
+};
 fs.writeFileSync(
-  path.join(metaDir, "framework.toml"),
+  getProjectFilePath(TARGET_DIR, "framework.toml"),
   [
-    `mode = "${meta.mode || "npx-git"}"`,
-    `framework_version = "${frameworkVersion}"`,
-    `package_name = "${packageJson.name}"`,
-    `package_version = "${packageJson.version}"`,
+    ...Object.entries(nextMetaValues).map(([key, value]) => `${key} = "${value}"`),
     "",
   ].join("\n"),
   "utf8"
 );
+
+const manifestPath = getProjectFilePath(TARGET_DIR, PROJECT_MANAGED_FILES_MANIFEST);
+const manifestLines = listManagedFiles(TARGET_DIR).map((relPath) => `${sha256File(path.join(TARGET_DIR, relPath))}\t${relPath}`);
+fs.writeFileSync(manifestPath, [...manifestLines, ""].join("\n"), "utf8");
 
 // ---------------------------------------------------------------------------
 // Report
@@ -183,7 +241,7 @@ Upgrade complete.
   Previous version: ${diff.targetVersion}
   Current version:  ${frameworkVersion}
   Target project:   ${TARGET_DIR}
-  Updated files:    ${diff.modified.length}
+  Updated files:    ${(force ? diff.modified.length : 0) + diff.outdated.length}
   Created files:    ${diff.missing.length}
 `);
 

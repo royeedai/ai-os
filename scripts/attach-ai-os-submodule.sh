@@ -13,7 +13,9 @@ Public/default distribution remains:
 
 Options:
   --ref <git-ref>       Checkout a specific branch, tag, or commit after adding the submodule
-  --with-project-files  Create missing project-local files such as project-charter.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, specs/, evals/
+  --with-project-files  Create missing project files under .ai-os-project/ such as
+                        project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml,
+                        release-plan.md, memory.md, STATE.md, specs/, evals/
   --force-links         Replace existing root-level AGENTS.md and .agents with symlinks to the submodule
   -h, --help            Show this help message
 EOF
@@ -22,6 +24,7 @@ EOF
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FRAMEWORK_VERSION="$(tr -d '[:space:]' < "${SOURCE_ROOT}/VERSION")"
+PROJECT_STATE_ROOT=".ai-os-project"
 
 TARGET_DIR=""
 FRAMEWORK_REPO=""
@@ -71,35 +74,47 @@ ensure_symlink() {
 }
 
 create_project_files() {
-  mkdir -p "${TARGET_DIR}/specs" "${TARGET_DIR}/evals" "${TARGET_DIR}/.ai-os-project"
+  mkdir -p "${TARGET_DIR}/${PROJECT_STATE_ROOT}/specs" "${TARGET_DIR}/${PROJECT_STATE_ROOT}/evals"
 
   copy_template_if_missing \
-    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/skills/project-planner/references/project-charter-template.md" \
-    "${TARGET_DIR}/project-charter.md"
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/project-charter.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/project-charter.md"
 
   copy_template_if_missing \
-    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/skills/project-planner/references/risk-register-template.md" \
-    "${TARGET_DIR}/risk-register.md"
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/risk-register.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/risk-register.md"
 
   copy_template_if_missing \
-    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/skills/task-orchestrator/references/tasks-template.yaml" \
-    "${TARGET_DIR}/tasks.yaml"
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/tasks.yaml" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/tasks.yaml"
 
   copy_template_if_missing \
-    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/skills/acceptance-gate/references/acceptance-template.yaml" \
-    "${TARGET_DIR}/acceptance.yaml"
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/acceptance.yaml" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/acceptance.yaml"
 
   copy_template_if_missing \
-    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/skills/release-manager/references/release-plan-template.md" \
-    "${TARGET_DIR}/release-plan.md"
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/release-plan.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/release-plan.md"
 
   copy_template_if_missing \
-    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/skills/memory-manager/references/memory-template.md" \
-    "${TARGET_DIR}/memory.md"
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/memory.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/memory.md"
+
+  copy_template_if_missing \
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/STATE.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/STATE.md"
+
+  copy_template_if_missing \
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/specs/example.spec.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/specs/example.spec.md"
+
+  copy_template_if_missing \
+    "${TARGET_DIR}/${SUBMODULE_PATH}/.agents/templates/project/evals/eval-example.md" \
+    "${TARGET_DIR}/${PROJECT_STATE_ROOT}/evals/eval-example.md"
 }
 
 write_project_metadata() {
-  local metadata_file="${TARGET_DIR}/.ai-os-project/framework.toml"
+  local metadata_file="${TARGET_DIR}/${PROJECT_STATE_ROOT}/framework.toml"
 
   mkdir -p "$(dirname "${metadata_file}")"
 
@@ -212,7 +227,7 @@ cat <<EOF
 Attach complete.
 
 Recommended next steps:
-1. Review ${TARGET_DIR}/.ai-os-project/framework.toml
+1. Review ${TARGET_DIR}/${PROJECT_STATE_ROOT}/framework.toml
 2. Commit the submodule pointer, symlinks, and any new project-local files
 3. Start the project with /new-project
 EOF

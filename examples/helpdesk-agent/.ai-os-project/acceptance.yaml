@@ -1,0 +1,53 @@
+version: 1
+scope:
+  type: module
+  name: "ticket-triage"
+  spec: "specs/ticket-triage.spec.md"
+
+gates:
+  - id: GATE-001
+    title: "需求对齐"
+    status: passed
+    checks:
+      - "spec 已确认"
+      - "高风险场景范围明确"
+    evidence:
+      - "spec-review-note"
+
+  - id: GATE-002
+    title: "实现与测试"
+    status: pending
+    checks:
+      - "分诊逻辑完成"
+      - "高风险场景转人工"
+      - "测试通过"
+    evidence:
+      - "build-log"
+      - "test-log"
+
+  - id: GATE-003
+    title: "交付证据"
+    status: pending
+    checks:
+      - "review-report 已输出"
+      - "release-plan 已补全"
+      - "关键 eval 已沉淀"
+    evidence:
+      - "review-report"
+      - "release-plan"
+      - "eval-case"
+
+  - id: GATE-004
+    title: "人工验证（UAT）"
+    status: pending
+    checks:
+      - "UAT 脚本已生成"
+      - "用户已执行 UAT 并确认结果"
+    evidence:
+      - "uat-result"
+
+result:
+  decision: blocked
+  blockers:
+    - "TASK-003 尚未完成，无法进入交付"
+  advisories: []

@@ -2,22 +2,22 @@
 name: code-review-guard
 description: >
   代码交付前自审守卫。在完成模块开发后、标记为完成前，必须使用此 Skill 
-  对照 .spec、tasks 和 acceptance 文件逐项验证实现的完整性，输出验收报告。
+  对照 .spec、tasks 和 acceptance 文件逐项验证实现的完整性，输出验收报告（含 UAT 脚本）。
   触发条件：当开发者表示某个模块"已完成"或即将提交代码时。
 ---
 
 # 代码交付前自审守卫
 
-本 Skill 在模块开发完成后触发，对照 `.spec.md`、`tasks.yaml` 和 `acceptance.yaml` 验证实现是否完整。
+本 Skill 在模块开发完成后触发，对照 `.spec.md`、`.ai-os-project/tasks.yaml` 和 `.ai-os-project/acceptance.yaml` 验证实现是否完整。
 
 ## 使用方式
 
-1. 开发完成后，打开对应模块的 `.spec.md`、`tasks.yaml`、`acceptance.yaml`
+1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml`
 2. 逐项对照 .spec 中的功能需求，检查代码是否实现
-3. 对照 `tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
+3. 对照 `.ai-os-project/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
 4. 使用 `fullstack-dev-checklist` Skill 的九大维度再次全面检查
-5. 若准备对外宣称“完成”，必须再调用 `acceptance-gate`
-6. 输出验收报告
+5. 若准备对外宣称"完成"，必须再调用 `acceptance-gate`（含 UAT 脚本生成）
+6. 输出验收报告（含 UAT 脚本）
 
 ---
 
@@ -78,9 +78,9 @@ description: >
 
 完成功能验证后，根据被 review 的代码模块属性，决定是否**强制调用**以下连带专项审查 Skill：
 
-1. **如涉及订单、金额、权限流转** 👉 立即启动 `security-guard` 进行防越权与防并发覆盖审计。
-2. **如涉及复杂架构设计、大范围重构** 👉 立即启动 `architecture-reviewer` 进行 SOLID 原则与内聚性审计。
-3. **如为常规CRUD页面** 👉 继续检查以下高频遗漏项：
+1. **如涉及订单、金额、权限流转** → 立即启动 `security-guard` 进行防越权与防并发覆盖审计。
+2. **如涉及复杂架构设计、大范围重构** → 立即启动 `architecture-reviewer` 进行 SOLID 原则与内聚性审计。
+3. **如为常规CRUD页面** → 继续检查以下高频遗漏项：
 
 #### 页面层面
 按 `fullstack-dev-checklist` **维度一（页面完整性）+ 维度四（UX）** 重点复查以下高频遗漏：
@@ -111,9 +111,10 @@ description: >
 ### Step 4：交付证据与验收门禁
 
 - [ ] 是否存在构建结果、测试结果、关键日志、截图、接口样例等 Evidence Pack？
-- [ ] `tasks.yaml` 中的关键任务是否都附有完成证据？
-- [ ] 若存在 blocker，是否明确记录而不是模糊写成“待优化”？
+- [ ] `.ai-os-project/tasks.yaml` 中的关键任务是否都附有完成证据？
+- [ ] 若存在 blocker，是否明确记录而不是模糊写成"待优化"？
 - [ ] 是否调用 `acceptance-gate` 给出最终通过 / 阻塞 / 建议优化结论？
+- [ ] 验收报告是否附带 **UAT 脚本**（由 `acceptance-gate` 生成），供用户手工验证？
 
 ---
 
@@ -159,6 +160,12 @@ description: >
 ### 建议优化（不阻塞但应改进）
 1. [ ] [具体描述]
 
+## 人工验证脚本（UAT）
+
+> 以下由 acceptance-gate 自动生成，详见 `acceptance-gate` SKILL.md 中的 UAT 模板。
+
+[此处插入 acceptance-gate 生成的 UAT 脚本]
+
 ## 结论
 - [ ] ✅ 通过验收，可交付
 - [ ] ⚠️ 需修复上述必须项后重新验收
@@ -178,5 +185,5 @@ description: >
 触发后，AI 必须：
 1. 自动定位对应的 .spec 文件
 2. 执行完整的自审流程和交付证据检查
-3. 输出格式化的验收报告
+3. 输出格式化的验收报告（含 UAT 脚本）
 4. 如有未通过项，列出具体待修补清单

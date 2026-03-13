@@ -18,6 +18,15 @@
 - 模块确认后，必须用 `task-orchestrator` 生成 `tasks.yaml`，明确依赖、状态、Definition of Ready、Definition of Done、Evidence Pack。
 - 阶段交付前，必须用 `acceptance-gate` 生成或更新 `acceptance.yaml`，写清验收条件和证据要求。
 - 无任务图、无验收口径、无证据要求，不进入正式编码。
+- **快速通道例外**：改动范围极小的任务（1-3 个文件、不新增表/端点/接口契约、不涉及高风险操作），允许走 `/quick` 快速通道，但仍需在 `tasks.yaml` 中记录任务并保证编译和回归。超出条件时必须立即升级到正式流程。
+
+## 二½、STATE.md 是上下文恢复的第一入口 (Context First)
+
+**每次新 session、上下文切换或恢复中断时，第一步必须读 `STATE.md`。**
+
+- 项目必须维护 `STATE.md`，记录当前位置（里程碑/模块/阶段/任务）、进度概览、阻塞项、最近决策和下一步。
+- 每次任务状态变更、模块完成、阶段切换时，必须同步更新 `STATE.md`。
+- `STATE.md` 是"快速恢复方位"的唯一入口，禁止让 AI 通过读取所有工件文件来推断当前状态。
 
 ## 三、工程完整性与项目骨架先于功能 (Runnable > Compiles)
 
@@ -90,6 +99,29 @@ Skill 和 Workflow 的完整触发规则分别由各自的索引文件维护：
 6. 展示格式化：时间可读、金额带单位、状态有标签、选择器有占位符。
 7. 上传全链路：前端组件 + 后端接收 + 可访问 URL 缺一不可。
 8. 事故必复盘：线上问题修掉后若不沉淀到 memory/evals，视为流程未闭环。
+
+## 附录 A：交付等级分级 (Delivery Levels)
+
+AI-OS 根据项目规模和风险，适用不同深度的治理。项目启动时由 `project-planner` 根据 archetype 推荐默认等级，用户可调整。同一项目内不同模块可适用不同等级。
+
+### Level 1：探索 / 原型（Prototype）
+
+- **适用**：hackathon、概念验证、个人实验、快速原型
+- **必须**：编译通过 + git 规范提交 + `tasks.yaml` 记录（可简化）
+- **可简化**：spec 可以是简版（不强制 8 章节）、acceptance.yaml 可省略、Evidence Pack 可简化为编译截图
+- **推荐流程**：`/quick` 或简化版 `/new-module`（跳过阶段零）
+
+### Level 2：标准交付（Standard）
+
+- **适用**：大多数业务模块、常规功能开发
+- **必须**：spec + tasks + acceptance 三件套、编译+测试、code-review-guard、STATE.md 更新
+- **推荐流程**：完整 `/new-module` 流程
+
+### Level 3：高风险交付（Critical）
+
+- **适用**：涉及金额、权限、数据迁移、生产环境、外部 API 集成
+- **必须**：Level 2 全部 + `security-guard` + `architecture-reviewer` + 完整 Evidence Pack + `release-plan.md` + 人工审批点
+- **推荐流程**：完整 `/new-module` → `/review` → `/ship` 流程
 
 ---
 *注：本宪法定义项目交付铁律。详细检查项见 `.agents/skills/`，常用闭环见 `.agents/workflows/`。对于非 CRUD / 非典型全栈项目，必须先通过 `project-planner` 选定项目 archetype，再组合后续 Skills。*

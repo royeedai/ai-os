@@ -12,6 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   PACKAGE_ROOT,
+  PROJECT_MANAGED_FILES_MANIFEST,
   readFrameworkVersion,
   listManagedFiles,
   readInstalledMeta,
@@ -37,16 +38,41 @@ const C_DIM = "\x1b[2m";
 /**
  * Compute the diff between source (mother repo) and target project.
  *
- * Returns { modified, missing, extra, unchanged, sourceVersion, targetVersion }
- * Each of modified/missing/extra/unchanged is an array of relative paths.
+ * Returns { modified, outdated, missing, extra, unchanged, sourceVersion, targetVersion }
+ * Each bucket is an array of relative paths.
  */
+function readManagedFilesManifest(targetDir, meta) {
+  const manifestRelPath = meta.values?.managed_files_manifest || path.posix.join(".ai-os-project", PROJECT_MANAGED_FILES_MANIFEST);
+  const manifestPath = path.join(targetDir, manifestRelPath);
+  if (!fs.existsSync(manifestPath)) {
+    return new Map();
+  }
+
+  const manifest = new Map();
+  for (const line of fs.readFileSync(manifestPath, "utf8").split(/\r?\n/)) {
+    if (!line.trim()) {
+      continue;
+    }
+
+    const [hash, relPath] = line.split("\t");
+    if (hash && relPath) {
+      manifest.set(relPath.trim(), hash.trim());
+    }
+  }
+
+  return manifest;
+}
+
 function computeDiff(targetDir) {
   const sourceManaged = listManagedFiles(PACKAGE_ROOT);
   const targetManaged = listManagedFiles(targetDir);
   const sourceSet = new Set(sourceManaged);
   const targetSet = new Set(targetManaged);
+  const meta = readInstalledMeta(targetDir);
+  const installedManifest = readManagedFilesManifest(targetDir, meta);
 
   const modified = [];
+  const outdated = [];
   const missing = [];
   const unchanged = [];
   const extra = [];
@@ -61,7 +87,12 @@ function computeDiff(targetDir) {
     const srcHash = sha256File(path.join(PACKAGE_ROOT, rel));
     const dstHash = sha256File(targetPath);
     if (srcHash !== dstHash) {
-      modified.push(rel);
+      const baselineHash = installedManifest.get(rel);
+      if (baselineHash && baselineHash === dstHash) {
+        outdated.push(rel);
+      } else {
+        modified.push(rel);
+      }
     } else {
       unchanged.push(rel);
     }
@@ -73,15 +104,15 @@ function computeDiff(targetDir) {
       extra.push(rel);
     }
   }
-
-  const meta = readInstalledMeta(targetDir);
   return {
     modified,
+    outdated,
     missing,
     extra,
     unchanged,
     sourceVersion: readFrameworkVersion(),
     targetVersion: meta.exists ? meta.version : "unknown",
+    baselineAvailable: installedManifest.size > 0,
   };
 }
 
@@ -100,7 +131,7 @@ if (require.main === module) {
 Compare a project's framework files against the AI-OS source.
 
 Options:
-  --quiet   Only show modified, missing, and extra files (hide unchanged)
+  --quiet   Only show modified, outdated, missing, and extra files (hide unchanged)
   --stat    Only show the summary statistics line
   -h, --help   Show this help message
 `);
@@ -147,7 +178,7 @@ Options:
   if (statOnly) {
     process.stdout.write(header);
     process.stdout.write(
-      `\n${result.modified.length} modified, ${result.missing.length} missing, ${result.extra.length} extra, ${result.unchanged.length} unchanged\n`
+      `\n${result.modified.length} modified, ${result.outdated.length} outdated, ${result.missing.length} missing, ${result.extra.length} extra, ${result.unchanged.length} unchanged\n`
     );
     process.exit(0);
   }
@@ -156,6 +187,9 @@ Options:
 
   for (const f of result.modified) {
     process.stdout.write(`  ${C_YELLOW}modified:${C_RESET}   ${f}\n`);
+  }
+  for (const f of result.outdated) {
+    process.stdout.write(`  ${C_CYAN}outdated:${C_RESET}   ${f}  ${C_DIM}(safe to upgrade)${C_RESET}\n`);
   }
   for (const f of result.missing) {
     process.stdout.write(`  ${C_RED}missing:${C_RESET}    ${f}  ${C_DIM}(new in source)${C_RESET}\n`);
@@ -170,6 +204,6 @@ Options:
   }
 
   process.stdout.write(
-    `\nSummary: ${result.modified.length} modified, ${result.missing.length} missing, ${result.extra.length} extra, ${result.unchanged.length} unchanged\n\n`
+    `\nSummary: ${result.modified.length} modified, ${result.outdated.length} outdated, ${result.missing.length} missing, ${result.extra.length} extra, ${result.unchanged.length} unchanged\n\n`
   );
 }

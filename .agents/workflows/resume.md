@@ -1,0 +1,33 @@
+---
+description: 从 STATE.md 恢复上下文，给出最小阅读集和续做入口
+---
+
+# 恢复流程
+
+当用户说"继续"、"resume"、"从上次接着来"且需要先恢复上下文时触发。
+
+## 何时使用
+
+- 新 session 打开项目，尚未恢复上下文
+- 自动推进、评审或发布流程被中断后重新进入
+- 需要明确先读哪些工件才能安全继续
+
+## 不该使用
+
+- 当前上下文已经完整，且用户只是让你直接执行当前任务
+- 项目缺少 `.ai-os-project/STATE.md`，此时应先补状态文件而不是假装恢复成功
+
+## 会读取什么
+
+- `.ai-os-project/STATE.md`
+- `.ai-os-project/tasks.yaml`
+- 当前任务的 `inputs` / `context_files`
+- `.ai-os-project/memory.md`
+- 必要时 `.ai-os-project/acceptance.yaml`
+
+## 输出要求
+
+1. 从 `.ai-os-project/STATE.md` 恢复当前位置
+2. 给出最小阅读集：优先读取哪些文件
+3. 展示阻塞项、当前任务和建议下一步
+4. 若缺失 `.ai-os-project/STATE.md` 或任务状态不同步，先提醒修复工件

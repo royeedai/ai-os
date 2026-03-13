@@ -11,7 +11,8 @@ description: 发布与交付流程（发布前检查、回滚准备、Smoke Chec
 1. 调用 `release-manager` 检查发布输入是否完整
 2. 确认构建、测试、迁移、配置、环境变量、密钥、Feature Flag、兼容性已准备完毕
 3. 调用 `acceptance-gate` 确认项目或模块满足 Definition of Done
-4. 生成或更新 `release-plan.md`，写明发布步骤、Smoke Check、回滚方案、负责人
-5. 对高风险变更明确人工审批点
-6. 发布后执行 Smoke Check，并记录结果
-7. 若出现问题，立即转入 `/incident`
+4. 生成或更新 `.ai-os-project/release-plan.md`，写明发布步骤、Smoke Check、回滚方案、负责人
+5. 使用 `ai-os-release-check` 或同等检查方式验证 `.ai-os-project/release-plan.md` 已具备最小发布输入
+6. 对高风险变更明确人工审批点
+7. 发布后执行 Smoke Check，并记录结果
+8. 若出现问题，立即转入 `/incident`

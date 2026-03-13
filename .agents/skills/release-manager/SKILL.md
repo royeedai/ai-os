@@ -11,11 +11,12 @@ description: >
 
 ## 使用方式
 
-1. 使用下方模板生成或更新 `release-plan.md`
+1. 使用下方模板生成或更新 `.ai-os-project/release-plan.md`
 2. 检查构建、测试、迁移、配置、Feature Flag、环境变量、兼容性
-3. 为每次发布写明执行步骤、Smoke Check、回滚触发条件、负责人
-4. 高风险发布必须明确人工审批
-5. 发布后记录结果；若异常，转入 `incident`
+3. 使用 `ai-os-release-check` 或同等检查方式验证发布计划完整性
+4. 为每次发布写明执行步骤、Smoke Check、回滚触发条件、负责人
+5. 高风险发布必须明确人工审批
+6. 发布后记录结果；若异常，转入 `incident`
 
 ## 必查项
 

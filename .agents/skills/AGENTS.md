@@ -38,8 +38,19 @@
 | 性能瓶颈 | `performance-optimization` |
 | 需要新能力 | `find-skills` |
 
+## 交付等级与 Skill 组合
+
+不同交付等级适用不同深度的 Skill 组合（详见 `AGENTS.md` 附录 A）：
+
+| 等级 | 必须使用的 Skill | 可选追加 |
+|------|-----------------|---------|
+| L1 探索 | `code-review-guard`（简化模式） | — |
+| L2 标准 | `spec-validator` + `task-orchestrator` + `code-review-guard` + `acceptance-gate` | `fullstack-dev-checklist`、`git-workflow` |
+| L3 高风险 | L2 全部 + `security-guard` + `architecture-reviewer` | `release-manager`、`testing-strategies` |
+
 ## 如何使用
 
 1. Agent 根据当前任务上下文，匹配上述触发条件
 2. 找到对应 Skill 目录，读取 `SKILL.md` 获取完整指令
 3. 按 SKILL.md 中的步骤执行
+4. 若使用 `/auto-advance` 模式，按 `.ai-os-project/tasks.yaml` 的 wave 顺序自动触发相关 Skill

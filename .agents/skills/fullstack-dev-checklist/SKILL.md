@@ -22,7 +22,7 @@ description: >
 ## 使用方式
 
 1. 开发前：阅读对应模块的 `.spec.md` 文件，理解完整需求
-2. 开发前：确认 `tasks.yaml` 和 `acceptance.yaml` 已定义当前模块的 DoR/DoD
+2. 开发前：确认 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/acceptance.yaml` 已定义当前模块的 DoR/DoD
 3. 开发中：按本清单逐维度检查当前实现
 4. 开发后：对照清单出具自检报告，标记每项的完成状态
 

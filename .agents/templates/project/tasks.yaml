@@ -1,4 +1,4 @@
-version: 1
+version: 2
 milestones:
   - id: M1
     title: "Milestone 1"
@@ -12,7 +12,12 @@ tasks:
     status: todo
     owner: ai
     risk: medium
+    wave: 1
     depends_on: []
+    context_files:
+      - "STATE.md"
+      - "project-charter.md"
+      - "specs/example.spec.md"
     inputs:
       - "project-charter.md"
       - "specs/example.spec.md"
