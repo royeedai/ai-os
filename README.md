@@ -296,6 +296,7 @@ VERSION                         框架版本
 - `performance-optimization`
 - `git-workflow`
 - `reverse-engineer`
+- `find-skills`
 
 核心 Workflows：
 

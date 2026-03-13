@@ -46,7 +46,7 @@
 |------|-----------------|---------|
 | L1 探索 | `code-review-guard`（简化模式） | — |
 | L2 标准 | `spec-validator` + `task-orchestrator` + `code-review-guard` + `acceptance-gate` | `fullstack-dev-checklist`、`git-workflow` |
-| L3 高风险 | L2 全部 + `security-guard` + `architecture-reviewer` | `release-manager`、`testing-strategies` |
+| L3 高风险 | L2 全部 + `security-guard` + `architecture-reviewer` + `release-manager` | `testing-strategies` |
 
 ## 如何使用
 

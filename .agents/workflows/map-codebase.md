@@ -94,8 +94,3 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
 7. **写入 memory**：将分析结果中的稳定约束写入 `.ai-os-project/memory.md` 的"硬性约束"和"编码约定"部分
 8. **后续引用**：后续 spec 编写和编码实现**必须参考** `.ai-os-project/codebase-map.md`，确保新代码与现有风格一致
 
-## 使用时机
-
-- 在已有代码库上第一次运行 `/new-project` 或 `/new-module` 之前
-- 当接手一个不熟悉的项目时
-- 当项目经历重大重构后需要重新建立认知时

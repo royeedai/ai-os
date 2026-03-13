@@ -38,7 +38,7 @@ description: >
 
 ## 上下文注入协议
 
-每个任务的 `context_files` 字段列出执行前必须加载的文件。执行任务时：
+每个任务的 `context_files` 字段列出执行前必须加载的文件。`context_files`、`inputs`、`outputs` 中的路径均相对于 `.ai-os-project/` 目录。执行任务时：
 
 1. 读取 `.ai-os-project/STATE.md` 恢复全局方位
 2. 读取该任务 `context_files` 中的所有文件
