@@ -22,7 +22,7 @@ description: >
 ## 使用方式
 
 1. 开发前：阅读对应模块的 `.spec.md` 文件，理解完整需求
-2. 开发前：确认 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/acceptance.yaml` 已定义当前模块的 DoR/DoD
+2. 开发前：确认 `.ai-os/tasks.yaml` 和 `.ai-os/acceptance.yaml` 已定义当前模块的 DoR/DoD
 3. 开发中：按本清单逐维度检查当前实现
 4. 开发后：对照清单出具自检报告，标记每项的完成状态
 
@@ -38,7 +38,7 @@ description: >
 - [ ] **字段类型合法**：Model 中的时间字段是否使用了正确的时间类型（而非其他类型）？金额字段是否标注了定点数 DB 类型？
 
 ### 变更感知验证必须匹配
-- [ ] **验证基线存在**：是否存在 `.ai-os-project/verification-matrix.yaml`，并作为路径 -> 动作的单一真相源？
+- [ ] **验证基线存在**：是否存在 `.ai-os/verification-matrix.yaml`，并作为路径 -> 动作的单一真相源？
 - [ ] **动作匹配**：本次改动是否根据 `verification-matrix.yaml` 推导出 `verification_required`、`restart_required`、`cold_start_required`？
 - [ ] **运行时变更兜底**：若修改了配置、启动入口、DI、路由注册、共享代码、migration、worker 或构建配置，是否避免只依赖热更新验证？
 - [ ] **重启证据**：若命中重启要求，是否留下 `restart-log`？

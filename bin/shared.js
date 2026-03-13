@@ -13,11 +13,12 @@ const crypto = require("crypto");
 // ---------------------------------------------------------------------------
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
+const FRAMEWORK_ROOT = path.join(PACKAGE_ROOT, "framework");
 const MANAGED_ROOTS = ["AGENTS.md", ".agents"];
-const PROJECT_STATE_ROOT = ".ai-os-project";
+const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
 const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
-const PROJECT_TEMPLATE_ROOT = path.join(PACKAGE_ROOT, ".agents", "templates", "project");
+const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
 const PROJECT_ARTIFACT_FILES = [
   "project-charter.md",
   "risk-register.md",
@@ -239,7 +240,7 @@ function copyFramework(targetDir, options = {}) {
   const { overwrite = false, logger = defaultLogger } = options;
 
   for (const rootRel of MANAGED_ROOTS) {
-    const srcRoot = path.join(PACKAGE_ROOT, rootRel);
+    const srcRoot = path.join(FRAMEWORK_ROOT, rootRel);
     const dstRoot = path.join(targetDir, rootRel);
 
     if (fs.statSync(srcRoot).isFile()) {
@@ -254,7 +255,7 @@ function copyFramework(targetDir, options = {}) {
 
     const files = listFilesRecursively(srcRoot);
     for (const srcFile of files) {
-      const relativePath = path.relative(PACKAGE_ROOT, srcFile);
+      const relativePath = path.relative(FRAMEWORK_ROOT, srcFile);
       const dstFile = path.join(targetDir, relativePath);
       if (fs.existsSync(dstFile) && !overwrite) {
         logger(`keep existing managed file: ${relativePath}`);
@@ -364,6 +365,7 @@ function removeManagedPaths(targetDir) {
 
 module.exports = {
   PACKAGE_ROOT,
+  FRAMEWORK_ROOT,
   MANAGED_ROOTS,
   PROJECT_STATE_ROOT,
   PROJECT_METADATA_FILE,

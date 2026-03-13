@@ -19,13 +19,13 @@ description: 查看项目当前位置、任务概览、阻塞项和下一步
 
 ## 会读取什么
 
-- `.ai-os-project/STATE.md`
-- `.ai-os-project/tasks.yaml`
-- 必要时 `.ai-os-project/acceptance.yaml`
+- `.ai-os/STATE.md`
+- `.ai-os/tasks.yaml`
+- 必要时 `.ai-os/acceptance.yaml`
 
 ## 输出要求
 
-1. 总结 `.ai-os-project/STATE.md` 中的当前位置
-2. 汇总 `.ai-os-project/tasks.yaml` 的任务状态分布
+1. 总结 `.ai-os/STATE.md` 中的当前位置
+2. 汇总 `.ai-os/tasks.yaml` 的任务状态分布
 3. 列出阻塞项和当前记录的下一步
-4. 若 `.ai-os-project/STATE.md` 缺失或过旧，明确指出需要先补全
+4. 若 `.ai-os/STATE.md` 缺失或过旧，明确指出需要先补全

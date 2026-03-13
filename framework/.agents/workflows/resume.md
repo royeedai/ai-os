@@ -15,19 +15,19 @@ description: 从 STATE.md 恢复上下文，给出最小阅读集和续做入口
 ## 不该使用
 
 - 当前上下文已经完整，且用户只是让你直接执行当前任务
-- 项目缺少 `.ai-os-project/STATE.md`，此时应先补状态文件而不是假装恢复成功
+- 项目缺少 `.ai-os/STATE.md`，此时应先补状态文件而不是假装恢复成功
 
 ## 会读取什么
 
-- `.ai-os-project/STATE.md`
-- `.ai-os-project/tasks.yaml`
+- `.ai-os/STATE.md`
+- `.ai-os/tasks.yaml`
 - 当前任务的 `inputs` / `context_files`
-- `.ai-os-project/memory.md`
-- 必要时 `.ai-os-project/acceptance.yaml`
+- `.ai-os/memory.md`
+- 必要时 `.ai-os/acceptance.yaml`
 
 ## 输出要求
 
-1. 从 `.ai-os-project/STATE.md` 恢复当前位置
+1. 从 `.ai-os/STATE.md` 恢复当前位置
 2. 给出最小阅读集：优先读取哪些文件
 3. 展示阻塞项、当前任务和建议下一步
-4. 若缺失 `.ai-os-project/STATE.md` 或任务状态不同步，先提醒修复工件
+4. 若缺失 `.ai-os/STATE.md` 或任务状态不同步，先提醒修复工件

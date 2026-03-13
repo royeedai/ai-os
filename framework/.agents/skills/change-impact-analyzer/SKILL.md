@@ -20,14 +20,14 @@ description: >
 
 ## 必须同步检查
 
-- `.ai-os-project/project-charter.md`
+- `.ai-os/project-charter.md`
 - 对应 `.spec.md`
-- `.ai-os-project/tasks.yaml`
-- `.ai-os-project/acceptance.yaml`
+- `.ai-os/tasks.yaml`
+- `.ai-os/acceptance.yaml`
 - 测试用例
-- `.ai-os-project/release-plan.md`
-- `.ai-os-project/memory.md`
-- `.ai-os-project/evals/`
+- `.ai-os/release-plan.md`
+- `.ai-os/memory.md`
+- `.ai-os/evals/`
 
 ---
 

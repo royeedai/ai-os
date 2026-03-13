@@ -19,13 +19,13 @@
 | 运行数据库迁移 | `confirm` | 若是生产环境需升级人工审批 |
 | 删除数据 / 批量写入 | `confirm` | 必须记录回滚方案 |
 | 外部 MCP / API 费用调用 | `confirm` | 需记录成本与配额 |
-| 生产环境操作 | `confirm` | 必须同步 `.ai-os-project/release-plan.md` |
+| 生产环境操作 | `confirm` | 必须同步 `.ai-os/release-plan.md` |
 | 未知来源 MCP server | `block` | 需先做信任校验 |
 
 ## 审批落点
 
 高风险审批通过后，至少同步：
 
-- `.ai-os-project/STATE.md` 的最近决策
-- 如影响上线，更新 `.ai-os-project/release-plan.md`
-- 如形成稳定规则，更新 `.ai-os-project/memory.md` 或 `.ai-os-project/evals/`
+- `.ai-os/STATE.md` 的最近决策
+- 如影响上线，更新 `.ai-os/release-plan.md`
+- 如形成稳定规则，更新 `.ai-os/memory.md` 或 `.ai-os/evals/`

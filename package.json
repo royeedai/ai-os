@@ -22,8 +22,7 @@
   },
   "files": [
     "bin",
-    ".agents",
-    "AGENTS.md",
+    "framework",
     "LICENSE",
     "README.md",
     "VERSION"

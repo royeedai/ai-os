@@ -29,8 +29,8 @@ function printHelp() {
 Validate the project-local delivery artifacts used by AI-OS.
 
 Checks:
-  - .ai-os-project/project-charter.md / risk-register.md / tasks.yaml / acceptance.yaml
-  - .ai-os-project/release-plan.md / memory.md / STATE.md / verification-matrix.yaml / specs/ / evals/
+  - .ai-os/project-charter.md / risk-register.md / tasks.yaml / acceptance.yaml
+  - .ai-os/release-plan.md / memory.md / STATE.md / verification-matrix.yaml / specs/ / evals/
   - key section completeness and cross-file references
 
 Options:

@@ -20,8 +20,8 @@
 |------|------|
 | `/status` | 查看当前位置、阻塞项和任务概览 |
 | `/next` | 推断当前最值得执行的就绪任务 |
-| `/resume` | 从 `.ai-os-project/STATE.md` 恢复上下文并给出最小阅读集 |
-| `/auto-advance` | 自动推进模式（按 `.ai-os-project/tasks.yaml` 的 wave 顺序自动执行） |
+| `/resume` | 从 `.ai-os/STATE.md` 恢复上下文并给出最小阅读集 |
+| `/auto-advance` | 自动推进模式（按 `.ai-os/tasks.yaml` 的 wave 顺序自动执行） |
 
 ## Finish / Govern
 

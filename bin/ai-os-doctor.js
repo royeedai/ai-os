@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const {
-  PACKAGE_ROOT,
+  FRAMEWORK_ROOT,
   PROJECT_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_FILES,
   readFrameworkVersion,
@@ -100,7 +100,7 @@ process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
 
 // 1. Metadata
 const meta = readInstalledMeta(TARGET_DIR);
-check(meta.exists, ".ai-os-project/framework.toml exists", false);
+check(meta.exists, ".ai-os/framework.toml exists", false);
 
 if (meta.exists) {
   const versionMatch = meta.version === frameworkVersion;
@@ -131,7 +131,7 @@ const workflowsOk = fs.existsSync(workflowsDir) &&
 check(workflowsOk, ".agents/workflows/ exists and is not empty", false);
 
 // 5. Managed files integrity
-const sourceManaged = listManagedFiles(PACKAGE_ROOT);
+const sourceManaged = listManagedFiles(FRAMEWORK_ROOT);
 const missingFiles = [];
 for (const rel of sourceManaged) {
   if (!fs.existsSync(path.join(TARGET_DIR, rel))) {

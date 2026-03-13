@@ -8,13 +8,13 @@ description: >
 
 # 代码交付前自审守卫
 
-本 Skill 在模块开发完成后触发，对照 `.spec.md`、`.ai-os-project/tasks.yaml` 和 `.ai-os-project/acceptance.yaml` 验证实现是否完整。
+本 Skill 在模块开发完成后触发，对照 `.spec.md`、`.ai-os/tasks.yaml` 和 `.ai-os/acceptance.yaml` 验证实现是否完整。
 
 ## 使用方式
 
-1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/acceptance.yaml`、`.ai-os-project/verification-matrix.yaml`
+1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
 2. 逐项对照 .spec 中的功能需求，检查代码是否实现
-3. 对照 `.ai-os-project/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
+3. 对照 `.ai-os/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
 4. 使用 `fullstack-dev-checklist` Skill 的九大维度再次全面检查
 5. 若准备对外宣称"完成"，必须再调用 `acceptance-gate`（含 UAT 脚本生成）
 6. 输出验收报告（含 UAT 脚本）
@@ -29,7 +29,7 @@ description: >
 
 #### A. 编译与入口
 - [ ] 执行过项目级编译/构建命令且无错误？
-- [ ] 是否根据 `.ai-os-project/verification-matrix.yaml` 或 `verification_required` 明确了本次改动必须执行的动作？
+- [ ] 是否根据 `.ai-os/verification-matrix.yaml` 或 `verification_required` 明确了本次改动必须执行的动作？
 - [ ] 若命中了 `restart_required`，受影响服务是否真的完成了重启？
 - [ ] 若命中了 `cold_start_required`，是否真的执行了冷启动 Smoke Check？
 - [ ] 新模块的接口处理器已注册到路由文件？
@@ -116,7 +116,7 @@ description: >
 
 - [ ] 是否存在构建结果、测试结果、关键日志、截图、接口样例等 Evidence Pack？
 - [ ] 若本次变更要求 restart / cold-start，是否存在 `restart-log`、`cold-start-log`、`post-restart-smoke-log`？
-- [ ] `.ai-os-project/tasks.yaml` 中的关键任务是否都附有完成证据？
+- [ ] `.ai-os/tasks.yaml` 中的关键任务是否都附有完成证据？
 - [ ] 若存在 blocker，是否明确记录而不是模糊写成"待优化"？
 - [ ] 是否调用 `acceptance-gate` 给出最终通过 / 阻塞 / 建议优化结论？
 - [ ] 验收报告是否附带 **UAT 脚本**（由 `acceptance-gate` 生成），供用户手工验证？

@@ -11,7 +11,7 @@ description: >
 
 ## 使用方式
 
-1. 使用下方模板生成或更新 `.ai-os-project/release-plan.md`
+1. 使用下方模板生成或更新 `.ai-os/release-plan.md`
 2. 检查构建、测试、迁移、配置、Feature Flag、环境变量、兼容性
 3. 使用 `create-ai-os release-check` 或同等检查方式验证发布计划完整性
 4. 为每次发布写明受影响服务、重启顺序、执行步骤、Smoke Check、回滚触发条件、负责人

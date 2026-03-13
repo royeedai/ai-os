@@ -19,16 +19,16 @@ description: >
 
 ### 第一步：素材收集与分类
 
-1. 确认素材已放入项目 `.ai-os-project/references/clone-materials/` 目录
+1. 确认素材已放入项目 `.ai-os/references/clone-materials/` 目录
 2. 使用 `references/material-checklist.md` 评估素材覆盖度
 3. 按类型分类整理：
 
 | 素材类型 | 存放位置 | 说明 |
 |---------|---------|------|
-| 截图 | `.ai-os-project/references/clone-materials/screenshots/` | 按模块或页面命名 |
-| URL | `.ai-os-project/references/clone-materials/urls.md` | 列出所有可访问的 URL |
-| API 文档 | `.ai-os-project/references/clone-materials/api/` | 接口入参返参、Swagger、Postman 等 |
-| 文字描述 | `.ai-os-project/references/clone-materials/descriptions.md` | 需求简述、业务说明 |
+| 截图 | `.ai-os/references/clone-materials/screenshots/` | 按模块或页面命名 |
+| URL | `.ai-os/references/clone-materials/urls.md` | 列出所有可访问的 URL |
+| API 文档 | `.ai-os/references/clone-materials/api/` | 接口入参返参、Swagger、Postman 等 |
+| 文字描述 | `.ai-os/references/clone-materials/descriptions.md` | 需求简述、业务说明 |
 
 ### 第二步：逆向分析
 

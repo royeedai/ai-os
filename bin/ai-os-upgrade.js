@@ -11,7 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  PACKAGE_ROOT,
+  FRAMEWORK_ROOT,
   PROJECT_MANAGED_FILES_MANIFEST,
   readFrameworkVersion,
   readPackageJson,
@@ -202,7 +202,7 @@ const filesToWrite = force
   : [...diff.outdated, ...diff.missing];
 
 for (const rel of filesToWrite) {
-  const src = path.join(PACKAGE_ROOT, rel);
+  const src = path.join(FRAMEWORK_ROOT, rel);
   const dst = path.join(TARGET_DIR, rel);
   copyFileWithMode(src, dst);
 }

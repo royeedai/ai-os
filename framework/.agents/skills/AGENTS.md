@@ -53,4 +53,4 @@
 1. Agent 根据当前任务上下文，匹配上述触发条件
 2. 找到对应 Skill 目录，读取 `SKILL.md` 获取完整指令
 3. 按 SKILL.md 中的步骤执行
-4. 若使用 `/auto-advance` 模式，按 `.ai-os-project/tasks.yaml` 的 wave 顺序自动触发相关 Skill
+4. 若使用 `/auto-advance` 模式，按 `.ai-os/tasks.yaml` 的 wave 顺序自动触发相关 Skill

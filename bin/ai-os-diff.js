@@ -11,7 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  PACKAGE_ROOT,
+  FRAMEWORK_ROOT,
   PROJECT_MANAGED_FILES_MANIFEST,
   readFrameworkVersion,
   listManagedFiles,
@@ -42,7 +42,7 @@ const C_DIM = "\x1b[2m";
  * Each bucket is an array of relative paths.
  */
 function readManagedFilesManifest(targetDir, meta) {
-  const manifestRelPath = meta.values?.managed_files_manifest || path.posix.join(".ai-os-project", PROJECT_MANAGED_FILES_MANIFEST);
+  const manifestRelPath = meta.values?.managed_files_manifest || path.posix.join(".ai-os", PROJECT_MANAGED_FILES_MANIFEST);
   const manifestPath = path.join(targetDir, manifestRelPath);
   if (!fs.existsSync(manifestPath)) {
     return new Map();
@@ -64,7 +64,7 @@ function readManagedFilesManifest(targetDir, meta) {
 }
 
 function computeDiff(targetDir) {
-  const sourceManaged = listManagedFiles(PACKAGE_ROOT);
+  const sourceManaged = listManagedFiles(FRAMEWORK_ROOT);
   const targetManaged = listManagedFiles(targetDir);
   const sourceSet = new Set(sourceManaged);
   const targetSet = new Set(targetManaged);
@@ -84,7 +84,7 @@ function computeDiff(targetDir) {
       missing.push(rel);
       continue;
     }
-    const srcHash = sha256File(path.join(PACKAGE_ROOT, rel));
+    const srcHash = sha256File(path.join(FRAMEWORK_ROOT, rel));
     const dstHash = sha256File(targetPath);
     if (srcHash !== dstHash) {
       const baselineHash = installedManifest.get(rel);

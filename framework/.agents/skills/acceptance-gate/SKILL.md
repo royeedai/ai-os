@@ -11,8 +11,8 @@ description: >
 
 ## 使用方式
 
-1. 读取 `.spec.md`、`.ai-os-project/tasks.yaml`、`.ai-os-project/verification-matrix.yaml`、测试结果、构建结果、截图或接口样例
-2. 使用下方模板生成或更新 `.ai-os-project/acceptance.yaml`
+1. 读取 `.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/verification-matrix.yaml`、测试结果、构建结果、截图或接口样例
+2. 使用下方模板生成或更新 `.ai-os/acceptance.yaml`
 3. 检查每个验收项是否有对应证据
 4. 输出通过项、阻塞项、建议优化项
 5. **生成 UAT 脚本**（见下方模板），供用户手工验证功能是否符合预期
@@ -99,7 +99,7 @@ result:
 ```markdown
 ## 人工验证脚本（UAT）
 
-> 以下步骤由 AI 基于 .spec.md 和 `.ai-os-project/acceptance.yaml` 自动生成，
+> 以下步骤由 AI 基于 .spec.md 和 `.ai-os/acceptance.yaml` 自动生成，
 > 供用户手工验证功能是否符合预期。每项标记 ✅ / ❌ / ⚠️。
 
 ### 前置条件

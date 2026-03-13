@@ -9,7 +9,7 @@
 
 ## 0. 项目关联
 
-- **关联项目章程**：[如 `.ai-os-project/project-charter.md`]
+- **关联项目章程**：[如 `.ai-os/project-charter.md`]
 - **所属里程碑**：[M1 / M2 等]
 - **范围外内容**：[本模块明确不做什么]
 
@@ -21,9 +21,9 @@
 
 | 素材类型 | 文件/路径 | 说明 |
 |---------|----------|------|
-| 截图 | `.ai-os-project/references/clone-materials/screenshots/[文件名]` | [描述] |
+| 截图 | `.ai-os/references/clone-materials/screenshots/[文件名]` | [描述] |
 | URL | [原系统 URL] | [可访问状态] |
-| API 文档 | `.ai-os-project/references/clone-materials/api/[文件名]` | [描述] |
+| API 文档 | `.ai-os/references/clone-materials/api/[文件名]` | [描述] |
 | 文字描述 | [来源] | [描述] |
 
 - **与原型的计划差异**：

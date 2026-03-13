@@ -11,14 +11,14 @@ description: >
 
 ## 使用方式
 
-1. 输入来源可以是 `.ai-os-project/project-charter.md` 或某个模块的 `.spec.md`
-2. 使用下方模板生成或更新 `.ai-os-project/tasks.yaml`
+1. 输入来源可以是 `.ai-os/project-charter.md` 或某个模块的 `.spec.md`
+2. 使用下方模板生成或更新 `.ai-os/tasks.yaml`
 3. 对每个任务明确依赖、风险、输入、输出、DoR、DoD、Evidence Pack
-4. 结合 `.ai-os-project/verification-matrix.yaml`，为每个任务补齐 `affected_components`、`verification_required`、`restart_required`、`cold_start_required`
+4. 结合 `.ai-os/verification-matrix.yaml`，为每个任务补齐 `affected_components`、`verification_required`、`restart_required`、`cold_start_required`
 5. 将测试、文档、发布、回滚、验收任务显式拆出，不允许只拆开发任务
 6. 为任务分配 wave 编号（基于依赖图拓扑排序），同一 wave 内的任务可并行执行
 7. 为每个任务指定 `context_files`，列出执行该任务前必须加载的文件
-8. 每次任务状态变化都要回写 `.ai-os-project/tasks.yaml` 和 `.ai-os-project/STATE.md`
+8. 每次任务状态变化都要回写 `.ai-os/tasks.yaml` 和 `.ai-os/STATE.md`
 
 ## 拆分原则
 
@@ -40,11 +40,11 @@ description: >
 
 ## 上下文注入协议
 
-每个任务的 `context_files` 字段列出执行前必须加载的文件。`context_files`、`inputs`、`outputs` 中的路径均相对于 `.ai-os-project/` 目录。执行任务时：
+每个任务的 `context_files` 字段列出执行前必须加载的文件。`context_files`、`inputs`、`outputs` 中的路径均相对于 `.ai-os/` 目录。执行任务时：
 
-1. 读取 `.ai-os-project/STATE.md` 恢复全局方位
+1. 读取 `.ai-os/STATE.md` 恢复全局方位
 2. 读取该任务 `context_files` 中的所有文件
-3. 读取 `.ai-os-project/memory.md` 获取长期约束和决策
+3. 读取 `.ai-os/memory.md` 获取长期约束和决策
 4. 若使用 subagent/Task 工具执行，必须在 prompt 中包含以上关键内容摘要
 
 ## 禁止事项
