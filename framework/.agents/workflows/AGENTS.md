@@ -38,6 +38,10 @@
 
 当用户提到以上命令或描述了匹配的场景时，读取对应的 `.md` 文件并按步骤执行。
 
+## 项目文件自动创建
+
+`bootstrap` 只安装框架文件（`AGENTS.md`、`.agents/`）和元数据。项目工件（`project-charter.md`、`tasks.yaml`、`STATE.md` 等）由 workflow 在执行过程中按需创建，不需要用户手动初始化。如果 `.ai-os/` 目录不存在，workflow 应自动创建它。
+
 ## 场景匹配指南
 
 ### Start

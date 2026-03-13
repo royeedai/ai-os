@@ -15,7 +15,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 
 | 你现在的场景 | 先用什么 | 结果 |
 |------|------|------|
-| 老项目第一次接入 AI-OS | `create-ai-os bootstrap .` | 先补齐基础项目数据，再进入 `/map-codebase` |
+| 老项目第一次接入 AI-OS | `create-ai-os bootstrap .` → 直接开发 | 安装框架后直接用 workflow 开发，项目文件按需自动生成 |
 | 从 0 开始做一个项目 | `/new-project` | 先得到项目章程、任务图和风险边界 |
 | 已接入 AI-OS 的已有仓库上加功能 | `/map-codebase` → `/new-module` | 先摸清现有架构，再进入模块闭环 |
 | 只是修个小 bug / 改个配置 | `/quick` | 快速改动，但仍记录 `tasks.yaml` 和 `STATE.md` |
@@ -137,9 +137,7 @@ AI-OS 会在目标项目里生成两类内容。
 
 这部分属于项目自己，记录当前项目的事实、范围、验收和经验。
 
-如果执行的是 `create-ai-os bootstrap .`，还会额外生成：
-
-- `.ai-os/codebase-map.md`
+如果执行的是 `create-ai-os bootstrap .`（老项目接入），只会安装框架受管文件和元数据，不会生成项目状态文件。项目文件会在你使用 workflow 时按需自动创建。
 
 当仓库还没有接入 AI-OS 时，先运行 `create-ai-os bootstrap .` 或新项目初始化命令，再进入下面的 workflow。
 
@@ -237,29 +235,24 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 
 ## 老项目第一次接入应该怎么使用
 
-推荐流程如下：
+只需两步：
 
-1. 在现有仓库里执行接入命令
+1. 在现有仓库里安装 AI-OS 框架
 
 ```bash
 npx --yes github:royeedai/ai-os bootstrap .
 ```
 
-2. 先走 `/map-codebase`
+2. 在 AI 工具里直接开始开发
 
-- 分析现有技术栈、架构、约定、运行拓扑
-- 产出 `.ai-os/codebase-map.md`
-- 回填 `.ai-os/verification-matrix.yaml` 和 `.ai-os/memory.md`
+`bootstrap` 只安装框架文件（`AGENTS.md`、`.agents/`）和元数据，不会生成空模板。项目文件（`project-charter.md`、`tasks.yaml`、`STATE.md` 等）会在你使用 workflow 时按需自动创建并填入真实内容。
 
-3. 如果是把整个老项目正式纳入 AI-OS 管理，再走 `/new-project`
+按场景选择 workflow：
 
-- 补全项目章程、里程碑、风险和任务图
-- 明确哪些历史模块纳入范围、哪些暂不纳入
-
-4. 后续开发按场景进入 `/new-module` 或 `/quick`
-
-- 新功能、新模块走 `/new-module`
-- 1-3 文件的小改动走 `/quick`
+- 想先分析代码库 → `/map-codebase`
+- 要加功能或模块 → `/new-module`
+- 小改动 → `/quick`
+- 想把整个项目纳入 AI-OS 管理 → `/new-project`
 
 ## 复刻项目应该怎么使用
 
@@ -413,14 +406,13 @@ npx --yes github:royeedai/ai-os bootstrap . --force-framework
 
 它会：
 
-- 补齐 `AGENTS.md`、`.agents/` 和 `.ai-os/` 下缺失的基础工件
-- 生成 `.ai-os/codebase-map.md` 占位模板，供 `/map-codebase` 回填
-- 写入 `framework.toml` 和 `managed-files.tsv`，让 `doctor / validate / status / resume` 可以工作
+- 补齐 `AGENTS.md` 和 `.agents/`（框架受管文件）
+- 写入 `.ai-os/framework.toml` 和 `managed-files.tsv`，让 `doctor / validate / status / resume` 可以工作
 
 它不会：
 
+- 生成空模板项目文件（项目文件由 workflow 按需创建）
 - 自动分析代码库或代替 `/map-codebase`
-- 覆盖已有项目工件
 - 取代后续的 `/new-project`、`/new-module` 或 `/quick`
 
 ### `doctor` / `validate` — 框架与工件检查

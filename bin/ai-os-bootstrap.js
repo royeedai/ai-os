@@ -8,12 +8,7 @@ const {
   readPackageJson,
   ensureDir,
   fail,
-  getProjectFilePath,
-  getProjectRelativePath,
-  getProjectTemplatePath,
   copyFramework,
-  copyTemplateIfMissing,
-  createProjectFiles,
   writeMetadata,
   writeManagedFilesManifest,
   removeManagedPaths,
@@ -30,14 +25,12 @@ Bootstrap an existing repository into AI-OS without requiring a fresh init.
 
 What it does:
   - installs missing framework-managed files (AGENTS.md and .agents/)
-  - creates missing project-local artifacts under ${PROJECT_STATE_ROOT}/
-  - seeds ${getProjectRelativePath("codebase-map.md")} for the /map-codebase workflow
-  - writes framework metadata for doctor / validate / status / resume
+  - writes framework metadata under ${PROJECT_STATE_ROOT}/ for doctor / validate / status / resume
 
 What it does not do:
+  - it does not create project files (project-charter, tasks, specs, etc.)
   - it does not analyze your repository automatically
-  - it does not overwrite project-local artifacts that already exist
-  - it does not replace /map-codebase, /new-project, /new-module, or /quick
+  - project files are created automatically when you start a workflow (/new-project, /map-codebase, /new-module, /quick)
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
@@ -87,12 +80,6 @@ if (forceFramework) {
 process.stdout.write(`Bootstrapping existing repository with AI-OS ${FRAMEWORK_VERSION} in ${targetDir}\n`);
 
 copyFramework(targetDir, { overwrite: forceFramework });
-createProjectFiles(targetDir);
-copyTemplateIfMissing(
-  targetDir,
-  getProjectTemplatePath("codebase-map.md"),
-  getProjectFilePath(targetDir, "codebase-map.md")
-);
 
 writeMetadata(targetDir);
 writeManagedFilesManifest(targetDir);
@@ -107,10 +94,14 @@ Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${targetDir}
 Framework files present: ${frameworkPresent ? "yes" : "no"}
 
-Next steps:
-1. Open ${path.join(targetDir, getProjectRelativePath("STATE.md"))} and ${path.join(targetDir, getProjectRelativePath("project-charter.md"))}.
-2. In your AI tool, run /map-codebase to fill ${getProjectRelativePath("codebase-map.md")} and refine ${getProjectRelativePath("verification-matrix.yaml")} / ${getProjectRelativePath("memory.md")}.
-3. If you are adopting the whole repository into AI-OS, continue with /new-project to confirm charter, milestones, risks, and tasks.
-4. For actual delivery work after onboarding, continue with /new-module or /quick.
-5. Commit the generated framework and project state files into the target repository.
+AI-OS framework installed. Project files (project-charter, tasks, specs, etc.)
+will be created automatically when you start a workflow in your AI tool.
+
+Pick a workflow to start:
+  /new-project       Plan a new project from scratch
+  /map-codebase      Analyze existing codebase first
+  /new-module        Add a feature or module
+  /quick             Small fix (1-3 files)
+
+Commit the framework files (AGENTS.md, .agents/, .ai-os/) into your repository.
 `);
