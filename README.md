@@ -87,12 +87,17 @@ npx --yes github:royeedai/ai-os .
 
 ### 3. 看生成出来的关键文件
 
-安装后你会在项目里看到两类内容：
+安装后你会在项目里看到三类内容：
 
-- 框架文件：`AGENTS.md`、`.agents/`、`.ai-os/framework.toml`
+- 框架文件：`AGENTS.md`、`.agents/skills/`、`.agents/workflows/`、`.ai-os/framework.toml`
+- 内部参考模板：`.agents/templates/project/`
 - 项目文件：`.ai-os/project-charter.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/STATE.md` 等
 
-如果你用了 `--with-project-files`，还会额外创建空模板，方便你直接开始。
+这里最容易让人困惑的是第二类。
+
+`.agents/templates/project/` 里也会有 `project-charter.md`、`tasks.yaml`、`STATE.md` 这些名字，但它们是框架自带模板，不是你日常维护的项目事实。
+
+真正会持续更新、代表当前项目状态的，是 `.ai-os/` 下面那一套文件。
 
 ## 安装后你会得到什么
 
@@ -104,8 +109,20 @@ npx --yes github:royeedai/ai-os .
 - `.agents/skills/`
 - `.agents/workflows/`
 - `.ai-os/framework.toml`
+- `.ai-os/managed-files.tsv`
 
-### 2. 一套项目事实
+### 2. 一套内部参考模板
+
+这部分也会跟着框架一起安装，但它不是你日常维护的项目事实，而是给 workflow / skill 生成工件时参考的模板：
+
+- `.agents/templates/project/`
+
+可以把它理解成：
+
+- `.agents/templates/project/*`：框架模板
+- `.ai-os/*`：当前项目真正生效的文件
+
+### 3. 一套项目事实
 
 这部分属于你的项目，记录真实的范围、进度和交付状态：
 
@@ -119,6 +136,11 @@ npx --yes github:royeedai/ai-os .
 - `.ai-os/verification-matrix.yaml`
 - `.ai-os/specs/`
 - `.ai-os/evals/`
+
+补充一点：
+
+- `.ai-os/codebase-map.md` 通常不是在新项目初始化时直接创建
+- 它更常见于老项目接入，由 `/init` 或 `/map-codebase` 在分析现有代码库后生成
 
 ## 关键文件，用人话解释
 

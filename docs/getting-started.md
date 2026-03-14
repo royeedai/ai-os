@@ -27,6 +27,13 @@ AI-OS 更接近下面这个模型：
 3. 你在 Codex、Cursor、Antigravity 这类工具里，通过 workflow 驱动 AI。
 4. AI 按项目方式工作，并把项目状态写回 `.ai-os/`。
 
+这里有一个第一次很容易误会的点：
+
+- `.agents/templates/project/` 里放的是框架自带模板
+- `.ai-os/` 里放的是你这个项目真正要维护的文件
+
+如果两个目录里都出现了 `project-charter.md`、`tasks.yaml`、`STATE.md` 之类的名字，不代表初始化出错，而是“模板”和“实例”同时存在。
+
 ## 环境要求
 
 - Node.js 18+
@@ -139,6 +146,8 @@ AI-OS 并不是所有事情都要走完整流程。
 - `.ai-os/evals/`
 
 如果初始化时加了 `--with-project-files`，会直接创建这些模板。
+
+另外，`.agents/templates/project/` 也会一起出现在项目里。它们是 workflow 和 skill 的参考模板，不是你日常应该直接维护的项目工件。
 
 ## 固定版本初始化
 

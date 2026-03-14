@@ -23,6 +23,14 @@ npx --yes github:royeedai/ai-os <command> .
 npx --yes github:royeedai/ai-os my-project --with-project-files
 ```
 
+执行后通常会看到三类内容：
+
+- `AGENTS.md`、`.agents/skills/`、`.agents/workflows/` 这类框架文件
+- `.agents/templates/project/` 这类内部参考模板
+- `.ai-os/` 下的项目状态文件
+
+真正需要持续维护的项目工件主要在 `.ai-os/`。
+
 ### 老项目第一次接入
 
 ```bash

@@ -178,9 +178,17 @@ Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${targetDir}
 
 Next steps:
-1. Pick the right start workflow: /init, /new-project, /map-codebase -> /new-module, /quick, or /clone-project.
+1. Pick the right start workflow:
+   - brand-new project: /new-project
+   - existing codebase: /init or /map-codebase -> /new-module
+   - small change: /quick
+   - product rebuild: /clone-project
 2. When you come back later, use create-ai-os status/resume to recover context.
 3. Commit the generated framework and project state files into the target repository.
+
+Note:
+- .agents/templates/project/ contains framework reference templates.
+- Your project's working state files live under .ai-os/.
 
 Cross-tool compatibility:
 - AGENTS.md: supported by Antigravity, Cursor, and Codex
