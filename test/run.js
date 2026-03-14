@@ -101,6 +101,21 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework
 assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
 
+const projectCharterTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "project-charter.md"), "utf8");
+assert(projectCharterTemplate.includes("适配范围 / 支持环境"), "project charter uses support-environment wording");
+assert(!projectCharterTemplate.includes("兼容性"), "project charter avoids compatibility wording");
+
+const exampleSpecTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
+assert(exampleSpecTemplate.includes("适配范围 / 支持环境"), "example spec uses support-environment wording");
+assert(!exampleSpecTemplate.includes("- **兼容**"), "example spec avoids compatibility wording");
+
+const cloneSpecTemplate = fs.readFileSync(
+  path.join(initDir, ".agents", "skills", "reverse-engineer", "references", "clone-spec-template.md"),
+  "utf8"
+);
+assert(cloneSpecTemplate.includes("## 参考来源"), "clone spec template uses reference-source section");
+assert(!cloneSpecTemplate.includes("## 原型信息"), "clone spec template avoids prototype-section naming");
+
 // ---------------------------------------------------------------------------
 // Test: re-init on existing project (should not fail)
 // ---------------------------------------------------------------------------

@@ -7,6 +7,10 @@
 - [../README.md](../README.md)
 - [getting-started.md](getting-started.md)
 
+如果你在规划 AI-OS 自身的方向、定位或改动优先级，先看：
+
+- [../PROJECT_PURPOSE.md](../PROJECT_PURPOSE.md)
+
 ## 这个仓库负责什么
 
 AI-OS 母仓库负责维护的是“通用交付能力”，包括：
@@ -55,6 +59,8 @@ VERSION      框架版本
 - 改动 `framework/` 下内容时，同步更新 `VERSION`
 
 更完整的开发规则见 [../AGENTS.md](../AGENTS.md)。
+
+产品方向和决策北极星见 [../PROJECT_PURPOSE.md](../PROJECT_PURPOSE.md)。
 
 ## 推荐维护方式
 
