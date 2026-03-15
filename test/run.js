@@ -116,6 +116,21 @@ const cloneSpecTemplate = fs.readFileSync(
 assert(cloneSpecTemplate.includes("## 参考来源"), "clone spec template uses reference-source section");
 assert(!cloneSpecTemplate.includes("## 原型信息"), "clone spec template avoids prototype-section naming");
 
+const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
+assert(stateTemplate.includes("**当前里程碑目标**"), "STATE template includes current milestone goal");
+
+const quickWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "quick.md"), "utf8");
+assert(quickWorkflow.includes("读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`"), "quick workflow aligns with project purpose and state");
+
+const debugWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "debug.md"), "utf8");
+assert(debugWorkflow.includes("阻塞当前里程碑目标"), "debug workflow checks blocker status against current milestone goal");
+
+const changeRequestWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "change-request.md"), "utf8");
+assert(changeRequestWorkflow.includes("当前里程碑目标"), "change-request workflow checks change priority against current milestone goal");
+
+const newModuleWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-module.md"), "utf8");
+assert(newModuleWorkflow.includes("里程碑门禁"), "new-module workflow includes milestone gate");
+
 // ---------------------------------------------------------------------------
 // Test: re-init on existing project (should not fail)
 // ---------------------------------------------------------------------------

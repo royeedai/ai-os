@@ -160,7 +160,7 @@ npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os m
 例如：
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#v2.6.1 -- create-ai-os my-project --with-project-files
+npm exec --yes --package=github:royeedai/ai-os#v2.6.2 -- create-ai-os my-project --with-project-files
 ```
 
 前提是对应 tag 或 commit 已经存在于远端仓库。

@@ -1,6 +1,6 @@
 {
   "name": "create-ai-os",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "description": "Initialize the AI project delivery operating system into a target project.",
   "repository": {
     "type": "git",
