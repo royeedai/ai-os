@@ -104,10 +104,16 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml cr
 const projectCharterTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "project-charter.md"), "utf8");
 assert(projectCharterTemplate.includes("适配范围 / 支持环境"), "project charter uses support-environment wording");
 assert(!projectCharterTemplate.includes("兼容性"), "project charter avoids compatibility wording");
+assert(projectCharterTemplate.includes("目标市场 / 主要使用地区"), "project charter includes target market field");
+assert(projectCharterTemplate.includes("体验 / 视觉参考方向"), "project charter includes design reference direction");
+assert(projectCharterTemplate.includes("| M0 | 基础能力层"), "project charter template includes M0 foundation milestone");
+assert(projectCharterTemplate.includes("| 基础能力层 | 登录、权限、多语言"), "project charter template includes foundation capability layer");
 
 const exampleSpecTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
 assert(exampleSpecTemplate.includes("适配范围 / 支持环境"), "example spec uses support-environment wording");
 assert(!exampleSpecTemplate.includes("- **兼容**"), "example spec avoids compatibility wording");
+assert(exampleSpecTemplate.includes("目标市场 / 主要使用地区"), "example spec includes target market field");
+assert(exampleSpecTemplate.includes("交互 / 视觉约束"), "example spec includes UX style constraint");
 
 const cloneSpecTemplate = fs.readFileSync(
   path.join(initDir, ".agents", "skills", "reverse-engineer", "references", "clone-spec-template.md"),
@@ -130,6 +136,38 @@ assert(changeRequestWorkflow.includes("当前里程碑目标"), "change-request 
 
 const newModuleWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-module.md"), "utf8");
 assert(newModuleWorkflow.includes("里程碑门禁"), "new-module workflow includes milestone gate");
+
+const fullstackChecklist = fs.readFileSync(path.join(initDir, ".agents", "skills", "fullstack-dev-checklist", "SKILL.md"), "utf8");
+assert(fullstackChecklist.includes("目标市场 / 主要使用地区"), "fullstack checklist requires target market alignment");
+assert(fullstackChecklist.includes("国内项目默认"), "fullstack checklist guards against mismatched overseas-style defaults");
+
+const projectPlannerSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "project-planner", "SKILL.md"), "utf8");
+assert(projectPlannerSkill.includes("目标市场 / 主要使用地区"), "project planner requires target market planning");
+assert(projectPlannerSkill.includes("用户只说\"企业项目\""), "project planner requires follow-up when user only says enterprise project");
+assert(projectPlannerSkill.includes("共享基础能力依赖"), "project planner requires foundation-layer planning for projects with shared foundation dependencies");
+
+const specValidatorSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "spec-validator", "SKILL.md"), "utf8");
+assert(specValidatorSkill.includes("交互 / 视觉约束"), "spec validator checks UI and visual constraints");
+assert(specValidatorSkill.includes("管理后台"), "spec validator rejects vague enterprise-only market descriptions");
+
+const newProjectWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-project.md"), "utf8");
+assert(newProjectWorkflow.includes("更像国内业务后台，还是海外 SaaS 工具"), "new-project workflow includes concrete market-style follow-up");
+assert(newProjectWorkflow.includes("基础能力可用 + 首条核心业务闭环可运行"), "new-project workflow prioritizes foundation plus first runnable business loop");
+
+const initWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "init.md"), "utf8");
+assert(initWorkflow.includes("目标市场与体验风格推断"), "init workflow infers target market and UX style for existing projects");
+
+const mapCodebaseWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "map-codebase.md"), "utf8");
+assert(mapCodebaseWorkflow.includes("待确认"), "map-codebase workflow records target market assumptions as pending confirmation");
+
+const archetypesRef = fs.readFileSync(path.join(initDir, ".agents", "skills", "project-planner", "references", "archetypes.md"), "utf8");
+assert(archetypesRef.includes("WMS、ERP、OMS、SaaS 后台、管理系统、多租户运营平台只是常见示例"), "archetypes treat industry names as examples rather than rule trigger");
+
+const taskOrchestratorSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "task-orchestrator", "SKILL.md"), "utf8");
+assert(taskOrchestratorSkill.includes("基础能力任务层"), "task orchestrator requires foundation task layer");
+
+const acceptanceGateSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "acceptance-gate", "SKILL.md"), "utf8");
+assert(acceptanceGateSkill.includes("共享基础能力依赖"), "acceptance gate checks runnable business loop for projects with shared foundation dependencies");
 
 // ---------------------------------------------------------------------------
 // Test: re-init on existing project (should not fail)

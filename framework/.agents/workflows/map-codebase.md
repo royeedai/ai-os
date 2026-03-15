@@ -40,7 +40,8 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
    - 环境配置方式
 5. **运行拓扑识别**：梳理现有服务 / 进程、build/start/restart 命令、冷启动 Smoke Check 入口、共享代码影响面
 6. **现有资产盘点**：识别已有的数据库 schema、API 端点、页面路由、共享组件
-7. **生成 `.ai-os/codebase-map.md`**：
+7. **目标市场与体验风格推断**：若项目存在用户可见界面，从语言、币种、日期格式、导航方式、页面密度、已存在设计系统、域名和受众线索中推断主要使用地区和体验风格；若无法确定，标记为"待确认"
+8. **生成 `.ai-os/codebase-map.md`**：
 
 ```markdown
 # 代码库分析报告
@@ -99,7 +100,7 @@ description: 分析已有代码库的技术栈、架构、约定和模式（Brow
 - [基于分析得出的硬性约束]
 ```
 
-8. **更新验证矩阵**：把路径到验证动作的稳定映射写入 `.ai-os/verification-matrix.yaml`，作为后续 `affected`、任务拆解、发布计划的单一真相源
-9. **写入 memory**：将分析结果中的稳定约束写入 `.ai-os/memory.md` 的"硬性约束"和"编码约定"部分
-10. **后续引用**：后续 spec 编写和编码实现**必须参考** `.ai-os/codebase-map.md` 与 `.ai-os/verification-matrix.yaml`，确保新代码与现有风格一致
-
+9. **更新验证矩阵**：把路径到验证动作的稳定映射写入 `.ai-os/verification-matrix.yaml`，作为后续 `affected`、任务拆解、发布计划的单一真相源
+10. **写入 memory**：将分析结果中的稳定约束写入 `.ai-os/memory.md` 的"硬性约束"和"编码约定"部分
+11. **待确认项**：若目标市场 / 体验风格只能推断，必须明确写出假设和待确认点，后续 spec / 页面实现前优先确认
+12. **后续引用**：后续 spec 编写和编码实现**必须参考** `.ai-os/codebase-map.md` 与 `.ai-os/verification-matrix.yaml`，确保新代码与现有风格一致
