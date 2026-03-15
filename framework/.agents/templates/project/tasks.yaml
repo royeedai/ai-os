@@ -1,4 +1,9 @@
 version: 2
+scope:
+  type: module
+  name: "example-module"
+  module_type: "页面类"
+  delivery_level: "L2"
 milestones:
   - id: M1
     title: "Milestone 1"

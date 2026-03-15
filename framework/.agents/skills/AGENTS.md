@@ -23,7 +23,7 @@
 | 创建/修改 spec | `spec-validator` |
 | 设计数据库 | `database-schema-design` |
 | 设计 API | `api-design` |
-| 编码过程中（全栈/CRUD 项目） | `fullstack-dev-checklist` |
+| 编码过程中（页面 + API + 持久化强耦合模块） | `fullstack-dev-checklist` |
 | 每次提交代码 | `git-workflow` |
 | 模块完成 | `code-review-guard` |
 
@@ -44,13 +44,30 @@
 
 | 等级 | 必须使用的 Skill | 可选追加 |
 |------|-----------------|---------|
-| L1 探索 | `code-review-guard`（简化模式） | — |
-| L2 标准 | `spec-validator` + `task-orchestrator` + `code-review-guard` + `acceptance-gate` | `fullstack-dev-checklist`、`git-workflow` |
-| L3 高风险 | L2 全部 + `security-guard` + `architecture-reviewer` + `release-manager` | `testing-strategies` |
+| L1 探索 | `task-orchestrator` + `code-review-guard`（简化模式） | `acceptance-gate`（轻量模式） |
+| L2 标准 | `spec-validator` + `task-orchestrator` + `code-review-guard` + `acceptance-gate` | `fullstack-dev-checklist`、`git-workflow`、`testing-strategies` |
+| L3 高风险 | L2 全部 + `security-guard` + `architecture-reviewer` + `release-manager` | — |
+
+## 模块类型与 Skill 分流
+
+模块进入实现前，先识别其类型，再决定优先 Skill 组合：
+
+| 模块类型 | 优先 Skill |
+|----------|------------|
+| `页面类` | `spec-validator` + `code-review-guard`（若同时涉及 API 与持久化联动，再追加 `fullstack-dev-checklist`） |
+| `API 类` | `spec-validator` + `api-design` + `testing-strategies` |
+| `数据处理类` | `spec-validator` + `testing-strategies` + `code-review-guard`（生产调度 / 批处理再按需追加 `release-manager`） |
+| `工具类` | `spec-validator` + `code-review-guard`（对外发布或安装交付时再按需追加 `release-manager`） |
+
+补充约束：
+
+- `fullstack-dev-checklist` 不是所有模块的默认 Skill，只在一个模块同时跨越界面、接口、持久化或复杂前后端联动时强制使用
+- 不要因为模块里“顺手改到一个接口”或“顺手补了一个页面”就自动升级为完整全栈检查
 
 ## 如何使用
 
 1. Agent 根据当前任务上下文，匹配上述触发条件
 2. 找到对应 Skill 目录，读取 `SKILL.md` 获取完整指令
-3. 按 SKILL.md 中的步骤执行
-4. 若使用 `/auto-advance` 模式，按 `.ai-os/tasks.yaml` 的 wave 顺序自动触发相关 Skill
+3. 先结合模块类型和交付等级，选择最低足够的 Skill 组合
+4. 按 `SKILL.md` 中的步骤执行
+5. 若使用 `/auto-advance` 模式，按 `.ai-os/tasks.yaml` 的 wave 顺序自动触发相关 Skill

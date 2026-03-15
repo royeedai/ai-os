@@ -1,0 +1,38 @@
+version: 1
+current_wave: foundation
+tasks:
+  - id: FOUNDATION-001
+    title: 建立登录与权限骨架
+    module: 基础能力层
+    module_type: 页面类
+    delivery_level: L2
+    status: done
+    evidence:
+      - 登录页可进入
+      - 角色权限校验通过
+  - id: FOUNDATION-002
+    title: 建立组织与仓库上下文
+    module: 基础能力层
+    module_type: API 类
+    delivery_level: L2
+    status: in_progress
+    blockers: []
+  - id: FOUNDATION-003
+    title: 接入多语言与基础设置
+    module: 基础设置
+    module_type: 页面类
+    delivery_level: L2
+    status: todo
+    depends_on:
+      - FOUNDATION-001
+      - FOUNDATION-002
+  - id: LOOP-001
+    title: 打通首条入库登记闭环
+    module: 入库登记
+    module_type: 页面类
+    delivery_level: L2
+    status: todo
+    depends_on:
+      - FOUNDATION-001
+      - FOUNDATION-002
+      - FOUNDATION-003

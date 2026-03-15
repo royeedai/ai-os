@@ -1,85 +1,121 @@
 ---
 name: new-module
-description: 新模块开发完整流程（从需求到交付的闭环）
+description: 新模块开发完整流程（按模块类型和交付等级自适应分流）
 ---
 
 # 新模块开发流程
 
-当用户说"开发一个新模块"、"加个XXX功能"、"做一个XXX页面"时触发此流程。
+当用户说“开发一个新模块”“加个 XXX 功能”“做一个 XXX 页面”时触发此流程。
 
-## 阶段零：需求澄清（Discuss）
+## 阶段零：入口判断
 
-> 在写 spec 之前，先理解用户到底想要什么。跳过本阶段可能导致 spec 大幅返工。
-> **条件入口**：如果从 `/clone-project` 阶段三进入，spec 已在复刻流程中完成，**跳过阶段零和阶段一**，直接进入阶段二。
+在进入正式流程前，先完成 4 个判断：
 
-1. 分析用户需求所属的模块类型（页面类 / API 类 / 数据处理类 / 工具类）
-2. 根据模块类型，向用户提出结构化的澄清问题：
-   - **页面类**：布局风格、信息密度、交互偏好（弹窗 vs 跳转）、空状态处理、移动端适配需求
-   - **API 类**：响应格式偏好、错误策略（统一码 vs HTTP 码）、版本策略、限流需求
-   - **数据处理类**：数据源、执行频率、容错策略、输出格式与目标
-   - **工具类**：命令风格、输出格式、配置方式、安装体验
-3. 将用户回答整理为 `.ai-os/specs/[模块名].context.md`，包含：
-   - 用户明确表达的偏好（标记为 `[用户决定]`）
-   - AI 推荐的默认选择（标记为 `[AI 默认]`，附理由）
-   - 仍然存在的开放问题（标记为 `[待确认]`）
-4. 若用户说"你来决定"或"按你觉得好的来" → 记录 AI 的默认选择和理由，全部标记为 `[AI 默认]`
-5. 后续 spec 编写和任务拆解**必须引用 context 中的决策**
+1. 当前需求属于哪种模块类型：`页面类` / `API 类` / `数据处理类` / `工具类`
+2. 当前模块的交付等级是什么：`L1` / `L2` / `L3`
+3. 该模块是否属于当前里程碑目标
+4. 该模块是否依赖尚未具备的共享基础能力
 
-> **跳过条件**：如果用户提供的需求已经非常具体（明确了交互方式、数据结构、技术选型），可以跳过本阶段，但需在 spec 中标注"需求来源：用户直接定义"。
+判断时必须读取：
 
-> **里程碑门禁**：在进入阶段一前，先读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`，判断该模块是否属于当前里程碑目标；若不属于，且用户未明确要求立即插入，则应进入待排期而不是直接抢占当前主线。
-> **依赖门禁**：若当前模块依赖登录、权限、多语言、导航骨架、组织/工作区/仓库上下文、基础设置、数据字典等共享基础能力，而这些能力尚未具备，则不得直接进入实现，应先回退补齐依赖任务或重排里程碑。
+- `.ai-os/project-charter.md`
+- `.ai-os/STATE.md`
+- `.agents/references/derived-rules.md`
 
-## 阶段一：需求定义
+若该模块不属于当前里程碑目标，且用户未明确要求立即插入，则进入待排期，而不是直接抢占当前主线。  
+若该模块依赖尚未具备的共享基础能力，则先补依赖任务或重排里程碑，不得直接进入实现。
 
-1. 在 `.ai-os/specs/` 目录下创建 `[模块名].spec.md`，使用 `.agents/templates/project/specs/example.spec.md` 作为项目内参考模板
-2. spec 编写时**必须引用** `.ai-os/specs/[模块名].context.md` 中的决策（若存在）
-3. 调用 `spec-validator` 验证 spec 完整性（8 个章节 + 5 类常见遗漏）
-4. 使用 `task-orchestrator` 基于 spec 生成 `tasks.yaml` 中的任务拆解、依赖、DoR/DoD、Evidence Pack
-5. 基于 `.ai-os/verification-matrix.yaml` 为当前模块声明 `affected_components`、`verification_required`、`restart_required`、`cold_start_required`
-6. 使用 `acceptance-gate` 为当前模块生成或更新验收条件，确认本模块"如何算完成"
-7. 将 spec 和任务拆解展示给用户确认，**用户确认前不进入下一阶段**
+## 阶段一：需求澄清
 
-> **门禁检查点**：进入阶段二前，必须同时具备：① 经 `spec-validator` 验证的 `.spec.md`；② `.ai-os/tasks.yaml` 中的任务拆解；③ `.ai-os/acceptance.yaml` 中的验收条件。三者缺一不可。
+仅在以下情况创建 `.ai-os/specs/[模块名].context.md`：
 
-## 阶段二：技术设计
+- 需求仍然模糊
+- 用户可见交互存在明显决策空间
+- API / 数据 / 工具行为存在策略分歧
+- 用户说“你来决定”“按你觉得好的来”
 
-8. 按 `database-schema-design` 设计数据库表结构
-9. 按 `api-design` 设计 RESTful API 接口规范
-10. 检查 `fullstack-dev-checklist` 维度零的项目脚手架完整性
-11. 若当前模块超出既有项目边界或引入新子系统，回退触发 `project-planner` 更新项目章程与范围
+若需求已经足够具体，可跳过 `context.md`，直接在 spec 中注明“需求来源：用户直接定义”。
 
-## 阶段三：编码实现
+按模块类型澄清重点：
 
-12. 按 `.ai-os/tasks.yaml` 中的 wave 顺序执行任务（同一 wave 内可并行）
-13. 每个任务执行前，先读取 `.ai-os/STATE.md` 恢复方位，再读取任务的 `context_files`
-14. 后端开发：Model → Repository → Service → Handler
-15. 前端开发：页面组件 → API 封装 → 路由注册 → 导航菜单
-16. 核心逻辑处加溯源注释：`// 对应 .spec: FR-XXX`
-17. 每完成一个子模块执行编译验证，命中 `verification_required` / `restart_required` / `cold_start_required` 时同步执行对应动作
-18. 任务状态同步回写到 `.ai-os/tasks.yaml` 和 `.ai-os/STATE.md`，不得只在聊天里口头更新
-19. 按 `git-workflow` 规范提交代码
+- `页面类`：布局、信息密度、关键交互、状态处理、设备适配
+- `API 类`：契约、错误策略、鉴权、限流 / 幂等、版本影响
+- `数据处理类`：输入源、触发方式、容错 / 重试、输出、结果校验
+- `工具类`：命令入口、参数 / 配置、输出格式、安装 / 运行体验
 
-## 阶段四：测试
+## 阶段二：需求定义
 
-20. 按 `testing-strategies` 编写核心路径的测试用例
-21. 执行测试用例并确认全部通过
-22. 准备 Evidence Pack：构建结果、测试结果、关键接口样例、截图、迁移说明、restart-log、cold-start-log、post-restart-smoke-log
+1. 在 `.ai-os/specs/` 下创建 `[模块名].spec.md`
+2. 在 spec 中明确：
+   - 模块类型
+   - 交付等级
+   - 所属里程碑
+   - 范围外内容
+3. 调用 `spec-validator`，按“通用必填项 + 类型专项项 + 等级附加项”验证 spec
+4. 调用 `task-orchestrator` 生成或更新 `.ai-os/tasks.yaml`
+5. 基于 `.ai-os/verification-matrix.yaml` 为当前模块声明验证动作
+6. 按交付等级处理验收：
+   - `L1`：允许轻量验收，是否生成完整 `.ai-os/acceptance.yaml` 取决于是否需要正式交付或人工验收
+   - `L2`：必须生成或更新 `.ai-os/acceptance.yaml`
+   - `L3`：必须生成或更新 `.ai-os/acceptance.yaml`，并显式纳入安全、架构、发布 / 回滚要求
+7. 向用户展示 spec、任务拆解、交付等级判断和验证方式，确认后再进入实现
 
-## 阶段五：审查与交付
+## 阶段三：技术设计
 
-23. 调用 `code-review-guard` 执行完整结构化自审，**向用户输出验收报告**（含 UAT 脚本）
-24. 调用 `acceptance-gate` 检查当前模块是否满足 DoD 和 Evidence Pack
-25. 若涉及敏感操作（金额/权限/删除），追加调用 `security-guard`
-26. 若架构复杂，追加调用 `architecture-reviewer`
-27. 修复所有必须项后，更新 `.ai-os/tasks.yaml` / `.ai-os/acceptance.yaml` / `.ai-os/STATE.md`，再标记模块为已完成
+技术设计不再固定套用所有 Skill，而是按模块类型选择：
 
-## 阶段六：重规划检查（Reassess）
+- `页面类`：优先调用 `fullstack-dev-checklist`；如涉及后端契约或持久化，再补 `api-design` / `database-schema-design`
+- `API 类`：优先调用 `api-design`；如涉及持久化，再补 `database-schema-design`
+- `数据处理类`：优先明确数据契约、执行链路和失败恢复；仅在确实涉及 API 或数据库设计时调用对应 Skill
+- `工具类`：优先明确命令契约、配置和运行方式；只有在确实涉及服务接口或持久化时才引入 API / 数据库设计
 
-> 在进入下一个模块前，评估本模块开发中发现的新信息。
+若当前模块超出既有项目边界或引入新子系统，回退触发 `project-planner` 更新项目章程与范围。
 
-28. 回顾本模块开发中发现的新信息：技术约束变化、接口契约偏差、工作量估算偏差、新增/已消除的风险
-29. 评估这些新信息是否影响后续模块的计划
-30. 若影响显著 → 触发 `change-impact-analyzer`，更新 `.ai-os/tasks.yaml`、`.ai-os/project-charter.md`、`.ai-os/risk-register.md`、`.ai-os/verification-matrix.yaml`
-31. 若无影响 → 记录到 `.ai-os/STATE.md` 的"最近决策"中，继续推进
-32. 更新 `.ai-os/risk-register.md`（新增/关闭风险项）
+## 阶段四：编码实现
+
+1. 按 `.ai-os/tasks.yaml` 中的 wave 顺序执行任务（同一 wave 内可并行）
+2. 每个任务执行前，先读取 `.ai-os/STATE.md` 和任务的 `context_files`
+3. 按模块类型完成对应实现：
+   - `页面类`：界面结构 → API 对接 → 路由 / 导航 → 状态处理
+   - `API 类`：契约 → 处理逻辑 → 权限 / 错误 → 接口验证
+   - `数据处理类`：输入 → 转换 / 执行 → 输出 → 失败恢复与日志
+   - `工具类`：命令入口 → 参数 / 配置 → 输出 → 安装 / 运行验证
+4. 核心逻辑处加溯源注释：`// 对应 .spec: FR-XXX`
+5. 命中 `verification_required` / `restart_required` / `cold_start_required` 时同步执行对应动作
+6. 任务状态同步回写 `.ai-os/tasks.yaml` 和 `.ai-os/STATE.md`
+7. 按 `git-workflow` 规范提交代码
+
+## 阶段五：测试与验收
+
+按交付等级缩放：
+
+- `L1`：执行最小可证明验证，至少保留构建或运行成功证据 + 一个关键结果证据
+- `L2`：执行核心路径测试、关键结果验证和完整验收检查
+- `L3`：在 L2 基础上，追加安全、架构、发布 / 回滚相关检查
+
+按模块类型准备关键证据：
+
+- `页面类`：截图 / 录屏 / UAT 路径
+- `API 类`：请求 / 响应样例、契约测试或等价证据
+- `数据处理类`：执行日志、结果样例、失败恢复证据
+- `工具类`：命令执行样例、帮助输出、安装 / 运行验证
+
+随后：
+
+1. 调用 `code-review-guard`
+2. 调用 `acceptance-gate`
+3. 若涉及敏感操作（金额 / 权限 / 删除），追加调用 `security-guard`
+4. 若架构复杂或等级为 `L3`，追加调用 `architecture-reviewer`
+5. 修复必须项后，更新 `.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`（如适用）、`.ai-os/STATE.md`
+
+## 阶段六：重规划检查
+
+在进入下一个模块前，回顾本模块开发中发现的新信息：
+
+- 技术约束变化
+- 接口契约偏差
+- 工作量估算偏差
+- 新增 / 已消除的风险
+
+若影响显著，触发 `change-impact-analyzer`，同步更新相关工件。  
+若无显著影响，记录到 `.ai-os/STATE.md` 的“最近决策”中，继续推进。

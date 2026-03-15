@@ -64,6 +64,12 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 
 如果只是一个特别小的改动，可以走 `/quick`。
 
+现在要多记一件事：
+
+- `/new-module` 不再默认所有模块都走同一条重流程
+- 它会先判断模块类型（页面 / API / 数据处理 / 工具）和交付等级（L1 / L2 / L3）
+- 目标是“最低足够流程”，而不是所有需求都按全栈大模块处理
+
 ### 场景二：老项目第一次接入 AI-OS
 
 1. 在项目根目录安装框架
@@ -99,6 +105,8 @@ npx --yes github:royeedai/ai-os .
 - `map-codebase` 帮 AI 先理解当前架构
 - `new-module` 让需求、任务、编码、验收保持同步
 - `review` 和 `ship` 避免“代码做了，但交付没闭环”
+
+如果是工具类、数据处理类或纯 API 模块，现在的流程会比以前更贴合实际，不会强行套页面 + API + 数据库三件套。
 
 ## 如果只是修个小问题怎么办
 
@@ -145,6 +153,12 @@ AI-OS 并不是所有事情都要走完整流程。
 - `.ai-os/specs/`
 - `.ai-os/evals/`
 
+其中有 3 个点值得特别留意：
+
+- `project-charter.md` 现在除了项目目标，也会记录模块类型和默认交付等级
+- `specs/*.spec.md` 会明确当前模块是页面类、API 类、数据处理类还是工具类
+- `specs/*.context.md` 不是每次都生成，只有需求还模糊时才用来记录澄清结果
+
 如果初始化时加了 `--with-project-files`，会直接创建这些模板。
 
 另外，`.agents/templates/project/` 也会一起出现在项目里。它们是 workflow 和 skill 的参考模板，不是你日常应该直接维护的项目工件。
@@ -160,7 +174,7 @@ npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os m
 例如：
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#v2.6.6 -- create-ai-os my-project --with-project-files
+npm exec --yes --package=github:royeedai/ai-os#v2.7.0 -- create-ai-os my-project --with-project-files
 ```
 
 前提是对应 tag 或 commit 已经存在于远端仓库。

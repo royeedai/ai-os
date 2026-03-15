@@ -31,6 +31,12 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 
 真正需要持续维护的项目工件主要在 `.ai-os/`。
 
+从 `v2.7.0` 开始，新初始化项目的工件还会明确：
+
+- 核心模块属于什么模块类型（页面 / API / 数据处理 / 工具）
+- 默认交付等级是什么（L1 / L2 / L3）
+- 是否存在共享基础能力依赖结构
+
 ### 老项目第一次接入
 
 ```bash
@@ -98,6 +104,12 @@ npx --yes github:royeedai/ai-os validate .
 - `specs/`
 - `evals/`
 
+从 `v2.7.0` 起，`validate` 也会兼容新的 spec 结构：
+
+- spec 中允许记录模块类型和交付等级
+- “界面 / 接口 / 命令清单”这类更通用的章节标题会被识别
+- 不再强依赖所有模块都按页面 + API + 数据库三件套书写
+
 ## 恢复与继续
 
 ### `status`
@@ -119,6 +131,8 @@ npx --yes github:royeedai/ai-os next .
 ### `resume`
 
 输出恢复 session 需要的最小上下文包。
+
+这三个命令仍然围绕 `.ai-os/STATE.md`、`.ai-os/tasks.yaml` 工作；如果项目已经按模块类型和交付等级记录，它们会更容易给出贴合当前模块的续做入口。
 
 ```bash
 npx --yes github:royeedai/ai-os resume .
@@ -178,6 +192,8 @@ npx --yes github:royeedai/ai-os upgrade . --force
 ```bash
 npx --yes github:royeedai/ai-os release-check .
 ```
+
+对于 `L3` 高风险模块，`release-check` 更重要，因为这类模块通常还要求额外的安全、架构和回滚准备。
 
 ## 本地开发时的调用方式
 

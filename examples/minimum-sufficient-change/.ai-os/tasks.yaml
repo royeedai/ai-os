@@ -1,0 +1,12 @@
+version: 1
+current_wave: quick-fix
+tasks:
+  - id: QUICK-001
+    title: 修复订单状态映射错误
+    module: 订单状态映射
+    module_type: API 类
+    delivery_level: L1
+    status: done
+    evidence:
+      - 单元测试通过
+      - 修复前后接口返回样例

@@ -52,6 +52,14 @@ function markdownHasSections(content, sectionNames) {
   const missing = [];
 
   for (const sectionName of sectionNames) {
+    if (Array.isArray(sectionName)) {
+      const hasAny = sectionName.some((candidate) => sections.has(candidate));
+      if (!hasAny) {
+        missing.push(sectionName.join(" / "));
+      }
+      continue;
+    }
+
     if (!sections.has(sectionName)) {
       missing.push(sectionName);
     }

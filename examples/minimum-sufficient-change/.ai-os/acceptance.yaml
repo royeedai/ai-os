@@ -1,0 +1,13 @@
+version: 1
+stage: quick-fix
+acceptance:
+  - id: ACC-QUICK-001
+    title: 状态映射修复生效
+    required_evidence:
+      - 一条成功调用样例
+      - 一条边界输入调用样例
+  - id: ACC-QUICK-002
+    title: 没有引入额外 blocker
+    required_evidence:
+      - 已知限制说明
+      - 回归影响说明

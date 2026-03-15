@@ -1,0 +1,23 @@
+version: 1
+stage: M0
+acceptance:
+  - id: ACC-M0-001
+    title: 登录与权限可用
+    required_evidence:
+      - 登录成功截图或录屏
+      - 权限控制验证结果
+  - id: ACC-M0-002
+    title: 组织 / 仓库上下文可切换
+    required_evidence:
+      - 上下文切换结果
+      - 相关 API 返回样例
+  - id: ACC-M0-003
+    title: 多语言与基础设置可支撑首条闭环
+    required_evidence:
+      - 语言切换结果
+      - 设置项生效证据
+  - id: ACC-M0-004
+    title: 首条核心业务闭环可运行
+    required_evidence:
+      - 从入口到提交到结果页的完整运行证据
+      - blocker 清单为空或已明确记录
