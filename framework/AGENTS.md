@@ -31,6 +31,16 @@ Skill 和 Workflow 的触发规则分别由各自索引文件维护：
 
 以上两份索引是触发规则的 Single Source of Truth。
 
+### 常用 Workflow 入口
+
+为避免工具只读取根层 `AGENTS.md` 时丢失 workflow 发现能力，以下 slash 命令必须直接视为可触发入口；完整场景匹配和步骤仍以 `.agents/workflows/AGENTS.md` 及对应 workflow 文件为准。
+
+- Start：`/init`、`/new-project`、`/map-codebase`、`/new-module`、`/quick`、`/clone-project`
+- Continue：`/status`、`/next`、`/resume`、`/auto-advance`
+- Finish / Govern：`/review`、`/ship`、`/change-request`、`/debug`、`/incident`、`/postmortem`
+
+当用户直接输入上述 slash 命令，或表达明显匹配的场景时，必须读取对应的 workflow 文件并按其步骤执行。
+
 ## 三、项目事实边界 (Project Facts First)
 
 - 项目事实必须落在工件里，而不是留在聊天里

@@ -245,6 +245,8 @@ const frameworkAgents = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8")
 assert(frameworkAgents.includes("## 二、通用性优先"), "framework constitution is reorganized around the six core requirements");
 assert(frameworkAgents.includes("模块进入实现前，必须明确模块类型"), "framework constitution requires module type classification");
 assert(frameworkAgents.includes("仅在需求存在明显决策空间时创建 `.context.md`"), "framework constitution enforces context-file complexity budget");
+assert(frameworkAgents.includes("### 常用 Workflow 入口"), "framework constitution exposes common workflow entrypoints at root level");
+assert(frameworkAgents.includes("/init"), "framework constitution makes /init discoverable from root AGENTS");
 
 // ---------------------------------------------------------------------------
 // Test: re-init on existing project (should not fail)
