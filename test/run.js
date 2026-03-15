@@ -161,6 +161,8 @@ assert(stateTemplate.includes("**当前里程碑目标**"), "STATE template incl
 const quickWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "quick.md"), "utf8");
 assert(quickWorkflow.includes("读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`"), "quick workflow aligns with project purpose and state");
 assert(quickWorkflow.includes("最低足够流程"), "quick workflow is framed as minimum sufficient flow");
+assert(quickWorkflow.includes("纯视觉微调"), "quick workflow supports static UI-only quick tasks");
+assert(quickWorkflow.includes("更适合静态 UI 的模型"), "quick workflow allows static UI model handoff without auto-routing");
 
 const debugWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "debug.md"), "utf8");
 assert(debugWorkflow.includes("阻塞当前里程碑目标"), "debug workflow checks blocker status against current milestone goal");
@@ -173,6 +175,8 @@ assert(newModuleWorkflow.includes("模块类型"), "new-module workflow identifi
 assert(newModuleWorkflow.includes("交付等级"), "new-module workflow identifies delivery level first");
 assert(newModuleWorkflow.includes("仅在以下情况创建 `.ai-os/specs/[模块名].context.md`"), "new-module workflow creates context file only when needed");
 assert(newModuleWorkflow.includes("技术设计不再固定套用所有 Skill"), "new-module workflow adapts technical design by module type");
+assert(newModuleWorkflow.includes("静态 UI 子任务"), "new-module workflow supports splitting static UI subtasks for page modules");
+assert(newModuleWorkflow.includes("AI-OS 只负责给出协作建议和交接包"), "new-module workflow avoids claiming automatic model routing");
 
 const fullstackChecklist = fs.readFileSync(path.join(initDir, ".agents", "skills", "fullstack-dev-checklist", "SKILL.md"), "utf8");
 assert(fullstackChecklist.includes("目标市场 / 主要使用地区"), "fullstack checklist requires target market alignment");
@@ -201,6 +205,7 @@ assert(newProjectWorkflow.includes("基础能力可用 + 首条核心业务闭�
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
 assert(workflowsIndex.includes("模块类型和交付等级"), "workflow index describes adaptive new-module flow");
 assert(workflowsIndex.includes("最低足够流程"), "workflow index describes quick as minimum sufficient flow");
+assert(workflowsIndex.includes("静态 UI 子任务"), "workflow index documents static UI collaboration trigger");
 
 const initWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "init.md"), "utf8");
 assert(initWorkflow.includes("目标市场与体验风格推断"), "init workflow infers target market and UX style for existing projects");
@@ -247,6 +252,11 @@ assert(frameworkAgents.includes("模块进入实现前，必须明确模块类�
 assert(frameworkAgents.includes("仅在需求存在明显决策空间时创建 `.context.md`"), "framework constitution enforces context-file complexity budget");
 assert(frameworkAgents.includes("### 常用 Workflow 入口"), "framework constitution exposes common workflow entrypoints at root level");
 assert(frameworkAgents.includes("/init"), "framework constitution makes /init discoverable from root AGENTS");
+assert(frameworkAgents.includes("AI-OS 只负责交接规范与项目事实同步"), "framework constitution limits multi-model support to handoff guidance");
+
+const memoryTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "memory.md"), "utf8");
+assert(memoryTemplate.includes("多模型协作偏好"), "memory template records multi-model collaboration preferences");
+assert(memoryTemplate.includes("页面类模块中的静态 UI 子任务"), "memory template guides static UI collaboration scope");
 
 // ---------------------------------------------------------------------------
 // Test: re-init on existing project (should not fail)
