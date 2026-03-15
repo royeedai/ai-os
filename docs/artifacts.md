@@ -51,6 +51,12 @@ AI-OS 的关键价值之一，是把项目事实落到仓库里，而不是留�
 
 它们解决的是“这个项目当前是什么状态”的问题。
 
+补充说明：
+
+- `core` profile 初始化时不会直接创建这批 starter 文件
+- `project` profile（或兼容别名 `--with-project-files`）会在初始化阶段创建它们
+- 老项目也可以先装 `core`，再通过 `/init` 基于现有代码生成项目事实
+
 ## 重点文件说明
 
 | 文件 | 它回答的问题 | 什么时候最重要 |
@@ -131,7 +137,7 @@ npx --yes github:royeedai/ai-os resume . --markdown
 
 ## 初始化时哪些文件会自动创建
 
-使用 `--with-project-files` 时，会自动创建：
+使用 `--profile project` 时，会自动创建：
 
 - `project-charter.md`
 - `risk-register.md`
@@ -144,7 +150,7 @@ npx --yes github:royeedai/ai-os resume . --markdown
 - `specs/example.spec.md`
 - `evals/eval-example.md`
 
-如果你是老项目接入，也可以先安装框架，再用 `/init` 基于现有代码生成这些文件。
+`--with-project-files` 仍保留，作为 `--profile project` 的兼容别名。
 
 与此同时，项目里还会保留 `.agents/templates/project/` 作为内部参考模板。
 

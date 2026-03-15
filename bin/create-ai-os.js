@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 const SUBCOMMANDS = {
+  plan:            "./ai-os-plan",
   doctor:          "./ai-os-doctor",
   diff:            "./ai-os-diff",
   upgrade:         "./ai-os-upgrade",
@@ -30,6 +31,9 @@ const fs = require("fs");
 const path = require("path");
 const {
   PROJECT_STATE_ROOT,
+  getDefaultInstallProfileName,
+  getInstallProfile,
+  readInstalledMeta,
   readFrameworkVersion,
   readPackageJson,
   ensureDir,
@@ -47,7 +51,7 @@ const PACKAGE_JSON = readPackageJson();
 
 function printHelp() {
   process.stdout.write(`Usage:
-  create-ai-os [target-dir] [--target <dir>] [--with-project-files] [--force-framework]
+  create-ai-os [target-dir] [--target <dir>] [--profile <name>] [--with-project-files] [--force-framework]
   create-ai-os <command> [target-dir]
 
 First workflow to use:
@@ -59,6 +63,7 @@ First workflow to use:
   /clone-project            Rebuild an existing product from references
 
 Check your setup:
+  create-ai-os plan [target-dir]           Preview managed install scope
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
   create-ai-os skill-check [skill-dir]     Validate a custom Skill
@@ -86,7 +91,8 @@ Prepare delivery:
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
-  --with-project-files  Create missing project files under ${PROJECT_STATE_ROOT}/ such as project-charter.md, risk-register.md, tasks.yaml, acceptance.yaml, release-plan.md, memory.md, STATE.md, verification-matrix.yaml, specs/, evals/
+  --profile <name>      Install profile. Defaults to ${getDefaultInstallProfileName()}.
+  --with-project-files  Compatibility alias for --profile project.
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   -h, --help            Show this help message
 `);
@@ -96,6 +102,7 @@ const args = process.argv.slice(2);
 let targetArg = "";
 let withProjectFiles = false;
 let forceFramework = false;
+let profileArg = "";
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -105,6 +112,14 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--with-project-files") {
     withProjectFiles = true;
+    continue;
+  }
+  if (arg === "--profile") {
+    if (i + 1 >= args.length) {
+      fail("--profile requires a value");
+    }
+    profileArg = args[i + 1];
+    i += 1;
     continue;
   }
   if (arg === "--force-framework") {
@@ -128,8 +143,24 @@ for (let i = 0; i < args.length; i += 1) {
   targetArg = arg;
 }
 
+if (withProjectFiles && profileArg && profileArg !== "project") {
+  fail("--with-project-files cannot be combined with a different --profile");
+}
+
 const targetDir = path.resolve(targetArg || ".");
 ensureDir(targetDir);
+const installedMeta = readInstalledMeta(targetDir);
+
+let installProfile;
+try {
+  installProfile = getInstallProfile(
+    withProjectFiles
+      ? "project"
+      : (profileArg || installedMeta.installProfile || getDefaultInstallProfileName())
+  );
+} catch (error) {
+  fail(error.message);
+}
 
 const existingFrameworkPaths = ["AGENTS.md", ".agents"]
   .map((relPath) => path.join(targetDir, relPath))
@@ -140,16 +171,16 @@ if (forceFramework) {
   removeManagedPaths(targetDir);
 }
 
-process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${targetDir}\n`);
+process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${targetDir} (profile: ${installProfile.name})\n`);
 
 const overwrite = forceFramework || !isExistingProject;
 copyFramework(targetDir, { overwrite });
 
-if (withProjectFiles) {
+if (installProfile.includeProjectFiles) {
   createProjectFiles(targetDir);
 }
 
-writeMetadata(targetDir);
+writeMetadata(targetDir, { installProfile: installProfile.name });
 writeManagedFilesManifest(targetDir);
 
 if (isExistingProject && !forceFramework) {
@@ -159,6 +190,7 @@ Initialization complete (existing project updated).
 Framework version: ${FRAMEWORK_VERSION}
 Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${targetDir}
+Install profile: ${installProfile.name}
 
 AI-OS framework installed. Use /init in your AI tool to initialize project files
 (project-charter, tasks, STATE, etc.) with real content from your codebase.
@@ -178,6 +210,7 @@ Initialization complete.
 Framework version: ${FRAMEWORK_VERSION}
 Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${targetDir}
+Install profile: ${installProfile.name}
 
 Next steps:
 1. Pick the right start workflow:

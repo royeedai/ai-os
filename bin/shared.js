@@ -1,7 +1,7 @@
 /**
  * AI-OS CLI — shared utilities
  *
- * Common helpers used by create-ai-os, doctor, diff, and upgrade commands.
+ * Common helpers used by create-ai-os, plan, doctor, diff, and upgrade commands.
  */
 
 const fs = require("fs");
@@ -14,6 +14,7 @@ const crypto = require("crypto");
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const FRAMEWORK_ROOT = path.join(PACKAGE_ROOT, "framework");
+const INSTALL_PROFILES_MANIFEST = path.join(PACKAGE_ROOT, "manifests", "install-profiles.json");
 const MANAGED_ROOTS = ["AGENTS.md", ".agents"];
 const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
@@ -43,6 +44,35 @@ function readPackageJson() {
   return JSON.parse(
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")
   );
+}
+
+function readInstallProfiles() {
+  return JSON.parse(fs.readFileSync(INSTALL_PROFILES_MANIFEST, "utf8"));
+}
+
+function getDefaultInstallProfileName() {
+  const manifest = readInstallProfiles();
+  return manifest.defaultProfile || "core";
+}
+
+function getInstallProfile(profileName) {
+  const manifest = readInstallProfiles();
+  const resolvedName = profileName || manifest.defaultProfile || "core";
+  const profile = manifest.profiles && manifest.profiles[resolvedName];
+
+  if (!profile) {
+    const knownProfiles = Object.keys(manifest.profiles || {}).sort();
+    throw new Error(
+      `unknown install profile: ${resolvedName}` +
+      (knownProfiles.length > 0 ? ` (expected one of: ${knownProfiles.join(", ")})` : "")
+    );
+  }
+
+  return {
+    name: resolvedName,
+    description: profile.description || "",
+    includeProjectFiles: Boolean(profile.includeProjectFiles),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,13 +223,19 @@ function parseSimpleToml(content) {
 
 /**
  * Read the installed AI-OS metadata from a target project.
- * Returns { exists, version, mode, frameworkTomlPath } or { exists: false }.
+ * Returns { exists, version, mode, installProfile, frameworkTomlPath } or { exists: false }.
  */
 function readInstalledMeta(targetDir) {
   const tomlPath = getProjectMetadataPath(targetDir);
 
   if (!fs.existsSync(tomlPath)) {
-    return { exists: false, version: null, mode: null, frameworkTomlPath: tomlPath };
+    return {
+      exists: false,
+      version: null,
+      mode: null,
+      installProfile: null,
+      frameworkTomlPath: tomlPath,
+    };
   }
 
   const content = fs.readFileSync(tomlPath, "utf8");
@@ -209,6 +245,7 @@ function readInstalledMeta(targetDir) {
     exists: true,
     version: values.framework_version || "unknown",
     mode: values.mode || "unknown",
+    installProfile: values.install_profile || null,
     frameworkTomlPath: tomlPath,
     values,
   };
@@ -313,11 +350,97 @@ function createProjectFiles(targetDir, options = {}) {
   );
 }
 
-function writeMetadata(targetDir) {
+function getProjectArtifactEntries(targetDir) {
+  return [
+    ...PROJECT_ARTIFACT_FILES.map((relPath) => ({
+      kind: "file",
+      relPath: getProjectRelativePath(relPath),
+      absolutePath: getProjectFilePath(targetDir, relPath),
+    })),
+    ...PROJECT_ARTIFACT_DIRS.map((relPath) => ({
+      kind: "dir",
+      relPath: getProjectRelativePath(relPath),
+      absolutePath: getProjectFilePath(targetDir, relPath),
+    })),
+    {
+      kind: "file",
+      relPath: getProjectRelativePath(path.join("specs", "example.spec.md")),
+      absolutePath: getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
+    },
+    {
+      kind: "file",
+      relPath: getProjectRelativePath(path.join("evals", "eval-example.md")),
+      absolutePath: getProjectFilePath(targetDir, path.join("evals", "eval-example.md")),
+    },
+  ];
+}
+
+function buildInstallPlan(targetDir, options = {}) {
+  const profile = getInstallProfile(options.installProfile);
+  const overwriteFramework = Boolean(options.overwriteFramework);
+  const frameworkFiles = listManagedFiles(FRAMEWORK_ROOT).map((relPath) => {
+    const destinationPath = path.join(targetDir, relPath);
+    const exists = fs.existsSync(destinationPath);
+    return {
+      kind: "framework",
+      relPath,
+      absolutePath: destinationPath,
+      exists,
+      action: exists && !overwriteFramework ? "keep" : "copy",
+    };
+  });
+
+  const metadataFiles = [
+    getProjectRelativePath(PROJECT_METADATA_FILE),
+    getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
+  ].map((relPath) => ({
+    kind: "metadata",
+    relPath,
+    absolutePath: resolveProjectPath(targetDir, relPath),
+    exists: fs.existsSync(resolveProjectPath(targetDir, relPath)),
+    action: "write",
+  }));
+
+  const projectEntries = profile.includeProjectFiles
+    ? getProjectArtifactEntries(targetDir).map((entry) => {
+      const exists = fs.existsSync(entry.absolutePath);
+      return {
+        kind: entry.kind === "dir" ? "project-dir" : "project-file",
+        relPath: entry.relPath,
+        absolutePath: entry.absolutePath,
+        exists,
+        action: exists ? "keep" : "create",
+      };
+    })
+    : [];
+
+  const allEntries = [...frameworkFiles, ...metadataFiles, ...projectEntries];
+  const summary = {
+    frameworkCopyCount: frameworkFiles.filter((entry) => entry.action === "copy").length,
+    frameworkKeepCount: frameworkFiles.filter((entry) => entry.action === "keep").length,
+    metadataWriteCount: metadataFiles.length,
+    projectCreateCount: projectEntries.filter((entry) => entry.action === "create").length,
+    projectKeepCount: projectEntries.filter((entry) => entry.action === "keep").length,
+    totalEntries: allEntries.length,
+  };
+
+  return {
+    targetDir,
+    profile,
+    entries: allEntries,
+    frameworkFiles,
+    metadataFiles,
+    projectEntries,
+    summary,
+  };
+}
+
+function writeMetadata(targetDir, options = {}) {
   const metadataDir = getProjectRoot(targetDir);
   const metadataFile = getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
   const frameworkVersion = readFrameworkVersion();
   const packageJson = readPackageJson();
+  const profileName = getInstallProfile(options.installProfile).name;
 
   ensureDir(metadataDir);
   fs.writeFileSync(
@@ -327,6 +450,7 @@ function writeMetadata(targetDir) {
       `framework_version = "${frameworkVersion}"`,
       `package_name = "${packageJson.name}"`,
       `package_version = "${packageJson.version}"`,
+      `install_profile = "${profileName}"`,
       `managed_files_manifest = "${getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST)}"`,
       ""
     ].join("\n"),
@@ -484,6 +608,7 @@ const VALIDATION_SCHEMAS = {
 module.exports = {
   PACKAGE_ROOT,
   FRAMEWORK_ROOT,
+  INSTALL_PROFILES_MANIFEST,
   MANAGED_ROOTS,
   PROJECT_STATE_ROOT,
   PROJECT_METADATA_FILE,
@@ -493,6 +618,9 @@ module.exports = {
   PROJECT_ARTIFACT_DIRS,
   readFrameworkVersion,
   readPackageJson,
+  readInstallProfiles,
+  getDefaultInstallProfileName,
+  getInstallProfile,
   ensureDir,
   fail,
   sha256File,
@@ -513,6 +641,8 @@ module.exports = {
   copyFramework,
   copyTemplateIfMissing,
   createProjectFiles,
+  getProjectArtifactEntries,
+  buildInstallPlan,
   writeMetadata,
   writeManagedFilesManifest,
   removeManagedPaths,

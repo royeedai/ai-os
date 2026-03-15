@@ -65,6 +65,9 @@ process.stdout.write("\n=== Root governance assets ===\n");
 const repoRoot = path.resolve(__dirname, "..");
 const rootAgents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
 const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
+const gettingStartedDoc = fs.readFileSync(path.join(repoRoot, "docs", "getting-started.md"), "utf8");
+const artifactsDoc = fs.readFileSync(path.join(repoRoot, "docs", "artifacts.md"), "utf8");
+const cliDoc = fs.readFileSync(path.join(repoRoot, "docs", "cli.md"), "utf8");
 
 assert(fs.existsSync(path.join(repoRoot, "evals", "README.md")), "root evals README exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "minimum-sufficient-flow.md")), "minimum sufficient flow eval exists");
@@ -79,10 +82,19 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "minimum-sufficient-change"
 assert(fs.existsSync(path.join(repoRoot, "examples", "minimum-sufficient-change", ".ai-os", "STATE.md")), "minimum sufficient change skeleton includes state");
 assert(fs.existsSync(path.join(repoRoot, "docs", "change-evaluation-template.md")), "change evaluation template exists");
 assert(rootAgents.includes("docs/change-evaluation-template.md"), "root AGENTS references change evaluation template");
+assert(rootAgents.includes("node bin/create-ai-os.js plan /tmp/test-project --profile project"), "root AGENTS documents plan preview with project profile");
+assert(rootAgents.includes("node bin/create-ai-os.js /tmp/test-project --profile project"), "root AGENTS uses project profile as the canonical install example");
+assert(!rootAgents.includes("node bin/release.js --check"), "root AGENTS avoids stale release.js guidance");
 assert(maintainersDoc.includes("../evals/minimum-sufficient-flow.md"), "maintainers doc references root evals");
 assert(maintainersDoc.includes("../examples/platform-project-foundation-first.md"), "maintainers doc references root examples");
 assert(maintainersDoc.includes("change-evaluation-template.md"), "maintainers doc references change evaluation template");
 assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
+assert(maintainersDoc.includes("node ./bin/create-ai-os.js my-project --profile project"), "maintainers doc uses project profile in local examples");
+assert(maintainersDoc.includes("node bin/create-ai-os.js plan /tmp/test-project --profile project"), "maintainers doc includes plan preview in manual verification");
+assert(gettingStartedDoc.includes("plan my-project --profile project"), "getting-started explains project-profile plan preview");
+assert(gettingStartedDoc.includes("--profile project"), "getting-started uses project profile as the canonical new-project install");
+assert(artifactsDoc.includes("`--profile project`"), "artifacts doc explains project profile for starter files");
+assert(cliDoc.includes("node ./bin/create-ai-os.js my-project --profile project"), "cli doc uses project profile in local development examples");
 
 // ---------------------------------------------------------------------------
 // Test: shared.js exports
@@ -128,6 +140,10 @@ assert(fs.existsSync(path.join(initDir, ".agents", "workflows")), ".agents/workf
 assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
+assert(
+  fs.readFileSync(path.join(initDir, ".ai-os", "framework.toml"), "utf8").includes('install_profile = "project"'),
+  "framework metadata records project profile"
+);
 
 const projectCharterTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "project-charter.md"), "utf8");
 assert(projectCharterTemplate.includes("适配范围 / 支持环境"), "project charter uses support-environment wording");
@@ -278,6 +294,52 @@ assert(memoryTemplate.includes("多模型协作偏好"), "memory template record
 assert(memoryTemplate.includes("页面类模块中的静态 UI 子任务"), "memory template guides static UI collaboration scope");
 
 // ---------------------------------------------------------------------------
+// Test: install profiles / plan
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== install profiles / plan ===\n");
+
+const coreDir = tmpDir();
+const coreInitResult = run("create-ai-os.js", [coreDir]);
+assert(coreInitResult.status === 0, "core profile init exits with code 0");
+assert(fs.existsSync(path.join(coreDir, "AGENTS.md")), "core profile still installs framework files");
+assert(!fs.existsSync(path.join(coreDir, ".ai-os", "STATE.md")), "core profile does not create starter project artifacts");
+
+const coreMetadata = fs.readFileSync(path.join(coreDir, ".ai-os", "framework.toml"), "utf8");
+assert(coreMetadata.includes('install_profile = "core"'), "framework metadata records core profile");
+
+const planJsonResult = run("ai-os-plan.js", [coreDir, "--json"]);
+assert(planJsonResult.status === 0, "ai-os-plan --json exits with code 0");
+const planJson = JSON.parse(planJsonResult.stdout);
+assert(planJson.profile.name === "core", "ai-os-plan defaults to the core profile");
+assert(planJson.project === null, "core plan omits starter project artifacts");
+
+const subcommandPlanResult = run("create-ai-os.js", ["plan", coreDir, "--json"]);
+assert(subcommandPlanResult.status === 0, "create-ai-os plan --json exits with code 0");
+const subcommandPlanJson = JSON.parse(subcommandPlanResult.stdout);
+assert(subcommandPlanJson.profile.name === "core", "create-ai-os plan delegates to the core profile preview");
+
+const futureProjectDir = path.join(os.tmpdir(), `ai-os-plan-${crypto.randomBytes(4).toString("hex")}`);
+const futurePlanResult = run("create-ai-os.js", ["plan", futureProjectDir, "--profile", "project", "--json"]);
+assert(futurePlanResult.status === 0, "create-ai-os plan works on a new target path");
+const futurePlanJson = JSON.parse(futurePlanResult.stdout);
+assert(futurePlanJson.profile.name === "project", "create-ai-os plan accepts project profile for a new target path");
+assert(futurePlanJson.summary.projectCreateCount > 0, "new-target plan reports starter project artifacts to create");
+
+const projectPlanResult = run("ai-os-plan.js", [coreDir, "--profile", "project"]);
+assert(projectPlanResult.status === 0, "ai-os-plan project profile exits with code 0");
+assert(projectPlanResult.stdout.includes("project artifacts"), "project plan reports starter project artifacts");
+
+const coreDoctorResult = run("ai-os-doctor.js", [coreDir]);
+assert(coreDoctorResult.status === 0, "doctor passes on core-profile install");
+assert(coreDoctorResult.stdout.includes("Install profile: core"), "doctor reports the installed core profile");
+assert(coreDoctorResult.stdout.includes("optional in core profile"), "doctor treats starter artifacts as optional in core profile");
+
+const coreDoctorStrictResult = run("ai-os-doctor.js", [coreDir, "--strict"]);
+assert(coreDoctorStrictResult.status === 0, "doctor --strict skips validation for a core-only install");
+assert(coreDoctorStrictResult.stdout.includes("skipped: project artifacts were not installed by this profile"), "doctor --strict explains why validation was skipped");
+
+// ---------------------------------------------------------------------------
 // Test: re-init on existing project (should not fail)
 // ---------------------------------------------------------------------------
 
@@ -338,6 +400,14 @@ assert(upgradeResult.status === 0, "upgrade --force succeeds");
 
 const diffAfter = run("ai-os-diff.js", [initDir, "--stat"]);
 assert(diffAfter.stdout.includes("0 modified"), "upgrade repaired the modification");
+
+fs.writeFileSync(path.join(coreDir, "AGENTS.md"), "# Modified core\n");
+const coreUpgradeResult = run("ai-os-upgrade.js", [coreDir, "--force"]);
+assert(coreUpgradeResult.status === 0, "upgrade --force succeeds on core-profile install");
+assert(
+  fs.readFileSync(path.join(coreDir, ".ai-os", "framework.toml"), "utf8").includes('install_profile = "core"'),
+  "upgrade preserves core install profile metadata"
+);
 
 // ---------------------------------------------------------------------------
 // Test: validate
@@ -492,6 +562,7 @@ assert(resumeMarkdownResult.stdout.includes(".ai-os/STATE.md"), "resume --markdo
 // ---------------------------------------------------------------------------
 
 cleanup(initDir);
+cleanup(coreDir);
 
 // ---------------------------------------------------------------------------
 // Summary

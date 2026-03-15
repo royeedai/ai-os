@@ -9,6 +9,7 @@
   "homepage": "https://github.com/royeedai/ai-os",
   "bin": {
     "create-ai-os": "./bin/create-ai-os.js",
+    "ai-os-plan": "./bin/ai-os-plan.js",
     "ai-os-affected": "./bin/ai-os-affected.js",
     "ai-os-doctor": "./bin/ai-os-doctor.js",
     "ai-os-diff": "./bin/ai-os-diff.js",
@@ -26,6 +27,7 @@
   "files": [
     "bin",
     "framework",
+    "manifests",
     "LICENSE",
     "README.md",
     "VERSION"

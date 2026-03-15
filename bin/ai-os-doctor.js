@@ -15,6 +15,8 @@ const {
   FRAMEWORK_ROOT,
   PROJECT_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_FILES,
+  getDefaultInstallProfileName,
+  getInstallProfile,
   readFrameworkVersion,
   listManagedFiles,
   readInstalledMeta,
@@ -106,6 +108,16 @@ if (meta.exists) {
   );
 }
 
+let installedProfile = null;
+if (meta.exists) {
+  try {
+    installedProfile = getInstallProfile(meta.installProfile || getDefaultInstallProfileName());
+    process.stdout.write(`Install profile: ${installedProfile.name}\n`);
+  } catch (_error) {
+    check(false, `Unknown install profile in metadata: ${meta.installProfile}`, true);
+  }
+}
+
 // 2. AGENTS.md
 check(
   fs.existsSync(path.join(targetDir, "AGENTS.md")),
@@ -157,6 +169,8 @@ const projectFiles = [
   })),
 ];
 
+let projectArtifactsPresent = false;
+
 for (const pf of projectFiles) {
   const fullPath = pf.path;
   let exists = false;
@@ -165,18 +179,34 @@ for (const pf of projectFiles) {
   } else {
     exists = fs.existsSync(fullPath);
   }
-  check(exists, pf.label, true);
+  if (exists) {
+    projectArtifactsPresent = true;
+    check(true, pf.label, false);
+    continue;
+  }
+  if (installedProfile && !installedProfile.includeProjectFiles) {
+    process.stdout.write(`  ${SYM_OK}  ${pf.label} (optional in core profile)\n`);
+    continue;
+  }
+  check(false, pf.label, true);
 }
 
 if (strict) {
   process.stdout.write(`\n  Strict validation:\n`);
-  const validateResult = spawnSync(
-    process.execPath,
-    [path.join(__dirname, "ai-os-validate.js"), targetDir],
-    { stdio: "inherit" }
-  );
-  if (validateResult.status !== 0) {
-    hasFailure = true;
+  const shouldValidateProjectArtifacts =
+    !installedProfile || installedProfile.includeProjectFiles || projectArtifactsPresent;
+
+  if (!shouldValidateProjectArtifacts) {
+    process.stdout.write("  skipped: project artifacts were not installed by this profile\n");
+  } else {
+    const validateResult = spawnSync(
+      process.execPath,
+      [path.join(__dirname, "ai-os-validate.js"), targetDir],
+      { stdio: "inherit" }
+    );
+    if (validateResult.status !== 0) {
+      hasFailure = true;
+    }
   }
 }
 

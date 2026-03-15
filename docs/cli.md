@@ -20,7 +20,7 @@ npx --yes github:royeedai/ai-os <command> .
 ### 新项目
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --with-project-files
+npx --yes github:royeedai/ai-os my-project --profile project
 ```
 
 执行后通常会看到三类内容：
@@ -37,6 +37,12 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 - 默认交付等级是什么（L1 / L2 / L3）
 - 是否存在共享基础能力依赖结构
 
+安装 profile 说明：
+
+- `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`
+- `project`：安装框架层，并补齐 starter 项目工件
+- `--with-project-files`：兼容别名，等价于 `--profile project`
+
 ### 老项目第一次接入
 
 ```bash
@@ -46,7 +52,7 @@ npx --yes github:royeedai/ai-os .
 ### 固定版本
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --with-project-files
+npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --profile project
 ```
 
 ## 帮助
@@ -60,6 +66,7 @@ node ./bin/create-ai-os.js --help
 当前入口摘要：
 
 - `create-ai-os [target-dir]`
+- `create-ai-os plan [target-dir]`
 - `create-ai-os doctor [target-dir]`
 - `create-ai-os validate [target-dir]`
 - `create-ai-os skill-check [skill-dir]`
@@ -73,6 +80,24 @@ node ./bin/create-ai-os.js --help
 
 ## 检查类命令
 
+### `plan`
+
+预览当前 profile 会管理哪些内容，不实际写文件。
+
+```bash
+npx --yes github:royeedai/ai-os plan . --profile core
+npx --yes github:royeedai/ai-os plan my-project --profile project
+npx --yes github:royeedai/ai-os plan my-project --profile project --json
+```
+
+适用场景：
+
+- 想先确认会不会创建 `.ai-os/` starter 工件
+- 想看现有项目里哪些框架文件会 `copy`，哪些会 `keep`
+- 在自动化里读取 machine-readable 安装计划
+
+`--json` 会输出摘要和相对路径分组，`--force-framework` 会按覆盖模式预览框架文件动作。
+
 ### `doctor`
 
 检查 AI-OS 框架是否安装完整。
@@ -83,6 +108,8 @@ npx --yes github:royeedai/ai-os doctor . --strict
 ```
 
 `--strict` 会进一步校验项目本地交付工件。
+
+如果项目是用 `core` profile 安装，且尚未初始化 starter 工件，`doctor` 会把这些文件标记为 optional，并在 `--strict` 模式下跳过项目工件校验。
 
 ### `validate`
 
@@ -237,7 +264,8 @@ npx --yes github:royeedai/ai-os release-check .
 在仓库开发阶段，推荐直接调用本地入口：
 
 ```bash
-node ./bin/create-ai-os.js my-project --with-project-files
+node ./bin/create-ai-os.js my-project --profile project
+node ./bin/create-ai-os.js plan my-project --profile core
 node ./bin/create-ai-os.js doctor my-project
 node ./bin/create-ai-os.js validate my-project
 node ./bin/create-ai-os.js skill-check my-project/.agents/skills/my-skill --strict

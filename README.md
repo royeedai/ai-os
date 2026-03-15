@@ -48,8 +48,8 @@ AI-OS 主要做三件事：
 
 | 你的场景 | 先做什么 | 结果 |
 |------|------|------|
-| 老项目第一次接入 AI-OS | `npx --yes github:royeedai/ai-os .` 然后用 `/init` | 安装框架并生成项目基础文件 |
-| 从 0 开始做一个项目 | `npx --yes github:royeedai/ai-os my-project --with-project-files` 然后用 `/new-project` | 建立项目章程、范围和任务图 |
+| 老项目第一次接入 AI-OS | `npx --yes github:royeedai/ai-os .` 然后用 `/init` | 先安装框架，再基于现有代码初始化项目基础文件 |
+| 从 0 开始做一个项目 | `npx --yes github:royeedai/ai-os my-project --profile project` 然后用 `/new-project` | 建立项目章程、范围和任务图 |
 | 已接入 AI-OS 的仓库上加功能 | `/map-codebase` 然后 `/new-module` | 先摸清现状，再按模块闭环开发 |
 | 只是修个小 bug / 改配置 | `/quick` | 快速改动，但仍保留任务和状态记录 |
 
@@ -73,7 +73,7 @@ AI-OS 主要做三件事：
 新项目：
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --with-project-files
+npx --yes github:royeedai/ai-os my-project --profile project
 ```
 
 老项目第一次接入：
@@ -81,6 +81,21 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 ```bash
 npx --yes github:royeedai/ai-os .
 ```
+
+安装前如果想先看会管理哪些内容：
+
+```bash
+npx --yes github:royeedai/ai-os plan . --profile core
+npx --yes github:royeedai/ai-os plan my-project --profile project
+```
+
+说明：
+
+- 默认 profile 是 `core`
+- `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`，适合已有项目先接入
+- `project`：安装框架层和 `.ai-os/` starter 工件，适合新项目
+- `--with-project-files` 仍然保留，作为 `--profile project` 的兼容别名
+- 老项目第一次接入时，常见做法是先用默认 `core` profile 安装框架，再通过 `/init` 或 `/map-codebase` 生成项目事实
 
 ### 2. 在 AI 工具里输入第一个 workflow
 
@@ -98,7 +113,7 @@ npx --yes github:royeedai/ai-os .
 
 - 框架文件：`AGENTS.md`、`.agents/skills/`、`.agents/workflows/`、`.ai-os/framework.toml`
 - 内部参考模板：`.agents/templates/project/`
-- 项目文件：`.ai-os/project-charter.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/STATE.md` 等
+- 项目文件：在 `project` profile 下会创建 `.ai-os/project-charter.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/STATE.md` 等
 
 这里最容易让人困惑的是第二类。
 
@@ -131,7 +146,7 @@ npx --yes github:royeedai/ai-os .
 
 ### 3. 一套项目事实
 
-这部分属于你的项目，记录真实的范围、进度和交付状态：
+这部分属于你的项目，记录真实的范围、进度和交付状态。只有 `project` profile 会在初始化时直接创建这些 starter 文件：
 
 - `.ai-os/project-charter.md`
 - `.ai-os/risk-register.md`
@@ -142,7 +157,9 @@ npx --yes github:royeedai/ai-os .
 - `.ai-os/STATE.md`
 - `.ai-os/verification-matrix.yaml`
 - `.ai-os/specs/`
+- `.ai-os/specs/example.spec.md`
 - `.ai-os/evals/`
+- `.ai-os/evals/eval-example.md`
 
 补充一点：
 
@@ -225,9 +242,12 @@ npx --yes github:royeedai/ai-os .
 
 ## 常用 CLI 命令
 
+官方推荐的主入口是 `create-ai-os`。通过 GitHub 直接执行时，下面这些示例会写成 `npx --yes github:royeedai/ai-os <command> ...` 的形式。
+
 除了初始化，AI-OS 还提供一组用于检查、恢复和维护的 CLI：
 
 ```bash
+npx --yes github:royeedai/ai-os plan . --profile core
 npx --yes github:royeedai/ai-os doctor .
 npx --yes github:royeedai/ai-os validate .
 npx --yes github:royeedai/ai-os status .
@@ -243,6 +263,7 @@ npx --yes github:royeedai/ai-os release-check .
 
 这些命令分别用来做：
 
+- `plan`：预览当前 profile 会管理哪些内容
 - `doctor` / `validate`：检查框架和交付工件是否完整
 - `status` / `next` / `resume`：恢复项目上下文
 - `resume --markdown`：导出可直接粘贴到新 session 的上下文快照

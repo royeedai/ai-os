@@ -40,6 +40,19 @@ AI-OS 更接近下面这个模型：
 - npm / npx
 - 能访问 GitHub 仓库
 
+安装前如果想先确认 AI-OS 会管理哪些内容，可以先预览：
+
+```bash
+npx --yes github:royeedai/ai-os plan . --profile core
+npx --yes github:royeedai/ai-os plan my-project --profile project
+```
+
+其中：
+
+- `core` 只安装框架层和 `.ai-os/` 元数据
+- `project` 会额外创建 starter 项目工件
+- `--with-project-files` 仍保留，作为 `--profile project` 的兼容别名
+
 ## 最常见的三种上手路径
 
 ### 场景一：从 0 开始做新项目
@@ -47,7 +60,7 @@ AI-OS 更接近下面这个模型：
 1. 初始化项目
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --with-project-files
+npx --yes github:royeedai/ai-os my-project --profile project
 ```
 
 2. 在 AI 工具里使用 `/new-project`
@@ -156,13 +169,13 @@ AI-OS 并不是所有事情都要走完整流程。
 - `.ai-os/specs/`
 - `.ai-os/evals/`
 
+只有使用 `project` profile（或兼容别名 `--with-project-files`）时，这些 starter 文件才会在初始化阶段直接创建。`core` profile 只会先写入框架和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`。
+
 其中有 3 个点值得特别留意：
 
 - `project-charter.md` 现在除了项目目标，也会记录模块类型和默认交付等级
 - `specs/*.spec.md` 会明确当前模块是页面类、API 类、数据处理类还是工具类
 - `specs/*.context.md` 不是每次都生成，只有需求还模糊时才用来记录澄清结果
-
-如果初始化时加了 `--with-project-files`，会直接创建这些模板。
 
 另外，`.agents/templates/project/` 也会一起出现在项目里。它们是 workflow 和 skill 的参考模板，不是你日常应该直接维护的项目工件。
 
@@ -171,13 +184,13 @@ AI-OS 并不是所有事情都要走完整流程。
 如果你希望新项目以后可以稳定复现，不要总是追主分支，可以固定 tag 或 commit：
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --with-project-files
+npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --profile project
 ```
 
 例如：
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#v2.7.0 -- create-ai-os my-project --with-project-files
+npm exec --yes --package=github:royeedai/ai-os#<release-tag> -- create-ai-os my-project --profile project
 ```
 
 前提是对应 tag 或 commit 已经存在于远端仓库。

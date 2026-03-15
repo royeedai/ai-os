@@ -135,7 +135,8 @@ AI-OS 现在的方向不是“所有模块都更严格”，而是“每类模�
 
 ```bash
 node ./bin/create-ai-os.js --help
-node ./bin/create-ai-os.js my-project --with-project-files
+node ./bin/create-ai-os.js my-project --profile project
+node ./bin/create-ai-os.js plan my-project --profile project
 node ./bin/create-ai-os.js doctor my-project
 node ./bin/create-ai-os.js validate my-project
 node ./bin/create-ai-os.js skill-check framework/.agents/skills/project-planner --strict
@@ -152,7 +153,8 @@ npm test
 手动验证常见命令：
 
 ```bash
-node bin/create-ai-os.js /tmp/test-project --with-project-files
+node bin/create-ai-os.js plan /tmp/test-project --profile project
+node bin/create-ai-os.js /tmp/test-project --profile project
 node bin/ai-os-doctor.js /tmp/test-project
 node bin/ai-os-diff.js /tmp/test-project
 node bin/ai-os-upgrade.js /tmp/test-project

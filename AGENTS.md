@@ -65,8 +65,11 @@ AI-OS 是一个零依赖的 Node.js CLI 工具，通过 `npx` 将 `framework/` �
 # 运行完整集成测试
 npm test
 
+# 预览安装范围
+node bin/create-ai-os.js plan /tmp/test-project --profile project
+
 # 手动在临时目录中测试安装
-node bin/create-ai-os.js /tmp/test-project --with-project-files
+node bin/create-ai-os.js /tmp/test-project --profile project
 
 # 验证健康检查
 node bin/ai-os-doctor.js /tmp/test-project
@@ -77,6 +80,6 @@ node bin/ai-os-diff.js /tmp/test-project
 # 验证升级
 node bin/ai-os-upgrade.js /tmp/test-project
 
-# 版本同步检查
-node bin/release.js --check
+# 验证发布前检查
+node bin/ai-os-release-check.js /tmp/test-project
 ```

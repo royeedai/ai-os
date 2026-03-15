@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "defaultProfile": "core",
+  "profiles": {
+    "core": {
+      "description": "Install the AI-OS framework only: AGENTS.md, .agents/, and framework metadata under .ai-os/.",
+      "includeProjectFiles": false
+    },
+    "project": {
+      "description": "Install the framework plus starter project-state files under .ai-os/.",
+      "includeProjectFiles": true
+    }
+  }
+}
