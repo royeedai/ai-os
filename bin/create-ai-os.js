@@ -9,6 +9,7 @@ const SUBCOMMANDS = {
   diff:            "./ai-os-diff",
   upgrade:         "./ai-os-upgrade",
   validate:        "./ai-os-validate",
+  "skill-check":   "./ai-os-skill-check",
   status:          "./ai-os-status",
   next:            "./ai-os-next",
   resume:          "./ai-os-resume",
@@ -60,6 +61,7 @@ First workflow to use:
 Check your setup:
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
+  create-ai-os skill-check [skill-dir]     Validate a custom Skill
 
 Recover and continue:
   create-ai-os status [target-dir]         Show current delivery status

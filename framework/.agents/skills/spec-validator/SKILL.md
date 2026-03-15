@@ -12,6 +12,12 @@ description: >
 
 如果当前需求已经属于“新项目”或跨多个模块，先调用 `project-planner` 形成 `.ai-os/project-charter.md`，再为每个模块创建 `.spec.md`。
 
+## 使用时机
+
+- 创建新的 `.spec.md`
+- 审阅或补齐现有 `.spec.md`
+- 准备进入开发前，先确认 spec 是否足够支撑实现和验收
+
 ## 使用方式
 
 1. 先识别当前 spec 的模块类型：`页面类` / `API 类` / `数据处理类` / `工具类`
@@ -19,6 +25,12 @@ description: >
 3. 使用本 Skill 检查“通用必填项 + 类型专项项 + 等级附加项”
 4. 输出验证报告，标记缺失维度
 5. 补齐缺失项后再交付给开发阶段
+
+## 约束
+
+- 如果当前需求还是项目级问题，不要直接写模块 spec，先回到 `project-planner`
+- 不要为了“过模板”补空话；所有内容都应可执行、可验证
+- 本 Skill 只验证 spec 本身，不替代编码、验收和发布检查
 
 ## 通用必填项
 
@@ -123,4 +135,12 @@ description: >
 1. [应补的具体信息]
 ```
 
-请参阅 `references/spec-template.md` 获取项目通用 spec 参考模板。
+## 模板引用
+
+- 项目通用 spec 模板：`references/spec-template.md`
+
+## 维护信息
+
+- 来源：`framework/AGENTS.md`、`.agents/references/derived-rules.md`、`references/spec-template.md`
+- 更新时间：2026-03-15
+- 已知限制：本 Skill 侧重完整性和结构质量，不替代业务判断与实现可行性验证

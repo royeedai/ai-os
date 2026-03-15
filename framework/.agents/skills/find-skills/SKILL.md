@@ -83,9 +83,31 @@ npx skills add <owner/repo@skill> -y
 2. **尝试同义词**："deploy" 没找到试试 "deployment" 或 "ci-cd"
 3. **查看热门来源**：`vercel-labs/agent-skills`、`obra/superpowers`
 
+## 约束
+
+- 如果用户只是问当前仓库怎么做，不要机械跳到外部 Skill 搜索
+- 没找到相关 Skill 时，不要假装存在
+- 本 Skill 负责发现和安装外部 Skill，不替代直接完成当前任务
+
 ## 没找到时
 
 如果没有相关 Skills：
 1. 告知用户没有找到
 2. 提供直接帮助
 3. 建议用户创建自己的 Skill：`npx skills init my-skill`
+
+## 模板引用
+
+- 输出物：候选 Skill 列表、安装命令、来源链接、未找到时的回退建议
+
+### 示例：查找 React 性能 Skill
+
+- 输入：用户说“怎么优化 React 性能”
+- 输出：搜索关键词、候选 Skill、安装命令或无结果时的回退建议
+- 约束：候选结果必须来自真实搜索，不要编造包名
+
+## 维护信息
+
+- 来源：[skills.sh](https://skills.sh/)
+- 更新时间：2026-03-15
+- 已知限制：结果取决于外部开放生态，不能保证一定存在匹配 Skill

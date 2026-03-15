@@ -233,6 +233,8 @@ npx --yes github:royeedai/ai-os validate .
 npx --yes github:royeedai/ai-os status .
 npx --yes github:royeedai/ai-os next .
 npx --yes github:royeedai/ai-os resume .
+npx --yes github:royeedai/ai-os resume . --markdown
+npx --yes github:royeedai/ai-os skill-check .agents/skills/my-skill --strict
 npx --yes github:royeedai/ai-os affected .
 npx --yes github:royeedai/ai-os diff .
 npx --yes github:royeedai/ai-os upgrade .
@@ -243,6 +245,8 @@ npx --yes github:royeedai/ai-os release-check .
 
 - `doctor` / `validate`：检查框架和交付工件是否完整
 - `status` / `next` / `resume`：恢复项目上下文
+- `resume --markdown`：导出可直接粘贴到新 session 的上下文快照
+- `skill-check`：检查自定义 Skill 是否满足结构和质量基线
 - `affected`：按代码变更决定要做哪些验证
 - `diff` / `upgrade`：对比并升级框架文件
 - `release-check`：发布前做最后检查

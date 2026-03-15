@@ -9,6 +9,12 @@ description: >
 
 本 Skill 用于把“需求”转成“可执行任务图”，避免 AI 只会从 spec 直接跳到编码。
 
+## 使用时机
+
+- 项目或模块需求已经明确，准备拆任务
+- 编码前需要先建立执行顺序和依赖关系
+- 任务过大、漏项过多、上下文切换频繁，需要重新编排
+
 ## 使用方式
 
 1. 输入来源可以是 `.ai-os/project-charter.md` 或某个模块的 `.spec.md`
@@ -74,3 +80,15 @@ description: >
 ## 模板引用
 
 - 任务图：读取 `.agents/templates/project/tasks.yaml` 作为模板生成 `.ai-os/tasks.yaml`
+
+### 示例：L2 API 模块任务拆分
+
+- 输入：模块 `.spec.md`、当前 `.ai-os/verification-matrix.yaml`
+- 输出：实现、测试、验收、运行验证分开的任务项和 wave
+- 约束：不要把整个模块压成一个任务；要显式写出 `context_files` 和验证动作
+
+## 维护信息
+
+- 来源：`framework/AGENTS.md`、`.agents/templates/project/tasks.yaml`、`.agents/references/derived-rules.md`
+- 更新时间：2026-03-15
+- 已知限制：本 Skill 负责任务图编排，不负责替代 spec 校验、代码实现和最终验收

@@ -113,6 +113,12 @@ AI-OS 根层治理只认下面 6 条核心要求：
 
 - [change-evaluation-template.md](change-evaluation-template.md)
 
+如果你在新增或重构 Skill，而不是改 workflow / 根层治理，先看：
+
+- [../framework/.agents/skills/references/skill-spec.md](../framework/.agents/skills/references/skill-spec.md)
+- [../framework/.agents/skills/references/quality-checklist.md](../framework/.agents/skills/references/quality-checklist.md)
+- [../framework/.agents/skills/references/anti-patterns.md](../framework/.agents/skills/references/anti-patterns.md)
+
 ## 维护时的最低足够原则
 
 框架维护时，默认先问：
@@ -132,6 +138,7 @@ node ./bin/create-ai-os.js --help
 node ./bin/create-ai-os.js my-project --with-project-files
 node ./bin/create-ai-os.js doctor my-project
 node ./bin/create-ai-os.js validate my-project
+node ./bin/create-ai-os.js skill-check framework/.agents/skills/project-planner --strict
 ```
 
 ## 测试
@@ -150,6 +157,7 @@ node bin/ai-os-doctor.js /tmp/test-project
 node bin/ai-os-diff.js /tmp/test-project
 node bin/ai-os-upgrade.js /tmp/test-project
 node bin/ai-os-release-check.js /tmp/test-project
+node bin/ai-os-skill-check.js framework/.agents/skills/project-planner
 ```
 
 ## 发布前自查
@@ -161,6 +169,7 @@ node bin/ai-os-release-check.js /tmp/test-project
 - 新命令是否补齐帮助信息
 - 测试是否通过
 - 如有框架层变更，是否考虑升级说明
+- 如有 Skill 规范变更，是否同步更新 `framework/.agents/skills/references/`
 
 ## 相关文档
 

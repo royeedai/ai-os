@@ -82,6 +82,7 @@ assert(rootAgents.includes("docs/change-evaluation-template.md"), "root AGENTS r
 assert(maintainersDoc.includes("../evals/minimum-sufficient-flow.md"), "maintainers doc references root evals");
 assert(maintainersDoc.includes("../examples/platform-project-foundation-first.md"), "maintainers doc references root examples");
 assert(maintainersDoc.includes("change-evaluation-template.md"), "maintainers doc references change evaluation template");
+assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
 
 // ---------------------------------------------------------------------------
 // Test: shared.js exports
@@ -187,16 +188,31 @@ assert(fullstackChecklist.includes("纯页面、纯 API、纯数据处理或纯�
 const skillsIndex = fs.readFileSync(path.join(initDir, ".agents", "skills", "AGENTS.md"), "utf8");
 assert(skillsIndex.includes("页面 + API + 持久化强耦合模块"), "skills index narrows fullstack checklist trigger to strongly coupled modules");
 assert(skillsIndex.includes("不是所有模块的默认 Skill"), "skills index states fullstack checklist is not the default for every module");
+assert(skillsIndex.includes("skill-check"), "skills index documents skill-check command");
+
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "references", "skill-spec.md")), "skill spec reference installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "references", "quality-checklist.md")), "skill quality checklist installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "references", "anti-patterns.md")), "skill anti-patterns reference installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "fullstack-dev-checklist", "references", "index.md")), "fullstack checklist reference index installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "reverse-engineer", "references", "index.md")), "reverse engineer reference index installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "systematic-debugging", "references", "index.md")), "systematic debugging reference index installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "templates", "project", "context-snapshot.md")), "context snapshot template installed");
 
 const projectPlannerSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "project-planner", "SKILL.md"), "utf8");
 assert(projectPlannerSkill.includes("目标市场 / 主要使用地区"), "project planner requires target market planning");
 assert(projectPlannerSkill.includes("每个核心模块声明"), "project planner requires module type and delivery level planning");
 assert(projectPlannerSkill.includes("共享基础能力优先"), "project planner references shared-foundation planning rule");
+assert(projectPlannerSkill.includes("## 使用时机"), "project planner includes explicit trigger section");
+assert(projectPlannerSkill.includes("## 维护信息"), "project planner includes maintenance section");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "project-planner", "references", "index.md")), "project planner reference index installed");
 
 const specValidatorSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "spec-validator", "SKILL.md"), "utf8");
 assert(specValidatorSkill.includes("通用必填项 + 类型专项项 + 等级附加项"), "spec validator validates universal, type-specific, and level-specific requirements");
 assert(specValidatorSkill.includes("### 工具类"), "spec validator supports tool modules");
 assert(specValidatorSkill.includes("### L3 高风险"), "spec validator scales checks by delivery level");
+assert(specValidatorSkill.includes("## 使用时机"), "spec validator includes explicit trigger section");
+assert(specValidatorSkill.includes("## 模板引用"), "spec validator includes template reference section");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "spec-validator", "references", "index.md")), "spec validator reference index installed");
 
 const newProjectWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-project.md"), "utf8");
 assert(newProjectWorkflow.includes("模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）"), "new-project workflow classifies modules by type");
@@ -236,6 +252,9 @@ const codeReviewGuardSkill = fs.readFileSync(path.join(initDir, ".agents", "skil
 assert(codeReviewGuardSkill.includes("不是“默认所有模块都走同一套重审流程”"), "code review guard avoids a single heavy review flow for every module");
 assert(codeReviewGuardSkill.includes("仅在模块存在明显跨层联动时调用 `fullstack-dev-checklist`"), "code review guard limits fullstack checklist to cross-layer modules");
 assert(codeReviewGuardSkill.includes("按交付等级缩放自审"), "code review guard scales review by delivery level");
+assert(codeReviewGuardSkill.includes("## 使用时机"), "code review guard includes explicit trigger section");
+assert(codeReviewGuardSkill.includes("## 维护信息"), "code review guard includes maintenance section");
+assert(fs.existsSync(path.join(initDir, ".agents", "skills", "code-review-guard", "references", "index.md")), "code review guard reference index installed");
 
 const releaseManagerSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "release-manager", "SKILL.md"), "utf8");
 assert(releaseManagerSkill.includes("不是所有模块默认都走完整发布流程"), "release manager avoids forcing full release flow onto every module");
@@ -330,6 +349,124 @@ const validateResult = run("ai-os-validate.js", [initDir]);
 assert(validateResult.status === 0, "validate passes on template project");
 
 // ---------------------------------------------------------------------------
+// Test: skill-check
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== skill-check ===\n");
+
+const baselineSkillCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "project-planner"),
+]);
+assert(baselineSkillCheck.status === 0, "skill-check baseline passes on project-planner");
+assert(baselineSkillCheck.stdout.includes("AI-OS Skill Check"), "skill-check prints header");
+
+const strictSkillCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "project-planner"),
+  "--strict",
+]);
+assert(strictSkillCheck.status === 0, "skill-check strict passes on project-planner");
+
+const strictSpecValidatorCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "spec-validator"),
+  "--strict",
+]);
+assert(strictSpecValidatorCheck.status === 0, "skill-check strict passes on spec-validator");
+
+const strictCodeReviewCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "code-review-guard"),
+  "--strict",
+]);
+assert(strictCodeReviewCheck.status === 0, "skill-check strict passes on code-review-guard");
+
+const strictAcceptanceGateCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "acceptance-gate"),
+  "--strict",
+]);
+assert(strictAcceptanceGateCheck.status === 0, "skill-check strict passes on acceptance-gate");
+
+const strictTaskOrchestratorCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "task-orchestrator"),
+  "--strict",
+]);
+assert(strictTaskOrchestratorCheck.status === 0, "skill-check strict passes on task-orchestrator");
+
+const strictReleaseManagerCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "release-manager"),
+  "--strict",
+]);
+assert(strictReleaseManagerCheck.status === 0, "skill-check strict passes on release-manager");
+
+const strictReverseEngineerCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "reverse-engineer"),
+  "--strict",
+]);
+assert(strictReverseEngineerCheck.status === 0, "skill-check strict passes on reverse-engineer");
+
+const strictSystematicDebuggingCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "systematic-debugging"),
+  "--strict",
+]);
+assert(strictSystematicDebuggingCheck.status === 0, "skill-check strict passes on systematic-debugging");
+
+const strictFullstackChecklistCheck = run("ai-os-skill-check.js", [
+  path.join(initDir, ".agents", "skills", "fullstack-dev-checklist"),
+  "--strict",
+]);
+assert(strictFullstackChecklistCheck.status === 0, "skill-check strict passes on fullstack-dev-checklist");
+
+const allSkillDirs = fs.readdirSync(path.join(initDir, ".agents", "skills"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && entry.name !== "references")
+  .map((entry) => entry.name)
+  .sort();
+
+for (const skillName of allSkillDirs) {
+  const result = run("ai-os-skill-check.js", [
+    path.join(initDir, ".agents", "skills", skillName),
+    "--strict",
+  ]);
+  assert(result.status === 0, `skill-check strict passes on ${skillName}`);
+}
+
+const strictSkillDir = path.join(tmpDir(), "strict-skill");
+fs.mkdirSync(path.join(strictSkillDir, "references"), { recursive: true });
+fs.writeFileSync(path.join(strictSkillDir, "SKILL.md"), `---
+name: strict-skill
+description: "检查模块发布边界；当准备交付高风险模块时使用。"
+---
+
+# strict-skill
+
+## 使用时机
+
+- 准备交付高风险模块
+
+## 使用方式
+
+1. 读取模块 spec
+2. 检查发布前条件
+
+## 约束
+
+- 缺少 spec 时先停下补齐
+
+## 模板引用
+
+- 发布检查报告模板
+
+## 维护信息
+
+- 来源：内部规范
+- 更新时间：2026-03-15
+- 已知限制：只覆盖模块级检查
+`, "utf8");
+fs.writeFileSync(path.join(strictSkillDir, "references", "index.md"), "# refs\n", "utf8");
+
+const strictFixtureCheck = run("ai-os-skill-check.js", [strictSkillDir, "--strict"]);
+assert(strictFixtureCheck.status === 0, "skill-check strict passes on production-grade fixture");
+
+cleanup(path.dirname(strictSkillDir));
+
+// ---------------------------------------------------------------------------
 // Test: status / next / resume (graceful on template data)
 // ---------------------------------------------------------------------------
 
@@ -343,6 +480,12 @@ assert(nextResult.status === 0, "next exits with code 0");
 
 const resumeResult = run("ai-os-resume.js", [initDir]);
 assert(resumeResult.status === 0, "resume exits with code 0");
+
+const resumeMarkdownResult = run("ai-os-resume.js", [initDir, "--markdown"]);
+assert(resumeMarkdownResult.status === 0, "resume --markdown exits with code 0");
+assert(resumeMarkdownResult.stdout.includes("# AI-OS Context Snapshot"), "resume --markdown prints snapshot heading");
+assert(resumeMarkdownResult.stdout.includes("## 优先读取文件"), "resume --markdown includes priority files section");
+assert(resumeMarkdownResult.stdout.includes(".ai-os/STATE.md"), "resume --markdown references STATE.md");
 
 // ---------------------------------------------------------------------------
 // Cleanup

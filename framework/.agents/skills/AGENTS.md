@@ -71,3 +71,27 @@
 3. 先结合模块类型和交付等级，选择最低足够的 Skill 组合
 4. 按 `SKILL.md` 中的步骤执行
 5. 若使用 `/auto-advance` 模式，按 `.ai-os/tasks.yaml` 的 wave 顺序自动触发相关 Skill
+
+## 新增或重构自定义 Skill
+
+如果你要在当前项目里新增或重构自定义 Skill，先看：
+
+- `.agents/skills/references/skill-spec.md`
+- `.agents/skills/references/quality-checklist.md`
+- `.agents/skills/references/anti-patterns.md`
+
+建议流程：
+
+1. 先按 `skill-spec.md` 写出最小可用版本
+2. 再按 `quality-checklist.md` 做自查
+3. 最后运行校验命令
+
+```bash
+npx --yes github:royeedai/ai-os skill-check .agents/skills/<skill-name>
+npx --yes github:royeedai/ai-os skill-check .agents/skills/<skill-name> --strict
+```
+
+说明：
+
+- 默认模式检查基线结构，适合日常迭代
+- `--strict` 会额外检查边界、维护信息、长文档拆分和导航入口，更适合准备沉淀为长期复用 Skill 时使用

@@ -62,6 +62,7 @@ node ./bin/create-ai-os.js --help
 - `create-ai-os [target-dir]`
 - `create-ai-os doctor [target-dir]`
 - `create-ai-os validate [target-dir]`
+- `create-ai-os skill-check [skill-dir]`
 - `create-ai-os status [target-dir]`
 - `create-ai-os next [target-dir]`
 - `create-ai-os resume [target-dir]`
@@ -110,6 +111,35 @@ npx --yes github:royeedai/ai-os validate .
 - “界面 / 接口 / 命令清单”这类更通用的章节标题会被识别
 - 不再强依赖所有模块都按页面 + API + 数据库三件套书写
 
+### `skill-check`
+
+检查一个自定义 Skill 的结构是否达到 AI-OS 的基线或严格规范。
+
+```bash
+npx --yes github:royeedai/ai-os skill-check .agents/skills/my-skill
+npx --yes github:royeedai/ai-os skill-check .agents/skills/my-skill --strict
+```
+
+适用场景：
+
+- 新增项目自定义 Skill
+- 重构现有 Skill
+- 准备把项目内 Skill 沉淀为长期复用资产
+
+检查重点：
+
+- `SKILL.md` frontmatter 是否完整
+- `description` 是否说明“做什么 + 何时使用”
+- 是否存在触发条件、执行流程、边界说明
+- 是否包含模板 / 输出 / 示例等可复用交付格式
+- 长 Skill 是否已拆到 `references/`，且有 `references/index.md`
+
+配套参考：
+
+- `.agents/skills/references/skill-spec.md`
+- `.agents/skills/references/quality-checklist.md`
+- `.agents/skills/references/anti-patterns.md`
+
 ## 恢复与继续
 
 ### `status`
@@ -136,7 +166,14 @@ npx --yes github:royeedai/ai-os next .
 
 ```bash
 npx --yes github:royeedai/ai-os resume .
+npx --yes github:royeedai/ai-os resume . --markdown
 ```
+
+补充：
+
+- 默认输出面向终端阅读的恢复信息
+- `--markdown` 会输出一份可直接复制到新 session 的上下文快照
+- 快照结构与 `.agents/templates/project/context-snapshot.md` 对齐，但它不是项目必填工件
 
 ## 变更感知验证
 
@@ -203,11 +240,13 @@ npx --yes github:royeedai/ai-os release-check .
 node ./bin/create-ai-os.js my-project --with-project-files
 node ./bin/create-ai-os.js doctor my-project
 node ./bin/create-ai-os.js validate my-project
+node ./bin/create-ai-os.js skill-check my-project/.agents/skills/my-skill --strict
 node ./bin/create-ai-os.js affected my-project
 node ./bin/create-ai-os.js diff my-project
 node ./bin/create-ai-os.js upgrade my-project
 node ./bin/create-ai-os.js status my-project
 node ./bin/create-ai-os.js next my-project
 node ./bin/create-ai-os.js resume my-project
+node ./bin/create-ai-os.js resume my-project --markdown
 node ./bin/create-ai-os.js release-check my-project
 ```

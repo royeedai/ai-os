@@ -11,6 +11,13 @@ description: >
 
 本 Skill 在模块开发完成后触发，对照 `.spec.md`、`.ai-os/tasks.yaml` 和 `.ai-os/acceptance.yaml` 验证实现是否完整。它不是“默认所有模块都走同一套重审流程”，而是要先识别模块类型和交付等级，再做最低足够的质量审查。
 
+## 使用时机
+
+- 开发任务标记为“完成”前
+- 用户要求“检查一下代码是否完整”
+- 提交 PR / Code Review 前
+- 用户说“这个模块做完了”
+
 ## 使用方式
 
 1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
@@ -20,6 +27,12 @@ description: >
 5. 仅在模块存在明显跨层联动时调用 `fullstack-dev-checklist`；其余模块按类型走专项检查
 6. 若准备对外宣称"完成"，调用 `acceptance-gate` 输出通过 / 阻塞结论；只有需要人工验证时才附 UAT 脚本
 7. 输出验收报告
+
+## 约束
+
+- Step 0 未通过时，必须直接判为不合格，不要继续做后续逻辑审查
+- 不要把所有模块都自动升级为 `fullstack-dev-checklist`
+- 本 Skill 负责模块级交付前自审，不替代项目规划、spec 编写或正式发布审批
 
 ---
 
@@ -210,18 +223,13 @@ description: >
 - [ ] ❌ 多处关键功能缺失，需要重构
 ```
 
----
+## 模板引用
 
-## 触发时机
+- 审查维度参考：`references/review-dimensions.md`
+- 验收报告模板：本文件中的“验收报告模板”章节
 
-本 Skill 在以下情况被触发：
-1. 开发任务标记为"完成"前
-2. 用户要求"检查一下代码是否完整"
-3. 提交 PR / Code Review 前
-4. 用户说"这个模块做完了"
+## 维护信息
 
-触发后，AI 必须：
-1. 自动定位对应的 .spec 文件
-2. 执行完整的自审流程和交付证据检查
-3. 输出格式化的验收报告
-4. 如有未通过项，列出具体待修补清单
+- 来源：`framework/AGENTS.md`、`.agents/references/derived-rules.md`、`references/review-dimensions.md`
+- 更新时间：2026-03-15
+- 已知限制：本 Skill 偏模块级自审；若涉及正式发布决策，还应继续使用 `acceptance-gate`、`release-manager` 等后续 Skill

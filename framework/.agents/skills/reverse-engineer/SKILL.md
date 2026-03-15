@@ -106,3 +106,20 @@ description: >
 - **前置**：由 `/clone-project` 工作流调用
 - **后续**：产出的 spec 交给 `spec-validator` 验证完整性
 - **变更**：中途补充新素材时，通过 `change-impact-analyzer` 同步更新
+
+## 模板引用
+
+- 模块 spec 草稿模板：`references/clone-spec-template.md`
+- 素材覆盖检查：`references/material-checklist.md`
+
+### 示例：截图 + API 文档生成 spec 草稿
+
+- 输入：页面截图、接口入参返参、简短业务描述
+- 输出：模块清单、带 `[确认] / [推断] / [待确认]` 标记的 `.spec.md` 草稿
+- 约束：无法从素材直接证明的信息必须保留为 `[待确认]`
+
+## 维护信息
+
+- 来源：`framework/.agents/workflows/clone-project.md`、`references/clone-spec-template.md`、`references/material-checklist.md`
+- 更新时间：2026-03-15
+- 已知限制：本 Skill 只能基于现有素材逆向；素材不足时必须显式暴露不确定性

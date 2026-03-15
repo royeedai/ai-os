@@ -32,3 +32,4 @@ description: 从 STATE.md 恢复上下文，给出最小阅读集和续做入口
 2. 给出最小阅读集：优先读取哪些文件
 3. 展示阻塞项、当前任务和建议下一步
 4. 若缺失 `.ai-os/STATE.md` 或任务状态不同步，先提醒修复工件
+5. 若用户需要跨会话导出上下文，可输出 Markdown 快照；结构可参考 `.agents/templates/project/context-snapshot.md`

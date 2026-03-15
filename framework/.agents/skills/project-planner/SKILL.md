@@ -9,6 +9,13 @@ description: >
 
 本 Skill 用于把模糊项目需求收敛成可交付的项目章程，避免 AI 在项目开始时就范围失控。
 
+## 使用时机
+
+- 用户说“做一个新项目”
+- 需求已经超出单模块开发
+- 需要先明确项目范围、里程碑、模块拆分和风险
+- 需要把口语化想法收敛成 `.ai-os/project-charter.md`
+
 ## 使用方式
 
 1. 判断当前需求是否已经属于“项目级”而不是“单模块级”
@@ -63,3 +70,9 @@ description: >
 
 - 项目章程：读取 `.agents/templates/project/project-charter.md` 作为模板生成 `.ai-os/project-charter.md`
 - 风险清单：读取 `.agents/templates/project/risk-register.md` 作为模板生成 `.ai-os/risk-register.md`
+
+## 维护信息
+
+- 来源：`framework/AGENTS.md`、`.agents/references/derived-rules.md`、`references/archetypes.md`、`.agents/templates/project/`
+- 更新时间：2026-03-15
+- 已知限制：本 Skill 负责项目级规划，不替代模块级 spec、任务拆分和验收工作
