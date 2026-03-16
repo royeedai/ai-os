@@ -57,7 +57,6 @@ AI-OS 是一个零依赖的 Node.js CLI 工具，通过 `npx` 将 `framework/` �
 
 - 改动 `framework/` 下的内容（宪法、skills、workflows、模板）时，需更新 `VERSION` 文件
 - 不需要 `project-charter`、`.spec.md`、`tasks.yaml`、`acceptance.yaml` 等重型流程
-- 提交信息使用语义化格式：`feat:` / `fix:` / `refactor:` / `docs:` / `chore:`
 
 ## 测试方式
 

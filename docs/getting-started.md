@@ -88,7 +88,8 @@ npx --yes github:royeedai/ai-os .
 
 3. 后续按场景继续
 
-- 加功能或模块：`/map-codebase` 然后 `/new-module`
+- 首次接手或范围不清的加功能或模块：`/map-codebase` 然后 `/new-module`
+- 已明确是现有模块局部改动：直接 `/quick` 或 `/new-module`
 - 小改动：`/quick`
 - 需求变化：`/change-request`
 
@@ -96,14 +97,16 @@ npx --yes github:royeedai/ai-os .
 
 如果项目已经接入 AI-OS，推荐这样做：
 
-1. 先用 `/map-codebase`
-2. 再用 `/new-module`
-3. 模块完成前用 `/review`
-4. 准备交付时用 `/ship`
+1. 先判断这次需求是不是已经锚定到现有模块、接口、字段或命令
+2. 如果这是第一次接手仓库，或你还不清楚模块位置和影响范围，先用 `/map-codebase`
+3. 如果用户已经明确点名现有模块上的局部改动，直接用 `/quick` 或 `/new-module`
+4. 模块完成前用 `/review`
+5. 准备交付时用 `/ship`
 
 这样做的原因很简单：
 
-- `map-codebase` 帮 AI 先理解当前架构
+- `map-codebase` 只在真的缺少整体认知时，帮 AI 先理解当前架构
+- 已经明确边界的局部需求，应该先定点读取，避免“还没改就先全仓分析”
 - `new-module` 让需求、任务、编码、验收保持同步
 - `review` 和 `ship` 避免“代码做了，但交付没闭环”
 
@@ -116,6 +119,7 @@ AI-OS 并不是所有事情都要走完整流程。
 下面这类任务通常适合 `/quick`：
 
 - 1 到 3 个文件的小改动
+- 已有模块上的局部规则补丁，例如“给用户模块加一个次数限制”
 - 小 bug 修复
 - 配置修改
 - 文案调整

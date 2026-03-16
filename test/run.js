@@ -162,6 +162,7 @@ assert(stateTemplate.includes("**当前里程碑目标**"), "STATE template incl
 const quickWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "quick.md"), "utf8");
 assert(quickWorkflow.includes("读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`"), "quick workflow aligns with project purpose and state");
 assert(quickWorkflow.includes("最低足够流程"), "quick workflow is framed as minimum sufficient flow");
+assert(quickWorkflow.includes("先做意图与范围锚定"), "quick workflow anchors narrow brownfield changes before expanding scope");
 assert(quickWorkflow.includes("纯视觉微调"), "quick workflow supports static UI-only quick tasks");
 assert(quickWorkflow.includes("更适合静态 UI 的模型"), "quick workflow allows static UI model handoff without auto-routing");
 
@@ -174,6 +175,7 @@ assert(changeRequestWorkflow.includes("当前里程碑目标"), "change-request 
 const newModuleWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-module.md"), "utf8");
 assert(newModuleWorkflow.includes("模块类型"), "new-module workflow identifies module type first");
 assert(newModuleWorkflow.includes("交付等级"), "new-module workflow identifies delivery level first");
+assert(newModuleWorkflow.includes("先做意图与范围锚定"), "new-module workflow anchors narrow brownfield changes before broad analysis");
 assert(newModuleWorkflow.includes("仅在以下情况创建 `.ai-os/specs/[模块名].context.md`"), "new-module workflow creates context file only when needed");
 assert(newModuleWorkflow.includes("技术设计不再固定套用所有 Skill"), "new-module workflow adapts technical design by module type");
 assert(newModuleWorkflow.includes("静态 UI 子任务"), "new-module workflow supports splitting static UI subtasks for page modules");
@@ -221,6 +223,7 @@ assert(newProjectWorkflow.includes("基础能力可用 + 首条核心业务闭�
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
 assert(workflowsIndex.includes("模块类型和交付等级"), "workflow index describes adaptive new-module flow");
 assert(workflowsIndex.includes("最低足够流程"), "workflow index describes quick as minimum sufficient flow");
+assert(workflowsIndex.includes("不给现有模块的局部改动默认触发 `/map-codebase`"), "workflow index prevents default codebase mapping for narrow module changes");
 assert(workflowsIndex.includes("静态 UI 子任务"), "workflow index documents static UI collaboration trigger");
 
 const initWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "init.md"), "utf8");
@@ -228,6 +231,7 @@ assert(initWorkflow.includes("目标市场与体验风格推断"), "init workflo
 assert(initWorkflow.includes("模块类型和默认交付等级"), "init workflow records module types and default delivery levels");
 
 const mapCodebaseWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "map-codebase.md"), "utf8");
+assert(mapCodebaseWorkflow.includes("不是已有仓库开发的默认前置步骤"), "map-codebase workflow is not the default for every brownfield change");
 assert(mapCodebaseWorkflow.includes("待确认"), "map-codebase workflow records target market assumptions as pending confirmation");
 assert(mapCodebaseWorkflow.includes("模块类型（页面类 / API 类 / 数据处理类 / 工具类）"), "map-codebase workflow suggests module types");
 

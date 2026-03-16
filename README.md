@@ -50,7 +50,7 @@ AI-OS 主要做三件事：
 |------|------|------|
 | 老项目第一次接入 AI-OS | `npx --yes github:royeedai/ai-os .` 然后用 `/init` | 安装框架并生成项目基础文件 |
 | 从 0 开始做一个项目 | `npx --yes github:royeedai/ai-os my-project --with-project-files` 然后用 `/new-project` | 建立项目章程、范围和任务图 |
-| 已接入 AI-OS 的仓库上加功能 | `/map-codebase` 然后 `/new-module` | 先摸清现状，再按模块闭环开发 |
+| 已接入 AI-OS 的仓库上加功能 | 先判断范围：首次接手或范围不清时 `/map-codebase` → `/new-module`；现有模块的局部改动直接 `/quick` 或 `/new-module` | 先按意图路由，避免小改动也先全仓分析 |
 | 只是修个小 bug / 改配置 | `/quick` | 快速改动，但仍保留任务和状态记录 |
 
 现在还有一个关键心智：
@@ -88,7 +88,7 @@ npx --yes github:royeedai/ai-os .
 
 - 现有仓库第一次初始化基础文件：`/init`
 - 从 0 启动新项目：`/new-project`
-- 给已有仓库加功能：`/map-codebase`，然后 `/new-module`
+- 给已有仓库加功能：若首次接手或范围不清，先 `/map-codebase` 再 `/new-module`；若已明确是某个现有模块的局部改动，直接 `/quick` 或 `/new-module`
 - 小改动：`/quick`
 - 复刻一个已有产品：`/clone-project`
 
@@ -184,10 +184,12 @@ npx --yes github:royeedai/ai-os .
 |------|------|
 | 老项目初始化基础文件 | `/init` |
 | 新项目启动 | `/new-project` |
-| 分析已有代码库 | `/map-codebase` |
+| 首次接手或范围不清时分析已有代码库 | `/map-codebase` |
 | 开发一个新模块 | `/new-module` |
 | 小范围改动 | `/quick` |
 | 复刻已有系统 | `/clone-project` |
+
+如果用户已经明确点名现有模块、接口、字段或命令，例如“给用户模块加一个次数限制”，不要默认先 `/map-codebase`。应先按范围在 `/quick` 和 `/new-module` 之间选择，再按需做局部阅读。
 
 `/new-module` 现在会先判断：
 

@@ -13,6 +13,7 @@ description: 小任务快速通道（无需完整 spec/tasks/acceptance 三件�
 
 - 只改 1-3 个文件
 - 已有模块上的小 bug、文案、配置、轻量逻辑修补
+- 用户已经明确指出现有模块、文件、接口、字段或规则的局部变更
 - 页面类模块上的纯视觉微调、静态样式修正、低风险排版调整
 - 不需要新增 schema / API / 大范围验收口径
 
@@ -43,19 +44,21 @@ description: 小任务快速通道（无需完整 spec/tasks/acceptance 三件�
 
 ## 步骤
 
-1. 读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`，判断该任务是否直接支持当前里程碑目标、当前核心验收路径，或只是可延后的旁支改动
-2. 若该任务不阻塞当前目标，且用户未明确调整优先级，先在 `tasks.yaml` / `STATE.md` 记录，不要默认打断当前主线
-3. 确认任务符合快速通道条件（向用户说明判断依据，以及为什么现在做）
-4. 明确区分这次 quick task 属于哪一类：
+1. 先做意图与范围锚定：若用户已经明确指出现有模块、文件、接口、字段或规则，先定点读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`，再读取直接相关的代码和工件；不要默认扩散成全仓检索
+2. 基于已读取的 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`，判断该任务是否直接支持当前里程碑目标、当前核心验收路径，或只是可延后的旁支改动
+3. 若该任务不阻塞当前目标，且用户未明确调整优先级，先在 `tasks.yaml` / `STATE.md` 记录，不要默认打断当前主线
+4. 确认任务符合快速通道条件（向用户说明判断依据，以及为什么现在做）
+5. 明确区分这次 quick task 属于哪一类：
    - 纯视觉微调 / 静态 UI 修正
    - 逻辑、数据、状态或接口层的小修补
-5. 若只是纯视觉微调，可建议切到更适合静态 UI 的模型或新 session 执行，但必须先写清最小交接包：
+6. 若只是纯视觉微调，可建议切到更适合静态 UI 的模型或新 session 执行，但必须先写清最小交接包：
    - 影响页面 / 组件
    - 目标视觉效果和响应式要求
    - 可使用的占位内容或现有文案
    - 不允许改动的工程边界（交互逻辑、状态管理、API、数据契约）
-6. 明确告知这是一次“最低足够流程”的处理，而不是完整模块交付
-7. 在 `.ai-os/tasks.yaml` 中追加一条 quick task：
+7. 明确告知这是一次“最低足够流程”的处理，而不是完整模块交付
+8. 若定点阅读后仍无法定位模块、无法判断影响边界，或发现已超出 quick 条件，立即升级为 `/new-module`；只有在当前仓库明显缺少基础认知时，才进一步升级到 `/map-codebase`
+9. 在 `.ai-os/tasks.yaml` 中追加一条 quick task：
    ```yaml
    - id: QUICK-NNN
      title: "简要描述"
@@ -69,14 +72,14 @@ description: 小任务快速通道（无需完整 spec/tasks/acceptance 三件�
      evidence_required:
        - "编译通过"
    ```
-8. 读取 `.ai-os/verification-matrix.yaml`，或使用 `create-ai-os affected --dry-run` 判断本次改动需要的验证动作
-9. 执行开发
-10. 执行编译验证 + 运行相关测试
-11. 若命中 `restart` / `cold-start-smoke`，必须补做受影响服务重启和冷启动 Smoke Check，并回填 `restart-log` / `cold-start-log` / `post-restart-smoke-log`
-12. 若修改了共享代码（Model、工具函数、中间件、共享组件），必须做回归检查
-13. 按 `git-workflow` 规范提交代码
-14. 更新 `.ai-os/tasks.yaml` 状态为 `done`，附简要证据
-15. 更新 `.ai-os/STATE.md` 的进度概览、最近决策和下一步
+10. 读取 `.ai-os/verification-matrix.yaml`，或使用 `create-ai-os affected --dry-run` 判断本次改动需要的验证动作
+11. 执行开发
+12. 执行编译验证 + 运行相关测试
+13. 若命中 `restart` / `cold-start-smoke`，必须补做受影响服务重启和冷启动 Smoke Check，并回填 `restart-log` / `cold-start-log` / `post-restart-smoke-log`
+14. 若修改了共享代码（Model、工具函数、中间件、共享组件），必须做回归检查
+15. 按 `git-workflow` 规范提交代码
+16. 更新 `.ai-os/tasks.yaml` 状态为 `done`，附简要证据
+17. 更新 `.ai-os/STATE.md` 的进度概览、最近决策和下一步
 
 ## 不可跳过的底线
 

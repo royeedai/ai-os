@@ -14,6 +14,8 @@
 
 - 接到 Bug、想法、优化建议或需求变更时，必须先对齐 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`
 - 若事项不阻塞当前项目目标、当前里程碑目标或当前核心验收路径，且用户未明确调整优先级，默认进入待排期，不要自动打断当前主线
+- 若用户已经明确指出现有模块、文件、接口、字段或规则变更，先做意图与范围锚定：优先读取 `.ai-os/STATE.md`、相关工件和直接相关代码，不要默认扩散成全仓检索或 `/map-codebase`
+- 只有在首次接手 brownfield 项目、模块位置不清、影响边界不清，或用户明确要求先分析代码库时，才进入 `/map-codebase`
 - 具体判断方式见 `.agents/references/derived-rules.md`
 
 ## 二、通用性优先 (Adaptive, Not One-Size-Fits-All)
