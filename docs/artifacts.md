@@ -46,6 +46,7 @@ AI-OS 的关键价值之一，是把项目事实落到仓库里，而不是留�
 - `.ai-os/memory.md`
 - `.ai-os/STATE.md`
 - `.ai-os/verification-matrix.yaml`
+- `.ai-os/reference-code-map.md`
 - `.ai-os/specs/`
 - `.ai-os/evals/`
 
@@ -65,6 +66,7 @@ AI-OS 的关键价值之一，是把项目事实落到仓库里，而不是留�
 | `.ai-os/memory.md` | 这个项目有哪些长期有效的经验和约定 | 多次协作、多人协作时 |
 | `.ai-os/STATE.md` | 当前做到哪了，下一步做什么 | 每次恢复上下文时 |
 | `.ai-os/verification-matrix.yaml` | 某类改动需要跑哪些验证 | 改动后验证时 |
+| `.ai-os/reference-code-map.md` | 复刻 / 参考开发时，当前模块该回查哪些旧代码锚点 | 有参考源码且进入实现阶段时 |
 | `.ai-os/evals/` | 哪些问题以后不能再犯 | 同类错误反复出现时 |
 
 补充：
@@ -72,6 +74,8 @@ AI-OS 的关键价值之一，是把项目事实落到仓库里，而不是留�
 - `.ai-os/codebase-map.md` 更偏 brownfield 工件
 - 它通常由 `/init` 或 `/map-codebase` 在分析已有代码库后生成
 - 因此新项目初始化时不一定会先创建它
+- `.ai-os/reference-code-map.md` 更偏 clone / 参考源码工件
+- 它通常由 `/clone-project` 和 `reverse-engineer` 在整理参考源码后生成
 
 ## 为什么 `STATE.md` 很关键
 

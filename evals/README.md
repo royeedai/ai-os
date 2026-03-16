@@ -32,3 +32,4 @@
 - `minimum-sufficient-flow.md`
 - `shared-foundation-first.md`
 - `reference-project-boundary.md`
+- `reference-code-anchoring.md`

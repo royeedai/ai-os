@@ -141,6 +141,7 @@ npx --yes github:royeedai/ai-os .
 - `.ai-os/memory.md`
 - `.ai-os/STATE.md`
 - `.ai-os/verification-matrix.yaml`
+- `.ai-os/reference-code-map.md`（复刻 / 参考源码场景下常见）
 - `.ai-os/specs/`
 - `.ai-os/evals/`
 
@@ -148,6 +149,8 @@ npx --yes github:royeedai/ai-os .
 
 - `.ai-os/codebase-map.md` 通常不是在新项目初始化时直接创建
 - 它更常见于老项目接入，由 `/init` 或 `/map-codebase` 在分析现有代码库后生成
+- `.ai-os/reference-code-map.md` 通常不是在普通新项目初始化时直接创建
+- 它更常见于 `/clone-project` 场景，用来记录“当前模块应该回查哪些参考源码锚点”
 
 ## 关键文件，用人话解释
 
@@ -163,6 +166,7 @@ npx --yes github:royeedai/ai-os .
 | `.ai-os/memory.md` | 项目里长期有效的约定、坑点和经验 |
 | `.ai-os/STATE.md` | 当前做到哪了，下一步是什么，恢复上下文先看它 |
 | `.ai-os/verification-matrix.yaml` | 哪类改动需要执行哪些验证动作 |
+| `.ai-os/reference-code-map.md` | 复刻 / 参考开发时，当前模块应该回查哪些旧代码锚点 |
 | `.ai-os/evals/` | 用来防止 AI 以后重复犯错的回归样例 |
 
 补充：

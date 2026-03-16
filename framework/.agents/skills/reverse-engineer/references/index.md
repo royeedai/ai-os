@@ -4,6 +4,7 @@
 
 - `material-checklist.md`：复刻 / 逆向前需要准备的素材清单
 - `clone-spec-template.md`：克隆类模块的 spec 模板
+- `.agents/templates/project/reference-code-map.md`：实现阶段按需回查参考源码的项目工件模板
 
 ## 使用方式
 
