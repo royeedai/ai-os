@@ -128,14 +128,22 @@ assert(fs.existsSync(path.join(initDir, ".agents", "workflows")), ".agents/workf
 assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")), "verification-matrix.yaml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "specs", "example.spec.md")), "example spec created");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "acceptance.yaml")), "acceptance.yaml is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "release-plan.md")), "release-plan.md is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "risk-register.md")), "risk-register.md is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "evals")), "evals/ is not created by default");
 
 const projectCharterTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "project-charter.md"), "utf8");
 assert(projectCharterTemplate.includes("适配范围 / 支持环境"), "project charter uses support-environment wording");
 assert(!projectCharterTemplate.includes("兼容性"), "project charter avoids compatibility wording");
 assert(projectCharterTemplate.includes("目标市场 / 主要使用地区"), "project charter includes target market field");
 assert(projectCharterTemplate.includes("体验 / 视觉参考方向"), "project charter includes design reference direction");
-assert(projectCharterTemplate.includes("| M0 | 基础能力层"), "project charter template includes M0 foundation milestone");
-assert(projectCharterTemplate.includes("| 基础能力层 | 页面类 / API 类 | 登录、权限、多语言"), "project charter template includes foundation capability layer");
+assert(projectCharterTemplate.includes("| M0 | 项目骨架、共享基础能力或首条核心闭环可运行 |"), "project charter template uses neutral M0 milestone");
+assert(projectCharterTemplate.includes("| 共享基础能力层（如适用） |"), "project charter treats foundation layer as optional");
+assert(!projectCharterTemplate.includes("成本 / 资源预算"), "project charter no longer includes cost-budget field");
 assert(projectCharterTemplate.includes("**默认交付等级**"), "project charter template includes default delivery level");
 assert(projectCharterTemplate.includes("**共享基础能力依赖结构**"), "project charter template includes shared-foundation flag");
 assert(projectCharterTemplate.includes("| 模块 | 模块类型 |"), "project charter template tracks module type");
@@ -143,7 +151,7 @@ assert(projectCharterTemplate.includes("| 模块 | 模块类型 |"), "project ch
 const exampleSpecTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
 assert(exampleSpecTemplate.includes("适配范围 / 支持环境"), "example spec uses support-environment wording");
 assert(!exampleSpecTemplate.includes("- **兼容**"), "example spec avoids compatibility wording");
-assert(exampleSpecTemplate.includes("目标市场 / 主要使用地区"), "example spec includes target market field");
+assert(exampleSpecTemplate.includes("使用环境 / 目标市场（如适用）"), "example spec scopes market info to applicable modules");
 assert(exampleSpecTemplate.includes("交互 / 视觉约束"), "example spec includes UX style constraint");
 assert(exampleSpecTemplate.includes("**模块类型**"), "example spec records module type");
 assert(exampleSpecTemplate.includes("**交付等级**"), "example spec records delivery level");
@@ -219,6 +227,8 @@ assert(fs.existsSync(path.join(initDir, ".agents", "skills", "spec-validator", "
 const newProjectWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-project.md"), "utf8");
 assert(newProjectWorkflow.includes("模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）"), "new-project workflow classifies modules by type");
 assert(newProjectWorkflow.includes("基础能力可用 + 首条核心业务闭环可运行"), "new-project workflow prioritizes foundation plus first runnable business loop");
+assert(newProjectWorkflow.includes("只在确实适用时填写"), "new-project workflow narrows optional project-definition fields");
+assert(newProjectWorkflow.includes("若项目默认交付等级为 `L2` / `L3`"), "new-project workflow creates acceptance only when needed");
 
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
 assert(workflowsIndex.includes("模块类型和交付等级"), "workflow index describes adaptive new-module flow");
@@ -229,6 +239,8 @@ assert(workflowsIndex.includes("静态 UI 子任务"), "workflow index documents
 const initWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "init.md"), "utf8");
 assert(initWorkflow.includes("目标市场与体验风格推断"), "init workflow infers target market and UX style for existing projects");
 assert(initWorkflow.includes("模块类型和默认交付等级"), "init workflow records module types and default delivery levels");
+assert(initWorkflow.includes("核心项目文件"), "init workflow emphasizes core project files first");
+assert(initWorkflow.includes("按需补充的工件"), "init workflow treats release and risk artifacts as optional");
 
 const mapCodebaseWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "map-codebase.md"), "utf8");
 assert(mapCodebaseWorkflow.includes("不是已有仓库开发的默认前置步骤"), "map-codebase workflow is not the default for every brownfield change");
@@ -276,8 +288,9 @@ assert(frameworkAgents.includes("仅在需求存在明显决策空间时创建 `
 assert(frameworkAgents.includes("### 常用 Workflow 入口"), "framework constitution exposes common workflow entrypoints at root level");
 assert(frameworkAgents.includes("/init"), "framework constitution makes /init discoverable from root AGENTS");
 assert(frameworkAgents.includes("AI-OS 只负责交接规范与项目事实同步"), "framework constitution limits multi-model support to handoff guidance");
+assert(frameworkAgents.includes("写入适用工件"), "framework constitution scopes artifacts to what is applicable");
 
-const memoryTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "memory.md"), "utf8");
+const memoryTemplate = fs.readFileSync(path.join(initDir, ".agents", "templates", "project", "memory.md"), "utf8");
 assert(memoryTemplate.includes("多模型协作偏好"), "memory template records multi-model collaboration preferences");
 assert(memoryTemplate.includes("页面类模块中的静态 UI 子任务"), "memory template guides static UI collaboration scope");
 

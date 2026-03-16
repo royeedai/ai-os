@@ -19,17 +19,28 @@ const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
 const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
-const PROJECT_ARTIFACT_FILES = [
+const PROJECT_CORE_ARTIFACT_FILES = [
   "project-charter.md",
-  "risk-register.md",
   "tasks.yaml",
-  "acceptance.yaml",
-  "release-plan.md",
-  "memory.md",
   "STATE.md",
   "verification-matrix.yaml",
 ];
-const PROJECT_ARTIFACT_DIRS = ["specs", "evals"];
+const PROJECT_OPTIONAL_ARTIFACT_FILES = [
+  "risk-register.md",
+  "acceptance.yaml",
+  "release-plan.md",
+  "memory.md",
+];
+const PROJECT_CORE_ARTIFACT_DIRS = ["specs"];
+const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["evals"];
+const PROJECT_ARTIFACT_FILES = [
+  ...PROJECT_CORE_ARTIFACT_FILES,
+  ...PROJECT_OPTIONAL_ARTIFACT_FILES,
+];
+const PROJECT_ARTIFACT_DIRS = [
+  ...PROJECT_CORE_ARTIFACT_DIRS,
+  ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
+];
 
 // ---------------------------------------------------------------------------
 // Read metadata from the AI-OS source (mother repo)
@@ -284,12 +295,12 @@ function copyTemplateIfMissing(targetDir, src, dst, options = {}) {
 function createProjectFiles(targetDir, options = {}) {
   const { logger = defaultLogger } = options;
 
-  for (const dirName of PROJECT_ARTIFACT_DIRS) {
+  for (const dirName of PROJECT_CORE_ARTIFACT_DIRS) {
     ensureDir(getProjectFilePath(targetDir, dirName));
   }
   ensureDir(getProjectRoot(targetDir));
 
-  for (const fileName of PROJECT_ARTIFACT_FILES) {
+  for (const fileName of PROJECT_CORE_ARTIFACT_FILES) {
     copyTemplateIfMissing(
       targetDir,
       getProjectTemplatePath(fileName),
@@ -305,12 +316,6 @@ function createProjectFiles(targetDir, options = {}) {
     { logger }
   );
 
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath(path.join("evals", "eval-example.md")),
-    getProjectFilePath(targetDir, path.join("evals", "eval-example.md")),
-    { logger }
-  );
 }
 
 function writeMetadata(targetDir) {
@@ -420,7 +425,7 @@ const VALIDATION_SCHEMAS = {
     "5. 里程碑",
     "6. 模块拆分",
     "7. 外部依赖",
-    "8. 审批点",
+    ["8. 审批点", "8. 高风险审批点（如适用）"],
     "9. 风险摘要",
   ],
   releasePlan: [
@@ -489,7 +494,11 @@ module.exports = {
   PROJECT_METADATA_FILE,
   PROJECT_MANAGED_FILES_MANIFEST,
   PROJECT_TEMPLATE_ROOT,
+  PROJECT_CORE_ARTIFACT_FILES,
+  PROJECT_OPTIONAL_ARTIFACT_FILES,
   PROJECT_ARTIFACT_FILES,
+  PROJECT_CORE_ARTIFACT_DIRS,
+  PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
   readFrameworkVersion,
   readPackageJson,

@@ -150,14 +150,19 @@ AI-OS 并不是所有事情都要走完整流程。
 这部分记录项目事实：
 
 - `.ai-os/project-charter.md`
-- `.ai-os/risk-register.md`
 - `.ai-os/tasks.yaml`
-- `.ai-os/acceptance.yaml`
-- `.ai-os/release-plan.md`
-- `.ai-os/memory.md`
 - `.ai-os/STATE.md`
 - `.ai-os/verification-matrix.yaml`
 - `.ai-os/specs/`
+
+这些是默认核心工件。
+
+下面这些通常按需出现：
+
+- `.ai-os/acceptance.yaml`
+- `.ai-os/release-plan.md`
+- `.ai-os/risk-register.md`
+- `.ai-os/memory.md`
 - `.ai-os/evals/`
 
 其中有 3 个点值得特别留意：
@@ -166,7 +171,7 @@ AI-OS 并不是所有事情都要走完整流程。
 - `specs/*.spec.md` 会明确当前模块是页面类、API 类、数据处理类还是工具类
 - `specs/*.context.md` 不是每次都生成，只有需求还模糊时才用来记录澄清结果
 
-如果初始化时加了 `--with-project-files`，会直接创建这些模板。
+如果初始化时加了 `--with-project-files`，会直接创建核心工件模板；验收、发布、风险、记忆和 eval 工件通常由后续 workflow 按需生成。
 
 另外，`.agents/templates/project/` 也会一起出现在项目里。它们是 workflow 和 skill 的参考模板，不是你日常应该直接维护的项目工件。
 

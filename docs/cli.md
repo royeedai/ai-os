@@ -23,6 +23,8 @@ npx --yes github:royeedai/ai-os <command> .
 npx --yes github:royeedai/ai-os my-project --with-project-files
 ```
 
+`--with-project-files` 默认只创建核心工件；验收、发布、风险、记忆和 eval 工件通常由后续 workflow 按需生成。
+
 执行后通常会看到三类内容：
 
 - `AGENTS.md`、`.agents/skills/`、`.agents/workflows/` 这类框架文件
@@ -92,17 +94,20 @@ npx --yes github:royeedai/ai-os doctor . --strict
 npx --yes github:royeedai/ai-os validate .
 ```
 
-重点覆盖：
+重点覆盖核心工件，并在可选工件存在时继续校验：
 
 - `project-charter.md`
-- `risk-register.md`
 - `tasks.yaml`
-- `acceptance.yaml`
-- `release-plan.md`
-- `memory.md`
 - `STATE.md`
 - `verification-matrix.yaml`
 - `specs/`
+
+按需校验：
+
+- `risk-register.md`
+- `acceptance.yaml`
+- `release-plan.md`
+- `memory.md`
 - `evals/`
 
 从 `v2.7.0` 起，`validate` 也会兼容新的 spec 结构：

@@ -49,7 +49,7 @@ AI-OS 主要做三件事：
 | 你的场景 | 先做什么 | 结果 |
 |------|------|------|
 | 老项目第一次接入 AI-OS | `npx --yes github:royeedai/ai-os .` 然后用 `/init` | 安装框架并生成项目基础文件 |
-| 从 0 开始做一个项目 | `npx --yes github:royeedai/ai-os my-project --with-project-files` 然后用 `/new-project` | 建立项目章程、范围和任务图 |
+| 从 0 开始做一个项目 | `npx --yes github:royeedai/ai-os my-project --with-project-files` 然后用 `/new-project` | 建立核心交付工件，并在后续 workflow 中按需补齐验收、发布等工件 |
 | 已接入 AI-OS 的仓库上加功能 | 先判断范围：首次接手或范围不清时 `/map-codebase` → `/new-module`；现有模块的局部改动直接 `/quick` 或 `/new-module` | 先按意图路由，避免小改动也先全仓分析 |
 | 只是修个小 bug / 改配置 | `/quick` | 快速改动，但仍保留任务和状态记录 |
 
@@ -76,6 +76,8 @@ AI-OS 主要做三件事：
 npx --yes github:royeedai/ai-os my-project --with-project-files
 ```
 
+这个选项会先创建核心工件；验收、发布、风险、记忆和 eval 工件通常由后续 workflow 按需生成。
+
 老项目第一次接入：
 
 ```bash
@@ -98,7 +100,7 @@ npx --yes github:royeedai/ai-os .
 
 - 框架文件：`AGENTS.md`、`.agents/skills/`、`.agents/workflows/`、`.ai-os/framework.toml`
 - 内部参考模板：`.agents/templates/project/`
-- 项目文件：`.ai-os/project-charter.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/STATE.md` 等
+- 项目文件：`.ai-os/project-charter.md`、`.ai-os/tasks.yaml`、`.ai-os/STATE.md` 等核心工件，以及按需生成的验收 / 发布工件
 
 这里最容易让人困惑的是第二类。
 
@@ -131,19 +133,24 @@ npx --yes github:royeedai/ai-os .
 
 ### 3. 一套项目事实
 
-这部分属于你的项目，记录真实的范围、进度和交付状态：
+这部分属于你的项目，记录真实的范围、进度和交付状态。
+
+默认核心工件：
 
 - `.ai-os/project-charter.md`
-- `.ai-os/risk-register.md`
 - `.ai-os/tasks.yaml`
-- `.ai-os/acceptance.yaml`
-- `.ai-os/release-plan.md`
-- `.ai-os/memory.md`
 - `.ai-os/STATE.md`
 - `.ai-os/verification-matrix.yaml`
-- `.ai-os/reference-code-map.md`（复刻 / 参考源码场景下常见）
 - `.ai-os/specs/`
+
+按需工件：
+
+- `.ai-os/acceptance.yaml`
+- `.ai-os/release-plan.md`
+- `.ai-os/risk-register.md`
+- `.ai-os/memory.md`
 - `.ai-os/evals/`
+- `.ai-os/reference-code-map.md`（复刻 / 参考源码场景下常见）
 
 补充一点：
 
@@ -161,13 +168,14 @@ npx --yes github:royeedai/ai-os .
 | `.ai-os/project-charter.md` | 这个项目要做什么，不做什么，成功标准是什么 |
 | `.ai-os/specs/*.spec.md` | 某个模块的需求定义，包含模块类型和交付等级 |
 | `.ai-os/tasks.yaml` | 这次要做哪些任务，先做什么，后做什么，会按模块类型和等级缩放 |
-| `.ai-os/acceptance.yaml` | 什么算完成，需要哪些证据，会按模块类型和等级缩放 |
-| `.ai-os/release-plan.md` | 真要交付或上线时怎么发，怎么回滚 |
-| `.ai-os/memory.md` | 项目里长期有效的约定、坑点和经验 |
 | `.ai-os/STATE.md` | 当前做到哪了，下一步是什么，恢复上下文先看它 |
 | `.ai-os/verification-matrix.yaml` | 哪类改动需要执行哪些验证动作 |
+| `.ai-os/acceptance.yaml` | 什么算完成，需要哪些证据；通常在 `L2/L3` 或正式验收时出现 |
+| `.ai-os/release-plan.md` | 真要交付或上线时怎么发，怎么回滚；通常在 `/ship` 前出现 |
+| `.ai-os/risk-register.md` | 当前有哪些重要风险；高风险或多依赖项目更常见 |
+| `.ai-os/memory.md` | 项目里长期有效的约定、坑点和经验；有稳定事实时维护 |
 | `.ai-os/reference-code-map.md` | 复刻 / 参考开发时，当前模块应该回查哪些旧代码锚点 |
-| `.ai-os/evals/` | 用来防止 AI 以后重复犯错的回归样例 |
+| `.ai-os/evals/` | 用来防止 AI 以后重复犯错的回归样例；重复问题出现时再补 |
 
 补充：
 

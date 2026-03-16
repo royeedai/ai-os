@@ -74,7 +74,7 @@ function getNextStepLines() {
       return `${task.id}: ${task.title || "未命名任务"}${waveLabel}`;
     });
   }
-  return [`先检查 ${getProjectRelativePath("tasks.yaml")} 和 ${getProjectRelativePath("acceptance.yaml")} 是否需要更新`];
+  return [`先检查 ${getProjectRelativePath("tasks.yaml")} 以及相关 spec / 验收工件是否需要更新`];
 }
 
 function printPlainText() {

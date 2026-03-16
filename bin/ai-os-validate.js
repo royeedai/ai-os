@@ -4,8 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const {
   fail,
-  PROJECT_ARTIFACT_DIRS,
-  PROJECT_ARTIFACT_FILES,
+  PROJECT_CORE_ARTIFACT_DIRS,
+  PROJECT_CORE_ARTIFACT_FILES,
   listFilesRecursively,
   getProjectFilePath,
   getProjectRelativePath,
@@ -29,8 +29,8 @@ function printHelp() {
 Validate the project-local delivery artifacts used by AI-OS.
 
 Checks:
-  - .ai-os/project-charter.md / risk-register.md / tasks.yaml / acceptance.yaml
-  - .ai-os/release-plan.md / memory.md / STATE.md / verification-matrix.yaml / specs/ / evals/
+  - required core artifacts: .ai-os/project-charter.md / tasks.yaml / STATE.md / verification-matrix.yaml / specs/
+  - optional artifacts are validated only when present: risk-register.md / acceptance.yaml / release-plan.md / memory.md / evals/
   - key section completeness and cross-file references
 
 Options:
@@ -164,13 +164,13 @@ function report(ok, label, warnOnly = false, details = []) {
 
 process.stdout.write(`\nAI-OS Validate — ${targetDir}\n\n`);
 
-const requiredFiles = PROJECT_ARTIFACT_FILES;
+const requiredFiles = PROJECT_CORE_ARTIFACT_FILES;
 
 for (const relPath of requiredFiles) {
   report(fileExists(targetDir, relPath), `${getProjectRelativePath(relPath)} exists`);
 }
 
-for (const relPath of PROJECT_ARTIFACT_DIRS) {
+for (const relPath of PROJECT_CORE_ARTIFACT_DIRS) {
   report(dirExists(targetDir, relPath), `${getProjectRelativePath(relPath)}/ exists`);
 }
 
@@ -315,28 +315,30 @@ if (stateContent !== null) {
   );
 }
 
-const evalFiles = listEvalFiles(targetDir);
-report(evalFiles.length > 0, `${getProjectRelativePath("evals")}/ includes at least one eval case`);
-for (const evalFile of evalFiles) {
-  const content = readUtf8IfExists(getProjectFilePath(targetDir, evalFile)) || "";
-  const hasMetadata =
-    content.includes("- **ID**：") &&
-    content.includes("- **场景名称**：") &&
-    content.includes("- **触发语句**：") &&
-    content.includes("- **项目类型**：");
-  const missingSections = markdownHasSections(content, [
-    "期望行为",
-    "常见失败模式",
-    "评分标准",
-  ]);
+if (dirExists(targetDir, "evals")) {
+  const evalFiles = listEvalFiles(targetDir);
+  report(evalFiles.length > 0, `${getProjectRelativePath("evals")}/ includes at least one eval case`);
+  for (const evalFile of evalFiles) {
+    const content = readUtf8IfExists(getProjectFilePath(targetDir, evalFile)) || "";
+    const hasMetadata =
+      content.includes("- **ID**：") &&
+      content.includes("- **场景名称**：") &&
+      content.includes("- **触发语句**：") &&
+      content.includes("- **项目类型**：");
+    const missingSections = markdownHasSections(content, [
+      "期望行为",
+      "常见失败模式",
+      "评分标准",
+    ]);
 
-  report(hasMetadata, `${getProjectRelativePath(evalFile)} metadata complete`);
-  report(
-    missingSections.length === 0,
-    `${getProjectRelativePath(evalFile)} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
-  );
+    report(hasMetadata, `${getProjectRelativePath(evalFile)} metadata complete`);
+    report(
+      missingSections.length === 0,
+      `${getProjectRelativePath(evalFile)} sections complete`,
+      false,
+      missingSections.map((section) => `missing section: ${section}`)
+    );
+  }
 }
 
 process.stdout.write("\n");

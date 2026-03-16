@@ -13,8 +13,10 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const {
   FRAMEWORK_ROOT,
-  PROJECT_ARTIFACT_DIRS,
-  PROJECT_ARTIFACT_FILES,
+  PROJECT_CORE_ARTIFACT_DIRS,
+  PROJECT_CORE_ARTIFACT_FILES,
+  PROJECT_OPTIONAL_ARTIFACT_DIRS,
+  PROJECT_OPTIONAL_ARTIFACT_FILES,
   readFrameworkVersion,
   listManagedFiles,
   readInstalledMeta,
@@ -144,20 +146,20 @@ if (missingFiles.length === 0) {
 }
 
 // 6. Project state files (warn only)
-process.stdout.write(`\n  Project state files:\n`);
-const projectFiles = [
-  ...PROJECT_ARTIFACT_FILES.map((relPath) => ({
+process.stdout.write(`\n  Core project state files:\n`);
+const coreProjectFiles = [
+  ...PROJECT_CORE_ARTIFACT_FILES.map((relPath) => ({
     path: getProjectFilePath(targetDir, relPath),
     label: getProjectRelativePath(relPath),
   })),
-  ...PROJECT_ARTIFACT_DIRS.map((relPath) => ({
+  ...PROJECT_CORE_ARTIFACT_DIRS.map((relPath) => ({
     path: getProjectFilePath(targetDir, relPath),
     label: `${getProjectRelativePath(relPath)}/`,
     isDir: true,
   })),
 ];
 
-for (const pf of projectFiles) {
+for (const pf of coreProjectFiles) {
   const fullPath = pf.path;
   let exists = false;
   if (pf.isDir) {
@@ -166,6 +168,32 @@ for (const pf of projectFiles) {
     exists = fs.existsSync(fullPath);
   }
   check(exists, pf.label, true);
+}
+
+const optionalProjectFiles = [
+  ...PROJECT_OPTIONAL_ARTIFACT_FILES.map((relPath) => ({
+    path: getProjectFilePath(targetDir, relPath),
+    label: getProjectRelativePath(relPath),
+  })),
+  ...PROJECT_OPTIONAL_ARTIFACT_DIRS.map((relPath) => ({
+    path: getProjectFilePath(targetDir, relPath),
+    label: `${getProjectRelativePath(relPath)}/`,
+    isDir: true,
+  })),
+];
+
+const existingOptional = optionalProjectFiles.filter((pf) => {
+  if (pf.isDir) {
+    return fs.existsSync(pf.path) && fs.statSync(pf.path).isDirectory();
+  }
+  return fs.existsSync(pf.path);
+});
+
+if (existingOptional.length > 0) {
+  process.stdout.write(`\n  Optional project state files:\n`);
+  for (const pf of existingOptional) {
+    check(true, pf.label, true);
+  }
 }
 
 if (strict) {

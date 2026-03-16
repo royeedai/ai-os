@@ -48,7 +48,7 @@ Skill 和 Workflow 的触发规则分别由各自索引文件维护：
 
 - 项目事实必须落在工件里，而不是留在聊天里
 - `.ai-os/STATE.md` 是上下文恢复的第一入口；每次新 session、上下文切换或恢复中断时，第一步必须读它
-- 项目的业务边界、阶段目标、偏好、风险、验收和发布信息，必须分别写入 `project-charter.md`、`.spec.md`、`tasks.yaml`、`acceptance.yaml`、`release-plan.md`、`risk-register.md`、`memory.md`
+- 项目的业务边界、阶段目标和当前模块真正需要的交付信息，必须写入适用工件；常见工件包括 `project-charter.md`、`.spec.md`、`tasks.yaml`、`acceptance.yaml`、`release-plan.md`、`risk-register.md`、`memory.md`
 - 任何输出默认服务当前项目，而不是参考系统、历史系统或 AI 自带默认习惯
 - 目标市场适配、参考来源命名边界等派生规则，统一见 `.agents/references/derived-rules.md`
 

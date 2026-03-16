@@ -27,12 +27,17 @@ AI-OS 母仓库负责维护通用交付能力，包括：
 项目仓库负责维护项目事实，包括：
 
 - `.ai-os/project-charter.md`
-- `.ai-os/specs/`
 - `.ai-os/tasks.yaml`
+- `.ai-os/STATE.md`
+- `.ai-os/verification-matrix.yaml`
+- `.ai-os/specs/`
+
+以及按需维护的工件：
+
 - `.ai-os/acceptance.yaml`
 - `.ai-os/release-plan.md`
+- `.ai-os/risk-register.md`
 - `.ai-os/memory.md`
-- `.ai-os/STATE.md`
 - `.ai-os/evals/`
 
 一句话概括：通用规则在 AI-OS 母仓库里维护，项目事实在项目仓库里维护。
