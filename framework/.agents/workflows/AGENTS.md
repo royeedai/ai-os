@@ -1,100 +1,55 @@
-# Workflows 使用指南
+# Workflows 使用指南（vNext）
 
-本目录包含 AI-OS 的交付工作流。每个工作流是一个 Markdown 文件，定义了特定场景下的执行步骤。
+AI-OS vNext 默认按交付阶段组织 workflow，而不是先按场景套固定命令。
 
-第一次上手时，不需要记住所有命令。先记住 `Start` 这一组入口，再按需要使用 `Continue` 和 `Finish / Govern`。
+先判断你现在处于哪一个阶段：
 
-## Start
+1. 目标和成功标准还没说清：`/align`
+2. 关键页面、流程、视觉方向还没锁：`/design`
+3. 需要产出 specs、tasks、acceptance：`/plan`
+4. 设计和逻辑已锁，准备进入实现：`/build`
+5. 需要验证质量、运行态和交付证据：`/verify`
+6. 准备交付、发布、回滚和移交：`/ship`
 
-| 命令 | 用途 |
+## Phase Workflows
+
+| workflow | 用途 | 结果 |
+|------|------|------|
+| `/align` | 澄清目标、用户、模式、质量标准、输入素材和待确认项 | 产出 `MISSION.md` 和初版 `STATE.md` |
+| `/design` | 锁定信息架构、关键页面、关键交互、视觉方向、关键流程和对照差异 | 产出 `DESIGN.md`，必要时补 `design-pack/parity-map.md` |
+| `/plan` | 生成 spec、任务波次、门禁和证据计划 | 产出 `specs/`、`tasks.yaml`、`acceptance.yaml` |
+| `/build` | 按 wave 实现，执行角色分工和审批停点 | 更新代码、任务和状态 |
+| `/verify` | 做设计、逻辑、工程质量和运行态验证 | 输出 review / parity / runtime 证据 |
+| `/ship` | 做交付、发布、回滚和移交 | 输出 `release-plan.md` 和最终交付说明 |
+
+## Continue Workflows
+
+| workflow | 用途 |
 |------|------|
-| `/init` | 老项目初始化（分析代码库 → 生成项目章程、任务图等基础文件） |
-| `/new-project` | 新项目启动（需求 → 章程 → 模块规划 → 模块类型 / 交付等级 → 任务图） |
-| `/map-codebase` | 首次接手 brownfield 项目或范围不清时，分析已有代码库（技术栈、架构、约定、模式） |
-| `/new-module` | 新模块开发（先判断模块类型和交付等级，再走对应深度的流程） |
-| `/quick` | 小任务快速通道（1-3 文件改动，最低足够流程） |
-| `/clone-project` | 复刻项目（素材收集 → 逆向分析 → 标准交付） |
-
-## Continue
-
-| 命令 | 用途 |
-|------|------|
-| `/status` | 查看当前位置、阻塞项和任务概览 |
+| `/status` | 查看当前方位、已锁定内容、待确认项和任务概览 |
 | `/next` | 推断当前最值得执行的就绪任务 |
-| `/resume` | 从 `.ai-os/STATE.md` 恢复上下文并给出最小阅读集 |
-| `/auto-advance` | 自动推进模式（按 `.ai-os/tasks.yaml` 的 wave 顺序自动执行） |
+| `/resume` | 从 `STATE.md` 恢复最小阅读集 |
+| `/auto-advance` | 在设计门和逻辑门通过后自动按任务波次推进 |
 
-## Finish / Govern
+## Compatibility Aliases
 
-| 命令 | 用途 |
+这些命令仍然保留一个大版本，但新版文档不再以它们为主叙事：
+
+| 旧命令 | 新路径 |
 |------|------|
-| `/review` | 模块完成后质量审查（含 UAT 脚本） |
-| `/ship` | 发布与交付（发布检查、回滚准备、Smoke Check） |
-| `/change-request` | 需求变更（范围变化、补充需求、漏项修正） |
-| `/debug` | Bug 系统化调试 |
-| `/incident` | 线上事故处置（止血 → 定位 → 修复） |
-| `/postmortem` | 事故与漏项复盘 |
+| `/new-project` | `/align` -> `/design` -> `/plan` |
+| `/clone-project` | `/align`（mode=reverse-spec）-> `/design` -> `/plan` |
+| `/new-module` | `/align`（module scope）-> `/design` -> `/plan` -> `/build` |
+| `/quick` | `/align`（mode=change）-> `/plan` 或直接 `/build` |
+| `/review` | `/verify` |
+| `/change-request` | `/align`（mode=change）-> `/design`/`/plan` |
+| `/init` | `/align`（mode=brownfield） |
+| `/map-codebase` | `/align`（mode=brownfield）+ 定点结构梳理 |
 
-## 如何触发
+## 基本约束
 
-当用户提到以上命令或描述了匹配的场景时，读取对应的 `.md` 文件并按步骤执行。
-
-补充约束：
-
-- `/new-module` 不再代表固定的全栈重流程，而是按模块类型和交付等级自适应分流
-- 用户若已明确指出现有模块、文件、接口、字段或规则变更，先做局部范围判断；不给现有模块的局部改动默认触发 `/map-codebase`
-- 页面类模块若包含可独立切分的静态 UI 子任务，可建议切到更适合视觉产出的模型或新 session；但必须先写清交接包和工程边界
-- `/quick` 代表最低足够流程，不应因为任务很小就跳过任务记录、状态同步和必要验证
-- `/quick` 中若只是纯视觉微调，可建议使用静态 UI 友好模型；一旦涉及交互、状态、接口或数据逻辑，立即回到常规工程模型或转入 `/new-module`
-- 若某个需求已经超出当前里程碑，或依赖尚未具备的共享基础能力，应先重排，而不是直接开始实现
-
-## 意图优先路由
-
-在 brownfield 项目中，先判断用户究竟是在：
-
-- 要你先理解整个代码库
-- 还是已经明确点名某个现有模块上的局部改动
-
-默认规则：
-
-- 用户明确说“分析一下现有代码”“先了解下这个仓库”“我不确定模块在哪”时，走 `/map-codebase`
-- 用户已经点名模块、接口、字段、命令或规则，例如“给用户模块加一个次数限制”，先按范围在 `/quick` 和 `/new-module` 之间选择，不要先全仓扫描
-- 只有在局部阅读后仍无法定位模块、无法判断影响边界，或确实缺少架构背景时，才升级到 `/map-codebase`
-
-## 项目文件自动创建
-
-`npx create-ai-os .` 安装框架文件（`AGENTS.md`、`.agents/`）和元数据。项目工件（`project-charter.md`、`tasks.yaml`、`STATE.md` 等）通过 `/init` 工作流一次性生成，或由其他 workflow 在执行过程中按需创建。如果 `.ai-os/` 目录不存在，workflow 应自动创建它。
-
-## 场景匹配指南
-
-### Start
-
-| 用户说 | 触发 |
-|--------|------|
-| "初始化项目" / "初始化老项目" / "给项目建基础文件" / "init" | `/init` |
-| "做一个新项目" / "从 0 开始" | `/new-project` |
-| "复刻一个系统" / "仿制一个产品" | `/clone-project` |
-| "分析一下现有代码" / "先了解下代码库" / "这个仓库我还不熟" | `/map-codebase` |
-| "加个功能" / "做一个新模块" | `/new-module` |
-| "改个小 bug" / "加个配置" / "改个文案" | `/quick` |
-| "给现有用户模块加一个次数限制" / "在现有接口上补一个字段" / "给已有命令加个参数" | 先判断范围：满足 quick 条件走 `/quick`，否则走 `/new-module` |
-
-### Continue
-
-| 用户说 | 触发 |
-|--------|------|
-| "自动往下做" / "按任务图继续" / "auto" | `/auto-advance` |
-| "现在做到哪了" / "status" | `/status` |
-| "下一步做什么" / "next" | `/next` |
-| "继续" / "resume" / "从上次接着来" | `/resume` |
-
-### Finish / Govern
-
-| 用户说 | 触发 |
-|--------|------|
-| "检查下代码" / "review 一下" | `/review` |
-| "需求变了" / "加个新要求" | `/change-request` |
-| "准备上线" / "可以发布了吗" | `/ship` |
-| "有个 bug" / "报错了" | `/debug` |
-| "线上出问题了" / "紧急故障" | `/incident` |
-| "复盘一下" / "总结经验" | `/postmortem` |
+- 没有完成 `/align`，不要默认进入 `/build`
+- 没有锁定关键设计和关键逻辑，不要大规模编码
+- `reverse-spec` 项目默认要补 `parity-map`
+- `change` 模式允许更轻，但仍需更新 `STATE.md` 和最小证据
+- `/auto-advance` 只能在设计门和逻辑门通过后进入大规模推进

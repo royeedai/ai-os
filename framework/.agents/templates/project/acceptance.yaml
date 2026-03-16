@@ -1,60 +1,77 @@
-version: 1
+version: 2
 scope:
-  type: module
-  name: "example-module"
-  module_type: "页面类"
-  delivery_level: "L2"
-  spec: "specs/example.spec.md"
+  mode: "greenfield"
+  focus: "example-module"
+  primary_spec: "specs/example.spec.md"
+  target_runtime: "[如 PostgreSQL + 正式鉴权]"
+  dev_fallback: "[如 sqlite + mock auth]"
 
 gates:
-  - id: GATE-001
-    title: "需求对齐"
+  - id: design-confirmation
+    title: "设计确认门"
     status: pending
     checks:
-      - "spec 已确认"
-      - "变更已同步"
-    evidence: []
+      - "关键页面、信息架构和关键交互已确认"
+      - "关键视觉方向和不采用的风格已写清"
+      - "需要保真的页面已标记对照证据来源"
+    evidence:
+      - "design-decision-log"
+      - "ia-map"
+      - "screen-reference"
 
-  - id: GATE-002
-    title: "实现与测试"
+  - id: logic-confirmation
+    title: "逻辑确认门"
     status: pending
     checks:
-      - "核心功能已实现"
-      - "构建通过"
-      - "测试通过"
+      - "核心接口、状态流转和业务规则已确认"
+      - "关键异常路径和边界条件已确认"
+      - "spec 与 Mission / Design 没有冲突"
+    evidence:
+      - "spec-review"
+      - "contract-note"
+      - "state-flow-note"
+
+  - id: implementation-quality
+    title: "实现质量门"
+    status: pending
+    checks:
+      - "核心实现完成"
+      - "测试与 review 已通过"
+      - "没有已知严重回归"
     evidence:
       - "build-log"
       - "test-log"
-
-  - id: GATE-003
-    title: "运行验证与交付证据"
-    status: pending
-    checks:
-      - "本次变更要求的验证动作已执行"
-      - "需要重启的服务已完成重启"
-      - "需要冷启动的链路已完成 Smoke Check"
-      - "关键接口样例或截图齐全"
-      - "风险与剩余问题已记录"
-      - "review-report 或验收报告已输出"
-    evidence:
-      - "verification-plan"
-      - "restart-log"
-      - "cold-start-log"
-      - "post-restart-smoke-log"
-      - "api-sample-or-screenshot"
-      - "risk-note"
       - "review-report"
 
-  - id: GATE-004
-    title: "人工验证（UAT）"
+  - id: delivery-readiness
+    title: "交付质量门"
     status: pending
     checks:
-      - "UAT 脚本已生成"
-      - "用户已执行 UAT 并确认结果"
+      - "运行态验证已完成"
+      - "UAT 或人工验证结果已记录"
+      - "交付说明、回滚和移交信息齐全"
+      - "fallback 证据未被误当成正式交付证据"
     evidence:
+      - "runtime-check"
       - "uat-result"
+      - "handoff-note"
+      - "rollback-note"
+
+  - id: parity-gate
+    title: "对照一致性门"
+    status: not_applicable
+    checks:
+      - "reverse-spec 项目已给出关键页面、关键 API 或关键流程对照证据"
+      - "允许改写的差异已在 DESIGN 或 spec 中显式说明"
+    evidence:
+      - "screenshot-compare"
+      - "api-compare"
+      - "behavior-note"
 
 result:
-  decision: blocked
+  design_locked: blocked
+  logic_locked: blocked
+  implementation_ready: blocked
+  delivery_ready: blocked
   blockers: []
   advisories: []

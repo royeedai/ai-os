@@ -20,7 +20,7 @@ description: >
 
 ## 使用方式
 
-1. 开发完成后，打开对应模块的 `.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
+1. 开发完成后，打开对应模块的 `.ai-os/project-charter.md`、`.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
 2. 先识别当前模块的模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）和交付等级（`L1` / `L2` / `L3`）
 3. 逐项对照 .spec 中的功能需求，检查代码是否实现
 4. 对照 `.ai-os/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
@@ -60,6 +60,7 @@ description: >
 - [ ] 后端是否支持开发模式鉴权旁路？
 - [ ] 前后端 API 代理配置是否匹配？HTTP 工具是否已封装错误处理/Token 挂载？
 - [ ] 是否存在版本控制忽略规则文件？
+- [ ] 若项目存在目标运行态与开发 fallback 差异，是否已把 fallback 自测证据与目标运行态证据分开？
 
 **未通过 Step 0 的代码，直接判为「不合格」，不进入后续审查。**
 
@@ -90,7 +91,7 @@ description: >
 
 ### 页面类
 
-- 重点检查页面完整性、用户体验、权限显示、导航可达性、关键交互和人工验证路径
+- 重点检查页面完整性、用户体验、权限显示、导航可达性、关键交互、benchmark / 页面信息架构一致性和人工验证路径
 - 若同时涉及 API 与持久化联动，再调用 `fullstack-dev-checklist`
 
 ### API 类
@@ -123,6 +124,8 @@ description: >
 - [ ] 表单提交成功后是否跳转回列表并刷新，是否做了防重复提交处理
 - [ ] 数据格式化是否到位（时间可读、金额带单位、状态用标签、下拉有占位符）
 - [ ] 文件上传全链路是否到位（前端组件 + 后端接口 + URL 返回）
+- [ ] 企业后台页面是否符合 benchmark 和信息架构，避免把完整新建表单和列表粗暴同屏做成 demo 页
+- [ ] 若项目章程要求登录、角色 / 权限、组织 / 仓库上下文，这些入口和作用范围是否已体现到页面上
 
 #### API 层面
 - [ ] 列表接口是否返回关联数据的名称
@@ -147,6 +150,8 @@ description: >
 
 - [ ] 是否存在构建结果、测试结果、关键日志、截图、接口样例等 Evidence Pack？
 - [ ] 若本次变更要求 restart / cold-start，是否存在 `restart-log`、`cold-start-log`、`post-restart-smoke-log`？
+- [ ] 是否分别判断了“最小可运行”和“可验收”，而不是把“能跑”直接写成“已完成”？
+- [ ] 若项目存在开发 fallback 与目标运行态差异，是否避免用 fallback 证据替代正式运行态证据？
 - [ ] `.ai-os/tasks.yaml` 中的关键任务是否都附有完成证据？
 - [ ] 若存在 blocker，是否明确记录而不是模糊写成"待优化"？
 - [ ] 是否调用 `acceptance-gate` 给出最终通过 / 阻塞 / 建议优化结论？
@@ -231,5 +236,5 @@ description: >
 ## 维护信息
 
 - 来源：`framework/AGENTS.md`、`.agents/references/derived-rules.md`、`references/review-dimensions.md`
-- 更新时间：2026-03-15
+- 更新时间：2026-03-16
 - 已知限制：本 Skill 偏模块级自审；若涉及正式发布决策，还应继续使用 `acceptance-gate`、`release-manager` 等后续 Skill

@@ -1,59 +1,109 @@
-version: 2
+version: 3
+mission: "MISSION.md"
 scope:
-  type: module
-  name: "example-module"
-  module_type: "页面类"
-  delivery_level: "L2"
+  mode: "greenfield"
+  focus: "example-module"
+  quality_tier: "standard"
+
 milestones:
   - id: M1
-    title: "Milestone 1"
-    goal: "可验证的阶段目标"
+    title: "Design Locked"
+    goal: "关键设计与逻辑已确认"
+  - id: M2
+    title: "Built and Verified"
+    goal: "实现、验证和交付证据已就绪"
 
 tasks:
   - id: TASK-001
-    title: "示例任务"
+    title: "将关键页面、流程与接口契约收敛到 spec"
     milestone: M1
     parent: null
     status: todo
     owner: ai
     risk: medium
     wave: 1
+    execution_role: "design_mapper"
+    approval_required: "none"
     depends_on: []
     context_files:
+      - "MISSION.md"
+      - "DESIGN.md"
       - "STATE.md"
-      - "project-charter.md"
-      - "specs/example.spec.md"
     inputs:
-      - "project-charter.md"
+      - "MISSION.md"
+      - "DESIGN.md"
       - "specs/example.spec.md"
+    outputs:
+      - "specs/example.spec.md"
+      - "acceptance.yaml"
+    affected_components:
+      - "design"
+      - "contracts"
+    verification_required:
+      - "validate"
+    restart_required: false
+    cold_start_required: false
+    definition_of_ready:
+      - "Mission 已明确用户、目标和项目模式"
+      - "关键输入素材已整理"
+    definition_of_done:
+      - "关键页面与流程已进入 spec"
+      - "设计确认门和逻辑确认门具备通过条件"
+    evidence_required:
+      - "design-decision-log"
+      - "flow-note"
+      - "spec-update"
+    parity_evidence_required: []
+    blockers: []
+    notes: ""
+
+  - id: TASK-002
+    title: "按已锁定设计和契约完成实现"
+    milestone: M2
+    parent: null
+    status: todo
+    owner: ai
+    risk: medium
+    wave: 2
+    execution_role: "implementer"
+    approval_required: "before_high_risk"
+    depends_on:
+      - "TASK-001"
+    context_files:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "STATE.md"
+      - "specs/example.spec.md"
+      - "acceptance.yaml"
+    inputs:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "specs/example.spec.md"
+      - "acceptance.yaml"
     outputs:
       - "src/example.ts"
       - "tests/example.test.ts"
     affected_components:
-      - "api"
+      - "app"
     verification_required:
-      - "verify"
+      - "validate"
       - "build"
-      - "restart_api"
-      - "cold-start-smoke_api"
-    restart_required: true
-    cold_start_required: true
+    restart_required: false
+    cold_start_required: false
     definition_of_ready:
-      - "关联 spec 已确认"
-      - "verification-matrix 已确认"
-      - "依赖任务已完成"
+      - "设计确认门已通过"
+      - "逻辑确认门已通过"
+      - "不存在阻塞性待确认项"
     definition_of_done:
-      - "代码实现完成"
-      - "测试通过"
-      - "受影响服务已完成重启与冷启动验证"
-      - "已更新相关文档"
+      - "实现与测试完成"
+      - "实现质量门可通过"
+      - "交付质量门所需证据已补齐"
     evidence_required:
       - "build-log"
       - "test-log"
-      - "verification-plan"
-      - "restart-log"
-      - "cold-start-log"
-      - "post-restart-smoke-log"
-      - "api-sample-or-screenshot"
+      - "review-note"
+      - "runtime-check"
+    parity_evidence_required:
+      - "screenshot-or-api-compare"
     blockers: []
     notes: ""

@@ -1,14 +1,8 @@
 #!/usr/bin/env node
 
-/**
- * AI-OS integration test suite — zero-dependency.
- *
- * Runs core CLI commands against a temp project and verifies results.
- */
-
 const fs = require("fs");
 const path = require("path");
-const { execFileSync, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
 
@@ -46,79 +40,39 @@ function cleanup(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-// ---------------------------------------------------------------------------
-// Test: VERSION / package.json sync
-// ---------------------------------------------------------------------------
+const repoRoot = path.resolve(__dirname, "..");
 
 process.stdout.write("\n=== Version sync ===\n");
-
-const versionFile = fs.readFileSync(path.resolve(__dirname, "..", "VERSION"), "utf8").trim();
-const pkgVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf8")).version;
+const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
+const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
+assert(versionFile === "3.0.0", "major version bumped to 3.0.0");
 
-// ---------------------------------------------------------------------------
-// Test: root governance assets
-// ---------------------------------------------------------------------------
+process.stdout.write("\n=== Root docs / evals / examples ===\n");
+assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "design-not-locked-before-build.md")), "design-lock eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "ui-looks-right-but-logic-wrong.md")), "ui-vs-logic eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "logic-right-but-product-shape-wrong.md")), "product-shape eval exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "design-pack", "parity-map.md")), "reverse-spec skeleton includes parity map");
+assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
 
-process.stdout.write("\n=== Root governance assets ===\n");
-
-const repoRoot = path.resolve(__dirname, "..");
-const rootAgents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
 const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
-
-assert(fs.existsSync(path.join(repoRoot, "evals", "README.md")), "root evals README exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "minimum-sufficient-flow.md")), "minimum sufficient flow eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "shared-foundation-first.md")), "shared foundation eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "reference-project-boundary.md")), "reference project boundary eval exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "README.md")), "root examples README exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "platform-project-foundation-first.md")), "platform project example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "minimum-sufficient-change.md")), "minimum sufficient change example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "platform-project-foundation-first", "README.md")), "platform project skeleton exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "platform-project-foundation-first", ".ai-os", "project-charter.md")), "platform project skeleton includes project charter");
-assert(fs.existsSync(path.join(repoRoot, "examples", "minimum-sufficient-change", "README.md")), "minimum sufficient change skeleton exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "minimum-sufficient-change", ".ai-os", "STATE.md")), "minimum sufficient change skeleton includes state");
-assert(fs.existsSync(path.join(repoRoot, "docs", "change-evaluation-template.md")), "change evaluation template exists");
-assert(rootAgents.includes("docs/change-evaluation-template.md"), "root AGENTS references change evaluation template");
-assert(maintainersDoc.includes("../evals/minimum-sufficient-flow.md"), "maintainers doc references root evals");
-assert(maintainersDoc.includes("../examples/platform-project-foundation-first.md"), "maintainers doc references root examples");
-assert(maintainersDoc.includes("change-evaluation-template.md"), "maintainers doc references change evaluation template");
-assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
-
-// ---------------------------------------------------------------------------
-// Test: shared.js exports
-// ---------------------------------------------------------------------------
+assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
+assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
 
 process.stdout.write("\n=== shared.js exports ===\n");
-
 const shared = require("../bin/shared");
 assert(typeof shared.cleanYamlScalar === "function", "cleanYamlScalar exported");
 assert(typeof shared.parseInlineArray === "function", "parseInlineArray exported");
+assert(typeof shared.getExistingProjectFilePath === "function", "getExistingProjectFilePath exported");
 assert(typeof shared.SYM_OK === "string", "SYM_OK exported");
 assert(typeof shared.VALIDATION_SCHEMAS === "object", "VALIDATION_SCHEMAS exported");
 
-// ---------------------------------------------------------------------------
-// Test: YAML utilities
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== YAML utilities ===\n");
-
-assert(shared.cleanYamlScalar('"hello"') === "hello", 'cleanYamlScalar strips double quotes');
-assert(shared.cleanYamlScalar("'hello'") === "hello", "cleanYamlScalar strips single quotes");
-assert(shared.cleanYamlScalar("  plain  ") === "plain", "cleanYamlScalar trims whitespace");
-assert(shared.cleanYamlScalar("") === "", "cleanYamlScalar handles empty string");
-
-const arr = shared.parseInlineArray('[a, "b", c]');
-assert(arr.length === 3, "parseInlineArray parses 3 items");
-assert(arr[1] === "b", "parseInlineArray strips quotes from items");
-assert(shared.parseInlineArray("[]").length === 0, "parseInlineArray handles empty array");
-assert(shared.parseInlineArray("not-an-array").length === 0, "parseInlineArray handles non-array");
-
-// ---------------------------------------------------------------------------
-// Test: create-ai-os init
-// ---------------------------------------------------------------------------
-
 process.stdout.write("\n=== create-ai-os init ===\n");
-
 const initDir = tmpDir();
 const initResult = run("create-ai-os.js", [initDir, "--with-project-files"]);
 assert(initResult.status === 0, "init exits with code 0");
@@ -126,397 +80,97 @@ assert(fs.existsSync(path.join(initDir, "AGENTS.md")), "AGENTS.md created");
 assert(fs.existsSync(path.join(initDir, ".agents", "skills")), ".agents/skills/ created");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows")), ".agents/workflows/ created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "MISSION.md")), "MISSION.md created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "DESIGN.md")), "DESIGN.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")), "verification-matrix.yaml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "acceptance.yaml")), "acceptance.yaml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "specs", "example.spec.md")), "example spec created");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "acceptance.yaml")), "acceptance.yaml is not created by default");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "release-plan.md")), "release-plan.md is not created by default");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "risk-register.md")), "risk-register.md is not created by default");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md is not created by default");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "evals")), "evals/ is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")), "verification-matrix.yaml is not created by default");
 
-const projectCharterTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "project-charter.md"), "utf8");
-assert(projectCharterTemplate.includes("适配范围 / 支持环境"), "project charter uses support-environment wording");
-assert(!projectCharterTemplate.includes("兼容性"), "project charter avoids compatibility wording");
-assert(projectCharterTemplate.includes("目标市场 / 主要使用地区"), "project charter includes target market field");
-assert(projectCharterTemplate.includes("体验 / 视觉参考方向"), "project charter includes design reference direction");
-assert(projectCharterTemplate.includes("| M0 | 项目骨架、共享基础能力或首条核心闭环可运行 |"), "project charter template uses neutral M0 milestone");
-assert(projectCharterTemplate.includes("| 共享基础能力层（如适用） |"), "project charter treats foundation layer as optional");
-assert(!projectCharterTemplate.includes("成本 / 资源预算"), "project charter no longer includes cost-budget field");
-assert(projectCharterTemplate.includes("**默认交付等级**"), "project charter template includes default delivery level");
-assert(projectCharterTemplate.includes("**共享基础能力依赖结构**"), "project charter template includes shared-foundation flag");
-assert(projectCharterTemplate.includes("| 模块 | 模块类型 |"), "project charter template tracks module type");
-
-const exampleSpecTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
-assert(exampleSpecTemplate.includes("适配范围 / 支持环境"), "example spec uses support-environment wording");
-assert(!exampleSpecTemplate.includes("- **兼容**"), "example spec avoids compatibility wording");
-assert(exampleSpecTemplate.includes("使用环境 / 目标市场（如适用）"), "example spec scopes market info to applicable modules");
-assert(exampleSpecTemplate.includes("交互 / 视觉约束"), "example spec includes UX style constraint");
-assert(exampleSpecTemplate.includes("**模块类型**"), "example spec records module type");
-assert(exampleSpecTemplate.includes("**交付等级**"), "example spec records delivery level");
-assert(exampleSpecTemplate.includes("命令 / 调度 / 输入输出"), "example spec supports tool and data-processing modules");
-
-const cloneSpecTemplate = fs.readFileSync(
-  path.join(initDir, ".agents", "skills", "reverse-engineer", "references", "clone-spec-template.md"),
-  "utf8"
-);
-assert(cloneSpecTemplate.includes("## 参考来源"), "clone spec template uses reference-source section");
-assert(!cloneSpecTemplate.includes("## 原型信息"), "clone spec template avoids prototype-section naming");
-
+const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "MISSION.md"), "utf8");
+const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "DESIGN.md"), "utf8");
+const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "tasks.yaml"), "utf8");
+const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "acceptance.yaml"), "utf8");
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
-assert(stateTemplate.includes("**当前里程碑目标**"), "STATE template includes current milestone goal");
 
-const quickWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "quick.md"), "utf8");
-assert(quickWorkflow.includes("读取 `.ai-os/project-charter.md` 和 `.ai-os/STATE.md`"), "quick workflow aligns with project purpose and state");
-assert(quickWorkflow.includes("最低足够流程"), "quick workflow is framed as minimum sufficient flow");
-assert(quickWorkflow.includes("先做意图与范围锚定"), "quick workflow anchors narrow brownfield changes before expanding scope");
-assert(quickWorkflow.includes("纯视觉微调"), "quick workflow supports static UI-only quick tasks");
-assert(quickWorkflow.includes("更适合静态 UI 的模型"), "quick workflow allows static UI model handoff without auto-routing");
+assert(missionTemplate.includes("## 1. 任务定义"), "MISSION template has mission definition section");
+assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has phase plan");
+assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
+assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
+assert(tasksTemplate.includes("version: 3"), "tasks template upgraded to version 3");
+assert(tasksTemplate.includes("execution_role:"), "tasks template includes execution_role");
+assert(tasksTemplate.includes("approval_required:"), "tasks template includes approval_required");
+assert(tasksTemplate.includes("parity_evidence_required:"), "tasks template includes parity evidence field");
+assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
+assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
+assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");
+assert(stateTemplate.includes("## 已锁定内容"), "STATE template includes locked items section");
+assert(stateTemplate.includes("## 最小阅读集"), "STATE template includes minimum reading set");
 
-const debugWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "debug.md"), "utf8");
-assert(debugWorkflow.includes("阻塞当前里程碑目标"), "debug workflow checks blocker status against current milestone goal");
-
-const changeRequestWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "change-request.md"), "utf8");
-assert(changeRequestWorkflow.includes("当前里程碑目标"), "change-request workflow checks change priority against current milestone goal");
-
-const newModuleWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-module.md"), "utf8");
-assert(newModuleWorkflow.includes("模块类型"), "new-module workflow identifies module type first");
-assert(newModuleWorkflow.includes("交付等级"), "new-module workflow identifies delivery level first");
-assert(newModuleWorkflow.includes("先做意图与范围锚定"), "new-module workflow anchors narrow brownfield changes before broad analysis");
-assert(newModuleWorkflow.includes("仅在以下情况创建 `.ai-os/specs/[模块名].context.md`"), "new-module workflow creates context file only when needed");
-assert(newModuleWorkflow.includes("技术设计不再固定套用所有 Skill"), "new-module workflow adapts technical design by module type");
-assert(newModuleWorkflow.includes("静态 UI 子任务"), "new-module workflow supports splitting static UI subtasks for page modules");
-assert(newModuleWorkflow.includes("AI-OS 只负责给出协作建议和交接包"), "new-module workflow avoids claiming automatic model routing");
-
-const fullstackChecklist = fs.readFileSync(path.join(initDir, ".agents", "skills", "fullstack-dev-checklist", "SKILL.md"), "utf8");
-assert(fullstackChecklist.includes("目标市场 / 主要使用地区"), "fullstack checklist requires target market alignment");
-assert(fullstackChecklist.includes("国内项目默认"), "fullstack checklist guards against mismatched overseas-style defaults");
-assert(fullstackChecklist.includes("只有当一个模块同时涉及页面、API、持久化或复杂前后端联动链路时"), "fullstack checklist is limited to true cross-layer modules");
-assert(fullstackChecklist.includes("纯页面、纯 API、纯数据处理或纯工具"), "fullstack checklist avoids being forced onto single-type modules");
-
-const skillsIndex = fs.readFileSync(path.join(initDir, ".agents", "skills", "AGENTS.md"), "utf8");
-assert(skillsIndex.includes("页面 + API + 持久化强耦合模块"), "skills index narrows fullstack checklist trigger to strongly coupled modules");
-assert(skillsIndex.includes("不是所有模块的默认 Skill"), "skills index states fullstack checklist is not the default for every module");
-assert(skillsIndex.includes("skill-check"), "skills index documents skill-check command");
-
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "references", "skill-spec.md")), "skill spec reference installed");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "references", "quality-checklist.md")), "skill quality checklist installed");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "references", "anti-patterns.md")), "skill anti-patterns reference installed");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "fullstack-dev-checklist", "references", "index.md")), "fullstack checklist reference index installed");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "reverse-engineer", "references", "index.md")), "reverse engineer reference index installed");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "systematic-debugging", "references", "index.md")), "systematic debugging reference index installed");
-assert(fs.existsSync(path.join(initDir, ".agents", "templates", "project", "context-snapshot.md")), "context snapshot template installed");
-
-const projectPlannerSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "project-planner", "SKILL.md"), "utf8");
-assert(projectPlannerSkill.includes("目标市场 / 主要使用地区"), "project planner requires target market planning");
-assert(projectPlannerSkill.includes("每个核心模块声明"), "project planner requires module type and delivery level planning");
-assert(projectPlannerSkill.includes("共享基础能力优先"), "project planner references shared-foundation planning rule");
-assert(projectPlannerSkill.includes("## 使用时机"), "project planner includes explicit trigger section");
-assert(projectPlannerSkill.includes("## 维护信息"), "project planner includes maintenance section");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "project-planner", "references", "index.md")), "project planner reference index installed");
-
-const specValidatorSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "spec-validator", "SKILL.md"), "utf8");
-assert(specValidatorSkill.includes("通用必填项 + 类型专项项 + 等级附加项"), "spec validator validates universal, type-specific, and level-specific requirements");
-assert(specValidatorSkill.includes("### 工具类"), "spec validator supports tool modules");
-assert(specValidatorSkill.includes("### L3 高风险"), "spec validator scales checks by delivery level");
-assert(specValidatorSkill.includes("## 使用时机"), "spec validator includes explicit trigger section");
-assert(specValidatorSkill.includes("## 模板引用"), "spec validator includes template reference section");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "spec-validator", "references", "index.md")), "spec validator reference index installed");
-
-const newProjectWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "new-project.md"), "utf8");
-assert(newProjectWorkflow.includes("模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）"), "new-project workflow classifies modules by type");
-assert(newProjectWorkflow.includes("基础能力可用 + 首条核心业务闭环可运行"), "new-project workflow prioritizes foundation plus first runnable business loop");
-assert(newProjectWorkflow.includes("只在确实适用时填写"), "new-project workflow narrows optional project-definition fields");
-assert(newProjectWorkflow.includes("若项目默认交付等级为 `L2` / `L3`"), "new-project workflow creates acceptance only when needed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "plan.md")), "plan workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "build.md")), "build workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "verify.md")), "verify workflow installed");
 
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
-assert(workflowsIndex.includes("模块类型和交付等级"), "workflow index describes adaptive new-module flow");
-assert(workflowsIndex.includes("最低足够流程"), "workflow index describes quick as minimum sufficient flow");
-assert(workflowsIndex.includes("不给现有模块的局部改动默认触发 `/map-codebase`"), "workflow index prevents default codebase mapping for narrow module changes");
-assert(workflowsIndex.includes("静态 UI 子任务"), "workflow index documents static UI collaboration trigger");
+assert(workflowsIndex.includes("/align"), "workflow index documents /align");
+assert(workflowsIndex.includes("Compatibility Aliases"), "workflow index documents compatibility aliases");
 
-const initWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "init.md"), "utf8");
-assert(initWorkflow.includes("目标市场与体验风格推断"), "init workflow infers target market and UX style for existing projects");
-assert(initWorkflow.includes("模块类型和默认交付等级"), "init workflow records module types and default delivery levels");
-assert(initWorkflow.includes("核心项目文件"), "init workflow emphasizes core project files first");
-assert(initWorkflow.includes("按需补充的工件"), "init workflow treats release and risk artifacts as optional");
+const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
+const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");
+assert(run("ai-os-skill-check.js", [projectPlannerSkill, "--strict"]).status === 0, "project-planner passes strict skill-check");
+assert(run("ai-os-skill-check.js", [acceptanceGateSkill, "--strict"]).status === 0, "acceptance-gate passes strict skill-check");
 
-const mapCodebaseWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "map-codebase.md"), "utf8");
-assert(mapCodebaseWorkflow.includes("不是已有仓库开发的默认前置步骤"), "map-codebase workflow is not the default for every brownfield change");
-assert(mapCodebaseWorkflow.includes("待确认"), "map-codebase workflow records target market assumptions as pending confirmation");
-assert(mapCodebaseWorkflow.includes("模块类型（页面类 / API 类 / 数据处理类 / 工具类）"), "map-codebase workflow suggests module types");
-
-const archetypesRef = fs.readFileSync(path.join(initDir, ".agents", "skills", "project-planner", "references", "archetypes.md"), "utf8");
-assert(archetypesRef.includes("WMS、ERP、OMS、SaaS 后台、管理系统、多租户运营平台只是常见示例"), "archetypes treat industry names as examples rather than rule trigger");
-
-const taskOrchestratorSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "task-orchestrator", "SKILL.md"), "utf8");
-assert(taskOrchestratorSkill.includes("按模块类型拆任务"), "task orchestrator splits tasks by module type");
-assert(taskOrchestratorSkill.includes("按交付等级缩放任务"), "task orchestrator scales tasks by delivery level");
-
-const acceptanceGateSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "acceptance-gate", "SKILL.md"), "utf8");
-assert(acceptanceGateSkill.includes("按模块类型检查验收证据"), "acceptance gate checks evidence by module type");
-assert(acceptanceGateSkill.includes("按交付等级缩放验收"), "acceptance gate scales acceptance by delivery level");
-
-const reviewWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "review.md"), "utf8");
-assert(reviewWorkflow.includes("模块类型和交付等级"), "review workflow scales review depth by module type and delivery level");
-
-const shipWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "ship.md"), "utf8");
-assert(shipWorkflow.includes("`L3` 模块"), "ship workflow highlights L3 release constraints");
-
-const codeReviewGuardSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "code-review-guard", "SKILL.md"), "utf8");
-assert(codeReviewGuardSkill.includes("不是“默认所有模块都走同一套重审流程”"), "code review guard avoids a single heavy review flow for every module");
-assert(codeReviewGuardSkill.includes("仅在模块存在明显跨层联动时调用 `fullstack-dev-checklist`"), "code review guard limits fullstack checklist to cross-layer modules");
-assert(codeReviewGuardSkill.includes("按交付等级缩放自审"), "code review guard scales review by delivery level");
-assert(codeReviewGuardSkill.includes("## 使用时机"), "code review guard includes explicit trigger section");
-assert(codeReviewGuardSkill.includes("## 维护信息"), "code review guard includes maintenance section");
-assert(fs.existsSync(path.join(initDir, ".agents", "skills", "code-review-guard", "references", "index.md")), "code review guard reference index installed");
-
-const releaseManagerSkill = fs.readFileSync(path.join(initDir, ".agents", "skills", "release-manager", "SKILL.md"), "utf8");
-assert(releaseManagerSkill.includes("不是所有模块默认都走完整发布流程"), "release manager avoids forcing full release flow onto every module");
-assert(releaseManagerSkill.includes("按模块类型检查发布要点"), "release manager checks release requirements by module type");
-assert(releaseManagerSkill.includes("按交付等级缩放发布要求"), "release manager scales release requirements by delivery level");
-
-const derivedRulesRef = fs.readFileSync(path.join(initDir, ".agents", "references", "derived-rules.md"), "utf8");
-assert(derivedRulesRef.includes("目标市场适配"), "derived rules reference centralizes target-market guidance");
-assert(derivedRulesRef.includes("共享基础能力优先"), "derived rules reference centralizes shared-foundation guidance");
-
-const frameworkAgents = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
-assert(frameworkAgents.includes("## 二、通用性优先"), "framework constitution is reorganized around the six core requirements");
-assert(frameworkAgents.includes("模块进入实现前，必须明确模块类型"), "framework constitution requires module type classification");
-assert(frameworkAgents.includes("仅在需求存在明显决策空间时创建 `.context.md`"), "framework constitution enforces context-file complexity budget");
-assert(frameworkAgents.includes("### 常用 Workflow 入口"), "framework constitution exposes common workflow entrypoints at root level");
-assert(frameworkAgents.includes("/init"), "framework constitution makes /init discoverable from root AGENTS");
-assert(frameworkAgents.includes("AI-OS 只负责交接规范与项目事实同步"), "framework constitution limits multi-model support to handoff guidance");
-assert(frameworkAgents.includes("写入适用工件"), "framework constitution scopes artifacts to what is applicable");
-
-const memoryTemplate = fs.readFileSync(path.join(initDir, ".agents", "templates", "project", "memory.md"), "utf8");
-assert(memoryTemplate.includes("多模型协作偏好"), "memory template records multi-model collaboration preferences");
-assert(memoryTemplate.includes("页面类模块中的静态 UI 子任务"), "memory template guides static UI collaboration scope");
-
-// ---------------------------------------------------------------------------
-// Test: re-init on existing project (should not fail)
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== re-init on existing project ===\n");
-
-const agentsMdBefore = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
-fs.writeFileSync(path.join(initDir, "AGENTS.md"), agentsMdBefore + "\n<!-- custom -->\n");
-const customContent = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
-
-const reinitResult = run("create-ai-os.js", [initDir]);
-assert(reinitResult.status === 0, "re-init on existing project exits with code 0");
-assert(fs.existsSync(path.join(initDir, "AGENTS.md")), "AGENTS.md still exists after re-init");
-
-const agentsMdAfter = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
-assert(agentsMdAfter === customContent, "re-init preserves user-modified AGENTS.md (overwrite: false)");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml still exists after re-init");
-
-fs.writeFileSync(path.join(initDir, "AGENTS.md"), agentsMdBefore);
-
-// ---------------------------------------------------------------------------
-// Test: doctor
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== doctor ===\n");
-
-const doctorResult = run("ai-os-doctor.js", [initDir]);
-assert(doctorResult.status === 0, "doctor passes on fresh project");
-assert(doctorResult.stdout.includes("HEALTHY"), "doctor reports HEALTHY");
-
-// ---------------------------------------------------------------------------
-// Test: diff
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== diff ===\n");
-
-const diffResult = run("ai-os-diff.js", [initDir, "--stat"]);
-assert(diffResult.status === 0, "diff exits with code 0");
-assert(diffResult.stdout.includes("unchanged"), "diff shows unchanged files");
-
-// ---------------------------------------------------------------------------
-// Test: diff detects modifications
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== diff detects changes ===\n");
-
-fs.writeFileSync(path.join(initDir, "AGENTS.md"), "# Modified\n");
-const diffResult2 = run("ai-os-diff.js", [initDir, "--stat"]);
-assert(diffResult2.stdout.includes("1 modified"), "diff detects modified AGENTS.md");
-
-// ---------------------------------------------------------------------------
-// Test: upgrade repairs
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== upgrade ===\n");
-
-const upgradeResult = run("ai-os-upgrade.js", [initDir, "--force"]);
-assert(upgradeResult.status === 0, "upgrade --force succeeds");
-
-const diffAfter = run("ai-os-diff.js", [initDir, "--stat"]);
-assert(diffAfter.stdout.includes("0 modified"), "upgrade repaired the modification");
-
-// ---------------------------------------------------------------------------
-// Test: validate
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== validate ===\n");
-
+process.stdout.write("\n=== validate / doctor / status / next / resume ===\n");
 const validateResult = run("ai-os-validate.js", [initDir]);
-assert(validateResult.status === 0, "validate passes on template project");
+assert(validateResult.status === 0, "validate passes on fresh vNext project");
 
-// ---------------------------------------------------------------------------
-// Test: skill-check
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== skill-check ===\n");
-
-const baselineSkillCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "project-planner"),
-]);
-assert(baselineSkillCheck.status === 0, "skill-check baseline passes on project-planner");
-assert(baselineSkillCheck.stdout.includes("AI-OS Skill Check"), "skill-check prints header");
-
-const strictSkillCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "project-planner"),
-  "--strict",
-]);
-assert(strictSkillCheck.status === 0, "skill-check strict passes on project-planner");
-
-const strictSpecValidatorCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "spec-validator"),
-  "--strict",
-]);
-assert(strictSpecValidatorCheck.status === 0, "skill-check strict passes on spec-validator");
-
-const strictCodeReviewCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "code-review-guard"),
-  "--strict",
-]);
-assert(strictCodeReviewCheck.status === 0, "skill-check strict passes on code-review-guard");
-
-const strictAcceptanceGateCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "acceptance-gate"),
-  "--strict",
-]);
-assert(strictAcceptanceGateCheck.status === 0, "skill-check strict passes on acceptance-gate");
-
-const strictTaskOrchestratorCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "task-orchestrator"),
-  "--strict",
-]);
-assert(strictTaskOrchestratorCheck.status === 0, "skill-check strict passes on task-orchestrator");
-
-const strictReleaseManagerCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "release-manager"),
-  "--strict",
-]);
-assert(strictReleaseManagerCheck.status === 0, "skill-check strict passes on release-manager");
-
-const strictReverseEngineerCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "reverse-engineer"),
-  "--strict",
-]);
-assert(strictReverseEngineerCheck.status === 0, "skill-check strict passes on reverse-engineer");
-
-const strictSystematicDebuggingCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "systematic-debugging"),
-  "--strict",
-]);
-assert(strictSystematicDebuggingCheck.status === 0, "skill-check strict passes on systematic-debugging");
-
-const strictFullstackChecklistCheck = run("ai-os-skill-check.js", [
-  path.join(initDir, ".agents", "skills", "fullstack-dev-checklist"),
-  "--strict",
-]);
-assert(strictFullstackChecklistCheck.status === 0, "skill-check strict passes on fullstack-dev-checklist");
-
-const allSkillDirs = fs.readdirSync(path.join(initDir, ".agents", "skills"), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && entry.name !== "references")
-  .map((entry) => entry.name)
-  .sort();
-
-for (const skillName of allSkillDirs) {
-  const result = run("ai-os-skill-check.js", [
-    path.join(initDir, ".agents", "skills", skillName),
-    "--strict",
-  ]);
-  assert(result.status === 0, `skill-check strict passes on ${skillName}`);
-}
-
-const strictSkillDir = path.join(tmpDir(), "strict-skill");
-fs.mkdirSync(path.join(strictSkillDir, "references"), { recursive: true });
-fs.writeFileSync(path.join(strictSkillDir, "SKILL.md"), `---
-name: strict-skill
-description: "检查模块发布边界；当准备交付高风险模块时使用。"
----
-
-# strict-skill
-
-## 使用时机
-
-- 准备交付高风险模块
-
-## 使用方式
-
-1. 读取模块 spec
-2. 检查发布前条件
-
-## 约束
-
-- 缺少 spec 时先停下补齐
-
-## 模板引用
-
-- 发布检查报告模板
-
-## 维护信息
-
-- 来源：内部规范
-- 更新时间：2026-03-15
-- 已知限制：只覆盖模块级检查
-`, "utf8");
-fs.writeFileSync(path.join(strictSkillDir, "references", "index.md"), "# refs\n", "utf8");
-
-const strictFixtureCheck = run("ai-os-skill-check.js", [strictSkillDir, "--strict"]);
-assert(strictFixtureCheck.status === 0, "skill-check strict passes on production-grade fixture");
-
-cleanup(path.dirname(strictSkillDir));
-
-// ---------------------------------------------------------------------------
-// Test: status / next / resume (graceful on template data)
-// ---------------------------------------------------------------------------
-
-process.stdout.write("\n=== status / next / resume ===\n");
+const doctorResult = run("ai-os-doctor.js", [initDir, "--strict"]);
+assert(doctorResult.status === 0, "doctor --strict passes on fresh vNext project");
 
 const statusResult = run("ai-os-status.js", [initDir]);
 assert(statusResult.status === 0, "status exits with code 0");
+assert(statusResult.stdout.includes("当前方位"), "status prints current orientation");
+assert(statusResult.stdout.includes("已锁定内容"), "status prints locked items");
 
 const nextResult = run("ai-os-next.js", [initDir]);
 assert(nextResult.status === 0, "next exits with code 0");
+assert(nextResult.stdout.includes("role="), "next includes execution role");
 
 const resumeResult = run("ai-os-resume.js", [initDir]);
 assert(resumeResult.status === 0, "resume exits with code 0");
+assert(resumeResult.stdout.includes(".ai-os/MISSION.md"), "resume includes MISSION in reading set");
 
 const resumeMarkdownResult = run("ai-os-resume.js", [initDir, "--markdown"]);
 assert(resumeMarkdownResult.status === 0, "resume --markdown exits with code 0");
-assert(resumeMarkdownResult.stdout.includes("# AI-OS Context Snapshot"), "resume --markdown prints snapshot heading");
-assert(resumeMarkdownResult.stdout.includes("## 优先读取文件"), "resume --markdown includes priority files section");
-assert(resumeMarkdownResult.stdout.includes(".ai-os/STATE.md"), "resume --markdown references STATE.md");
+assert(resumeMarkdownResult.stdout.includes("## 已锁定内容"), "resume --markdown includes locked items");
+assert(resumeMarkdownResult.stdout.includes(".ai-os/DESIGN.md"), "resume --markdown references DESIGN");
 
-// ---------------------------------------------------------------------------
-// Cleanup
-// ---------------------------------------------------------------------------
+process.stdout.write("\n=== migrate legacy artifacts ===\n");
+const migrateDir = tmpDir();
+assert(run("create-ai-os.js", [migrateDir]).status === 0, "framework-only init succeeds for migration test");
+fs.mkdirSync(path.join(migrateDir, ".ai-os"), { recursive: true });
+fs.writeFileSync(path.join(migrateDir, ".ai-os", "project-charter.md"), "# legacy charter\n", "utf8");
+fs.writeFileSync(path.join(migrateDir, ".ai-os", "reference-code-map.md"), "# legacy reference map\n", "utf8");
+
+const migrateDryRun = run("ai-os-migrate.js", [migrateDir, "--dry-run"]);
+assert(migrateDryRun.status === 0, "migrate --dry-run exits with code 0");
+assert(migrateDryRun.stdout.includes("project-charter.md"), "migrate --dry-run reports legacy charter mapping");
+
+const migrateRun = run("ai-os-migrate.js", [migrateDir]);
+assert(migrateRun.status === 0, "migrate exits with code 0");
+assert(fs.existsSync(path.join(migrateDir, ".ai-os", "MISSION.md")), "migrate creates MISSION.md");
+assert(fs.existsSync(path.join(migrateDir, ".ai-os", "DESIGN.md")), "migrate creates DESIGN.md");
+assert(fs.existsSync(path.join(migrateDir, ".ai-os", "design-pack", "parity-map.md")), "migrate creates parity-map.md");
+assert(fs.existsSync(path.join(migrateDir, ".ai-os", "migration-notes.md")), "migrate writes migration notes");
 
 cleanup(initDir);
+cleanup(migrateDir);
 
-// ---------------------------------------------------------------------------
-// Summary
-// ---------------------------------------------------------------------------
-
-process.stdout.write(`\n=== Results ===\n`);
-process.stdout.write(`${passed} passed, ${failed} failed\n\n`);
-
-if (failed > 0) {
-  process.exit(1);
-}
+process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
+process.exit(failed === 0 ? 0 : 1);

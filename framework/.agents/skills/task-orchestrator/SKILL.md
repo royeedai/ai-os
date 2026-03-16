@@ -1,94 +1,49 @@
 ---
 name: task-orchestrator
 description: >
-  将项目章程或模块 .spec 拆成可执行任务图，包含依赖、状态、wave 并行分组、上下文注入、Definition of Ready、Definition of Done 和 Evidence Pack。
-  当需要拆任务、排期、减少漏项，或在编码前建立执行顺序时必须使用。
+  在 plan 阶段把 Mission / Design / Spec 收敛为可执行任务波次和角色分工。
 ---
 
-# 任务编排器
-
-本 Skill 用于把“需求”转成“可执行任务图”，避免 AI 只会从 spec 直接跳到编码。
+# 任务编排器（vNext）
 
 ## 使用时机
 
-- 项目或模块需求已经明确，准备拆任务
-- 编码前需要先建立执行顺序和依赖关系
-- 任务过大、漏项过多、上下文切换频繁，需要重新编排
+- 设计和逻辑已经足够明确
+- 准备进入 build
+- 需要按 wave 和 execution_role 组织任务
 
-## 使用方式
+## 必做步骤
 
-1. 输入来源可以是 `.ai-os/project-charter.md` 或某个模块的 `.spec.md`
-2. 先识别当前对象的模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）和交付等级（`L1` / `L2` / `L3`）
-3. 使用模板生成或更新 `.ai-os/tasks.yaml`
-4. 对每个任务明确依赖、风险、输入、输出、DoR、DoD、Evidence Pack
-5. 结合 `.ai-os/verification-matrix.yaml`，为每个任务补齐 `affected_components`、`verification_required`、`restart_required`、`cold_start_required`
-6. 将测试、文档、发布、回滚、验收任务显式拆出；但是否拆成独立任务，取决于模块类型和交付等级
-7. 为任务分配 wave 编号（基于依赖图拓扑排序），同一 wave 内的任务可并行执行
-8. 为每个任务指定 `context_files`，列出执行该任务前必须加载的文件
-9. 每次任务状态变化都要回写 `.ai-os/tasks.yaml` 和 `.ai-os/STATE.md`
-10. 对存在共享基础能力依赖的项目，按 `.agents/references/derived-rules.md` 的“共享基础能力优先”规则建立依赖图
+1. 读取 `MISSION.md`、`DESIGN.md`、specs 和 `STATE.md`
+2. 把任务拆成可独立验证的单元
+3. 为每个任务指定：
+   - `wave`
+   - `execution_role`
+   - `approval_required`
+   - `context_files`
+   - `evidence_required`
+   - `parity_evidence_required`（reverse-spec 适用）
+4. 更新 `.ai-os/tasks.yaml`
+5. 同步 `.ai-os/STATE.md`
 
 ## 拆分原则
 
-- 一个任务只能对应一个清晰结果
-- 一个任务必须有可验证的完成证据
-- 高风险任务要单独拆出并标记审批点
-- 共性基础设施、迁移、回归检查不得藏在“顺手做”
-- 命中 `verification-matrix.yaml` 的运行时变更，必须显式拆出重启 / 冷启动验证任务，或在当前任务中写明验证动作
-- 一个任务的全部输入（spec 引用、依赖代码、实现代码、测试代码）加起来不应超出 AI 单次有效处理能力；经验法则：一个任务涉及的新增/修改代码不应超过 500 行
-- 如果 AI 在执行任务时出现“我先做 A 部分，稍后再做 B 部分”的自述，说明任务粒度过大，应回退拆分
+- 设计未锁定的工作不要和实现任务混在一起
+- 逻辑确认前不要把大规模实现放进早期 wave
+- review / verify / runtime evidence 必须显式占位
 
-## 按模块类型拆任务
+## 交付输出
 
-- `页面类`：至少覆盖界面结构、状态处理、API 对接、路由/导航接入、关键交互验证
-- `API 类`：至少覆盖契约、鉴权/权限、核心处理逻辑、错误处理、契约测试或接口样例
-- `数据处理类`：至少覆盖输入源、转换/执行逻辑、调度或触发方式、失败重试/补数、结果校验与日志
-- `工具类`：至少覆盖命令入口、参数 / 配置、输出格式、安装 / 运行验证、使用说明
-
-## 按交付等级缩放任务
-
-- `L1`：允许把文档、验收和部分 supporting work 合并进主任务，但仍必须保留任务记录、最小完成证据和验证动作
-- `L2`：显式拆出实现、测试、验收、必要的运行验证任务
-- `L3`：在 L2 基础上，额外拆出安全、架构、发布 / 回滚、人工审批点等任务
-
-## Wave 并行分组规则
-
-- 无依赖的任务归入 wave 1
-- 依赖项全部在 wave N 或更早完成的任务，归入 wave N+1
-- 同一 wave 内的任务可以使用 IDE 的 subagent / Task 工具并行执行
-- wave 按顺序推进，当前 wave 全部完成才进入下一个 wave
-- 文件冲突（多个任务修改同一文件）的任务必须放入不同 wave 或合并为同一任务
-- 依赖基础能力的业务模块不得与其前置基础能力放在同一 wave 假并行推进
-
-## 上下文注入协议
-
-每个任务的 `context_files` 字段列出执行前必须加载的文件。`context_files`、`inputs`、`outputs` 中的路径均相对于 `.ai-os/` 目录。执行任务时：
-
-1. 读取 `.ai-os/STATE.md` 恢复全局方位
-2. 读取该任务 `context_files` 中的所有文件
-3. 读取 `.ai-os/memory.md` 获取长期约束和决策
-4. 若使用 subagent / Task 工具执行，必须在 prompt 中包含以上关键内容摘要
+- `.ai-os/tasks.yaml`
+- 更新后的 `.ai-os/STATE.md`
 
 ## 禁止事项
 
 - 禁止把“开发整个模块”写成一个任务
-- 禁止没有依赖关系就并行推进互相阻塞的任务
-- 禁止未满足 DoR 就把任务标记为进行中
-- 禁止一个任务涉及超过 500 行新增 / 修改代码而不拆分
-- 禁止忽略模块类型和交付等级，把所有任务图都拆成同一套模板
-
-## 模板引用
-
-- 任务图：读取 `.agents/templates/project/tasks.yaml` 作为模板生成 `.ai-os/tasks.yaml`
-
-### 示例：L2 API 模块任务拆分
-
-- 输入：模块 `.spec.md`、当前 `.ai-os/verification-matrix.yaml`
-- 输出：实现、测试、验收、运行验证分开的任务项和 wave
-- 约束：不要把整个模块压成一个任务；要显式写出 `context_files` 和验证动作
+- 禁止不写 execution_role 和 approval_required
 
 ## 维护信息
 
-- 来源：`framework/AGENTS.md`、`.agents/templates/project/tasks.yaml`、`.agents/references/derived-rules.md`
-- 更新时间：2026-03-15
-- 已知限制：本 Skill 负责任务图编排，不负责替代 spec 校验、代码实现和最终验收
+- 来源：`/plan` workflow
+- 更新时间：2026-03-16
+- 已知限制：本 Skill 负责任务编排，不替代 spec 校验和验收判断

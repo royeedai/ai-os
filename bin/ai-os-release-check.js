@@ -4,11 +4,10 @@ const fs = require("fs");
 const path = require("path");
 const {
   fail,
-  getProjectFilePath,
+  getExistingProjectFilePath,
   getProjectRelativePath,
   SYM_OK,
   SYM_FAIL,
-  SYM_WARN,
   VALIDATION_SCHEMAS,
 } = require("./shared");
 const { readUtf8IfExists, splitMarkdownSections, parseTasksFile } = require("./project-state");
@@ -17,7 +16,7 @@ function printHelp() {
   process.stdout.write(`Usage:
   ai-os-release-check [target-dir]
 
-Run release readiness checks against release-plan.md and related artifacts.
+Run delivery readiness checks against release-plan.md and related artifacts.
 
 Options:
   -h, --help  Show this help message
@@ -48,7 +47,7 @@ if (!fs.existsSync(targetDir)) {
   fail(`target directory does not exist: ${targetDir}`);
 }
 
-const releasePlanPath = getProjectFilePath(targetDir, "release-plan.md");
+const releasePlanPath = getExistingProjectFilePath(targetDir, "release-plan.md");
 const releasePlan = readUtf8IfExists(releasePlanPath);
 
 if (releasePlan === null) {
@@ -101,53 +100,63 @@ report(
   missingSections.map((section) => `missing section: ${section}`)
 );
 
-const preflightSection = sections.get("1. 发布前检查") || "";
+const preflightSection = sections.get("1. 交付前检查") || "";
 report(
   hasConcreteChecklistItems(preflightSection),
-  "Release preflight checklist is specific"
+  "Delivery preflight checklist is specific"
 );
 
-const restartSection = sections.get("3. 受影响服务与重启顺序") || "";
+const dependencySection = sections.get("2. 变更范围与依赖") || "";
 report(
-  hasConcreteChecklistItems(restartSection),
-  "Affected services and restart order are specific"
+  hasConcreteChecklistItems(dependencySection),
+  "Change scope and dependency notes are specific"
 );
 
-const releaseStepsSection = sections.get("4. 发布步骤") || "";
+const releaseStepsSection = sections.get("3. 发布步骤") || "";
 report(
   hasConcreteNumberedSteps(releaseStepsSection),
-  "Release steps are specific"
+  "Delivery steps are specific"
 );
 
-const smokeCheckSection = sections.get("5. Smoke Check") || "";
+const smokeCheckSection = sections.get("4. 运行态验证") || "";
 report(
   hasConcreteChecklistItems(smokeCheckSection),
-  "Smoke Check list is specific"
+  "Runtime verification list is specific"
 );
 
-const rollbackSection = sections.get("6. 回滚触发条件") || "";
+const rollbackSection = sections.get("5. 回滚触发条件") || "";
 report(
   hasConcreteChecklistItems(rollbackSection),
   "Rollback triggers are specific"
 );
 
-const acceptancePath = getProjectFilePath(targetDir, "acceptance.yaml");
+const handoffSection = sections.get("6. 交付说明与移交") || "";
+report(
+  hasConcreteChecklistItems(handoffSection),
+  "Delivery handoff notes are specific"
+);
+
+const acceptancePath = getExistingProjectFilePath(targetDir, "acceptance.yaml");
 const acceptanceContent = readUtf8IfExists(acceptancePath);
 report(
   acceptanceContent !== null,
   `${getProjectRelativePath("acceptance.yaml")} exists`
 );
 if (acceptanceContent !== null) {
-  const decisionMatch = acceptanceContent.match(/decision:\s*(.+)\s*$/m);
-  const decision = decisionMatch ? decisionMatch[1].trim() : "";
+  const deliveryGateMatch = acceptanceContent.match(
+    /- id:\s*delivery-readiness[\s\S]*?status:\s*(.+?)\s*(?:\n|$)/
+  );
+  const decision = deliveryGateMatch ? deliveryGateMatch[1].trim() : "";
   report(
-    decision === "passed",
-    "Acceptance decision is passed",
-    decision ? [`current decision: ${decision}`] : ["missing result.decision"]
+    decision === "passed" || decision === "approved",
+    "Delivery readiness gate is passed",
+    decision
+      ? [`current delivery-readiness status: ${decision}`]
+      : ["missing delivery-readiness gate status"]
   );
 }
 
-const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
+const tasksPath = getExistingProjectFilePath(targetDir, "tasks.yaml");
 const parsedTasks = parseTasksFile(tasksPath);
 report(
   parsedTasks.exists,
@@ -160,6 +169,14 @@ if (parsedTasks.exists) {
     "All tracked tasks are done",
     unfinishedTasks.map((task) => `${task.id}: ${task.status || "unknown"}`)
   );
+  const highRiskWithoutApproval = parsedTasks.tasks.filter(
+    (task) => task.risk === "high" && !task.approval_required
+  );
+  report(
+    highRiskWithoutApproval.length === 0,
+    "High-risk tasks declare approval requirements",
+    highRiskWithoutApproval.map((task) => `${task.id}: missing approval_required`)
+  );
 }
 
 process.stdout.write("\n");
@@ -168,4 +185,4 @@ if (hasFailure) {
   process.exit(1);
 }
 
-process.stdout.write("Result: READY_FOR_MANUAL_RELEASE_REVIEW\n\n");
+process.stdout.write("Result: READY_FOR_MANUAL_DELIVERY_REVIEW\n\n");

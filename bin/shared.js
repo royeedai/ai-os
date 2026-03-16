@@ -19,20 +19,22 @@ const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
 const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
+
 const PROJECT_CORE_ARTIFACT_FILES = [
-  "project-charter.md",
+  "MISSION.md",
+  "DESIGN.md",
   "tasks.yaml",
+  "acceptance.yaml",
   "STATE.md",
-  "verification-matrix.yaml",
+  "memory.md",
 ];
 const PROJECT_OPTIONAL_ARTIFACT_FILES = [
   "risk-register.md",
-  "acceptance.yaml",
   "release-plan.md",
-  "memory.md",
+  "verification-matrix.yaml",
 ];
 const PROJECT_CORE_ARTIFACT_DIRS = ["specs"];
-const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["evals"];
+const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["design-pack", "evals"];
 const PROJECT_ARTIFACT_FILES = [
   ...PROJECT_CORE_ARTIFACT_FILES,
   ...PROJECT_OPTIONAL_ARTIFACT_FILES,
@@ -41,6 +43,12 @@ const PROJECT_ARTIFACT_DIRS = [
   ...PROJECT_CORE_ARTIFACT_DIRS,
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
 ];
+const PROJECT_ARTIFACT_ALIASES = {
+  "MISSION.md": ["project-charter.md"],
+  "design-pack/parity-map.md": ["reference-code-map.md"],
+};
+const LEGACY_PROJECT_ARTIFACT_FILES = Object.values(PROJECT_ARTIFACT_ALIASES).flat();
+const LEGACY_PROJECT_ARTIFACT_DIRS = ["codebase-map.md"];
 
 // ---------------------------------------------------------------------------
 // Read metadata from the AI-OS source (mother repo)
@@ -126,42 +134,73 @@ function getProjectRoot(targetDir) {
   return path.join(targetDir, PROJECT_STATE_ROOT);
 }
 
+function normalizeRelativePath(relPath = "") {
+  return relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function stripProjectRootPrefix(relPath = "") {
+  const normalized = normalizeRelativePath(relPath);
+  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
+    return normalized.slice(PROJECT_STATE_ROOT.length + 1);
+  }
+  if (normalized === PROJECT_STATE_ROOT) {
+    return "";
+  }
+  return normalized;
+}
+
 function getProjectFilePath(targetDir, relPath = "") {
-  return path.join(getProjectRoot(targetDir), relPath);
+  const normalized = stripProjectRootPrefix(relPath);
+  return path.join(getProjectRoot(targetDir), normalized);
 }
 
 function getProjectRelativePath(relPath = "") {
-  return path.posix.join(PROJECT_STATE_ROOT, relPath).replace(/\\/g, "/");
+  const normalized = stripProjectRootPrefix(relPath);
+  return normalized
+    ? path.posix.join(PROJECT_STATE_ROOT, normalized).replace(/\\/g, "/")
+    : PROJECT_STATE_ROOT;
 }
 
 function getProjectMetadataPath(targetDir) {
   return getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
 }
 
-function normalizeRelativePath(relPath = "") {
-  return relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+function getProjectArtifactCandidates(relPath = "") {
+  const normalized = stripProjectRootPrefix(relPath);
+  const directCandidates = [normalized];
+  if (PROJECT_ARTIFACT_ALIASES[normalized]) {
+    directCandidates.push(...PROJECT_ARTIFACT_ALIASES[normalized]);
+  }
+  return [...new Set(directCandidates.filter(Boolean))];
+}
+
+function getExistingProjectFilePath(targetDir, relPath = "") {
+  const candidates = getProjectArtifactCandidates(relPath);
+  for (const candidate of candidates) {
+    const candidatePath = getProjectFilePath(targetDir, candidate);
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+  return getProjectFilePath(targetDir, relPath);
 }
 
 function isProjectArtifactPath(relPath = "") {
-  const normalized = normalizeRelativePath(relPath);
+  const normalized = stripProjectRootPrefix(relPath);
   if (!normalized) {
     return false;
   }
-  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
+  if (PROJECT_ARTIFACT_FILES.includes(normalized) || LEGACY_PROJECT_ARTIFACT_FILES.includes(normalized)) {
     return true;
   }
-  if (PROJECT_ARTIFACT_FILES.includes(normalized)) {
-    return true;
-  }
-  return PROJECT_ARTIFACT_DIRS.some((dirName) => normalized === dirName || normalized.startsWith(`${dirName}/`));
+  return [...PROJECT_ARTIFACT_DIRS, ...LEGACY_PROJECT_ARTIFACT_DIRS].some(
+    (dirName) => normalized === dirName || normalized.startsWith(`${dirName}/`)
+  );
 }
 
 function resolveProjectPath(targetDir, relPath = "") {
   const normalized = normalizeRelativePath(relPath);
   if (isProjectArtifactPath(normalized)) {
-    if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
-      return path.join(targetDir, normalized);
-    }
     return getProjectFilePath(targetDir, normalized);
   }
   return path.join(targetDir, normalized);
@@ -295,10 +334,10 @@ function copyTemplateIfMissing(targetDir, src, dst, options = {}) {
 function createProjectFiles(targetDir, options = {}) {
   const { logger = defaultLogger } = options;
 
+  ensureDir(getProjectRoot(targetDir));
   for (const dirName of PROJECT_CORE_ARTIFACT_DIRS) {
     ensureDir(getProjectFilePath(targetDir, dirName));
   }
-  ensureDir(getProjectRoot(targetDir));
 
   for (const fileName of PROJECT_CORE_ARTIFACT_FILES) {
     copyTemplateIfMissing(
@@ -315,7 +354,6 @@ function createProjectFiles(targetDir, options = {}) {
     getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
     { logger }
   );
-
 }
 
 function writeMetadata(targetDir) {
@@ -417,68 +455,83 @@ const C_DIM = "\x1b[2m";
 // ---------------------------------------------------------------------------
 
 const VALIDATION_SCHEMAS = {
-  projectCharter: [
-    "1. 项目概述",
-    "2. 范围边界",
-    "3. 关键场景",
-    "4. 非功能需求",
-    "5. 里程碑",
-    "6. 模块拆分",
-    "7. 外部依赖",
-    ["8. 审批点", "8. 高风险审批点（如适用）"],
-    "9. 风险摘要",
+  mission: [
+    "1. 任务定义",
+    "2. 用户与场景",
+    "3. 项目模式与质量目标",
+    "4. 范围边界",
+    "5. 阶段计划",
+    "6. 已知输入与待确认项",
+    "7. 风险与外部依赖",
+  ],
+  design: [
+    "1. 设计目标",
+    "2. 信息架构",
+    "3. 关键页面与交互",
+    "4. 关键流程",
+    "5. 视觉方向",
+    "6. 设计确认记录",
+    "7. 差异与待确认项",
   ],
   releasePlan: [
-    "1. 发布前检查",
-    "2. 迁移与变更",
-    "3. 受影响服务与重启顺序",
-    "4. 发布步骤",
-    "5. Smoke Check",
-    "6. 回滚触发条件",
-    "7. 发布后观察",
+    "1. 交付前检查",
+    "2. 变更范围与依赖",
+    "3. 发布步骤",
+    "4. 运行态验证",
+    "5. 回滚触发条件",
+    "6. 交付说明与移交",
   ],
   memory: [
     "元数据",
-    "1. 架构决策（Architecture Decisions）",
-    "2. 编码约定（Conventions）",
-    "3. 已知坑点（Pitfalls）",
-    "4. 用户偏好（Preferences）",
-    "5. 硬性约束（Constraints）",
+    "1. 设计决策",
+    "2. 逻辑与契约决策",
+    "3. 工程约束",
+    "4. 用户偏好",
+    "5. 已知坑点",
   ],
   state: [
-    "当前位置",
+    "当前方位",
     "进度概览",
-    "阻塞项",
-    "最近决策",
+    "已锁定内容",
+    "待确认项",
+    "最近偏差 / 回退",
     "下一步",
-    "快速任务记录",
+    "最小阅读集",
   ],
   spec: [
-    "概述",
-    ["页面/接口清单", "界面 / 接口 / 命令清单"],
-    "功能需求",
-    ["数据模型", "数据模型（如涉及持久化）"],
-    ["API 定义", "API 定义（如涉及接口）"],
-    "非功能需求",
-    "关联模块",
-    "验收标准",
+    "1. 模块概述",
+    "2. 业务规则与目标",
+    "3. 界面 / 接口 / 命令清单",
+    "4. 关键流程与状态流转",
+    "5. 数据与契约",
+    "6. 边界条件与异常处理",
+    "7. 验收与证据",
   ],
   riskRegisterTablePattern: /\| ID \| 风险 \| 类型 \|/,
   tasksMarkers: [
     "version:",
+    "mission:",
     "milestones:",
     "tasks:",
     "wave:",
+    "execution_role:",
+    "approval_required:",
     "context_files:",
     "definition_of_ready:",
     "definition_of_done:",
     "evidence_required:",
-    "affected_components:",
-    "verification_required:",
-    "restart_required:",
-    "cold_start_required:",
+    "parity_evidence_required:",
   ],
-  acceptanceMarkers: ["version:", "scope:", "gates:", "result:", "GATE-004", "uat-result", "verification-plan"],
+  acceptanceMarkers: [
+    "version:",
+    "scope:",
+    "gates:",
+    "design-confirmation",
+    "logic-confirmation",
+    "implementation-quality",
+    "delivery-readiness",
+    "parity-gate",
+  ],
   verificationMatrixMarkers: ["version:", "commands:", "rules:", "affected_components:", "actions:"],
 };
 
@@ -500,6 +553,9 @@ module.exports = {
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
+  PROJECT_ARTIFACT_ALIASES,
+  LEGACY_PROJECT_ARTIFACT_FILES,
+  LEGACY_PROJECT_ARTIFACT_DIRS,
   readFrameworkVersion,
   readPackageJson,
   ensureDir,
@@ -511,6 +567,8 @@ module.exports = {
   getProjectFilePath,
   getProjectRelativePath,
   getProjectMetadataPath,
+  getProjectArtifactCandidates,
+  getExistingProjectFilePath,
   normalizeRelativePath,
   isProjectArtifactPath,
   resolveProjectPath,

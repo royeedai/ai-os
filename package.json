@@ -1,6 +1,6 @@
 {
   "name": "create-ai-os",
-  "version": "2.7.10",
+  "version": "3.0.0",
   "description": "Initialize the AI project delivery operating system into a target project.",
   "repository": {
     "type": "git",
@@ -13,6 +13,7 @@
     "ai-os-doctor": "./bin/ai-os-doctor.js",
     "ai-os-diff": "./bin/ai-os-diff.js",
     "ai-os-upgrade": "./bin/ai-os-upgrade.js",
+    "ai-os-migrate": "./bin/ai-os-migrate.js",
     "ai-os-validate": "./bin/ai-os-validate.js",
     "ai-os-skill-check": "./bin/ai-os-skill-check.js",
     "ai-os-status": "./bin/ai-os-status.js",

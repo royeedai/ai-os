@@ -2,7 +2,13 @@
 
 const fs = require("fs");
 const path = require("path");
-const { fail, getProjectFilePath, getProjectRelativePath, resolveProjectPath, formatProjectPath } = require("./shared");
+const {
+  fail,
+  getExistingProjectFilePath,
+  getProjectRelativePath,
+  resolveProjectPath,
+  formatProjectPath,
+} = require("./shared");
 const {
   parseTasksFile,
   readStateFile,
@@ -52,7 +58,7 @@ if (!fs.existsSync(targetDir)) {
 }
 
 const state = readStateFile(targetDir);
-const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
+const tasks = parseTasksFile(getExistingProjectFilePath(targetDir, "tasks.yaml"));
 
 if (!state.exists) {
   fail(`${getProjectRelativePath("STATE.md")} not found in ${targetDir}`);
@@ -74,18 +80,19 @@ function getNextStepLines() {
       return `${task.id}: ${task.title || "未命名任务"}${waveLabel}`;
     });
   }
-  return [`先检查 ${getProjectRelativePath("tasks.yaml")} 以及相关 spec / 验收工件是否需要更新`];
+  return [`先检查 ${getProjectRelativePath("tasks.yaml")}、${getProjectRelativePath("DESIGN.md")} 和相关 spec / 验收工件是否需要更新`];
 }
 
 function printPlainText() {
   process.stdout.write(`\nAI-OS Resume — ${targetDir}\n\n`);
-  process.stdout.write(`恢复位置:\n`);
-  process.stdout.write(`- 里程碑: ${state.position["里程碑"] || "未记录"}\n`);
-  process.stdout.write(`- 当前模块: ${state.position["当前模块"] || "未记录"}\n`);
+  process.stdout.write(`恢复方位:\n`);
+  process.stdout.write(`- 项目模式: ${state.position["项目模式"] || "未记录"}\n`);
   process.stdout.write(`- 当前阶段: ${state.position["当前阶段"] || "未记录"}\n`);
+  process.stdout.write(`- 当前目标: ${state.position["当前目标"] || "未记录"}\n`);
   process.stdout.write(`- 当前任务: ${state.position["当前任务"] || "未记录"}\n`);
   if (currentTask) {
     process.stdout.write(`- 当前任务 wave: ${currentTask.wave ?? "未记录"}\n`);
+    process.stdout.write(`- 执行角色: ${currentTask.execution_role || "未记录"}\n`);
     if ((currentTask.context_files || []).length > 0) {
       process.stdout.write(`- context_files: ${currentTask.context_files.map((relPath) => formatProjectPath(relPath)).join(" / ")}\n`);
     }
@@ -110,6 +117,24 @@ function printPlainText() {
     process.stdout.write(`- ${nextStep}\n`);
   }
 
+  process.stdout.write(`\n已锁定内容:\n`);
+  if (state.lockedItems.length === 0) {
+    process.stdout.write(`- 未记录\n`);
+  } else {
+    for (const item of state.lockedItems) {
+      process.stdout.write(`- ${item}\n`);
+    }
+  }
+
+  process.stdout.write(`\n待确认项:\n`);
+  if (state.pendingQuestions.length === 0) {
+    process.stdout.write(`- 无\n`);
+  } else {
+    for (const item of state.pendingQuestions) {
+      process.stdout.write(`- ${item}\n`);
+    }
+  }
+
   process.stdout.write("\n");
 }
 
@@ -120,10 +145,10 @@ function printMarkdownSnapshot() {
   process.stdout.write(`- **恢复入口**：\`${getProjectRelativePath("STATE.md")}\`\n`);
   process.stdout.write(`- **导出方式**：\`create-ai-os resume ${targetDir} --markdown\`\n\n`);
 
-  process.stdout.write(`## 恢复位置\n\n`);
-  process.stdout.write(`- **里程碑**：${state.position["里程碑"] || "未记录"}\n`);
-  process.stdout.write(`- **当前模块**：${state.position["当前模块"] || "未记录"}\n`);
+  process.stdout.write(`## 恢复方位\n\n`);
+  process.stdout.write(`- **项目模式**：${state.position["项目模式"] || "未记录"}\n`);
   process.stdout.write(`- **当前阶段**：${state.position["当前阶段"] || "未记录"}\n`);
+  process.stdout.write(`- **当前目标**：${state.position["当前目标"] || "未记录"}\n`);
   process.stdout.write(`- **当前任务**：${state.position["当前任务"] || "未记录"}\n\n`);
 
   process.stdout.write(`## 进度概览\n\n`);
@@ -131,6 +156,7 @@ function printMarkdownSnapshot() {
 
   process.stdout.write(`## 当前任务上下文\n\n`);
   process.stdout.write(`- **wave**：${currentTask ? (currentTask.wave ?? "未记录") : "未记录"}\n`);
+  process.stdout.write(`- **execution_role**：${currentTask ? (currentTask.execution_role || "未记录") : "未记录"}\n`);
   if (currentTask && (currentTask.context_files || []).length > 0) {
     process.stdout.write(`- **context_files**：${currentTask.context_files.map((relPath) => `\`${formatProjectPath(relPath)}\``).join(" / ")}\n`);
   } else {
@@ -164,9 +190,36 @@ function printMarkdownSnapshot() {
     process.stdout.write(`- ${nextStep}\n`);
   }
 
+  process.stdout.write(`\n## 已锁定内容\n\n`);
+  if (state.lockedItems.length === 0) {
+    process.stdout.write(`- 未记录\n`);
+  } else {
+    for (const item of state.lockedItems) {
+      process.stdout.write(`- ${item}\n`);
+    }
+  }
+
+  process.stdout.write(`\n## 待确认项\n\n`);
+  if (state.pendingQuestions.length === 0) {
+    process.stdout.write(`- 无\n`);
+  } else {
+    for (const item of state.pendingQuestions) {
+      process.stdout.write(`- ${item}\n`);
+    }
+  }
+
+  process.stdout.write(`\n## 最近偏差 / 回退\n\n`);
+  if (state.deviations.length === 0) {
+    process.stdout.write(`- 无\n`);
+  } else {
+    for (const item of state.deviations) {
+      process.stdout.write(`- ${item}\n`);
+    }
+  }
+
   process.stdout.write(`\n## 说明\n\n`);
   process.stdout.write(`- 这份快照可直接粘贴到新 session 作为恢复上下文\n`);
-  process.stdout.write(`- 真实项目状态仍以 \`${getProjectRelativePath("STATE.md")}\`、\`${getProjectRelativePath("tasks.yaml")}\` 等工件为准\n`);
+  process.stdout.write(`- 真实项目状态仍以 \`${getProjectRelativePath("STATE.md")}\`、\`${getProjectRelativePath("MISSION.md")}\`、\`${getProjectRelativePath("tasks.yaml")}\` 等工件为准\n`);
 }
 
 if (markdown) {

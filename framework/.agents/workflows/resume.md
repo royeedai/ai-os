@@ -1,35 +1,22 @@
 ---
 name: resume
-description: 从 STATE.md 恢复上下文，给出最小阅读集和续做入口
+description: 从 STATE.md 恢复当前方位和最小阅读集
 ---
 
-# 恢复流程
+# /resume
 
-当用户说"继续"、"resume"、"从上次接着来"且需要先恢复上下文时触发。
+## 读取顺序
 
-## 何时使用
-
-- 新 session 打开项目，尚未恢复上下文
-- 自动推进、评审或发布流程被中断后重新进入
-- 需要明确先读哪些工件才能安全继续
-
-## 不该使用
-
-- 当前上下文已经完整，且用户只是让你直接执行当前任务
-- 项目缺少 `.ai-os/STATE.md`，此时应先补状态文件而不是假装恢复成功
-
-## 会读取什么
-
-- `.ai-os/STATE.md`
-- `.ai-os/tasks.yaml`
-- 当前任务的 `inputs` / `context_files`
-- `.ai-os/memory.md`
-- 必要时 `.ai-os/acceptance.yaml`
+1. `.ai-os/STATE.md`
+2. `STATE.md` 中的最小阅读集
+3. 当前任务的 `context_files`
+4. `.ai-os/memory.md`
 
 ## 输出要求
 
-1. 从 `.ai-os/STATE.md` 恢复当前位置
-2. 给出最小阅读集：优先读取哪些文件
-3. 展示阻塞项、当前任务和建议下一步
-4. 若缺失 `.ai-os/STATE.md` 或任务状态不同步，先提醒修复工件
-5. 若用户需要跨会话导出上下文，可输出 Markdown 快照；结构可参考 `.agents/templates/project/context-snapshot.md`
+- 当前阶段
+- 当前目标
+- 当前任务
+- 已锁定内容
+- 待确认项
+- 建议下一步

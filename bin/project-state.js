@@ -4,6 +4,7 @@ const {
   PROJECT_ARTIFACT_FILES,
   getProjectFilePath,
   getProjectRelativePath,
+  getExistingProjectFilePath,
   cleanYamlScalar,
   parseInlineArray,
 } = require("./shared");
@@ -61,7 +62,7 @@ function parseMarkdownBulletList(sectionContent) {
       continue;
     }
     const value = match[1].trim();
-    if (value && value !== "[无]") {
+    if (value && value !== "[无]" && value !== "无") {
       items.push(value);
     }
   }
@@ -71,7 +72,7 @@ function parseMarkdownBulletList(sectionContent) {
 function parseTasksFile(tasksPath) {
   const content = readUtf8IfExists(tasksPath);
   if (content === null) {
-    return { exists: false, tasks: [] };
+    return { exists: false, mission: "", tasks: [] };
   }
 
   const tasks = [];
@@ -79,6 +80,7 @@ function parseTasksFile(tasksPath) {
   let inTasksSection = false;
   let currentTask = null;
   let currentListKey = null;
+  let mission = "";
 
   function flushCurrentTask() {
     if (currentTask) {
@@ -89,6 +91,12 @@ function parseTasksFile(tasksPath) {
   }
 
   for (const line of lines) {
+    const missionMatch = line.match(/^mission:\s*(.+)$/);
+    if (missionMatch) {
+      mission = cleanYamlScalar(missionMatch[1]);
+      continue;
+    }
+
     if (/^tasks:\s*$/.test(line)) {
       inTasksSection = true;
       continue;
@@ -116,6 +124,8 @@ function parseTasksFile(tasksPath) {
         milestone: "",
         parent: "",
         wave: null,
+        execution_role: "",
+        approval_required: "",
         depends_on: [],
         inputs: [],
         context_files: [],
@@ -123,6 +133,7 @@ function parseTasksFile(tasksPath) {
         definition_of_ready: [],
         definition_of_done: [],
         evidence_required: [],
+        parity_evidence_required: [],
         affected_components: [],
         verification_required: [],
         blockers: [],
@@ -151,6 +162,7 @@ function parseTasksFile(tasksPath) {
           "definition_of_ready",
           "definition_of_done",
           "evidence_required",
+          "parity_evidence_required",
           "affected_components",
           "verification_required",
           "blockers",
@@ -163,7 +175,19 @@ function parseTasksFile(tasksPath) {
 
       currentListKey = null;
 
-      if (["title", "status", "owner", "risk", "milestone", "parent", "notes"].includes(key)) {
+      if (
+        [
+          "title",
+          "status",
+          "owner",
+          "risk",
+          "milestone",
+          "parent",
+          "notes",
+          "execution_role",
+          "approval_required",
+        ].includes(key)
+      ) {
         currentTask[key] = cleanYamlScalar(value);
       } else if (key === "wave") {
         const parsedValue = Number.parseInt(cleanYamlScalar(value), 10);
@@ -184,6 +208,7 @@ function parseTasksFile(tasksPath) {
 
   return {
     exists: true,
+    mission,
     tasks,
   };
 }
@@ -293,6 +318,12 @@ function getCurrentTask(tasks, state) {
 function collectResumeFiles(state, currentTask) {
   const files = ["STATE.md"];
 
+  for (const preferredFile of state.minimalReadSet || []) {
+    if (!files.includes(preferredFile)) {
+      files.push(preferredFile);
+    }
+  }
+
   if (currentTask) {
     for (const relPath of [...(currentTask.context_files || []), ...(currentTask.inputs || [])]) {
       if (!files.includes(relPath)) {
@@ -301,7 +332,7 @@ function collectResumeFiles(state, currentTask) {
     }
   }
 
-  for (const defaultFile of ["memory.md", "acceptance.yaml", "tasks.yaml"]) {
+  for (const defaultFile of ["MISSION.md", "DESIGN.md", "memory.md", "acceptance.yaml", "tasks.yaml"]) {
     if (!files.includes(defaultFile)) {
       files.push(defaultFile);
     }
@@ -311,7 +342,7 @@ function collectResumeFiles(state, currentTask) {
 }
 
 function readStateFile(targetDir) {
-  const statePath = getProjectFilePath(targetDir, "STATE.md");
+  const statePath = getExistingProjectFilePath(targetDir, "STATE.md");
   const content = readUtf8IfExists(statePath);
   if (content === null) {
     return {
@@ -321,6 +352,10 @@ function readStateFile(targetDir) {
       blockers: [],
       nextSteps: [],
       recentDecisions: [],
+      lockedItems: [],
+      pendingQuestions: [],
+      deviations: [],
+      minimalReadSet: [],
     };
   }
 
@@ -328,10 +363,14 @@ function readStateFile(targetDir) {
   return {
     exists: true,
     path: statePath,
-    position: parseBulletKeyValueSection(sections.get("当前位置") || ""),
+    position: parseBulletKeyValueSection(sections.get("当前方位") || sections.get("当前位置") || ""),
     blockers: parseMarkdownBulletList(sections.get("阻塞项") || ""),
     nextSteps: parseMarkdownBulletList(sections.get("下一步") || ""),
     recentDecisions: parseMarkdownBulletList(sections.get("最近决策") || ""),
+    lockedItems: parseMarkdownBulletList(sections.get("已锁定内容") || ""),
+    pendingQuestions: parseMarkdownBulletList(sections.get("待确认项") || ""),
+    deviations: parseMarkdownBulletList(sections.get("最近偏差 / 回退") || ""),
+    minimalReadSet: parseMarkdownBulletList(sections.get("最小阅读集") || ""),
     progressOverview: sections.get("进度概览") || "",
   };
 }

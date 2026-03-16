@@ -2,7 +2,12 @@
 
 const fs = require("fs");
 const path = require("path");
-const { fail, getProjectFilePath, getProjectRelativePath, formatProjectPath } = require("./shared");
+const {
+  fail,
+  getExistingProjectFilePath,
+  getProjectRelativePath,
+  formatProjectPath,
+} = require("./shared");
 const {
   parseTasksFile,
   readStateFile,
@@ -44,7 +49,7 @@ if (!fs.existsSync(targetDir)) {
 }
 
 const state = readStateFile(targetDir);
-const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
+const tasks = parseTasksFile(getExistingProjectFilePath(targetDir, "tasks.yaml"));
 
 if (!state.exists) {
   fail(`${getProjectRelativePath("STATE.md")} not found in ${targetDir}`);
@@ -74,7 +79,8 @@ if (readyTasks.length === 0) {
 for (const task of readyTasks.slice(0, 5)) {
   const riskLabel = task.risk ? ` [risk=${task.risk}]` : "";
   const waveLabel = task.wave !== null ? ` [wave=${task.wave}]` : "";
-  process.stdout.write(`- ${task.id}: ${task.title || "未命名任务"}${riskLabel}${waveLabel}\n`);
+  const roleLabel = task.execution_role ? ` [role=${task.execution_role}]` : "";
+  process.stdout.write(`- ${task.id}: ${task.title || "未命名任务"}${riskLabel}${waveLabel}${roleLabel}\n`);
   if ((task.context_files || []).length > 0) {
     process.stdout.write(`  Context: ${task.context_files.map((relPath) => formatProjectPath(relPath)).join(" / ")}\n`);
   }

@@ -6,8 +6,11 @@ const {
   fail,
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_CORE_ARTIFACT_FILES,
+  PROJECT_OPTIONAL_ARTIFACT_DIRS,
+  PROJECT_OPTIONAL_ARTIFACT_FILES,
   listFilesRecursively,
   getProjectFilePath,
+  getExistingProjectFilePath,
   getProjectRelativePath,
   resolveProjectPath,
   formatProjectPath,
@@ -26,12 +29,12 @@ function printHelp() {
   process.stdout.write(`Usage:
   ai-os-validate [target-dir]
 
-Validate the project-local delivery artifacts used by AI-OS.
+Validate the project-local delivery artifacts used by AI-OS vNext.
 
 Checks:
-  - required core artifacts: .ai-os/project-charter.md / tasks.yaml / STATE.md / verification-matrix.yaml / specs/
-  - optional artifacts are validated only when present: risk-register.md / acceptance.yaml / release-plan.md / memory.md / evals/
-  - key section completeness and cross-file references
+  - required core artifacts: .ai-os/MISSION.md / DESIGN.md / tasks.yaml / acceptance.yaml / STATE.md / memory.md / specs/
+  - optional artifacts are validated only when present: risk-register.md / release-plan.md / verification-matrix.yaml / design-pack/ / evals/
+  - key section completeness and phase-gate readiness
 
 Options:
   -h, --help  Show this help message
@@ -39,11 +42,11 @@ Options:
 }
 
 function fileExists(targetDir, relPath) {
-  return fs.existsSync(resolveProjectPath(targetDir, relPath));
+  return fs.existsSync(getExistingProjectFilePath(targetDir, relPath));
 }
 
 function dirExists(targetDir, relPath) {
-  const fullPath = resolveProjectPath(targetDir, relPath);
+  const fullPath = getProjectFilePath(targetDir, relPath);
   return fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
 }
 
@@ -68,9 +71,26 @@ function markdownHasSections(content, sectionNames) {
   return missing;
 }
 
-function extractAcceptanceSpecPath(content) {
-  const match = content.match(/^\s*spec:\s*["']?(.+?)["']?\s*$/m);
-  return match ? match[1].trim() : "";
+function extractAcceptanceGateStatus(content, gateId) {
+  const lines = content.split(/\r?\n/);
+  let inGate = false;
+
+  for (const line of lines) {
+    const idMatch = line.match(/^\s*- id:\s*(.+)$/);
+    if (idMatch) {
+      inGate = idMatch[1].trim() === gateId;
+      continue;
+    }
+    if (!inGate) {
+      continue;
+    }
+    const statusMatch = line.match(/^\s+status:\s*(.+)$/);
+    if (statusMatch) {
+      return statusMatch[1].trim();
+    }
+  }
+
+  return "";
 }
 
 function collectTaskSpecInputs(tasks) {
@@ -164,9 +184,7 @@ function report(ok, label, warnOnly = false, details = []) {
 
 process.stdout.write(`\nAI-OS Validate — ${targetDir}\n\n`);
 
-const requiredFiles = PROJECT_CORE_ARTIFACT_FILES;
-
-for (const relPath of requiredFiles) {
+for (const relPath of PROJECT_CORE_ARTIFACT_FILES) {
   report(fileExists(targetDir, relPath), `${getProjectRelativePath(relPath)} exists`);
 }
 
@@ -174,18 +192,29 @@ for (const relPath of PROJECT_CORE_ARTIFACT_DIRS) {
   report(dirExists(targetDir, relPath), `${getProjectRelativePath(relPath)}/ exists`);
 }
 
-const projectCharter = readUtf8IfExists(getProjectFilePath(targetDir, "project-charter.md"));
-if (projectCharter !== null) {
-  const missingSections = markdownHasSections(projectCharter, VALIDATION_SCHEMAS.projectCharter);
+const mission = readUtf8IfExists(getExistingProjectFilePath(targetDir, "MISSION.md"));
+if (mission !== null) {
+  const missingSections = markdownHasSections(mission, VALIDATION_SCHEMAS.mission);
   report(
     missingSections.length === 0,
-    `${getProjectRelativePath("project-charter.md")} sections complete`,
+    `${getProjectRelativePath("MISSION.md")} sections complete`,
     false,
     missingSections.map((section) => `missing section: ${section}`)
   );
 }
 
-const riskRegister = readUtf8IfExists(getProjectFilePath(targetDir, "risk-register.md"));
+const design = readUtf8IfExists(getExistingProjectFilePath(targetDir, "DESIGN.md"));
+if (design !== null) {
+  const missingSections = markdownHasSections(design, VALIDATION_SCHEMAS.design);
+  report(
+    missingSections.length === 0,
+    `${getProjectRelativePath("DESIGN.md")} sections complete`,
+    false,
+    missingSections.map((section) => `missing section: ${section}`)
+  );
+}
+
+const riskRegister = readUtf8IfExists(getExistingProjectFilePath(targetDir, "risk-register.md"));
 if (riskRegister !== null) {
   report(
     VALIDATION_SCHEMAS.riskRegisterTablePattern.test(riskRegister),
@@ -193,7 +222,18 @@ if (riskRegister !== null) {
   );
 }
 
-const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
+const memory = readUtf8IfExists(getExistingProjectFilePath(targetDir, "memory.md"));
+if (memory !== null) {
+  const missingSections = markdownHasSections(memory, VALIDATION_SCHEMAS.memory);
+  report(
+    missingSections.length === 0,
+    `${getProjectRelativePath("memory.md")} sections complete`,
+    false,
+    missingSections.map((section) => `missing section: ${section}`)
+  );
+}
+
+const tasksPath = getExistingProjectFilePath(targetDir, "tasks.yaml");
 const tasksContent = readUtf8IfExists(tasksPath);
 const parsedTasks = parseTasksFile(tasksPath);
 if (tasksContent !== null) {
@@ -216,6 +256,14 @@ if (tasksContent !== null) {
     `${getProjectRelativePath("tasks.yaml")} includes wave metadata`
   );
   report(
+    parsedTasks.tasks.some((task) => Boolean(task.execution_role)),
+    `${getProjectRelativePath("tasks.yaml")} includes execution roles`
+  );
+  report(
+    parsedTasks.tasks.some((task) => Boolean(task.approval_required)),
+    `${getProjectRelativePath("tasks.yaml")} includes approval requirements`
+  );
+  report(
     parsedTasks.tasks.some((task) => (task.context_files || []).length > 0),
     `${getProjectRelativePath("tasks.yaml")} includes context_files`
   );
@@ -235,7 +283,7 @@ for (const specFile of specFiles) {
   );
 }
 
-const acceptanceContent = readUtf8IfExists(getProjectFilePath(targetDir, "acceptance.yaml"));
+const acceptanceContent = readUtf8IfExists(getExistingProjectFilePath(targetDir, "acceptance.yaml"));
 if (acceptanceContent !== null) {
   const missingMarkers = [];
   for (const marker of VALIDATION_SCHEMAS.acceptanceMarkers) {
@@ -250,34 +298,39 @@ if (acceptanceContent !== null) {
     missingMarkers.map((marker) => `missing marker: ${marker}`)
   );
 
-  const acceptanceSpec = extractAcceptanceSpecPath(acceptanceContent);
-  report(Boolean(acceptanceSpec), `${getProjectRelativePath("acceptance.yaml")} references a spec`);
-  if (acceptanceSpec) {
-    report(
-      fileExists(targetDir, acceptanceSpec),
-      `acceptance spec exists: ${formatProjectPath(acceptanceSpec)}`
-    );
-  }
+  const designGate = extractAcceptanceGateStatus(acceptanceContent, "design-confirmation");
+  const logicGate = extractAcceptanceGateStatus(acceptanceContent, "logic-confirmation");
+  const implementationGate = extractAcceptanceGateStatus(acceptanceContent, "implementation-quality");
+  const deliveryGate = extractAcceptanceGateStatus(acceptanceContent, "delivery-readiness");
+
+  report(Boolean(designGate), "acceptance includes design gate status");
+  report(Boolean(logicGate), "acceptance includes logic gate status");
+  report(Boolean(implementationGate), "acceptance includes implementation gate status");
+  report(Boolean(deliveryGate), "acceptance includes delivery gate status");
+  report(
+    designGate === "passed" || designGate === "approved",
+    "design confirmation gate is locked before full delivery",
+    true,
+    designGate ? [`current design gate status: ${designGate}`] : ["missing design-confirmation status"]
+  );
+  report(
+    logicGate === "passed" || logicGate === "approved",
+    "logic confirmation gate is locked before full delivery",
+    true,
+    logicGate ? [`current logic gate status: ${logicGate}`] : ["missing logic-confirmation status"]
+  );
 }
 
 const taskSpecInputs = collectTaskSpecInputs(parsedTasks.tasks);
 report(taskSpecInputs.length > 0, `${getProjectRelativePath("tasks.yaml")} references at least one spec input`);
-for (const specPath of taskSpecInputs) {
-  report(fileExists(targetDir, specPath), `task input spec exists: ${formatProjectPath(specPath)}`);
-}
-
-const releasePlan = readUtf8IfExists(getProjectFilePath(targetDir, "release-plan.md"));
-if (releasePlan !== null) {
-  const missingSections = markdownHasSections(releasePlan, VALIDATION_SCHEMAS.releasePlan);
+for (const specInput of taskSpecInputs) {
   report(
-    missingSections.length === 0,
-    `${getProjectRelativePath("release-plan.md")} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
+    fileExists(targetDir, specInput),
+    `task spec exists: ${formatProjectPath(specInput)}`
   );
 }
 
-const verificationMatrix = readUtf8IfExists(getProjectFilePath(targetDir, "verification-matrix.yaml"));
+const verificationMatrix = readUtf8IfExists(getExistingProjectFilePath(targetDir, "verification-matrix.yaml"));
 if (verificationMatrix !== null) {
   const missingMarkers = [];
   for (const marker of VALIDATION_SCHEMAS.verificationMatrixMarkers) {
@@ -293,18 +346,7 @@ if (verificationMatrix !== null) {
   );
 }
 
-const memoryContent = readUtf8IfExists(getProjectFilePath(targetDir, "memory.md"));
-if (memoryContent !== null) {
-  const missingSections = markdownHasSections(memoryContent, VALIDATION_SCHEMAS.memory);
-  report(
-    missingSections.length === 0,
-    `${getProjectRelativePath("memory.md")} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
-  );
-}
-
-const stateContent = readUtf8IfExists(getProjectFilePath(targetDir, "STATE.md"));
+const stateContent = readUtf8IfExists(getExistingProjectFilePath(targetDir, "STATE.md"));
 if (stateContent !== null) {
   const missingSections = markdownHasSections(stateContent, VALIDATION_SCHEMAS.state);
   report(
@@ -315,44 +357,39 @@ if (stateContent !== null) {
   );
 }
 
-if (dirExists(targetDir, "evals")) {
-  const evalFiles = listEvalFiles(targetDir);
-  report(evalFiles.length > 0, `${getProjectRelativePath("evals")}/ includes at least one eval case`);
-  for (const evalFile of evalFiles) {
-    const content = readUtf8IfExists(getProjectFilePath(targetDir, evalFile)) || "";
-    const hasMetadata =
-      content.includes("- **ID**：") &&
-      content.includes("- **场景名称**：") &&
-      content.includes("- **触发语句**：") &&
-      content.includes("- **项目类型**：");
-    const missingSections = markdownHasSections(content, [
-      "期望行为",
-      "常见失败模式",
-      "评分标准",
-    ]);
+const designPackDir = getProjectFilePath(targetDir, "design-pack");
+if (fs.existsSync(designPackDir) && fs.statSync(designPackDir).isDirectory()) {
+  const parityMapPath = path.join(designPackDir, "parity-map.md");
+  report(
+    fs.existsSync(parityMapPath),
+    `${getProjectRelativePath("design-pack/parity-map.md")} exists when design-pack is present`,
+    true
+  );
+}
 
-    report(hasMetadata, `${getProjectRelativePath(evalFile)} metadata complete`);
-    report(
-      missingSections.length === 0,
-      `${getProjectRelativePath(evalFile)} sections complete`,
-      false,
-      missingSections.map((section) => `missing section: ${section}`)
-    );
+const evalFiles = listEvalFiles(targetDir);
+if (evalFiles.length > 0) {
+  report(true, `${getProjectRelativePath("evals")}/ includes ${evalFiles.length} file(s)`);
+}
+
+for (const relPath of PROJECT_OPTIONAL_ARTIFACT_FILES) {
+  const artifactPath = getProjectFilePath(targetDir, relPath);
+  if (fs.existsSync(artifactPath)) {
+    report(true, `${getProjectRelativePath(relPath)} exists`);
+  }
+}
+
+for (const relPath of PROJECT_OPTIONAL_ARTIFACT_DIRS) {
+  const artifactPath = getProjectFilePath(targetDir, relPath);
+  if (fs.existsSync(artifactPath) && fs.statSync(artifactPath).isDirectory()) {
+    report(true, `${getProjectRelativePath(relPath)}/ exists`);
   }
 }
 
 process.stdout.write("\n");
 if (hasFailure) {
-  process.stdout.write(`Result: INVALID`);
-  if (warningCount > 0) {
-    process.stdout.write(` (${warningCount} warning${warningCount === 1 ? "" : "s"})`);
-  }
-  process.stdout.write(".\n\n");
+  process.stdout.write(`Result: INVALID${warningCount > 0 ? ` (${warningCount} warning(s))` : ""}\n\n`);
   process.exit(1);
 }
 
-process.stdout.write(`Result: VALID`);
-if (warningCount > 0) {
-  process.stdout.write(` (${warningCount} warning${warningCount === 1 ? "" : "s"})`);
-}
-process.stdout.write(".\n\n");
+process.stdout.write(`Result: VALID${warningCount > 0 ? ` WITH ${warningCount} WARNING(S)` : ""}\n\n`);
