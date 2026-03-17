@@ -46,7 +46,7 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "4.0.1", "version bumped to 4.0.1");
+assert(versionFile === "4.1.0", "version bumped to 4.1.0");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
@@ -54,9 +54,17 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "design-not-locked-before-buil
 assert(fs.existsSync(path.join(repoRoot, "evals", "ui-looks-right-but-logic-wrong.md")), "ui-vs-logic eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "logic-right-but-product-shape-wrong.md")), "product-shape eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "feature-visible-but-unusable.md")), "feature-visible eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "cross-layer-change-missed-linkage.md")), "cross-layer linkage eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "interaction-mode-misclassified.md")), "interaction-mode eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "sensitive-flow-not-escalated.md")), "high-risk escalation eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "happy-path-passed-but-null-path-broken.md")), "degraded-path eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "interaction-mode-chat.md")), "interaction-mode example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change.md")), "high-risk example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "cross-layer-schema-change.md")), "cross-layer schema example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification.md")), "degraded-path example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "design-pack", "parity-map.md")), "reverse-spec skeleton includes parity map");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
@@ -64,6 +72,8 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey"
 const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
 assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
 assert(maintainersDoc.includes("feature-visible-but-unusable.md"), "maintainers doc references usability eval");
+assert(maintainersDoc.includes("cross-layer-change-missed-linkage.md"), "maintainers doc references linkage eval");
+assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
 
 process.stdout.write("\n=== shared.js exports ===\n");
@@ -72,6 +82,9 @@ assert(typeof shared.cleanYamlScalar === "function", "cleanYamlScalar exported")
 assert(typeof shared.parseInlineArray === "function", "parseInlineArray exported");
 assert(typeof shared.SYM_OK === "string", "SYM_OK exported");
 assert(typeof shared.VALIDATION_SCHEMAS === "object", "VALIDATION_SCHEMAS exported");
+assert(Array.isArray(shared.QUALITY_TIERS), "QUALITY_TIERS exported");
+assert(Array.isArray(shared.IMPACT_TAGS), "IMPACT_TAGS exported");
+assert(Array.isArray(shared.HIGH_RISK_SPECIAL_REVIEWS), "HIGH_RISK_SPECIAL_REVIEWS exported");
 
 process.stdout.write("\n=== create-ai-os init ===\n");
 const initDir = tmpDir();
@@ -90,27 +103,40 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md crea
 assert(fs.existsSync(path.join(initDir, ".ai-os", "specs", "example.spec.md")), "example spec created");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "release-plan.md")), "release-plan.md is not created by default");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "risk-register.md")), "risk-register.md is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")), "verification-matrix.yaml is not created by default");
 
 const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "MISSION.md"), "utf8");
 const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "DESIGN.md"), "utf8");
 const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "tasks.yaml"), "utf8");
 const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "acceptance.yaml"), "utf8");
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
+const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
 
 assert(missionTemplate.includes("## 1. 任务定义"), "MISSION template has mission definition section");
 assert(missionTemplate.includes("关键选型"), "MISSION template includes key decisions");
 assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has phase plan");
+assert(missionTemplate.includes("高风险触发因素"), "MISSION template includes high-risk triggers");
 assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
 assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
 assert(tasksTemplate.includes("version: 3"), "tasks template upgraded to version 3");
 assert(tasksTemplate.includes("execution_role:"), "tasks template includes execution_role");
 assert(tasksTemplate.includes("approval_required:"), "tasks template includes approval_required");
 assert(tasksTemplate.includes("parity_evidence_required:"), "tasks template includes parity evidence field");
+assert(tasksTemplate.includes("impact_tags:"), "tasks template includes impact tags");
+assert(tasksTemplate.includes("derived_checks:"), "tasks template includes derived checks");
+assert(tasksTemplate.includes("risk_triggers:"), "tasks template includes risk triggers");
 assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
 assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
 assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");
+assert(acceptanceTemplate.includes("quality_tier"), "acceptance template includes quality_tier");
+assert(acceptanceTemplate.includes("required_special_reviews"), "acceptance template includes special reviews");
+assert(acceptanceTemplate.includes("contract-baseline-check"), "acceptance template includes contract baseline evidence");
+assert(acceptanceTemplate.includes("degraded-path-check"), "acceptance template includes degraded-path evidence");
 assert(acceptanceTemplate.includes("confirmed_stack_decisions"), "acceptance template records confirmed stack decisions");
 assert(acceptanceTemplate.includes("task-flow-check"), "acceptance template includes task flow evidence");
+assert(specTemplate.includes("**交互模式**"), "spec template includes interaction mode");
+assert(specTemplate.includes("**契约基准**"), "spec template includes contract baseline");
+assert(specTemplate.includes("**异常/空数据证据**"), "spec template includes degraded-path evidence");
 assert(stateTemplate.includes("## 已锁定内容"), "STATE template includes locked items section");
 assert(stateTemplate.includes("## 最小阅读集"), "STATE template includes minimum reading set");
 
@@ -134,8 +160,12 @@ assert(!workflowsIndex.includes("Compatibility Aliases"), "workflow index only d
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");
+const specValidatorSkill = path.join(initDir, ".agents", "skills", "spec-validator");
+const taskOrchestratorSkill = path.join(initDir, ".agents", "skills", "task-orchestrator");
 assert(run("ai-os-skill-check.js", [projectPlannerSkill, "--strict"]).status === 0, "project-planner passes strict skill-check");
 assert(run("ai-os-skill-check.js", [acceptanceGateSkill, "--strict"]).status === 0, "acceptance-gate passes strict skill-check");
+assert(run("ai-os-skill-check.js", [specValidatorSkill, "--strict"]).status === 0, "spec-validator passes strict skill-check");
+assert(run("ai-os-skill-check.js", [taskOrchestratorSkill, "--strict"]).status === 0, "task-orchestrator passes strict skill-check");
 
 process.stdout.write("\n=== validate / doctor / status / next / resume ===\n");
 const validateResult = run("ai-os-validate.js", [initDir]);
@@ -163,6 +193,181 @@ assert(resumeMarkdownResult.stdout.includes("## 已锁定内容"), "resume --mar
 assert(resumeMarkdownResult.stdout.includes(".ai-os/DESIGN.md"), "resume --markdown references DESIGN");
 
 cleanup(initDir);
+
+process.stdout.write("\n=== validate compatibility / high-risk release-check ===\n");
+const legacyDir = tmpDir();
+run("create-ai-os.js", [legacyDir, "--with-project-files"]);
+const legacySpecPath = path.join(legacyDir, ".ai-os", "specs", "example.spec.md");
+const legacyTasksPath = path.join(legacyDir, ".ai-os", "tasks.yaml");
+const legacyAcceptancePath = path.join(legacyDir, ".ai-os", "acceptance.yaml");
+
+fs.writeFileSync(
+  legacySpecPath,
+  fs.readFileSync(legacySpecPath, "utf8")
+    .replace(/- \*\*交互模式\*\*：[^\n]*\n/, "")
+    .replace(/- \*\*推荐模式理由\*\*：[^\n]*\n/, "")
+    .replace(/- \*\*拒绝的交互模式\*\*：[^\n]*\n/, "")
+    .replace(/- \*\*契约基准\*\*：[^\n]*\n/, "")
+    .replace(/- \*\*字段映射\/适配说明\*\*：[^\n]*\n/, "")
+    .replace(/- \*\*集成触点\*\*：[^\n]*\n/, "")
+    .replace(/- \*\*异常\/空数据证据\*\*：[^\n]*\n/, ""),
+  "utf8"
+);
+fs.writeFileSync(
+  legacyTasksPath,
+  fs.readFileSync(legacyTasksPath, "utf8")
+    .replace(/\n    impact_tags:\n(?:      - "[^"]+"\n)+/g, "\n")
+    .replace(/\n    derived_checks:\n(?:      - "[^"]+"\n)+/g, "\n")
+    .replace(/\n    risk_triggers: \[\]\n/g, "\n"),
+  "utf8"
+);
+fs.writeFileSync(
+  legacyAcceptancePath,
+  fs.readFileSync(legacyAcceptancePath, "utf8")
+    .replace(/  quality_tier: "standard"\n/, "")
+    .replace(/\nrequired_special_reviews: \[\]\n/, "\n")
+    .replace(/\n      - "contract-baseline-check"\n/g, "")
+    .replace(/\n      - "degraded-path-check"\n/g, ""),
+  "utf8"
+);
+
+const legacyValidateResult = run("ai-os-validate.js", [legacyDir]);
+assert(legacyValidateResult.status === 0, "validate tolerates legacy transitional artifacts");
+assert(legacyValidateResult.stdout.includes("VALID WITH"), "legacy validate reports warnings");
+cleanup(legacyDir);
+
+const highRiskBlockedDir = tmpDir();
+run("create-ai-os.js", [highRiskBlockedDir, "--with-project-files"]);
+const blockedTasksPath = path.join(highRiskBlockedDir, ".ai-os", "tasks.yaml");
+const blockedAcceptancePath = path.join(highRiskBlockedDir, ".ai-os", "acceptance.yaml");
+fs.writeFileSync(
+  blockedTasksPath,
+  fs.readFileSync(blockedTasksPath, "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace('risk: medium', 'risk: high')
+    .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"'),
+  "utf8"
+);
+fs.writeFileSync(
+  blockedAcceptancePath,
+  fs.readFileSync(blockedAcceptancePath, "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"'),
+  "utf8"
+);
+const highRiskValidateResult = run("ai-os-validate.js", [highRiskBlockedDir]);
+assert(highRiskValidateResult.status === 1, "validate blocks explicit high-risk project without required artifacts");
+cleanup(highRiskBlockedDir);
+
+const highRiskReadyDir = tmpDir();
+run("create-ai-os.js", [highRiskReadyDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(highRiskReadyDir, ".ai-os", "tasks.yaml"),
+  fs.readFileSync(path.join(highRiskReadyDir, ".ai-os", "tasks.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace(/status: todo/g, "status: done")
+    .replace('risk: medium', 'risk: high')
+    .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"\n      - "state-transition"'),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskReadyDir, ".ai-os", "acceptance.yaml"),
+  fs.readFileSync(path.join(highRiskReadyDir, ".ai-os", "acceptance.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace('required_special_reviews: []', 'required_special_reviews: ["security-guard", "authorization-boundary-check", "concurrency-safety-check"]')
+    .replace(/status: pending/g, "status: passed"),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskReadyDir, ".ai-os", "release-plan.md"),
+  `# Test Release
+
+## 1. 交付前检查
+
+- Mission、Design、Spec、Acceptance 已同步
+- 高风险审批点已完成确认
+- 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
+- 关键证据已收集齐全
+
+## 2. 变更范围与依赖
+
+- 覆盖权益扣减接口、状态流转和通知写入
+- 依赖正式鉴权、中台账户服务和数据库迁移
+
+## 3. 发布步骤
+
+1. 执行数据库迁移并重启 API
+2. 按 smoke 流程验证授权、并发和异常路径
+3. 记录交付说明并通知值守
+
+## 4. 运行态验证
+
+- authorization-boundary-check：权限 / 越权边界验证完成
+- concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
+- degraded-path-check：空值 / 缺字段 / 权限拒绝 / 超时 / 部分失败场景验证完成
+- 目标运行态证据已记录
+
+## 5. 回滚触发条件
+
+- 出现重复扣减或越权访问
+- 关键任务链路失败率持续升高
+
+## 6. 交付说明与移交
+
+- 已同步运维和值守联系人
+- 已记录已知风险与观察指标
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskReadyDir, ".ai-os", "risk-register.md"),
+  `# 风险登记表
+
+| ID | 风险 | 类型 | 影响 | 触发条件 | 缓解措施 | 状态 |
+|----|------|------|------|----------|----------|------|
+| R-001 | 权益扣减并发覆盖 | 逻辑 / 发布 | 高 | 高并发重复提交 | 幂等键 + 审计日志 + 专项审查 | open |
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskReadyDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+  restart_api: "npm run restart:api"
+  cold-start-smoke_api: "npm run smoke:api"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+      - "restart_api"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: sensitive-flow
+    impact_tags:
+      - "state-transition"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+    notes: "高风险状态流转必须补齐契约和异常路径证据"
+`,
+  "utf8"
+);
+const releaseReadyResult = run("ai-os-release-check.js", [highRiskReadyDir]);
+assert(releaseReadyResult.status === 0, "release-check passes for explicit high-risk project with required artifacts");
+cleanup(highRiskReadyDir);
 
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

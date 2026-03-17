@@ -6,9 +6,9 @@
 |------|------|
 | `/align` | 澄清目标、用户、模式、质量标准和待确认项 |
 | `/design` | 锁定关键页面、IA、视觉方向和关键流程 |
-| `/plan` | 生成 spec、tasks、acceptance 和证据计划 |
-| `/build` | 按 wave 和角色分工实现 |
-| `/verify` | 验证设计、逻辑、工程和运行态质量 |
+| `/plan` | 生成交互模式、契约基准、tasks、acceptance 和证据计划 |
+| `/build` | 按 wave、impact_tags 和角色分工实现 |
+| `/verify` | 验证设计、逻辑、工程、degraded-path 和运行态质量 |
 | `/ship` | 做交付、发布、回滚和移交 |
 
 ## Continue

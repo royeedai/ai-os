@@ -31,6 +31,7 @@ const PROJECT_CORE_ARTIFACT_FILES = [
 const PROJECT_OPTIONAL_ARTIFACT_FILES = [
   "risk-register.md",
   "release-plan.md",
+  "verification-matrix.yaml",
 ];
 const PROJECT_CORE_ARTIFACT_DIRS = ["specs"];
 const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["design-pack", "evals"];
@@ -41,6 +42,25 @@ const PROJECT_ARTIFACT_FILES = [
 const PROJECT_ARTIFACT_DIRS = [
   ...PROJECT_CORE_ARTIFACT_DIRS,
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
+];
+const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
+const IMPACT_TAGS = [
+  "entrypoint",
+  "transport",
+  "gateway",
+  "auth",
+  "schema",
+  "mapping",
+  "storage",
+  "runtime-config",
+  "external-dependency",
+  "state-transition",
+  "async-processing",
+];
+const HIGH_RISK_SPECIAL_REVIEWS = [
+  "security-guard",
+  "authorization-boundary-check",
+  "concurrency-safety-check",
 ];
 
 // ---------------------------------------------------------------------------
@@ -480,6 +500,15 @@ const VALIDATION_SCHEMAS = {
     "6. 边界条件与异常处理",
     "7. 验收与证据",
   ],
+  specMarkers: [
+    "**交互模式**",
+    "**推荐模式理由**",
+    "**拒绝的交互模式**",
+    "**契约基准**",
+    "**字段映射/适配说明**",
+    "**集成触点**",
+    "**异常/空数据证据**",
+  ],
   riskRegisterTablePattern: /\| ID \| 风险 \| 类型 \|/,
   tasksMarkers: [
     "version:",
@@ -495,6 +524,11 @@ const VALIDATION_SCHEMAS = {
     "evidence_required:",
     "parity_evidence_required:",
   ],
+  tasksTransitionalMarkers: [
+    "impact_tags:",
+    "derived_checks:",
+    "risk_triggers:",
+  ],
   acceptanceMarkers: [
     "version:",
     "scope:",
@@ -504,6 +538,17 @@ const VALIDATION_SCHEMAS = {
     "implementation-quality",
     "delivery-readiness",
     "parity-gate",
+  ],
+  acceptanceMarkersTransitional: [
+    "quality_tier:",
+    "required_special_reviews:",
+    "contract-baseline-check",
+    "degraded-path-check",
+  ],
+  verificationMatrixMarkers: [
+    "commands:",
+    "rules:",
+    "impact_rules:",
   ],
 };
 
@@ -525,6 +570,9 @@ module.exports = {
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
+  QUALITY_TIERS,
+  IMPACT_TAGS,
+  HIGH_RISK_SPECIAL_REVIEWS,
   readFrameworkVersion,
   readPackageJson,
   ensureDir,

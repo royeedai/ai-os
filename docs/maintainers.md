@@ -23,9 +23,17 @@
 - `evals/fallback-evidence-used-as-delivery.md`
 - `evals/missing-user-confirmation.md`
 - `evals/feature-visible-but-unusable.md`
+- `evals/cross-layer-change-missed-linkage.md`
+- `evals/interaction-mode-misclassified.md`
+- `evals/sensitive-flow-not-escalated.md`
+- `evals/happy-path-passed-but-null-path-broken.md`
 
 ## 当前主示例
 
 - `examples/greenfield-guided-product.md`
 - `examples/reverse-spec-admin-console.md`
 - `examples/brownfield-change-journey.md`
+- `examples/interaction-mode-chat.md`
+- `examples/high-risk-state-change.md`
+- `examples/cross-layer-schema-change.md`
+- `examples/degraded-path-verification.md`

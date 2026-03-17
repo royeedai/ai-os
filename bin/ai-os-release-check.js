@@ -4,13 +4,19 @@ const fs = require("fs");
 const path = require("path");
 const {
   fail,
+  HIGH_RISK_SPECIAL_REVIEWS,
   getProjectFilePath,
   getProjectRelativePath,
   SYM_OK,
   SYM_FAIL,
   VALIDATION_SCHEMAS,
 } = require("./shared");
-const { readUtf8IfExists, splitMarkdownSections, parseTasksFile } = require("./project-state");
+const {
+  readUtf8IfExists,
+  splitMarkdownSections,
+  parseAcceptanceFile,
+  parseTasksFile,
+} = require("./project-state");
 
 function printHelp() {
   process.stdout.write(`Usage:
@@ -91,6 +97,10 @@ function hasConcreteNumberedSteps(sectionContent) {
     .some((line) => /^\d+\.\s+/.test(line) && !/\[步骤\]/.test(line));
 }
 
+function sectionIncludesAll(sectionContent, markers) {
+  return markers.every((marker) => sectionContent.includes(marker));
+}
+
 process.stdout.write(`\nAI-OS Release Check — ${targetDir}\n\n`);
 
 const missingSections = requiredSections.filter((section) => !sections.has(section));
@@ -137,16 +147,14 @@ report(
 );
 
 const acceptancePath = getProjectFilePath(targetDir, "acceptance.yaml");
-const acceptanceContent = readUtf8IfExists(acceptancePath);
+const acceptance = parseAcceptanceFile(acceptancePath);
+const acceptanceContent = acceptance.exists ? acceptance.content : null;
 report(
   acceptanceContent !== null,
   `${getProjectRelativePath("acceptance.yaml")} exists`
 );
 if (acceptanceContent !== null) {
-  const deliveryGateMatch = acceptanceContent.match(
-    /- id:\s*delivery-readiness[\s\S]*?status:\s*(.+?)\s*(?:\n|$)/
-  );
-  const decision = deliveryGateMatch ? deliveryGateMatch[1].trim() : "";
+  const decision = acceptance.gateStatuses["delivery-readiness"] || "";
   report(
     decision === "passed" || decision === "approved",
     "Delivery readiness gate is passed",
@@ -169,14 +177,63 @@ if (parsedTasks.exists) {
     "All tracked tasks are done",
     unfinishedTasks.map((task) => `${task.id}: ${task.status || "unknown"}`)
   );
-  const highRiskWithoutApproval = parsedTasks.tasks.filter(
-    (task) => task.risk === "high" && !task.approval_required
+  const declaredHighRisk =
+    acceptance.qualityTier === "high-risk" || parsedTasks.qualityTier === "high-risk";
+  const highRiskCandidateTasks = parsedTasks.tasks.filter(
+    (task) => task.risk === "high" || (task.risk_triggers || []).length > 0
   );
+  const highRiskWithoutApproval = highRiskCandidateTasks.filter((task) => !task.approval_required);
   report(
     highRiskWithoutApproval.length === 0,
     "High-risk tasks declare approval requirements",
     highRiskWithoutApproval.map((task) => `${task.id}: missing approval_required`)
   );
+
+  if (declaredHighRisk) {
+    const riskRegister = readUtf8IfExists(getProjectFilePath(targetDir, "risk-register.md"));
+    const verificationMatrix = readUtf8IfExists(getProjectFilePath(targetDir, "verification-matrix.yaml"));
+
+    report(
+      riskRegister !== null,
+      `${getProjectRelativePath("risk-register.md")} exists for high-risk delivery`
+    );
+    report(
+      verificationMatrix !== null,
+      `${getProjectRelativePath("verification-matrix.yaml")} exists for high-risk delivery`
+    );
+    report(
+      acceptance.requiredSpecialReviews.length > 0,
+      "High-risk acceptance declares required_special_reviews",
+      ["expected security-guard, authorization-boundary-check, concurrency-safety-check"]
+    );
+    for (const reviewName of HIGH_RISK_SPECIAL_REVIEWS) {
+      report(
+        acceptance.requiredSpecialReviews.includes(reviewName),
+        `High-risk acceptance includes ${reviewName}`
+      );
+    }
+    report(
+      sectionIncludesAll(smokeCheckSection, [
+        "authorization-boundary-check",
+        "concurrency-safety-check",
+        "degraded-path-check",
+      ]),
+      "High-risk runtime verification includes authorization, concurrency, and degraded-path checks"
+    );
+    report(
+      (acceptance.gateEvidence["implementation-quality"] || []).includes("contract-baseline-check"),
+      "High-risk acceptance tracks contract-baseline-check evidence"
+    );
+    report(
+      (acceptance.gateEvidence["delivery-readiness"] || []).includes("degraded-path-check"),
+      "High-risk acceptance tracks degraded-path-check evidence"
+    );
+    report(
+      highRiskCandidateTasks.length > 0,
+      "High-risk delivery has task-level risk triggers",
+      ["add risk_triggers to affected tasks so approval can be scoped correctly"]
+    );
+  }
 }
 
 process.stdout.write("\n");

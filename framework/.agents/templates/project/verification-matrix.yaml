@@ -69,3 +69,46 @@ rules:
       - "build"
       - "restart_worker"
     notes: "worker、cron、queue consumer 变更后需要重新拉起后台进程"
+
+impact_rules:
+  - id: linkage-entry
+    impact_tags:
+      - "entrypoint"
+      - "transport"
+      - "gateway"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "task-flow-check"
+    notes: "入口、传输、网关和鉴权联动变更时，必须补齐可达性与契约证据"
+
+  - id: linkage-data
+    impact_tags:
+      - "schema"
+      - "mapping"
+      - "storage"
+      - "state-transition"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+    notes: "数据、映射和状态流转变更时，必须验证兼容性、异常路径和持久化影响"
+
+  - id: linkage-runtime
+    impact_tags:
+      - "runtime-config"
+      - "external-dependency"
+      - "async-processing"
+    actions:
+      - "build"
+      - "restart_api"
+      - "cold-start-smoke_api"
+    evidence:
+      - "runtime-check"
+      - "degraded-path-check"
+    notes: "运行时配置、外部依赖和异步处理变更后，必须验证目标运行态和异常恢复路径"

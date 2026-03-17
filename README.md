@@ -24,6 +24,10 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 页面做出来了，但逻辑经常错 | 先锁 Design 和关键逻辑，再进入 build |
 | 界面上像有功能，但其实不能真用 | 用 spec / verify / acceptance 拦截“假入口、占位态、未验证能力” |
 | 代码跑了，但离可交付还很远 | 用 acceptance 的 4 个质量门拦截伪完成 |
+| 天然流式 / 长耗时场景被错建成同步接口 | 在 `/plan` 先锁 `interaction_mode`，避免后置重构 |
+| 跨层字段或配置改动总是漏联动 | 用 `contract baseline`、`impact_tags`、`impact_rules` 补联动检查 |
+| 资产 / 权限 / 状态流转类需求没被自动升级 | 用硬触发高风险档和专项审查拦截 |
+| happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
 | 一换 session，AI 就忘了做到哪 | 用 `STATE.md` 做恢复入口 |
 | reverse-spec 项目只会“做得像” | 用 parity map 管关键对照关系 |
 | 用户没有确认关键决策 | 把待确认项和设计确认记录写进工件 |
@@ -56,9 +60,9 @@ AI-OS vNext 默认围绕这套 `.ai-os/` 工件工作：
 |------|------|
 | `.ai-os/MISSION.md` | 项目目标、用户、范围、模式、质量标准和关键选型确认 |
 | `.ai-os/DESIGN.md` | 信息架构、关键页面、关键交互、视觉方向、关键流程 |
-| `.ai-os/specs/` | 业务规则、接口契约、状态流转、边界条件 |
-| `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点和证据要求 |
-| `.ai-os/acceptance.yaml` | 设计门、逻辑门、实现质量门、交付质量门 |
+| `.ai-os/specs/` | 业务规则、交互模式、契约基准、状态流转、边界条件 |
+| `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求 |
+| `.ai-os/acceptance.yaml` | 质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
 | `.ai-os/STATE.md` | 当前方位、已锁定内容、待确认项、下一步和最小阅读集 |
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
 
@@ -66,6 +70,7 @@ AI-OS vNext 默认围绕这套 `.ai-os/` 工件工作：
 
 - `.ai-os/release-plan.md`
 - `.ai-os/risk-register.md`
+- `.ai-os/verification-matrix.yaml`
 - `.ai-os/design-pack/parity-map.md`
 - `.ai-os/evals/`
 

@@ -37,6 +37,8 @@ AI-OS vNext 的 Skill 组合围绕 3 件事：
 - 准备判断“做没做对”：必须用 `acceptance-gate`
 - 同类提醒重复出现：必须用 `memory-manager`
 - 一个任务同时跨页面、接口、持久化或复杂联动：用 `fullstack-dev-checklist`
+- 命中资产、权限、不可逆状态流转、跨用户数据、并发敏感更新或外部副作用：必须升级为 `high-risk`
+- 交互天然存在增量输出、长耗时、异步完成或持续反馈：必须先做交互模式判型，不得默认普通 request / response
 
 ## 不再推荐的旧心智
 

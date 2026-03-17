@@ -71,7 +71,7 @@ function parseMarkdownBulletList(sectionContent) {
 function parseTasksFile(tasksPath) {
   const content = readUtf8IfExists(tasksPath);
   if (content === null) {
-    return { exists: false, mission: "", tasks: [] };
+    return { exists: false, mission: "", qualityTier: "", tasks: [] };
   }
 
   const tasks = [];
@@ -80,6 +80,8 @@ function parseTasksFile(tasksPath) {
   let currentTask = null;
   let currentListKey = null;
   let mission = "";
+  let inScope = false;
+  let qualityTier = "";
 
   function flushCurrentTask() {
     if (currentTask) {
@@ -96,8 +98,25 @@ function parseTasksFile(tasksPath) {
       continue;
     }
 
+    if (/^scope:\s*$/.test(line)) {
+      inScope = true;
+      continue;
+    }
+
+    if (inScope) {
+      const tierMatch = line.match(/^\s+quality_tier:\s*(.+)$/);
+      if (tierMatch) {
+        qualityTier = cleanYamlScalar(tierMatch[1]);
+        continue;
+      }
+      if (/^[A-Za-z_][A-Za-z0-9_]*:\s*/.test(line)) {
+        inScope = false;
+      }
+    }
+
     if (/^tasks:\s*$/.test(line)) {
       inTasksSection = true;
+      inScope = false;
       continue;
     }
 
@@ -135,6 +154,9 @@ function parseTasksFile(tasksPath) {
         parity_evidence_required: [],
         affected_components: [],
         verification_required: [],
+        impact_tags: [],
+        derived_checks: [],
+        risk_triggers: [],
         blockers: [],
         notes: "",
         restart_required: false,
@@ -164,6 +186,9 @@ function parseTasksFile(tasksPath) {
           "parity_evidence_required",
           "affected_components",
           "verification_required",
+          "impact_tags",
+          "derived_checks",
+          "risk_triggers",
           "blockers",
         ].includes(key)
       ) {
@@ -208,8 +233,143 @@ function parseTasksFile(tasksPath) {
   return {
     exists: true,
     mission,
+    qualityTier,
     tasks,
   };
+}
+
+function parseAcceptanceFile(acceptancePath) {
+  const content = readUtf8IfExists(acceptancePath);
+  if (content === null) {
+    return {
+      exists: false,
+      qualityTier: "",
+      requiredSpecialReviews: [],
+      gateStatuses: {},
+      gateEvidence: {},
+      content: "",
+    };
+  }
+
+  const lines = content.split(/\r?\n/);
+  let inScope = false;
+  let inRequiredSpecialReviews = false;
+  let inGates = false;
+  let currentGateId = "";
+  let currentGateListKey = "";
+
+  const result = {
+    exists: true,
+    qualityTier: "",
+    requiredSpecialReviews: [],
+    gateStatuses: {},
+    gateEvidence: {},
+    content,
+  };
+
+  for (const line of lines) {
+    if (/^scope:\s*$/.test(line)) {
+      inScope = true;
+      inRequiredSpecialReviews = false;
+      inGates = false;
+      currentGateId = "";
+      currentGateListKey = "";
+      continue;
+    }
+
+    const requiredMatch = line.match(/^required_special_reviews:\s*(.*)$/);
+    if (requiredMatch) {
+      inScope = false;
+      inRequiredSpecialReviews = true;
+      inGates = false;
+      currentGateId = "";
+      currentGateListKey = "";
+      result.requiredSpecialReviews = requiredMatch[1]
+        ? parseInlineArray(requiredMatch[1])
+        : [];
+      continue;
+    }
+
+    if (/^gates:\s*$/.test(line)) {
+      inScope = false;
+      inRequiredSpecialReviews = false;
+      inGates = true;
+      currentGateId = "";
+      currentGateListKey = "";
+      continue;
+    }
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*:\s*/.test(line) && !/^required_special_reviews:\s*/.test(line)) {
+      inScope = false;
+      inRequiredSpecialReviews = false;
+      if (!/^gates:\s*$/.test(line)) {
+        currentGateId = "";
+        currentGateListKey = "";
+      }
+    }
+
+    if (inScope) {
+      const tierMatch = line.match(/^\s+quality_tier:\s*(.+)$/);
+      if (tierMatch) {
+        result.qualityTier = cleanYamlScalar(tierMatch[1]);
+      }
+      continue;
+    }
+
+    if (inRequiredSpecialReviews) {
+      const listItemMatch = line.match(/^\s*-\s+(.+)$/);
+      if (listItemMatch) {
+        result.requiredSpecialReviews.push(cleanYamlScalar(listItemMatch[1]));
+        continue;
+      }
+      if (/^[A-Za-z_][A-Za-z0-9_]*:\s*/.test(line) || /^gates:\s*$/.test(line)) {
+        inRequiredSpecialReviews = false;
+      } else {
+        continue;
+      }
+    }
+
+    if (!inGates) {
+      continue;
+    }
+
+    const gateStartMatch = line.match(/^\s*-\s+id:\s*(.+)$/);
+    if (gateStartMatch) {
+      currentGateId = cleanYamlScalar(gateStartMatch[1]);
+      currentGateListKey = "";
+      result.gateStatuses[currentGateId] = "";
+      result.gateEvidence[currentGateId] = [];
+      continue;
+    }
+
+    if (!currentGateId) {
+      continue;
+    }
+
+    const statusMatch = line.match(/^\s+status:\s*(.+)$/);
+    if (statusMatch) {
+      result.gateStatuses[currentGateId] = cleanYamlScalar(statusMatch[1]);
+      currentGateListKey = "";
+      continue;
+    }
+
+    const evidenceMatch = line.match(/^\s+evidence:\s*(.*)$/);
+    if (evidenceMatch) {
+      currentGateListKey = "evidence";
+      result.gateEvidence[currentGateId] = evidenceMatch[1]
+        ? parseInlineArray(evidenceMatch[1])
+        : [];
+      continue;
+    }
+
+    const listItemMatch = line.match(/^\s*-\s+(.+)$/);
+    if (currentGateListKey === "evidence" && listItemMatch) {
+      result.gateEvidence[currentGateId].push(cleanYamlScalar(listItemMatch[1]));
+    }
+  }
+
+  result.requiredSpecialReviews = [...new Set(result.requiredSpecialReviews.filter(Boolean))];
+  return result;
 }
 
 function summarizeTasks(tasks) {
@@ -381,6 +541,7 @@ module.exports = {
   parseMarkdownBulletList,
   parseBulletKeyValueSection,
   parseTasksFile,
+  parseAcceptanceFile,
   summarizeTasks,
   taskStatusCategory,
   getReadyTasks,

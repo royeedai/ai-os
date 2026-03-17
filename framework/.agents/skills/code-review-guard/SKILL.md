@@ -21,7 +21,7 @@ description: >
 ## 使用方式
 
 1. 开发完成后，打开对应模块的 `.ai-os/project-charter.md`、`.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
-2. 先识别当前模块的模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）和交付等级（`L1` / `L2` / `L3`）
+2. 先识别当前模块的模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）和交付档位（`exploratory` / `standard` / `high-risk`）
 3. 逐项对照 .spec 中的功能需求，检查代码是否实现
 4. 对照 `.ai-os/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码
 5. 仅在模块存在明显跨层联动时调用 `fullstack-dev-checklist`；其余模块按类型走专项检查
@@ -77,6 +77,13 @@ description: >
   5. 边界条件和失败路径是否处理？
 ```
 
+### Step 1.5：契约基准比对 [新增硬检查]
+
+- [ ] spec 是否声明了 `契约基准`、`字段映射/适配说明`、`集成触点`？
+- [ ] 前后端、API / worker、DTO / entity、事件发布 / 消费之间的字段名、状态枚举、错误码、分页 / 过滤字段是否与 spec 一致？
+- [ ] 若实现中存在命名差异，spec 是否显式声明映射关系，代码中是否存在明确 adapter / translator？
+- [ ] 若命中 `impact_tags` 中的 `mapping` / `schema` / `state-transition`，是否补了兼容性和 degraded-path 证据？
+
 ### Step 2：按模块类型选择审查深度
 
 所有模块都必须检查以下通用项：
@@ -114,7 +121,7 @@ description: >
 
 完成功能验证后，根据被 review 的代码模块属性，决定是否**强制调用**以下连带专项审查 Skill：
 
-1. **如涉及订单、金额、权限流转** → 立即启动 `security-guard` 进行防越权与防并发覆盖审计。
+1. **如命中高风险触发词族，或涉及资产、权限流转、不可逆状态变更** → 立即启动 `security-guard` 进行防越权与防并发覆盖审计。
 2. **如涉及复杂架构设计、大范围重构** → 立即启动 `architecture-reviewer` 进行 SOLID 原则与内聚性审计。
 3. **如为页面类或跨层联动业务模块** → 继续检查以下高频遗漏项：
 
@@ -153,6 +160,7 @@ description: >
 
 - [ ] 是否存在构建结果、测试结果、关键日志、截图、接口样例等 Evidence Pack？
 - [ ] 是否明确检查了“真实可用”而不只是“界面上看起来有这个能力”？
+- [ ] 是否分别给出了正常路径和 degraded-path（空值 / 缺字段 / 权限拒绝 / 超时 / 部分失败）的证据？
 - [ ] 若本次变更要求 restart / cold-start，是否存在 `restart-log`、`cold-start-log`、`post-restart-smoke-log`？
 - [ ] 是否分别判断了“最小可运行”和“可验收”，而不是把“能跑”直接写成“已完成”？
 - [ ] 未实现、未验证、仅占位或仅 demo 的能力是否已明确排除在“完成”之外？
@@ -162,23 +170,24 @@ description: >
 - [ ] 是否调用 `acceptance-gate` 给出最终通过 / 阻塞 / 建议优化结论？
 - [ ] 若该模块需要人工验证，验收报告是否附带 **UAT 脚本**（由 `acceptance-gate` 生成）？
 
-## 按交付等级缩放自审
+## 按交付档位缩放自审
 
-### L1 探索
+### exploratory
 
 - 允许轻量验收报告
 - 最少需要工程完整性、关键结果证据、已知限制和 blocker 说明
 - 不要默认要求完整九维度描述或正式发布级材料
 
-### L2 标准
+### standard
 
 - 需要完整 spec / tasks / acceptance 对照
 - 需要类型专项检查结果和关键证据
 - 用户可见模块需要明确人工验证路径
 
-### L3 高风险
+### high-risk
 
-- 在 L2 基础上，必须检查安全、架构、发布 / 回滚准备和高风险剩余项
+- 在 standard 基础上，必须检查安全、架构、发布 / 回滚准备和高风险剩余项
+- 必须给出授权边界、并发安全和 degraded-path 的单独结论
 - 若涉及对外发布，应与 `release-manager` 结论保持一致
 
 ---
@@ -241,5 +250,5 @@ description: >
 ## 维护信息
 
 - 来源：`framework/AGENTS.md`、`.agents/references/derived-rules.md`、`references/review-dimensions.md`
-- 更新时间：2026-03-16
+- 更新时间：2026-03-17
 - 已知限制：本 Skill 偏模块级自审；若涉及正式发布决策，还应继续使用 `acceptance-gate`、`release-manager` 等后续 Skill

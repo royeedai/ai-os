@@ -4,6 +4,7 @@
 
 - [ ] Mission、Design、Spec、Acceptance 已同步
 - [ ] 高风险审批点已完成确认
+- [ ] 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
 - [ ] 关键证据已收集齐全
 
 ## 2. 变更范围与依赖
@@ -20,6 +21,9 @@
 ## 4. 运行态验证
 
 - [ ] 关键页面 / 关键 API / 关键流程验证完成
+- [ ] authorization-boundary-check：权限 / 越权边界验证完成
+- [ ] concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
+- [ ] degraded-path-check：空值 / 缺字段 / 权限拒绝 / 超时 / 部分失败场景验证完成
 - [ ] 目标运行态证据已记录
 - [ ] fallback 证据未被误当正式结论
 

@@ -7,9 +7,14 @@
 - `greenfield-guided-product.md`
 - `reverse-spec-admin-console.md`
 - `brownfield-change-journey.md`
+- `interaction-mode-chat.md`
+- `high-risk-state-change.md`
+- `cross-layer-schema-change.md`
+- `degraded-path-verification.md`
 
 每个示例都配一套最小 `.ai-os/` 骨架，帮助维护者判断：
 
 - 哪些工件是核心
 - 关键设计和逻辑应该在什么阶段被锁定
 - 什么时候可以进入 build / verify
+- 哪些场景必须先做交互模式判型、联动检查和 degraded-path 验证

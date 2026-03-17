@@ -12,6 +12,10 @@ vNext 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `fallback-evidence-used-as-delivery.md`
 - `missing-user-confirmation.md`
 - `feature-visible-but-unusable.md`
+- `cross-layer-change-missed-linkage.md`
+- `interaction-mode-misclassified.md`
+- `sensitive-flow-not-escalated.md`
+- `happy-path-passed-but-null-path-broken.md`
 
 ## 使用原则
 

@@ -4,10 +4,12 @@ const fs = require("fs");
 const path = require("path");
 const {
   fail,
+  HIGH_RISK_SPECIAL_REVIEWS,
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_CORE_ARTIFACT_FILES,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_FILES,
+  QUALITY_TIERS,
   listFilesRecursively,
   getProjectFilePath,
   getProjectRelativePath,
@@ -20,6 +22,7 @@ const {
 const {
   readUtf8IfExists,
   splitMarkdownSections,
+  parseAcceptanceFile,
   parseTasksFile,
 } = require("./project-state");
 
@@ -69,26 +72,14 @@ function markdownHasSections(content, sectionNames) {
   return missing;
 }
 
-function extractAcceptanceGateStatus(content, gateId) {
-  const lines = content.split(/\r?\n/);
-  let inGate = false;
-
-  for (const line of lines) {
-    const idMatch = line.match(/^\s*- id:\s*(.+)$/);
-    if (idMatch) {
-      inGate = idMatch[1].trim() === gateId;
-      continue;
-    }
-    if (!inGate) {
-      continue;
-    }
-    const statusMatch = line.match(/^\s+status:\s*(.+)$/);
-    if (statusMatch) {
-      return statusMatch[1].trim();
+function missingMarkers(content, markers) {
+  const missing = [];
+  for (const marker of markers) {
+    if (!content.includes(marker)) {
+      missing.push(marker);
     }
   }
-
-  return "";
+  return missing;
 }
 
 function collectTaskSpecInputs(tasks) {
@@ -235,18 +226,23 @@ const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
 const tasksContent = readUtf8IfExists(tasksPath);
 const parsedTasks = parseTasksFile(tasksPath);
 if (tasksContent !== null) {
-  const missingTaskMarkers = [];
-  for (const marker of VALIDATION_SCHEMAS.tasksMarkers) {
-    if (!tasksContent.includes(marker)) {
-      missingTaskMarkers.push(marker);
-    }
-  }
+  const missingTaskMarkers = missingMarkers(tasksContent, VALIDATION_SCHEMAS.tasksMarkers);
+  const missingTaskTransitionMarkers = missingMarkers(
+    tasksContent,
+    VALIDATION_SCHEMAS.tasksTransitionalMarkers
+  );
 
   report(
     missingTaskMarkers.length === 0,
     `${getProjectRelativePath("tasks.yaml")} structure complete`,
     false,
     missingTaskMarkers.map((marker) => `missing marker: ${marker}`)
+  );
+  report(
+    missingTaskTransitionMarkers.length === 0,
+    `${getProjectRelativePath("tasks.yaml")} includes linkage/risk metadata`,
+    true,
+    missingTaskTransitionMarkers.map((marker) => `missing marker: ${marker}`)
   );
   report(parsedTasks.tasks.length > 0, `${getProjectRelativePath("tasks.yaml")} includes at least one task`);
   report(
@@ -265,6 +261,29 @@ if (tasksContent !== null) {
     parsedTasks.tasks.some((task) => (task.context_files || []).length > 0),
     `${getProjectRelativePath("tasks.yaml")} includes context_files`
   );
+  report(
+    parsedTasks.tasks.some((task) => (task.impact_tags || []).length > 0),
+    `${getProjectRelativePath("tasks.yaml")} includes impact_tags`,
+    true
+  );
+  report(
+    parsedTasks.tasks.some((task) => (task.derived_checks || []).length > 0),
+    `${getProjectRelativePath("tasks.yaml")} includes derived_checks`,
+    true
+  );
+  report(
+    parsedTasks.tasks.every((task) => Array.isArray(task.risk_triggers)),
+    `${getProjectRelativePath("tasks.yaml")} includes risk_triggers`,
+    true
+  );
+  if (parsedTasks.qualityTier) {
+    report(
+      QUALITY_TIERS.includes(parsedTasks.qualityTier),
+      `${getProjectRelativePath("tasks.yaml")} quality_tier is supported`,
+      false,
+      [`current quality_tier: ${parsedTasks.qualityTier}`]
+    );
+  }
 }
 
 const specFiles = listSpecFiles(targetDir);
@@ -279,32 +298,62 @@ for (const specFile of specFiles) {
     false,
     missingSections.map((section) => `missing section: ${section}`)
   );
+  const missingSpecMarkers = missingMarkers(content || "", VALIDATION_SCHEMAS.specMarkers);
+  report(
+    missingSpecMarkers.length === 0,
+    `${getProjectRelativePath(specFile)} includes interaction mode / contract baseline markers`,
+    true,
+    missingSpecMarkers.map((marker) => `missing marker: ${marker}`)
+  );
 }
 
-const acceptanceContent = readUtf8IfExists(getProjectFilePath(targetDir, "acceptance.yaml"));
+const acceptancePath = getProjectFilePath(targetDir, "acceptance.yaml");
+const acceptanceContent = readUtf8IfExists(acceptancePath);
+const parsedAcceptance = parseAcceptanceFile(acceptancePath);
 if (acceptanceContent !== null) {
-  const missingMarkers = [];
-  for (const marker of VALIDATION_SCHEMAS.acceptanceMarkers) {
-    if (!acceptanceContent.includes(marker)) {
-      missingMarkers.push(marker);
-    }
-  }
+  const missingAcceptanceMarkers = missingMarkers(
+    acceptanceContent,
+    VALIDATION_SCHEMAS.acceptanceMarkers
+  );
+  const missingAcceptanceTransitionMarkers = missingMarkers(
+    acceptanceContent,
+    VALIDATION_SCHEMAS.acceptanceMarkersTransitional
+  );
   report(
-    missingMarkers.length === 0,
+    missingAcceptanceMarkers.length === 0,
     `${getProjectRelativePath("acceptance.yaml")} structure complete`,
     false,
-    missingMarkers.map((marker) => `missing marker: ${marker}`)
+    missingAcceptanceMarkers.map((marker) => `missing marker: ${marker}`)
+  );
+  report(
+    missingAcceptanceTransitionMarkers.length === 0,
+    `${getProjectRelativePath("acceptance.yaml")} includes contract/degraded-path markers`,
+    true,
+    missingAcceptanceTransitionMarkers.map((marker) => `missing marker: ${marker}`)
   );
 
-  const designGate = extractAcceptanceGateStatus(acceptanceContent, "design-confirmation");
-  const logicGate = extractAcceptanceGateStatus(acceptanceContent, "logic-confirmation");
-  const implementationGate = extractAcceptanceGateStatus(acceptanceContent, "implementation-quality");
-  const deliveryGate = extractAcceptanceGateStatus(acceptanceContent, "delivery-readiness");
+  const designGate = parsedAcceptance.gateStatuses["design-confirmation"] || "";
+  const logicGate = parsedAcceptance.gateStatuses["logic-confirmation"] || "";
+  const implementationGate = parsedAcceptance.gateStatuses["implementation-quality"] || "";
+  const deliveryGate = parsedAcceptance.gateStatuses["delivery-readiness"] || "";
 
   report(Boolean(designGate), "acceptance includes design gate status");
   report(Boolean(logicGate), "acceptance includes logic gate status");
   report(Boolean(implementationGate), "acceptance includes implementation gate status");
   report(Boolean(deliveryGate), "acceptance includes delivery gate status");
+  report(
+    Boolean(parsedAcceptance.qualityTier),
+    `${getProjectRelativePath("acceptance.yaml")} declares quality_tier`,
+    true
+  );
+  if (parsedAcceptance.qualityTier) {
+    report(
+      QUALITY_TIERS.includes(parsedAcceptance.qualityTier),
+      `${getProjectRelativePath("acceptance.yaml")} quality_tier is supported`,
+      false,
+      [`current quality_tier: ${parsedAcceptance.qualityTier}`]
+    );
+  }
   report(
     designGate === "passed" || designGate === "approved",
     "design confirmation gate is locked before full delivery",
@@ -317,6 +366,36 @@ if (acceptanceContent !== null) {
     true,
     logicGate ? [`current logic gate status: ${logicGate}`] : ["missing logic-confirmation status"]
   );
+}
+
+const declaredHighRisk =
+  parsedAcceptance.qualityTier === "high-risk" || parsedTasks.qualityTier === "high-risk";
+
+if (declaredHighRisk) {
+  report(
+    fileExists(targetDir, "risk-register.md"),
+    `${getProjectRelativePath("risk-register.md")} exists for high-risk delivery`
+  );
+  report(
+    fileExists(targetDir, "release-plan.md"),
+    `${getProjectRelativePath("release-plan.md")} exists for high-risk delivery`
+  );
+  report(
+    fileExists(targetDir, "verification-matrix.yaml"),
+    `${getProjectRelativePath("verification-matrix.yaml")} exists for high-risk delivery`
+  );
+  report(
+    parsedAcceptance.requiredSpecialReviews.length > 0,
+    "high-risk acceptance declares required_special_reviews",
+    false,
+    ["expected security-guard, authorization-boundary-check, concurrency-safety-check"]
+  );
+  for (const reviewName of HIGH_RISK_SPECIAL_REVIEWS) {
+    report(
+      parsedAcceptance.requiredSpecialReviews.includes(reviewName),
+      `high-risk acceptance includes ${reviewName}`
+    );
+  }
 }
 
 const taskSpecInputs = collectTaskSpecInputs(parsedTasks.tasks);
@@ -336,6 +415,20 @@ if (stateContent !== null) {
     `${getProjectRelativePath("STATE.md")} sections complete`,
     false,
     missingSections.map((section) => `missing section: ${section}`)
+  );
+}
+
+const verificationMatrixContent = readUtf8IfExists(getProjectFilePath(targetDir, "verification-matrix.yaml"));
+if (verificationMatrixContent !== null) {
+  const missingVerificationMarkers = missingMarkers(
+    verificationMatrixContent,
+    VALIDATION_SCHEMAS.verificationMatrixMarkers
+  );
+  report(
+    missingVerificationMarkers.length === 0,
+    `${getProjectRelativePath("verification-matrix.yaml")} includes impact_rules`,
+    true,
+    missingVerificationMarkers.map((marker) => `missing marker: ${marker}`)
   );
 }
 

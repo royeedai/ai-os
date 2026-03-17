@@ -55,6 +55,13 @@ tasks:
       - "flow-note"
       - "spec-update"
     parity_evidence_required: []
+    impact_tags:
+      - "entrypoint"
+      - "schema"
+    derived_checks:
+      - "load contract baseline before task split"
+      - "derive context_files from integration touchpoints"
+    risk_triggers: []
     blockers: []
     notes: ""
 
@@ -109,5 +116,14 @@ tasks:
       - "runtime-check"
     parity_evidence_required:
       - "screenshot-or-api-compare"
+    impact_tags:
+      - "entrypoint"
+      - "transport"
+      - "mapping"
+    derived_checks:
+      - "check linkage for all declared integration touchpoints"
+      - "compare implementation against contract baseline"
+      - "collect degraded-path evidence for key tasks"
+    risk_triggers: []
     blockers: []
     notes: ""
