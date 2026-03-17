@@ -48,6 +48,7 @@ tasks:
       - "关键输入素材已整理"
     definition_of_done:
       - "关键页面与流程已进入 spec"
+      - "关键技术栈与关键选型已记录，并区分已确认与待确认项"
       - "设计确认门和逻辑确认门具备通过条件"
     evidence_required:
       - "design-decision-log"
@@ -93,15 +94,18 @@ tasks:
     definition_of_ready:
       - "设计确认门已通过"
       - "逻辑确认门已通过"
+      - "不存在阻塞性的技术选型待确认项"
       - "不存在阻塞性待确认项"
     definition_of_done:
       - "实现与测试完成"
+      - "关键用户任务 / 运营任务验证完成，不存在仅占位能力"
       - "实现质量门可通过"
       - "交付质量门所需证据已补齐"
     evidence_required:
       - "build-log"
       - "test-log"
       - "review-note"
+      - "task-flow-check"
       - "runtime-check"
     parity_evidence_required:
       - "screenshot-or-api-compare"

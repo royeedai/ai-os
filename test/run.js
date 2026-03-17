@@ -46,13 +46,14 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "4.0.0", "major version bumped to 4.0.0");
+assert(versionFile === "4.0.1", "version bumped to 4.0.1");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "design-not-locked-before-build.md")), "design-lock eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "ui-looks-right-but-logic-wrong.md")), "ui-vs-logic eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "logic-right-but-product-shape-wrong.md")), "product-shape eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "feature-visible-but-unusable.md")), "feature-visible eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
@@ -62,6 +63,7 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey"
 
 const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
 assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
+assert(maintainersDoc.includes("feature-visible-but-unusable.md"), "maintainers doc references usability eval");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
 
 process.stdout.write("\n=== shared.js exports ===\n");
@@ -96,6 +98,7 @@ const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "accepta
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
 
 assert(missionTemplate.includes("## 1. 任务定义"), "MISSION template has mission definition section");
+assert(missionTemplate.includes("关键选型"), "MISSION template includes key decisions");
 assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has phase plan");
 assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
 assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
@@ -106,6 +109,8 @@ assert(tasksTemplate.includes("parity_evidence_required:"), "tasks template incl
 assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
 assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
 assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");
+assert(acceptanceTemplate.includes("confirmed_stack_decisions"), "acceptance template records confirmed stack decisions");
+assert(acceptanceTemplate.includes("task-flow-check"), "acceptance template includes task flow evidence");
 assert(stateTemplate.includes("## 已锁定内容"), "STATE template includes locked items section");
 assert(stateTemplate.includes("## 最小阅读集"), "STATE template includes minimum reading set");
 

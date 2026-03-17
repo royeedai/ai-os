@@ -11,6 +11,7 @@ vNext 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `logic-right-but-product-shape-wrong.md`
 - `fallback-evidence-used-as-delivery.md`
 - `missing-user-confirmation.md`
+- `feature-visible-but-unusable.md`
 
 ## 使用原则
 

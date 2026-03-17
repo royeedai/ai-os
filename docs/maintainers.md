@@ -22,6 +22,7 @@
 - `evals/logic-right-but-product-shape-wrong.md`
 - `evals/fallback-evidence-used-as-delivery.md`
 - `evals/missing-user-confirmation.md`
+- `evals/feature-visible-but-unusable.md`
 
 ## 当前主示例
 

@@ -3,6 +3,7 @@ scope:
   mode: "greenfield"
   focus: "example-module"
   primary_spec: "specs/example.spec.md"
+  confirmed_stack_decisions: "[如 Next.js + Node API + PostgreSQL + 正式鉴权]"
   target_runtime: "[如 PostgreSQL + 正式鉴权]"
   dev_fallback: "[如 sqlite + mock auth]"
 
@@ -13,6 +14,7 @@ gates:
     checks:
       - "关键页面、信息架构和关键交互已确认"
       - "关键视觉方向和不采用的风格已写清"
+      - "关键技术栈、目标运行态和不可逆关键选型已确认，未确认项已显式暴露"
       - "需要保真的页面已标记对照证据来源"
     evidence:
       - "design-decision-log"
@@ -36,11 +38,14 @@ gates:
     status: pending
     checks:
       - "核心实现完成"
+      - "关键用户任务 / 操作员任务所需的能力入口与执行链路真实可用，不是静态占位"
+      - "未实现、未验证或仅 demo / placeholder 的能力未被标记为完成"
       - "测试与 review 已通过"
       - "没有已知严重回归"
     evidence:
       - "build-log"
       - "test-log"
+      - "task-flow-check"
       - "review-report"
 
   - id: delivery-readiness
@@ -48,6 +53,7 @@ gates:
     status: pending
     checks:
       - "运行态验证已完成"
+      - "关键用户任务或运营任务已完成适用的自动验证 / 人工验证 / UAT 组合"
       - "UAT 或人工验证结果已记录"
       - "交付说明、回滚和移交信息齐全"
       - "fallback 证据未被误当成正式交付证据"
