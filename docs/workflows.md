@@ -20,15 +20,4 @@
 | `/resume` | 恢复最小阅读集 |
 | `/auto-advance` | 在门禁通过后自动推进 |
 
-## Compatibility Aliases
-
-- `/new-project`
-- `/clone-project`
-- `/new-module`
-- `/quick`
-- `/review`
-- `/change-request`
-- `/init`
-- `/map-codebase`
-
-它们仍能用，但新版不再把它们作为主教学入口。
+这就是 AI-OS vNext 的全部 workflow 入口，旧场景命令已移除。

@@ -20,7 +20,6 @@ const {
   readFrameworkVersion,
   listManagedFiles,
   readInstalledMeta,
-  getExistingProjectFilePath,
   getProjectFilePath,
   getProjectRelativePath,
   fail,
@@ -150,7 +149,7 @@ if (missingFiles.length === 0) {
 process.stdout.write(`\n  Core project state files:\n`);
 const coreProjectFiles = [
   ...PROJECT_CORE_ARTIFACT_FILES.map((relPath) => ({
-    path: getExistingProjectFilePath(targetDir, relPath),
+    path: getProjectFilePath(targetDir, relPath),
     label: getProjectRelativePath(relPath),
   })),
   ...PROJECT_CORE_ARTIFACT_DIRS.map((relPath) => ({
@@ -173,7 +172,7 @@ for (const pf of coreProjectFiles) {
 
 const optionalProjectFiles = [
   ...PROJECT_OPTIONAL_ARTIFACT_FILES.map((relPath) => ({
-    path: getExistingProjectFilePath(targetDir, relPath),
+    path: getProjectFilePath(targetDir, relPath),
     label: getProjectRelativePath(relPath),
   })),
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS.map((relPath) => ({

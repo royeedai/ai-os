@@ -10,9 +10,7 @@ const {
   PROJECT_OPTIONAL_ARTIFACT_FILES,
   listFilesRecursively,
   getProjectFilePath,
-  getExistingProjectFilePath,
   getProjectRelativePath,
-  resolveProjectPath,
   formatProjectPath,
   SYM_OK,
   SYM_FAIL,
@@ -33,7 +31,7 @@ Validate the project-local delivery artifacts used by AI-OS vNext.
 
 Checks:
   - required core artifacts: .ai-os/MISSION.md / DESIGN.md / tasks.yaml / acceptance.yaml / STATE.md / memory.md / specs/
-  - optional artifacts are validated only when present: risk-register.md / release-plan.md / verification-matrix.yaml / design-pack/ / evals/
+  - optional artifacts are validated only when present: risk-register.md / release-plan.md / design-pack/ / evals/
   - key section completeness and phase-gate readiness
 
 Options:
@@ -42,7 +40,7 @@ Options:
 }
 
 function fileExists(targetDir, relPath) {
-  return fs.existsSync(getExistingProjectFilePath(targetDir, relPath));
+  return fs.existsSync(getProjectFilePath(targetDir, relPath));
 }
 
 function dirExists(targetDir, relPath) {
@@ -192,7 +190,7 @@ for (const relPath of PROJECT_CORE_ARTIFACT_DIRS) {
   report(dirExists(targetDir, relPath), `${getProjectRelativePath(relPath)}/ exists`);
 }
 
-const mission = readUtf8IfExists(getExistingProjectFilePath(targetDir, "MISSION.md"));
+const mission = readUtf8IfExists(getProjectFilePath(targetDir, "MISSION.md"));
 if (mission !== null) {
   const missingSections = markdownHasSections(mission, VALIDATION_SCHEMAS.mission);
   report(
@@ -203,7 +201,7 @@ if (mission !== null) {
   );
 }
 
-const design = readUtf8IfExists(getExistingProjectFilePath(targetDir, "DESIGN.md"));
+const design = readUtf8IfExists(getProjectFilePath(targetDir, "DESIGN.md"));
 if (design !== null) {
   const missingSections = markdownHasSections(design, VALIDATION_SCHEMAS.design);
   report(
@@ -214,7 +212,7 @@ if (design !== null) {
   );
 }
 
-const riskRegister = readUtf8IfExists(getExistingProjectFilePath(targetDir, "risk-register.md"));
+const riskRegister = readUtf8IfExists(getProjectFilePath(targetDir, "risk-register.md"));
 if (riskRegister !== null) {
   report(
     VALIDATION_SCHEMAS.riskRegisterTablePattern.test(riskRegister),
@@ -222,7 +220,7 @@ if (riskRegister !== null) {
   );
 }
 
-const memory = readUtf8IfExists(getExistingProjectFilePath(targetDir, "memory.md"));
+const memory = readUtf8IfExists(getProjectFilePath(targetDir, "memory.md"));
 if (memory !== null) {
   const missingSections = markdownHasSections(memory, VALIDATION_SCHEMAS.memory);
   report(
@@ -233,7 +231,7 @@ if (memory !== null) {
   );
 }
 
-const tasksPath = getExistingProjectFilePath(targetDir, "tasks.yaml");
+const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
 const tasksContent = readUtf8IfExists(tasksPath);
 const parsedTasks = parseTasksFile(tasksPath);
 if (tasksContent !== null) {
@@ -283,7 +281,7 @@ for (const specFile of specFiles) {
   );
 }
 
-const acceptanceContent = readUtf8IfExists(getExistingProjectFilePath(targetDir, "acceptance.yaml"));
+const acceptanceContent = readUtf8IfExists(getProjectFilePath(targetDir, "acceptance.yaml"));
 if (acceptanceContent !== null) {
   const missingMarkers = [];
   for (const marker of VALIDATION_SCHEMAS.acceptanceMarkers) {
@@ -330,23 +328,7 @@ for (const specInput of taskSpecInputs) {
   );
 }
 
-const verificationMatrix = readUtf8IfExists(getExistingProjectFilePath(targetDir, "verification-matrix.yaml"));
-if (verificationMatrix !== null) {
-  const missingMarkers = [];
-  for (const marker of VALIDATION_SCHEMAS.verificationMatrixMarkers) {
-    if (!verificationMatrix.includes(marker)) {
-      missingMarkers.push(marker);
-    }
-  }
-  report(
-    missingMarkers.length === 0,
-    `${getProjectRelativePath("verification-matrix.yaml")} structure complete`,
-    false,
-    missingMarkers.map((marker) => `missing marker: ${marker}`)
-  );
-}
-
-const stateContent = readUtf8IfExists(getExistingProjectFilePath(targetDir, "STATE.md"));
+const stateContent = readUtf8IfExists(getProjectFilePath(targetDir, "STATE.md"));
 if (stateContent !== null) {
   const missingSections = markdownHasSections(stateContent, VALIDATION_SCHEMAS.state);
   report(

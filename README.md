@@ -44,16 +44,7 @@ AI-OS vNext 默认按交付阶段进入，而不是先按场景命令进入：
 - `/resume`
 - `/auto-advance`
 
-旧命令仍保留一个大版本作为兼容别名：
-
-- `/new-project`
-- `/clone-project`
-- `/new-module`
-- `/quick`
-- `/review`
-- `/change-request`
-- `/init`
-- `/map-codebase`
+AI-OS vNext 只支持这套阶段式入口，旧场景命令已移除。
 
 ## 新版核心工件
 
@@ -74,7 +65,6 @@ AI-OS vNext 默认围绕这套 `.ai-os/` 工件工作：
 - `.ai-os/release-plan.md`
 - `.ai-os/risk-register.md`
 - `.ai-os/design-pack/parity-map.md`
-- `.ai-os/verification-matrix.yaml`
 - `.ai-os/evals/`
 
 ## 5 分钟上手
@@ -132,24 +122,8 @@ npx --yes github:royeedai/ai-os validate .
 npx --yes github:royeedai/ai-os status .
 npx --yes github:royeedai/ai-os next .
 npx --yes github:royeedai/ai-os resume .
-npx --yes github:royeedai/ai-os migrate .
 npx --yes github:royeedai/ai-os release-check .
 ```
-
-## 迁移旧项目
-
-如果你的项目还是旧版工件命名，可以先运行：
-
-```bash
-npx --yes github:royeedai/ai-os migrate .
-```
-
-它会尝试：
-
-- `project-charter.md -> MISSION.md`
-- `reference-code-map.md -> design-pack/parity-map.md`
-- 自动补出 `DESIGN.md`
-- 生成迁移说明文件
 
 ## 更多文档
 

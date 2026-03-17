@@ -68,17 +68,6 @@
 - `/resume`
 - `/auto-advance`
 
-兼容别名：
-
-- `/new-project`
-- `/clone-project`
-- `/new-module`
-- `/quick`
-- `/review`
-- `/change-request`
-- `/init`
-- `/map-codebase`
-
 完整路由以 `.agents/workflows/AGENTS.md` 为准。
 
 ## 角色协议

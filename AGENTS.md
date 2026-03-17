@@ -56,7 +56,7 @@ AI-OS 是一个零依赖的 Node.js CLI 工具，通过 `npx` 将 `framework/` �
 ## 变更流程
 
 - 改动 `framework/` 下的内容时，需更新 `VERSION`
-- 改动根层原则、workflow 主叙事、核心工件命名时，视为 major 级变化，应同步补迁移说明
+- 改动根层原则、workflow 主叙事、核心工件命名时，视为 major 级变化，应同步补变更说明和旧结构清理范围
 - 不需要重型流程，但需要确保 README、docs、examples、evals、tests 一起跟上
 
 ## 测试方式
@@ -66,7 +66,6 @@ npm test
 node bin/create-ai-os.js /tmp/test-project --with-project-files
 node bin/ai-os-doctor.js /tmp/test-project
 node bin/ai-os-validate.js /tmp/test-project
-node bin/ai-os-migrate.js /tmp/test-project --dry-run
 node bin/ai-os-upgrade.js /tmp/test-project
 node bin/ai-os-release-check.js /tmp/test-project
 ```

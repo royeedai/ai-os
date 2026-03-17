@@ -4,7 +4,6 @@ const {
   PROJECT_ARTIFACT_FILES,
   getProjectFilePath,
   getProjectRelativePath,
-  getExistingProjectFilePath,
   cleanYamlScalar,
   parseInlineArray,
 } = require("./shared");
@@ -342,7 +341,7 @@ function collectResumeFiles(state, currentTask) {
 }
 
 function readStateFile(targetDir) {
-  const statePath = getExistingProjectFilePath(targetDir, "STATE.md");
+  const statePath = getProjectFilePath(targetDir, "STATE.md");
   const content = readUtf8IfExists(statePath);
   if (content === null) {
     return {

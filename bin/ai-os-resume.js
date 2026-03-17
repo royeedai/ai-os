@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   fail,
-  getExistingProjectFilePath,
+  getProjectFilePath,
   getProjectRelativePath,
   resolveProjectPath,
   formatProjectPath,
@@ -58,7 +58,7 @@ if (!fs.existsSync(targetDir)) {
 }
 
 const state = readStateFile(targetDir);
-const tasks = parseTasksFile(getExistingProjectFilePath(targetDir, "tasks.yaml"));
+const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
 
 if (!state.exists) {
   fail(`${getProjectRelativePath("STATE.md")} not found in ${targetDir}`);

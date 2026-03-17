@@ -8,14 +8,12 @@ const SUBCOMMANDS = {
   doctor:          "./ai-os-doctor",
   diff:            "./ai-os-diff",
   upgrade:         "./ai-os-upgrade",
-  migrate:         "./ai-os-migrate",
   validate:        "./ai-os-validate",
   "skill-check":   "./ai-os-skill-check",
   status:          "./ai-os-status",
   next:            "./ai-os-next",
   resume:          "./ai-os-resume",
   "release-check": "./ai-os-release-check",
-  affected:        "./ai-os-affected",
 };
 
 const _sub = process.argv[2];
@@ -59,22 +57,15 @@ Primary workflow phases:
   /verify                   Validate design quality, logic correctness, and runtime readiness
   /ship                     Prepare handoff, release, rollback, and delivery notes
 
-Compatibility aliases still shipped:
-  /new-project / /clone-project / /new-module / /quick / /review / /change-request
-
 Check your setup:
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
-  create-ai-os migrate [target-dir]        Migrate legacy .ai-os artifacts to vNext layout
   create-ai-os skill-check [skill-dir]     Validate a custom Skill
 
 Recover and continue:
   create-ai-os status [target-dir]         Show current delivery status
   create-ai-os next [target-dir]           Show next ready tasks
   create-ai-os resume [target-dir]         Print resume context pack
-
-Change-aware verification:
-  create-ai-os affected [target-dir]       Plan or execute verification actions from code changes
 
 Maintain framework:
   create-ai-os diff [target-dir]           Compare framework files against source
@@ -85,9 +76,6 @@ Prepare delivery:
 
   Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
   are open standards supported by Antigravity, Cursor, and Codex.
-
-  Compatibility aliases such as ai-os-validate and ai-os-status are still shipped,
-  but create-ai-os <command> is the primary documented entrypoint.
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.

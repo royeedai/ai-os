@@ -31,7 +31,6 @@ const PROJECT_CORE_ARTIFACT_FILES = [
 const PROJECT_OPTIONAL_ARTIFACT_FILES = [
   "risk-register.md",
   "release-plan.md",
-  "verification-matrix.yaml",
 ];
 const PROJECT_CORE_ARTIFACT_DIRS = ["specs"];
 const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["design-pack", "evals"];
@@ -43,12 +42,6 @@ const PROJECT_ARTIFACT_DIRS = [
   ...PROJECT_CORE_ARTIFACT_DIRS,
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
 ];
-const PROJECT_ARTIFACT_ALIASES = {
-  "MISSION.md": ["project-charter.md"],
-  "design-pack/parity-map.md": ["reference-code-map.md"],
-};
-const LEGACY_PROJECT_ARTIFACT_FILES = Object.values(PROJECT_ARTIFACT_ALIASES).flat();
-const LEGACY_PROJECT_ARTIFACT_DIRS = ["codebase-map.md"];
 
 // ---------------------------------------------------------------------------
 // Read metadata from the AI-OS source (mother repo)
@@ -165,35 +158,15 @@ function getProjectMetadataPath(targetDir) {
   return getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
 }
 
-function getProjectArtifactCandidates(relPath = "") {
-  const normalized = stripProjectRootPrefix(relPath);
-  const directCandidates = [normalized];
-  if (PROJECT_ARTIFACT_ALIASES[normalized]) {
-    directCandidates.push(...PROJECT_ARTIFACT_ALIASES[normalized]);
-  }
-  return [...new Set(directCandidates.filter(Boolean))];
-}
-
-function getExistingProjectFilePath(targetDir, relPath = "") {
-  const candidates = getProjectArtifactCandidates(relPath);
-  for (const candidate of candidates) {
-    const candidatePath = getProjectFilePath(targetDir, candidate);
-    if (fs.existsSync(candidatePath)) {
-      return candidatePath;
-    }
-  }
-  return getProjectFilePath(targetDir, relPath);
-}
-
 function isProjectArtifactPath(relPath = "") {
   const normalized = stripProjectRootPrefix(relPath);
   if (!normalized) {
     return false;
   }
-  if (PROJECT_ARTIFACT_FILES.includes(normalized) || LEGACY_PROJECT_ARTIFACT_FILES.includes(normalized)) {
+  if (PROJECT_ARTIFACT_FILES.includes(normalized)) {
     return true;
   }
-  return [...PROJECT_ARTIFACT_DIRS, ...LEGACY_PROJECT_ARTIFACT_DIRS].some(
+  return PROJECT_ARTIFACT_DIRS.some(
     (dirName) => normalized === dirName || normalized.startsWith(`${dirName}/`)
   );
 }
@@ -403,7 +376,7 @@ function removeManagedPaths(targetDir) {
 }
 
 // ---------------------------------------------------------------------------
-// YAML utilities (shared by project-state and ai-os-affected)
+// YAML utilities shared by project-state and CLI validators
 // ---------------------------------------------------------------------------
 
 function cleanYamlScalar(value) {
@@ -532,7 +505,6 @@ const VALIDATION_SCHEMAS = {
     "delivery-readiness",
     "parity-gate",
   ],
-  verificationMatrixMarkers: ["version:", "commands:", "rules:", "affected_components:", "actions:"],
 };
 
 // ---------------------------------------------------------------------------
@@ -553,9 +525,6 @@ module.exports = {
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
-  PROJECT_ARTIFACT_ALIASES,
-  LEGACY_PROJECT_ARTIFACT_FILES,
-  LEGACY_PROJECT_ARTIFACT_DIRS,
   readFrameworkVersion,
   readPackageJson,
   ensureDir,
@@ -567,8 +536,6 @@ module.exports = {
   getProjectFilePath,
   getProjectRelativePath,
   getProjectMetadataPath,
-  getProjectArtifactCandidates,
-  getExistingProjectFilePath,
   normalizeRelativePath,
   isProjectArtifactPath,
   resolveProjectPath,

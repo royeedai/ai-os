@@ -19,7 +19,6 @@ AI-OS vNext 采用“少而强的必备工件 + 按风险加深”的策略。
 - `.ai-os/release-plan.md`
 - `.ai-os/risk-register.md`
 - `.ai-os/design-pack/parity-map.md`
-- `.ai-os/verification-matrix.yaml`
 - `.ai-os/evals/`
 
 ## 三档深度

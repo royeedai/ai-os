@@ -31,21 +31,6 @@ AI-OS vNext 默认按交付阶段组织 workflow，而不是先按场景套固�
 | `/resume` | 从 `STATE.md` 恢复最小阅读集 |
 | `/auto-advance` | 在设计门和逻辑门通过后自动按任务波次推进 |
 
-## Compatibility Aliases
-
-这些命令仍然保留一个大版本，但新版文档不再以它们为主叙事：
-
-| 旧命令 | 新路径 |
-|------|------|
-| `/new-project` | `/align` -> `/design` -> `/plan` |
-| `/clone-project` | `/align`（mode=reverse-spec）-> `/design` -> `/plan` |
-| `/new-module` | `/align`（module scope）-> `/design` -> `/plan` -> `/build` |
-| `/quick` | `/align`（mode=change）-> `/plan` 或直接 `/build` |
-| `/review` | `/verify` |
-| `/change-request` | `/align`（mode=change）-> `/design`/`/plan` |
-| `/init` | `/align`（mode=brownfield） |
-| `/map-codebase` | `/align`（mode=brownfield）+ 定点结构梳理 |
-
 ## 基本约束
 
 - 没有完成 `/align`，不要默认进入 `/build`
@@ -53,3 +38,4 @@ AI-OS vNext 默认按交付阶段组织 workflow，而不是先按场景套固�
 - `reverse-spec` 项目默认要补 `parity-map`
 - `change` 模式允许更轻，但仍需更新 `STATE.md` 和最小证据
 - `/auto-advance` 只能在设计门和逻辑门通过后进入大规模推进
+- 只有这里列出的阶段入口和继续推进入口属于 vNext 正式支持的 workflow

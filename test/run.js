@@ -46,7 +46,7 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "3.0.0", "major version bumped to 3.0.0");
+assert(versionFile === "4.0.0", "major version bumped to 4.0.0");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
@@ -68,7 +68,6 @@ process.stdout.write("\n=== shared.js exports ===\n");
 const shared = require("../bin/shared");
 assert(typeof shared.cleanYamlScalar === "function", "cleanYamlScalar exported");
 assert(typeof shared.parseInlineArray === "function", "parseInlineArray exported");
-assert(typeof shared.getExistingProjectFilePath === "function", "getExistingProjectFilePath exported");
 assert(typeof shared.SYM_OK === "string", "SYM_OK exported");
 assert(typeof shared.VALIDATION_SCHEMAS === "object", "VALIDATION_SCHEMAS exported");
 
@@ -89,7 +88,6 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md crea
 assert(fs.existsSync(path.join(initDir, ".ai-os", "specs", "example.spec.md")), "example spec created");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "release-plan.md")), "release-plan.md is not created by default");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "risk-register.md")), "risk-register.md is not created by default");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")), "verification-matrix.yaml is not created by default");
 
 const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "MISSION.md"), "utf8");
 const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "DESIGN.md"), "utf8");
@@ -116,10 +114,18 @@ assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "plan.md")), "plan workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "build.md")), "build workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "verify.md")), "verify workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "ship.md")), "ship workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "status.md")), "status workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "resume.md")), "resume workflow installed");
+assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "new-project.md")), "legacy new-project workflow removed");
+assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "new-module.md")), "legacy new-module workflow removed");
+assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "quick.md")), "legacy quick workflow removed");
+assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "review.md")), "legacy review workflow removed");
+assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "init.md")), "legacy init workflow removed");
 
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
 assert(workflowsIndex.includes("/align"), "workflow index documents /align");
-assert(workflowsIndex.includes("Compatibility Aliases"), "workflow index documents compatibility aliases");
+assert(!workflowsIndex.includes("Compatibility Aliases"), "workflow index only documents phase workflows");
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");
@@ -151,26 +157,7 @@ assert(resumeMarkdownResult.status === 0, "resume --markdown exits with code 0")
 assert(resumeMarkdownResult.stdout.includes("## 已锁定内容"), "resume --markdown includes locked items");
 assert(resumeMarkdownResult.stdout.includes(".ai-os/DESIGN.md"), "resume --markdown references DESIGN");
 
-process.stdout.write("\n=== migrate legacy artifacts ===\n");
-const migrateDir = tmpDir();
-assert(run("create-ai-os.js", [migrateDir]).status === 0, "framework-only init succeeds for migration test");
-fs.mkdirSync(path.join(migrateDir, ".ai-os"), { recursive: true });
-fs.writeFileSync(path.join(migrateDir, ".ai-os", "project-charter.md"), "# legacy charter\n", "utf8");
-fs.writeFileSync(path.join(migrateDir, ".ai-os", "reference-code-map.md"), "# legacy reference map\n", "utf8");
-
-const migrateDryRun = run("ai-os-migrate.js", [migrateDir, "--dry-run"]);
-assert(migrateDryRun.status === 0, "migrate --dry-run exits with code 0");
-assert(migrateDryRun.stdout.includes("project-charter.md"), "migrate --dry-run reports legacy charter mapping");
-
-const migrateRun = run("ai-os-migrate.js", [migrateDir]);
-assert(migrateRun.status === 0, "migrate exits with code 0");
-assert(fs.existsSync(path.join(migrateDir, ".ai-os", "MISSION.md")), "migrate creates MISSION.md");
-assert(fs.existsSync(path.join(migrateDir, ".ai-os", "DESIGN.md")), "migrate creates DESIGN.md");
-assert(fs.existsSync(path.join(migrateDir, ".ai-os", "design-pack", "parity-map.md")), "migrate creates parity-map.md");
-assert(fs.existsSync(path.join(migrateDir, ".ai-os", "migration-notes.md")), "migrate writes migration notes");
-
 cleanup(initDir);
-cleanup(migrateDir);
 
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

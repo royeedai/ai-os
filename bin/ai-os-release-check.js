@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   fail,
-  getExistingProjectFilePath,
+  getProjectFilePath,
   getProjectRelativePath,
   SYM_OK,
   SYM_FAIL,
@@ -47,7 +47,7 @@ if (!fs.existsSync(targetDir)) {
   fail(`target directory does not exist: ${targetDir}`);
 }
 
-const releasePlanPath = getExistingProjectFilePath(targetDir, "release-plan.md");
+const releasePlanPath = getProjectFilePath(targetDir, "release-plan.md");
 const releasePlan = readUtf8IfExists(releasePlanPath);
 
 if (releasePlan === null) {
@@ -136,7 +136,7 @@ report(
   "Delivery handoff notes are specific"
 );
 
-const acceptancePath = getExistingProjectFilePath(targetDir, "acceptance.yaml");
+const acceptancePath = getProjectFilePath(targetDir, "acceptance.yaml");
 const acceptanceContent = readUtf8IfExists(acceptancePath);
 report(
   acceptanceContent !== null,
@@ -156,7 +156,7 @@ if (acceptanceContent !== null) {
   );
 }
 
-const tasksPath = getExistingProjectFilePath(targetDir, "tasks.yaml");
+const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
 const parsedTasks = parseTasksFile(tasksPath);
 report(
   parsedTasks.exists,
