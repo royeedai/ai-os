@@ -20,8 +20,10 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 常见问题 | AI-OS vNext 的做法 |
 |------|------|
 | 需求一模糊，AI 就直接开工 | 先走 `/align`，把 Mission 说清 |
-| 技术栈或关键方案没对齐，AI 就自己拍板 | 在 `/align` 里把关键选型和确认状态写进 Mission |
+| 需求补充后，AI 直接改代码，文档和代码脱节 | 先走 `/change-request`，更新 `MISSION.md` / spec 再执行 |
+| 技术栈或关键方案没对齐，AI 就自己拍板 | 在 `/align` 和 `/design` 里把关键选型、确认状态和待确认项写清 |
 | 页面做出来了，但逻辑经常错 | 先锁 Design 和关键逻辑，再进入 build |
+| bug 修复时顺手乱改，改 A 坏 B | 先走 `/debug`，锁定边界、影响范围和回归计划 |
 | 界面上像有功能，但其实不能真用 | 用 spec / verify / acceptance 拦截“假入口、占位态、未验证能力” |
 | 代码跑了，但离可交付还很远 | 用 acceptance 的 4 个质量门拦截伪完成 |
 | 天然流式 / 长耗时场景被错建成同步接口 | 在 `/plan` 先锁 `interaction_mode`，避免后置重构 |
@@ -29,12 +31,10 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 资产 / 权限 / 状态流转类需求没被自动升级 | 用硬触发高风险档和专项审查拦截 |
 | happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
 | 一换 session，AI 就忘了做到哪 | 用 `STATE.md` 做恢复入口 |
-| reverse-spec 项目只会“做得像” | 用 parity map 管关键对照关系 |
-| 用户没有确认关键决策 | 把待确认项和设计确认记录写进工件 |
 
 ## vNext 心智
 
-AI-OS vNext 默认按交付阶段进入，而不是先按场景命令进入：
+AI-OS vNext 默认按交付阶段进入：
 
 1. `/align`
 2. `/design`
@@ -43,14 +43,12 @@ AI-OS vNext 默认按交付阶段进入，而不是先按场景命令进入：
 5. `/verify`
 6. `/ship`
 
-继续推进时常用：
+在这条主路径之外，新增两个兼容性的专项入口：
 
-- `/status`
-- `/next`
-- `/resume`
-- `/auto-advance`
+- `/change-request`：需求变更先同步基准
+- `/debug`：单点修复先锁边界再执行
 
-AI-OS vNext 只支持这套阶段式入口，旧场景命令已移除。
+它们不替代阶段式 workflow，只负责把变更和修复安全地路由回主流程。
 
 ## 新版核心工件
 
@@ -58,12 +56,12 @@ AI-OS vNext 默认围绕这套 `.ai-os/` 工件工作：
 
 | 文件 | 作用 |
 |------|------|
-| `.ai-os/MISSION.md` | 项目目标、用户、范围、模式、质量标准和关键选型确认 |
+| `.ai-os/MISSION.md` | 项目目标、用户、范围、模式、质量标准和最新需求基准 |
 | `.ai-os/DESIGN.md` | 信息架构、关键页面、关键交互、视觉方向、关键流程 |
 | `.ai-os/specs/` | 业务规则、交互模式、契约基准、状态流转、边界条件 |
 | `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求 |
 | `.ai-os/acceptance.yaml` | 质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
-| `.ai-os/STATE.md` | 当前方位、已锁定内容、待确认项、下一步和最小阅读集 |
+| `.ai-os/STATE.md` | 当前方位、已锁定内容、待确认项、确认停点和下一步 |
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
 
 按风险或场景补充：
@@ -90,20 +88,19 @@ npx --yes github:royeedai/ai-os my-project --with-project-files
 npx --yes github:royeedai/ai-os .
 ```
 
-### 2. 在 AI 工具里从 `/align` 开始
-
-常见起点：
+### 2. 在 AI 工具里选对入口
 
 - 从想法开始做项目：`/align`
 - 有截图 / API / 参考源码：`/align`，模式设为 `reverse-spec`
-- 已有仓库上的变更：`/align`，模式设为 `change`
+- 已有仓库上的需求变更：`/change-request`
+- 修一个单点 bug 或做微调：`/debug`
 
-### 3. 按阶段推进
+### 3. 按确认停点推进
 
-- 目标不清：`/align`
-- 设计和流程没锁：`/design`
-- 需要 spec / tasks / acceptance：`/plan`
-- 准备实现：`/build`
+- 目标不清：停在 `/align`
+- 设计和流程没锁：停在 `/design`
+- 需要 spec / tasks / acceptance：先 `/plan`
+- 只有在用户确认了需求基准、设计方案和任务验收后，才进入 `/build`
 - 准备判断“是不是做对了”：`/verify`
 - 准备交付：`/ship`
 
@@ -119,7 +116,11 @@ npx --yes github:royeedai/ai-os .
 
 ### 3. 已有项目里的局部变更
 
-`/align(change) -> /plan 或 /design -> /build -> /verify`
+`/change-request -> /plan 或 /design -> /build -> /verify`
+
+### 4. 单点 bug / 微调
+
+`/debug -> /verify`
 
 ## 常用 CLI
 
@@ -137,6 +138,7 @@ npx --yes github:royeedai/ai-os release-check .
 - [docs/getting-started.md](docs/getting-started.md)
 - [docs/workflows.md](docs/workflows.md)
 - [docs/artifacts.md](docs/artifacts.md)
+- [docs/ai-os-v2-customization-guide.md](docs/ai-os-v2-customization-guide.md)
 - [docs/cli.md](docs/cli.md)
 - [examples/README.md](examples/README.md)
 - [evals/README.md](evals/README.md)

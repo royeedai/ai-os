@@ -9,12 +9,12 @@ AI-OS vNext 的默认顺序不是“先写代码”，而是：
 5. `/verify`
 6. `/ship`
 
-## 第一次使用先记住 3 件事
+## 第一次使用先记住 4 件事
 
-- Mission 负责说清目标和质量标准
-- Design 负责锁关键页面和关键流程
-- Spec / Tasks / Acceptance 负责把交互模式、契约基准、联动检查和质量档位写清
-- State 负责恢复上下文
+- `MISSION.md` + `specs/` 是唯一需求真理源
+- `DESIGN.md` 负责锁关键页面和关键流程
+- `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清
+- `STATE.md` 负责恢复上下文、确认停点和下一步
 
 ## 安装后你会看到什么
 
@@ -28,6 +28,11 @@ AI-OS vNext 的默认顺序不是“先写代码”，而是：
 - `.ai-os/STATE.md`
 - `.ai-os/memory.md`
 - `.ai-os/specs/`
+
+## 什么时候用专项入口
+
+- 需求补充、范围变化、验收改变：`/change-request`
+- 单一 bug、样式微调、文案修正、配置修复：`/debug`
 
 ## 什么时候继续往下做
 

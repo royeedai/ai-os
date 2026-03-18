@@ -16,6 +16,8 @@ vNext 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `interaction-mode-misclassified.md`
 - `sensitive-flow-not-escalated.md`
 - `happy-path-passed-but-null-path-broken.md`
+- `change-request-before-code.md`
+- `debug-overreach-regression.md`
 
 ## 使用原则
 

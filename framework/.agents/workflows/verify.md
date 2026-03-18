@@ -22,7 +22,7 @@ description: 验证设计一致性、逻辑正确性、工程质量和运行态�
 
 1. 读取 `.ai-os/acceptance.yaml`
 2. 对照 `.ai-os/MISSION.md`、`.ai-os/DESIGN.md`、specs 和当前实现
-3. 检查：
+3. 按需求点和验收标准逐项检查：
    - 页面 / IA / 交互是否符合 Design
    - 逻辑契约、状态流转、异常处理是否正确
    - 契约基准、字段映射 / 适配说明和实现是否一致
@@ -31,14 +31,17 @@ description: 验证设计一致性、逻辑正确性、工程质量和运行态�
    - 测试、review、回归、运行态证据是否齐全
    - 未实现、未验证或仅 demo / placeholder 的能力是否被误写成完成
    - fallback 证据是否被误当成正式交付证据
-4. 更新 `.ai-os/acceptance.yaml`
-5. 更新 `.ai-os/STATE.md`
+4. 对本轮改动覆盖的影响范围执行回归验证，避免改 A 坏 B
+5. 若存在未通过项，先输出问题清单、影响范围、整改方案和是否需要升级回 `/change-request` 或 `/debug`
+6. 更新 `.ai-os/acceptance.yaml`
+7. 更新 `.ai-os/STATE.md`
 
 ## 输出
 
 - 更新后的 `.ai-os/acceptance.yaml`
+- 逐项需求 / 验收结论摘要
 - review / parity / runtime 证据摘要
-- 对正常路径、degraded-path 和高风险专项审查的结论
+- 对正常路径、degraded-path、回归范围和高风险专项审查的结论
 
 ## 禁止事项
 
@@ -47,3 +50,4 @@ description: 验证设计一致性、逻辑正确性、工程质量和运行态�
 - 禁止逻辑正确但设计和信息架构明显跑偏仍然放行
 - 禁止只验证正常流程，忽略异常 / 空值 / 权限拒绝 / 超时路径
 - 禁止存在假入口、占位流程或未验证能力仍然放行
+- 禁止发现问题后静默整改并跳过重新验证

@@ -1,5 +1,7 @@
 # Workflows（vNext）
 
+AI-OS vNext 以阶段式 workflow 为主，并补充两个兼容性的专项入口：`/change-request` 和 `/debug`。
+
 ## Phase Workflows
 
 | workflow | 用途 |
@@ -11,13 +13,26 @@
 | `/verify` | 验证设计、逻辑、工程、degraded-path 和运行态质量 |
 | `/ship` | 做交付、发布、回滚和移交 |
 
+## Specialized Workflows
+
+| workflow | 用途 |
+|------|------|
+| `/change-request` | 任何需求补充、范围调整、验收变化前先更新需求基准 |
+| `/debug` | 单点 bug、样式 / 文案 / 配置微调先定界、再修复、再回归 |
+
 ## Continue
 
 | workflow | 用途 |
 |------|------|
-| `/status` | 看当前方位 |
+| `/status` | 看当前方位和确认停点 |
 | `/next` | 看最值得执行的就绪任务 |
-| `/resume` | 恢复最小阅读集 |
-| `/auto-advance` | 在门禁通过后自动推进 |
+| `/resume` | 恢复最小阅读集与最新基准状态 |
+| `/auto-advance` | 在门禁通过且用户授权后自动推进 |
 
-这就是 AI-OS vNext 的全部 workflow 入口，旧场景命令已移除。
+## 使用原则
+
+- 新项目、新模块、模糊需求先走 `/align`
+- 关键设计未锁时停在 `/design`
+- 需求变化先走 `/change-request`，禁止直接按聊天指令改代码
+- 单点修复先走 `/debug`，禁止越界顺手改
+- `/build` 只能在用户确认了 Mission / Design / Plan 对应停点后进入

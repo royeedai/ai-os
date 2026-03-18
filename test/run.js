@@ -46,7 +46,7 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "4.1.0", "version bumped to 4.1.0");
+assert(versionFile === "5.0.0", "version bumped to 5.0.0");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
@@ -58,6 +58,8 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "cross-layer-change-missed-lin
 assert(fs.existsSync(path.join(repoRoot, "evals", "interaction-mode-misclassified.md")), "interaction-mode eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "sensitive-flow-not-escalated.md")), "high-risk escalation eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "happy-path-passed-but-null-path-broken.md")), "degraded-path eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "change-request-before-code.md")), "change-request eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "debug-overreach-regression.md")), "debug-overreach eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
@@ -65,6 +67,8 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "interaction-mode-chat.md")
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change.md")), "high-risk example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "cross-layer-schema-change.md")), "cross-layer schema example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification.md")), "degraded-path example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync.md")), "change-request example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix.md")), "debug example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "design-pack", "parity-map.md")), "reverse-spec skeleton includes parity map");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
@@ -73,8 +77,11 @@ const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.
 assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
 assert(maintainersDoc.includes("feature-visible-but-unusable.md"), "maintainers doc references usability eval");
 assert(maintainersDoc.includes("cross-layer-change-missed-linkage.md"), "maintainers doc references linkage eval");
+assert(maintainersDoc.includes("change-request-before-code.md"), "maintainers doc references change-request eval");
+assert(maintainersDoc.includes("debug-overreach-regression.md"), "maintainers doc references debug eval");
 assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
+assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers doc references change-request example");
 
 process.stdout.write("\n=== shared.js exports ===\n");
 const shared = require("../bin/shared");
@@ -116,8 +123,11 @@ assert(missionTemplate.includes("## 1. 任务定义"), "MISSION template has mis
 assert(missionTemplate.includes("关键选型"), "MISSION template includes key decisions");
 assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has phase plan");
 assert(missionTemplate.includes("高风险触发因素"), "MISSION template includes high-risk triggers");
+assert(missionTemplate.includes("当前治理档位"), "MISSION template includes governance tier");
+assert(missionTemplate.includes("需求变更同步记录"), "MISSION template includes change sync log");
 assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
 assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
+assert(designTemplate.includes("必须用户确认的核心设计决策"), "DESIGN template includes required confirmations");
 assert(tasksTemplate.includes("version: 3"), "tasks template upgraded to version 3");
 assert(tasksTemplate.includes("execution_role:"), "tasks template includes execution_role");
 assert(tasksTemplate.includes("approval_required:"), "tasks template includes approval_required");
@@ -125,6 +135,7 @@ assert(tasksTemplate.includes("parity_evidence_required:"), "tasks template incl
 assert(tasksTemplate.includes("impact_tags:"), "tasks template includes impact tags");
 assert(tasksTemplate.includes("derived_checks:"), "tasks template includes derived checks");
 assert(tasksTemplate.includes("risk_triggers:"), "tasks template includes risk triggers");
+assert(tasksTemplate.includes("requirement_refs:"), "tasks template includes requirement traceability");
 assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
 assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
 assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");
@@ -134,11 +145,13 @@ assert(acceptanceTemplate.includes("contract-baseline-check"), "acceptance templ
 assert(acceptanceTemplate.includes("degraded-path-check"), "acceptance template includes degraded-path evidence");
 assert(acceptanceTemplate.includes("confirmed_stack_decisions"), "acceptance template records confirmed stack decisions");
 assert(acceptanceTemplate.includes("task-flow-check"), "acceptance template includes task flow evidence");
+assert(acceptanceTemplate.includes("baseline_source"), "acceptance template includes baseline source");
 assert(specTemplate.includes("**交互模式**"), "spec template includes interaction mode");
 assert(specTemplate.includes("**契约基准**"), "spec template includes contract baseline");
 assert(specTemplate.includes("**异常/空数据证据**"), "spec template includes degraded-path evidence");
 assert(stateTemplate.includes("## 已锁定内容"), "STATE template includes locked items section");
 assert(stateTemplate.includes("## 最小阅读集"), "STATE template includes minimum reading set");
+assert(stateTemplate.includes("当前确认停点"), "STATE template includes confirmation checkpoint");
 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");
@@ -146,6 +159,8 @@ assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "plan.md")), "pl
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "build.md")), "build workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "verify.md")), "verify workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "ship.md")), "ship workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "change-request.md")), "change-request workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "debug.md")), "debug workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "status.md")), "status workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "resume.md")), "resume workflow installed");
 assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "new-project.md")), "legacy new-project workflow removed");
@@ -156,7 +171,8 @@ assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "init.md")), "l
 
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
 assert(workflowsIndex.includes("/align"), "workflow index documents /align");
-assert(!workflowsIndex.includes("Compatibility Aliases"), "workflow index only documents phase workflows");
+assert(workflowsIndex.includes("/change-request"), "workflow index documents /change-request");
+assert(workflowsIndex.includes("/debug"), "workflow index documents /debug");
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");

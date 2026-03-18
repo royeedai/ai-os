@@ -27,6 +27,8 @@
 - `evals/interaction-mode-misclassified.md`
 - `evals/sensitive-flow-not-escalated.md`
 - `evals/happy-path-passed-but-null-path-broken.md`
+- `evals/change-request-before-code.md`
+- `evals/debug-overreach-regression.md`
 
 ## 当前主示例
 
@@ -37,3 +39,5 @@
 - `examples/high-risk-state-change.md`
 - `examples/cross-layer-schema-change.md`
 - `examples/degraded-path-verification.md`
+- `examples/change-request-baseline-sync.md`
+- `examples/debug-bounded-fix.md`

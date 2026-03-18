@@ -11,10 +11,12 @@
 - `high-risk-state-change.md`
 - `cross-layer-schema-change.md`
 - `degraded-path-verification.md`
+- `change-request-baseline-sync.md`
+- `debug-bounded-fix.md`
 
 每个示例都配一套最小 `.ai-os/` 骨架，帮助维护者判断：
 
 - 哪些工件是核心
 - 关键设计和逻辑应该在什么阶段被锁定
 - 什么时候可以进入 build / verify
-- 哪些场景必须先做交互模式判型、联动检查和 degraded-path 验证
+- 哪些场景必须先做变更同步、边界确认和回归验证

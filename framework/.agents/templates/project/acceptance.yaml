@@ -2,6 +2,8 @@ version: 2
 scope:
   mode: "greenfield"
   focus: "example-module"
+  baseline_source: "MISSION.md + specs/"
+  change_control: "all requirement changes must go through /change-request"
   quality_tier: "standard"
   primary_spec: "specs/example.spec.md"
   confirmed_stack_decisions: "[如 Next.js + Node API + PostgreSQL + 正式鉴权]"
@@ -15,6 +17,7 @@ gates:
     title: "设计确认门"
     status: pending
     checks:
+      - "MISSION.md 已是本轮最新且已确认的需求基准"
       - "关键页面、信息架构和关键交互已确认"
       - "关键视觉方向和不采用的风格已写清"
       - "关键技术栈、目标运行态和不可逆关键选型已确认，未确认项已显式暴露"
@@ -31,6 +34,7 @@ gates:
       - "核心接口、状态流转和业务规则已确认"
       - "关键异常路径和边界条件已确认"
       - "spec 与 Mission / Design 没有冲突"
+      - "需求点、任务和验收标准已建立一一对应关系"
     evidence:
       - "spec-review"
       - "contract-note"
@@ -44,6 +48,7 @@ gates:
       - "关键用户任务 / 操作员任务所需的能力入口与执行链路真实可用，不是静态占位"
       - "未实现、未验证或仅 demo / placeholder 的能力未被标记为完成"
       - "契约基准、字段映射和状态枚举与实现一致"
+      - "修改边界符合确认方案，没有越界改动"
       - "测试与 review 已通过"
       - "没有已知严重回归"
     evidence:
@@ -62,6 +67,7 @@ gates:
       - "关键任务至少有一条异常 / 空数据 / 权限拒绝 / 超时 / 部分失败路径证据"
       - "UAT 或人工验证结果已记录"
       - "交付说明、回滚和移交信息齐全"
+      - "交付说明已明确本次实现范围与未纳入范围项"
       - "fallback 证据未被误当成正式交付证据"
     evidence:
       - "runtime-check"
@@ -88,3 +94,4 @@ result:
   delivery_ready: blocked
   blockers: []
   advisories: []
+  user_confirmation_blockers: []

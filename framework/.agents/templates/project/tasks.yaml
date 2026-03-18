@@ -3,6 +3,7 @@ mission: "MISSION.md"
 scope:
   mode: "greenfield"
   focus: "example-module"
+  baseline_source: "MISSION.md + specs/"
   quality_tier: "standard"
 
 milestones:
@@ -23,8 +24,12 @@ tasks:
     risk: medium
     wave: 1
     execution_role: "design_mapper"
-    approval_required: "none"
+    approval_required: "user_confirms_plan"
     depends_on: []
+    requirement_refs:
+      - "REQ-001"
+    acceptance_refs:
+      - "AC-001"
     context_files:
       - "MISSION.md"
       - "DESIGN.md"
@@ -46,10 +51,12 @@ tasks:
     definition_of_ready:
       - "Mission 已明确用户、目标和项目模式"
       - "关键输入素材已整理"
+      - "核心待确认项已显式暴露"
     definition_of_done:
       - "关键页面与流程已进入 spec"
       - "关键技术栈与关键选型已记录，并区分已确认与待确认项"
       - "设计确认门和逻辑确认门具备通过条件"
+      - "需求点、任务和验收标准建立了映射"
     evidence_required:
       - "design-decision-log"
       - "flow-note"
@@ -61,8 +68,11 @@ tasks:
     derived_checks:
       - "load contract baseline before task split"
       - "derive context_files from integration touchpoints"
+      - "verify requirement-to-acceptance traceability"
     risk_triggers: []
     blockers: []
+    out_of_scope_guard:
+      - "不进入未确认的实现工作"
     notes: ""
 
   - id: TASK-002
@@ -74,9 +84,13 @@ tasks:
     risk: medium
     wave: 2
     execution_role: "implementer"
-    approval_required: "before_high_risk"
+    approval_required: "before_execution"
     depends_on:
       - "TASK-001"
+    requirement_refs:
+      - "REQ-001"
+    acceptance_refs:
+      - "AC-001"
     context_files:
       - "MISSION.md"
       - "DESIGN.md"
@@ -103,11 +117,13 @@ tasks:
       - "逻辑确认门已通过"
       - "不存在阻塞性的技术选型待确认项"
       - "不存在阻塞性待确认项"
+      - "用户已确认本轮任务边界和验收标准"
     definition_of_done:
       - "实现与测试完成"
       - "关键用户任务 / 运营任务验证完成，不存在仅占位能力"
       - "实现质量门可通过"
       - "交付质量门所需证据已补齐"
+      - "只修改了已确认范围内的代码"
     evidence_required:
       - "build-log"
       - "test-log"
@@ -124,6 +140,9 @@ tasks:
       - "check linkage for all declared integration touchpoints"
       - "compare implementation against contract baseline"
       - "collect degraded-path evidence for key tasks"
+      - "confirm no out-of-scope edits were introduced"
     risk_triggers: []
     blockers: []
+    out_of_scope_guard:
+      - "禁止顺手优化、重构或修改无关逻辑"
     notes: ""
