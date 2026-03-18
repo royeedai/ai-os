@@ -4,6 +4,7 @@
 
 - `PROJECT_PURPOSE.md`
 - `AGENTS.md`
+- `docs/problem-ledger.md`
 - `docs/change-evaluation-template.md`
 
 ## 维护判断标准
@@ -14,6 +15,11 @@
 2. 它提升的是目标确认、设计锁定、逻辑锁定、证据完成，还是恢复能力
 3. 它更适合落在根层原则、workflow、skill、模板、CLI、示例还是 eval
 4. 它是在减少错误交付，还是只是在增加概念
+
+除此之外，每次维护都补做两件事：
+
+1. 新出现的真实问题先登记到 `docs/problem-ledger.md`
+2. 每次重构、学习进步或规则替换，都在变更评估里写清本次回看了哪些问题条目、覆盖是否变弱
 
 ## 当前基线 eval
 
@@ -29,6 +35,7 @@
 - `evals/happy-path-passed-but-null-path-broken.md`
 - `evals/change-request-before-code.md`
 - `evals/debug-overreach-regression.md`
+- `evals/problem-ledger-coverage-regression.md`
 
 ## 当前主示例
 

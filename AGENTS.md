@@ -21,6 +21,8 @@
 默认要求如下：
 
 - 不要把每次用户提到的技巧都直接变成框架规则
+- 来自别的项目的真实问题、失败案例和“AI-OS 要解决什么”的新增输入，先登记到 `docs/problem-ledger.md`，再评估它应该进入哪里
+- 每次重构、学习进步、workflow / 模板 / CLI / README 调整时，都要回看相关问题台账条目，确认覆盖没有丢失
 - 即使决定进入 `framework/`，也优先做重写、合并、替换，而不是继续平铺新增
 - 框架级改动必须解释它如何改善质量结果，而不是只解释它如何增加流程控制
 - 根层改动优先配套 eval、示例或 CLI 校验，避免只改文案
@@ -30,6 +32,7 @@
 
 - `PROJECT_PURPOSE.md`：定义 AI-OS 的最终目的、5 条核心要求和筛选法
 - `AGENTS.md`：定义开发 AI-OS 时如何判断“该不该改、该改到哪里”
+- `docs/problem-ledger.md`：单独记录真实问题、AI-OS 要解决的问题和当前覆盖锚点
 - `docs/maintainers.md`：维护者视角下的简版治理方法和清理要求
 - `docs/change-evaluation-template.md`：评估一次 AI-OS 变更建议的最小模板
 

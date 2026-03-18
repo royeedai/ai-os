@@ -32,6 +32,8 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
 | 一换 session，AI 就忘了做到哪 | 用 `STATE.md` 做恢复入口 |
 
+这些问题的单独台账、覆盖锚点和后续迭代核对入口统一维护在 [docs/problem-ledger.md](docs/problem-ledger.md)。
+
 ## vNext 心智
 
 AI-OS vNext 默认按交付阶段进入：
@@ -142,6 +144,7 @@ npx --yes github:royeedai/ai-os release-check .
 - [docs/getting-started.md](docs/getting-started.md)
 - [docs/workflows.md](docs/workflows.md)
 - [docs/artifacts.md](docs/artifacts.md)
+- [docs/problem-ledger.md](docs/problem-ledger.md)
 - [docs/ai-os-v2-customization-guide.md](docs/ai-os-v2-customization-guide.md)
 - [docs/cli.md](docs/cli.md)
 - [examples/README.md](examples/README.md)

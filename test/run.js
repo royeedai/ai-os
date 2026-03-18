@@ -50,6 +50,7 @@ assert(versionFile === "5.1.0", "version bumped to 5.1.0");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
+assert(fs.existsSync(path.join(repoRoot, "docs", "problem-ledger.md")), "problem ledger exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "design-not-locked-before-build.md")), "design-lock eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "ui-looks-right-but-logic-wrong.md")), "ui-vs-logic eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "logic-right-but-product-shape-wrong.md")), "product-shape eval exists");
@@ -60,6 +61,7 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "sensitive-flow-not-escalated.
 assert(fs.existsSync(path.join(repoRoot, "evals", "happy-path-passed-but-null-path-broken.md")), "degraded-path eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "change-request-before-code.md")), "change-request eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "debug-overreach-regression.md")), "debug-overreach eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regression.md")), "problem-ledger eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
@@ -74,11 +76,28 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
 
 const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
+const problemLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledger.md"), "utf8");
+const agentsDoc = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+const readmeDoc = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
+const changeEvaluationTemplate = fs.readFileSync(
+  path.join(repoRoot, "docs", "change-evaluation-template.md"),
+  "utf8"
+);
+
+assert(problemLedger.includes("PL-001"), "problem ledger records existing product problems");
+assert(problemLedger.includes("PG-001"), "problem ledger records governance coverage issue");
+assert(problemLedger.includes("每次重构、学习进步"), "problem ledger documents iteration review rule");
+assert(agentsDoc.includes("docs/problem-ledger.md"), "AGENTS references problem ledger");
+assert(readmeDoc.includes("docs/problem-ledger.md"), "README links to problem ledger");
+assert(changeEvaluationTemplate.includes("关联问题台账与覆盖核对"), "change evaluation template includes ledger coverage section");
+assert(changeEvaluationTemplate.includes("需补或更新的 eval / example / CLI / test"), "change evaluation template requires coverage follow-up");
 assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
 assert(maintainersDoc.includes("feature-visible-but-unusable.md"), "maintainers doc references usability eval");
 assert(maintainersDoc.includes("cross-layer-change-missed-linkage.md"), "maintainers doc references linkage eval");
 assert(maintainersDoc.includes("change-request-before-code.md"), "maintainers doc references change-request eval");
 assert(maintainersDoc.includes("debug-overreach-regression.md"), "maintainers doc references debug eval");
+assert(maintainersDoc.includes("docs/problem-ledger.md"), "maintainers doc references problem ledger");
+assert(maintainersDoc.includes("problem-ledger-coverage-regression.md"), "maintainers doc references problem ledger eval");
 assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
 assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers doc references change-request example");

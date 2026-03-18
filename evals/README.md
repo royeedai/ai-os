@@ -18,6 +18,7 @@ vNext 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `happy-path-passed-but-null-path-broken.md`
 - `change-request-before-code.md`
 - `debug-overreach-regression.md`
+- `problem-ledger-coverage-regression.md`
 
 ## 使用原则
 
