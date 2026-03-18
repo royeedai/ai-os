@@ -1,3 +1,4 @@
+# 本模板所有内容必须严格基于用户确认的需求基准生成，禁止擅自超出范围、脑补内容，所有核心决策必须有用户确认依据。
 version: 3
 mission: "MISSION.md"
 scope:
@@ -10,9 +11,15 @@ milestones:
   - id: M1
     title: "Design Locked"
     goal: "关键设计与逻辑已确认"
+    scope: "[本里程碑覆盖范围]"
+    acceptance_goal: "[本里程碑通过标准]"
+    target_window: "[计划时间窗口]"
   - id: M2
     title: "Built and Verified"
     goal: "实现、验证和交付证据已就绪"
+    scope: "[本里程碑覆盖范围]"
+    acceptance_goal: "[本里程碑通过标准]"
+    target_window: "[计划时间窗口]"
 
 tasks:
   - id: TASK-001
@@ -22,6 +29,7 @@ tasks:
     status: todo
     owner: ai
     risk: medium
+    priority: P1
     wave: 1
     execution_role: "design_mapper"
     approval_required: "user_confirms_plan"
@@ -57,6 +65,8 @@ tasks:
       - "关键技术栈与关键选型已记录，并区分已确认与待确认项"
       - "设计确认门和逻辑确认门具备通过条件"
       - "需求点、任务和验收标准建立了映射"
+    acceptance_criteria:
+      - "AC-001"
     evidence_required:
       - "design-decision-log"
       - "flow-note"
@@ -71,6 +81,9 @@ tasks:
       - "verify requirement-to-acceptance traceability"
     risk_triggers: []
     blockers: []
+    change_scope:
+      - "specs/example.spec.md"
+      - "acceptance.yaml"
     out_of_scope_guard:
       - "不进入未确认的实现工作"
     notes: ""
@@ -82,6 +95,7 @@ tasks:
     status: todo
     owner: ai
     risk: medium
+    priority: P0
     wave: 2
     execution_role: "implementer"
     approval_required: "before_execution"
@@ -124,6 +138,8 @@ tasks:
       - "实现质量门可通过"
       - "交付质量门所需证据已补齐"
       - "只修改了已确认范围内的代码"
+    acceptance_criteria:
+      - "AC-001"
     evidence_required:
       - "build-log"
       - "test-log"
@@ -143,6 +159,9 @@ tasks:
       - "confirm no out-of-scope edits were introduced"
     risk_triggers: []
     blockers: []
+    change_scope:
+      - "src/example.ts"
+      - "tests/example.test.ts"
     out_of_scope_guard:
       - "禁止顺手优化、重构或修改无关逻辑"
     notes: ""

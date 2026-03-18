@@ -43,10 +43,12 @@ AI-OS vNext 默认按交付阶段进入：
 5. `/verify`
 6. `/ship`
 
-在这条主路径之外，新增两个兼容性的专项入口：
+在这条主路径之外，新增兼容性的专项入口：
 
 - `/change-request`：需求变更先同步基准
 - `/debug`：单点修复先锁边界再执行
+- `/review`：多维度结构化审查
+- `/postmortem`：复盘并沉淀稳定经验
 
 它们不替代阶段式 workflow，只负责把变更和修复安全地路由回主流程。
 
@@ -94,6 +96,8 @@ npx --yes github:royeedai/ai-os .
 - 有截图 / API / 参考源码：`/align`，模式设为 `reverse-spec`
 - 已有仓库上的需求变更：`/change-request`
 - 修一个单点 bug 或做微调：`/debug`
+- 需要审查当前方案或实现：`/review`
+- 项目 / 里程碑结束复盘：`/postmortem`
 
 ### 3. 按确认停点推进
 

@@ -1,6 +1,6 @@
 # Workflows（vNext）
 
-AI-OS vNext 以阶段式 workflow 为主，并补充两个兼容性的专项入口：`/change-request` 和 `/debug`。
+AI-OS vNext 以阶段式 workflow 为主，并补充兼容性的专项入口：`/change-request`、`/debug`、`/review` 和 `/postmortem`。
 
 ## Phase Workflows
 
@@ -19,6 +19,8 @@ AI-OS vNext 以阶段式 workflow 为主，并补充两个兼容性的专项入�
 |------|------|
 | `/change-request` | 任何需求补充、范围调整、验收变化前先更新需求基准 |
 | `/debug` | 单点 bug、样式 / 文案 / 配置微调先定界、再修复、再回归 |
+| `/review` | 对方案、实现或交付做多维度结构化审查 |
+| `/postmortem` | 对项目或里程碑做复盘，并把稳定经验同步进 `memory.md` |
 
 ## Continue
 

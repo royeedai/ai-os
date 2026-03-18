@@ -46,7 +46,7 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "5.0.0", "version bumped to 5.0.0");
+assert(versionFile === "5.1.0", "version bumped to 5.1.0");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
@@ -125,9 +125,13 @@ assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has pha
 assert(missionTemplate.includes("高风险触发因素"), "MISSION template includes high-risk triggers");
 assert(missionTemplate.includes("当前治理档位"), "MISSION template includes governance tier");
 assert(missionTemplate.includes("需求变更同步记录"), "MISSION template includes change sync log");
+assert(missionTemplate.includes("### 非功能性约束"), "MISSION template includes non-functional constraints");
+assert(missionTemplate.includes("### 验收标准基线"), "MISSION template includes acceptance baseline");
 assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
 assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
 assert(designTemplate.includes("必须用户确认的核心设计决策"), "DESIGN template includes required confirmations");
+assert(designTemplate.includes("## 8. 方案选型依据"), "DESIGN template includes decision rationale section");
+assert(designTemplate.includes("## 10. 风险与注意事项"), "DESIGN template includes risk notes section");
 assert(tasksTemplate.includes("version: 3"), "tasks template upgraded to version 3");
 assert(tasksTemplate.includes("execution_role:"), "tasks template includes execution_role");
 assert(tasksTemplate.includes("approval_required:"), "tasks template includes approval_required");
@@ -136,6 +140,8 @@ assert(tasksTemplate.includes("impact_tags:"), "tasks template includes impact t
 assert(tasksTemplate.includes("derived_checks:"), "tasks template includes derived checks");
 assert(tasksTemplate.includes("risk_triggers:"), "tasks template includes risk triggers");
 assert(tasksTemplate.includes("requirement_refs:"), "tasks template includes requirement traceability");
+assert(tasksTemplate.includes("priority:"), "tasks template includes task priority");
+assert(tasksTemplate.includes("acceptance_criteria:"), "tasks template includes task acceptance criteria");
 assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
 assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
 assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");
@@ -161,18 +167,21 @@ assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "verify.md")), "
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "ship.md")), "ship workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "change-request.md")), "change-request workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "debug.md")), "debug workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "review.md")), "review workflow installed");
+assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "postmortem.md")), "postmortem workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "status.md")), "status workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "resume.md")), "resume workflow installed");
 assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "new-project.md")), "legacy new-project workflow removed");
 assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "new-module.md")), "legacy new-module workflow removed");
 assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "quick.md")), "legacy quick workflow removed");
-assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "review.md")), "legacy review workflow removed");
 assert(!fs.existsSync(path.join(initDir, ".agents", "workflows", "init.md")), "legacy init workflow removed");
 
 const workflowsIndex = fs.readFileSync(path.join(initDir, ".agents", "workflows", "AGENTS.md"), "utf8");
 assert(workflowsIndex.includes("/align"), "workflow index documents /align");
 assert(workflowsIndex.includes("/change-request"), "workflow index documents /change-request");
 assert(workflowsIndex.includes("/debug"), "workflow index documents /debug");
+assert(workflowsIndex.includes("/review"), "workflow index documents /review");
+assert(workflowsIndex.includes("/postmortem"), "workflow index documents /postmortem");
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");

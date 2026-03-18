@@ -143,6 +143,8 @@
 
 - `/change-request`
 - `/debug`
+- `/review`
+- `/postmortem`
 
 继续推进入口：
 
