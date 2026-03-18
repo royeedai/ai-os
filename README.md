@@ -137,7 +137,10 @@ npx --yes github:royeedai/ai-os status .
 npx --yes github:royeedai/ai-os next .
 npx --yes github:royeedai/ai-os resume .
 npx --yes github:royeedai/ai-os release-check .
+npx --yes github:royeedai/ai-os lab /tmp/ai-os-labs
 ```
+
+`lab` 会批量创建多种项目类型的本地沙盒，自动跑 `doctor` / `validate` / `status` / `next`，并输出一份 `lab-report.md`，适合做 AI-OS 自身的 smoke 和“做到哪一步才该叫用户验收”的演练。
 
 ## 更多文档
 

@@ -7,6 +7,7 @@
 const SUBCOMMANDS = {
   doctor:          "./ai-os-doctor",
   diff:            "./ai-os-diff",
+  lab:             "./ai-os-lab",
   upgrade:         "./ai-os-upgrade",
   validate:        "./ai-os-validate",
   "skill-check":   "./ai-os-skill-check",
@@ -61,6 +62,7 @@ Check your setup:
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
   create-ai-os skill-check [skill-dir]     Validate a custom Skill
+  create-ai-os lab [target-dir]            Bootstrap multi-scenario lab sandboxes
 
 Recover and continue:
   create-ai-os status [target-dir]         Show current delivery status
