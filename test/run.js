@@ -85,6 +85,8 @@ const changeEvaluationTemplate = fs.readFileSync(
 );
 
 assert(problemLedger.includes("PL-001"), "problem ledger records existing product problems");
+assert(problemLedger.includes("PL-013"), "problem ledger records targeted-mod overreach issue");
+assert(problemLedger.includes("PL-014"), "problem ledger records product-shape issue");
 assert(problemLedger.includes("PG-001"), "problem ledger records governance coverage issue");
 assert(problemLedger.includes("每次重构、学习进步"), "problem ledger documents iteration review rule");
 assert(agentsDoc.includes("docs/problem-ledger.md"), "AGENTS references problem ledger");

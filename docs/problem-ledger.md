@@ -49,12 +49,12 @@
 - **当前覆盖锚点**：`/align`、`/design`、`.ai-os/MISSION.md`、`.ai-os/DESIGN.md`、`evals/design-not-locked-before-build.md`、`evals/missing-user-confirmation.md`
 - **每次迭代核对**：不能把关键选型、待确认项和设计确认记录做薄。
 
-### PL-004 页面做出来了，但逻辑经常错
+### PL-004 界面看起来对了，但关键逻辑经常错
 
 - **来源**：现有 README 问题基线
 - **真实问题**：页面和交互看起来像完成了，但核心流程、状态流转或业务规则不对。
 - **AI-OS 必须保证**：关键设计和关键逻辑都先锁定，并在验证阶段同时过设计门和逻辑门。
-- **当前覆盖锚点**：`/design`、`/plan`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/specs/`、`.ai-os/acceptance.yaml`、`evals/ui-looks-right-but-logic-wrong.md`、`evals/logic-right-but-product-shape-wrong.md`
+- **当前覆盖锚点**：`/design`、`/plan`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/specs/`、`.ai-os/acceptance.yaml`、`evals/ui-looks-right-but-logic-wrong.md`
 - **每次迭代核对**：不能只保留视觉或实现检查，丢掉逻辑确认门。
 
 ### PL-005 bug 修复时顺手乱改，改 A 坏 B
@@ -75,11 +75,11 @@
 
 ### PL-007 代码跑了，但离可交付还很远
 
-- **来源**：现有 README 问题基线
+- **来源**：现有 README 问题基线；2026-03-16 本地会话关于 fallback 证据与目标运行态区分
 - **真实问题**：实现能运行，但没有完整证据、交付说明、回滚条件和发布准备。
 - **AI-OS 必须保证**：完成必须同时满足设计、逻辑、实现质量和交付质量。
-- **当前覆盖锚点**：`/verify`、`/ship`、`.ai-os/acceptance.yaml`、`.ai-os/release-plan.md`、`evals/fallback-evidence-used-as-delivery.md`
-- **每次迭代核对**：不能把“能跑”重新当成“可交付”。
+- **当前覆盖锚点**：`/verify`、`/ship`、`.ai-os/acceptance.yaml`、`.ai-os/release-plan.md`、`bin/ai-os-release-check.js`、`evals/fallback-evidence-used-as-delivery.md`
+- **每次迭代核对**：不能把“能跑”重新当成“可交付”，也不能把 dev fallback 证据当成 target runtime 证据。
 
 ### PL-008 天然流式 / 长耗时场景被错建成同步接口
 
@@ -120,6 +120,22 @@
 - **AI-OS 必须保证**：项目状态和稳定记忆可恢复，而不是只靠聊天上下文。
 - **当前覆盖锚点**：`.ai-os/STATE.md`、`.ai-os/memory.md`、`create-ai-os status`、`create-ai-os resume`、`PROJECT_PURPOSE.md`
 - **每次迭代核对**：不能削弱状态恢复入口、最小阅读集和稳定记忆边界。
+
+### PL-013 用户已经点明局部改动，AI 却默认扩散成全仓分析
+
+- **来源**：2026-03-16 `Clarify quick path for targeted mods` 提交；2026-03-16 本地会话关于局部能力不要自动升级到 `/map-codebase`
+- **真实问题**：用户明明只要求一个局部修改或新增局部能力，AI 却先做全仓扫描、全流程分析，既拖慢节奏，也把范围判断做偏。
+- **AI-OS 必须保证**：对明确点名的局部改动先定点理解；只有当模块位置、现有模式或影响边界不清时，才升级到更重的全局分析。
+- **当前覆盖锚点**：`PROJECT_PURPOSE.md` 中“局部改动不默认全仓扫描”、`framework/AGENTS.md`、`examples/brownfield-change-journey.md`
+- **每次迭代核对**：不能把局部改动、brownfield 变更和 debug 任务重新拉回“一上来先全仓分析”的旧路。
+
+### PL-014 逻辑是对的，但产品形态 / 信息架构还是错的
+
+- **来源**：`evals/logic-right-but-product-shape-wrong.md`；2026-03-16 本地会话关于企业后台 benchmark、信息架构和“最小可运行 / 可验收”分层
+- **真实问题**：接口、状态和逻辑都能跑通，但页面结构、信息架构、关键交互或产品组织方式仍然偏离已确认设计，最终做成 demo 感或错误产品形态。
+- **AI-OS 必须保证**：设计确认门和产品形态检查不能被代码、接口和测试通过替代；必要时明确区分“最小可运行”和“可验收”。
+- **当前覆盖锚点**：`/design`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/acceptance.yaml`、`evals/logic-right-but-product-shape-wrong.md`
+- **每次迭代核对**：不能把页面结构、信息架构和关键交互的检查退化成“接口对了就算通过”。
 
 ### PG-001 新问题没有单独记录，重构时容易把覆盖做丢
 
