@@ -46,7 +46,7 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "5.1.0", "version bumped to 5.1.0");
+assert(versionFile === "5.1.1", "version bumped to 5.1.1");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
@@ -61,6 +61,8 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "sensitive-flow-not-escalated.
 assert(fs.existsSync(path.join(repoRoot, "evals", "happy-path-passed-but-null-path-broken.md")), "degraded-path eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "change-request-before-code.md")), "change-request eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "debug-overreach-regression.md")), "debug-overreach eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "brownfield-infrastructure-audit-missed.md")), "brownfield infrastructure eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "configurable-meant-operable-gap.md")), "config closure eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regression.md")), "problem-ledger eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
@@ -71,6 +73,8 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "cross-layer-schema-change.
 assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification.md")), "degraded-path example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync.md")), "change-request example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix.md")), "debug example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-infrastructure-audit.md")), "brownfield infrastructure example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "config-closure-clarification.md")), "config closure example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "design-pack", "parity-map.md")), "reverse-spec skeleton includes parity map");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
@@ -87,6 +91,8 @@ const changeEvaluationTemplate = fs.readFileSync(
 assert(problemLedger.includes("PL-001"), "problem ledger records existing product problems");
 assert(problemLedger.includes("PL-013"), "problem ledger records targeted-mod overreach issue");
 assert(problemLedger.includes("PL-014"), "problem ledger records product-shape issue");
+assert(problemLedger.includes("PL-015"), "problem ledger records infrastructure audit issue");
+assert(problemLedger.includes("PL-016"), "problem ledger records config closure issue");
 assert(problemLedger.includes("PG-001"), "problem ledger records governance coverage issue");
 assert(problemLedger.includes("每次重构、学习进步"), "problem ledger documents iteration review rule");
 assert(agentsDoc.includes("docs/problem-ledger.md"), "AGENTS references problem ledger");
@@ -98,11 +104,15 @@ assert(maintainersDoc.includes("feature-visible-but-unusable.md"), "maintainers 
 assert(maintainersDoc.includes("cross-layer-change-missed-linkage.md"), "maintainers doc references linkage eval");
 assert(maintainersDoc.includes("change-request-before-code.md"), "maintainers doc references change-request eval");
 assert(maintainersDoc.includes("debug-overreach-regression.md"), "maintainers doc references debug eval");
+assert(maintainersDoc.includes("brownfield-infrastructure-audit-missed.md"), "maintainers doc references infrastructure audit eval");
+assert(maintainersDoc.includes("configurable-meant-operable-gap.md"), "maintainers doc references config closure eval");
 assert(maintainersDoc.includes("docs/problem-ledger.md"), "maintainers doc references problem ledger");
 assert(maintainersDoc.includes("problem-ledger-coverage-regression.md"), "maintainers doc references problem ledger eval");
 assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
 assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers doc references change-request example");
+assert(maintainersDoc.includes("brownfield-infrastructure-audit.md"), "maintainers doc references infrastructure example");
+assert(maintainersDoc.includes("config-closure-clarification.md"), "maintainers doc references config closure example");
 
 process.stdout.write("\n=== shared.js exports ===\n");
 const shared = require("../bin/shared");
@@ -148,11 +158,13 @@ assert(missionTemplate.includes("当前治理档位"), "MISSION template include
 assert(missionTemplate.includes("需求变更同步记录"), "MISSION template includes change sync log");
 assert(missionTemplate.includes("### 非功能性约束"), "MISSION template includes non-functional constraints");
 assert(missionTemplate.includes("### 验收标准基线"), "MISSION template includes acceptance baseline");
+assert(missionTemplate.includes("配置 / 设置 / 选项"), "MISSION template includes config closure guidance");
 assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
 assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
 assert(designTemplate.includes("必须用户确认的核心设计决策"), "DESIGN template includes required confirmations");
 assert(designTemplate.includes("## 8. 方案选型依据"), "DESIGN template includes decision rationale section");
 assert(designTemplate.includes("## 10. 风险与注意事项"), "DESIGN template includes risk notes section");
+assert(designTemplate.includes("共享基础设施约定"), "DESIGN template includes shared infrastructure constraint");
 assert(tasksTemplate.includes("version: 3"), "tasks template upgraded to version 3");
 assert(tasksTemplate.includes("execution_role:"), "tasks template includes execution_role");
 assert(tasksTemplate.includes("approval_required:"), "tasks template includes approval_required");
@@ -170,6 +182,8 @@ assert(acceptanceTemplate.includes("quality_tier"), "acceptance template include
 assert(acceptanceTemplate.includes("required_special_reviews"), "acceptance template includes special reviews");
 assert(acceptanceTemplate.includes("contract-baseline-check"), "acceptance template includes contract baseline evidence");
 assert(acceptanceTemplate.includes("degraded-path-check"), "acceptance template includes degraded-path evidence");
+assert(acceptanceTemplate.includes("static-validation-check"), "acceptance template includes static validation evidence");
+assert(acceptanceTemplate.includes("manual-action-note"), "acceptance template includes manual action evidence");
 assert(acceptanceTemplate.includes("confirmed_stack_decisions"), "acceptance template records confirmed stack decisions");
 assert(acceptanceTemplate.includes("task-flow-check"), "acceptance template includes task flow evidence");
 assert(acceptanceTemplate.includes("baseline_source"), "acceptance template includes baseline source");
@@ -350,6 +364,7 @@ fs.writeFileSync(
 - Mission、Design、Spec、Acceptance 已同步
 - 高风险审批点已完成确认
 - 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
+- 静态校验证据已记录（npm run build）
 - 关键证据已收集齐全
 
 ## 2. 变更范围与依赖
@@ -359,15 +374,16 @@ fs.writeFileSync(
 
 ## 3. 发布步骤
 
-1. 执行数据库迁移并重启 API
-2. 按 smoke 流程验证授权、并发和异常路径
-3. 记录交付说明并通知值守
+1. [AI 已完成] 已完成发布前配置检查并整理验证证据
+2. [需人工执行] 执行数据库迁移并重启 API
+3. [AI 已完成] 按 smoke 流程验证授权、并发和异常路径并通知值守
 
 ## 4. 运行态验证
 
 - authorization-boundary-check：权限 / 越权边界验证完成
 - concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
 - degraded-path-check：空值 / 缺字段 / 权限拒绝 / 超时 / 部分失败场景验证完成
+- 静态校验证据已记录（npm run build）
 - 目标运行态证据已记录
 
 ## 5. 回滚触发条件
@@ -377,7 +393,8 @@ fs.writeFileSync(
 
 ## 6. 交付说明与移交
 
-- 已同步运维和值守联系人
+- AI 已完成：已同步运维和值守联系人，已记录 smoke 与静态校验证据
+- 需人工执行：发布窗口内执行数据库迁移、重启 API 并回填执行记录
 - 已记录已知风险与观察指标
 `,
   "utf8"
@@ -432,6 +449,117 @@ impact_rules:
 const releaseReadyResult = run("ai-os-release-check.js", [highRiskReadyDir]);
 assert(releaseReadyResult.status === 0, "release-check passes for explicit high-risk project with required artifacts");
 cleanup(highRiskReadyDir);
+
+const highRiskMissingMarkersDir = tmpDir();
+run("create-ai-os.js", [highRiskMissingMarkersDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(highRiskMissingMarkersDir, ".ai-os", "tasks.yaml"),
+  fs.readFileSync(path.join(highRiskMissingMarkersDir, ".ai-os", "tasks.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace(/status: todo/g, "status: done")
+    .replace('risk: medium', 'risk: high')
+    .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"\n      - "state-transition"'),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingMarkersDir, ".ai-os", "acceptance.yaml"),
+  fs.readFileSync(path.join(highRiskMissingMarkersDir, ".ai-os", "acceptance.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace('required_special_reviews: []', 'required_special_reviews: ["security-guard", "authorization-boundary-check", "concurrency-safety-check"]')
+    .replace(/status: pending/g, "status: passed"),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingMarkersDir, ".ai-os", "release-plan.md"),
+  `# Test Release
+
+## 1. 交付前检查
+
+- Mission、Design、Spec、Acceptance 已同步
+- 高风险审批点已完成确认
+- 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
+- 关键证据已收集齐全
+
+## 2. 变更范围与依赖
+
+- 覆盖权益扣减接口、状态流转和通知写入
+- 依赖正式鉴权、中台账户服务和数据库迁移
+
+## 3. 发布步骤
+
+1. 执行数据库迁移并重启 API
+2. 按 smoke 流程验证授权、并发和异常路径
+3. 记录交付说明并通知值守
+
+## 4. 运行态验证
+
+- authorization-boundary-check：权限 / 越权边界验证完成
+- concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
+- degraded-path-check：空值 / 缺字段 / 权限拒绝 / 超时 / 部分失败场景验证完成
+- 目标运行态证据已记录
+
+## 5. 回滚触发条件
+
+- 出现重复扣减或越权访问
+- 关键任务链路失败率持续升高
+
+## 6. 交付说明与移交
+
+- 已同步运维和值守联系人
+- 已记录已知风险与观察指标
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingMarkersDir, ".ai-os", "risk-register.md"),
+  `# 风险登记表
+
+| ID | 风险 | 类型 | 影响 | 触发条件 | 缓解措施 | 状态 |
+|----|------|------|------|----------|----------|------|
+| R-001 | 权益扣减并发覆盖 | 逻辑 / 发布 | 高 | 高并发重复提交 | 幂等键 + 审计日志 + 专项审查 | open |
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingMarkersDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+  restart_api: "npm run restart:api"
+  cold-start-smoke_api: "npm run smoke:api"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+      - "restart_api"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: sensitive-flow
+    impact_tags:
+      - "state-transition"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+    notes: "高风险状态流转必须补齐契约和异常路径证据"
+`,
+  "utf8"
+);
+const releaseMissingMarkersResult = run("ai-os-release-check.js", [highRiskMissingMarkersDir]);
+assert(releaseMissingMarkersResult.status === 1, "release-check blocks high-risk release plan missing manual-action/static-validation markers");
+cleanup(highRiskMissingMarkersDir);
 
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

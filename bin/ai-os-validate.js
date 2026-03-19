@@ -432,6 +432,20 @@ if (verificationMatrixContent !== null) {
   );
 }
 
+const releasePlanContent = readUtf8IfExists(getProjectFilePath(targetDir, "release-plan.md"));
+if (releasePlanContent !== null) {
+  const missingReleasePlanMarkers = missingMarkers(
+    releasePlanContent,
+    VALIDATION_SCHEMAS.releasePlanMarkersTransitional
+  );
+  report(
+    missingReleasePlanMarkers.length === 0,
+    `${getProjectRelativePath("release-plan.md")} includes manual-action/static-validation markers`,
+    true,
+    missingReleasePlanMarkers.map((marker) => `missing marker: ${marker}`)
+  );
+}
+
 const designPackDir = getProjectFilePath(targetDir, "design-pack");
 if (fs.existsSync(designPackDir) && fs.statSync(designPackDir).isDirectory()) {
   const parityMapPath = path.join(designPackDir, "parity-map.md");

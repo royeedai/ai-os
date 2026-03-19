@@ -28,8 +28,11 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 代码跑了，但离可交付还很远 | 用 acceptance 的 4 个质量门拦截伪完成 |
 | 天然流式 / 长耗时场景被错建成同步接口 | 在 `/plan` 先锁 `interaction_mode`，避免后置重构 |
 | 跨层字段或配置改动总是漏联动 | 用 `contract baseline`、`impact_tags`、`impact_rules` 补联动检查 |
+| brownfield 任务里藏着全局拆包 / DTO / 样式约定，AI 却只看局部文件就开改 | 在 `/design`、`/debug` 和 review 里先做共享基础设施审计，再锁局部契约 |
+| 用户说“系统可设置”，AI 却没确认到底谁来操作、在哪里操作 | 在 `/align` 和 `/change-request` 里轻量追问配置闭环，避免把“可设置”直接等价成某一种实现方式 |
 | 资产 / 权限 / 状态流转类需求没被自动升级 | 用硬触发高风险档和专项审查拦截 |
 | happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
+| 交付还需要 SQL / 重启 / 静态校验，AI 却写成“已经全部完成” | 在 `/verify` 和 `/ship` 里显式区分 `AI 已完成` / `需人工执行`，并要求静态校验证据 |
 | 一换 session，AI 就忘了做到哪 | 用 `STATE.md` 做恢复入口 |
 
 这些问题的单独台账、覆盖锚点和后续迭代核对入口统一维护在 [docs/problem-ledger.md](docs/problem-ledger.md)。

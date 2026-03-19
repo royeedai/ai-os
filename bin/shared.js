@@ -544,11 +544,18 @@ const VALIDATION_SCHEMAS = {
     "required_special_reviews:",
     "contract-baseline-check",
     "degraded-path-check",
+    "static-validation-check",
+    "manual-action-note",
   ],
   verificationMatrixMarkers: [
     "commands:",
     "rules:",
     "impact_rules:",
+  ],
+  releasePlanMarkersTransitional: [
+    "AI 已完成",
+    "需人工执行",
+    "静态校验",
   ],
 };
 

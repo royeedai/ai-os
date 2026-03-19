@@ -76,10 +76,10 @@
 ### PL-007 代码跑了，但离可交付还很远
 
 - **来源**：现有 README 问题基线；2026-03-16 本地会话关于 fallback 证据与目标运行态区分
-- **真实问题**：实现能运行，但没有完整证据、交付说明、回滚条件和发布准备。
-- **AI-OS 必须保证**：完成必须同时满足设计、逻辑、实现质量和交付质量。
+- **真实问题**：实现能运行，但没有完整证据、交付说明、回滚条件、静态校验证据，或仍需人工执行 SQL / 重启 / 补数却被写成“已完成交付”。
+- **AI-OS 必须保证**：完成必须同时满足设计、逻辑、实现质量和交付质量，并显式区分 `AI 已完成` 与 `需人工执行`。
 - **当前覆盖锚点**：`/verify`、`/ship`、`.ai-os/acceptance.yaml`、`.ai-os/release-plan.md`、`bin/ai-os-release-check.js`、`evals/fallback-evidence-used-as-delivery.md`
-- **每次迭代核对**：不能把“能跑”重新当成“可交付”，也不能把 dev fallback 证据当成 target runtime 证据。
+- **每次迭代核对**：不能把“能跑”重新当成“可交付”，不能把 dev fallback 证据当成 target runtime 证据，也不能把待人工执行动作和缺少静态校验的状态写成已完成。
 
 ### PL-008 天然流式 / 长耗时场景被错建成同步接口
 
@@ -136,6 +136,22 @@
 - **AI-OS 必须保证**：设计确认门和产品形态检查不能被代码、接口和测试通过替代；必要时明确区分“最小可运行”和“可验收”。
 - **当前覆盖锚点**：`/design`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/acceptance.yaml`、`evals/logic-right-but-product-shape-wrong.md`
 - **每次迭代核对**：不能把页面结构、信息架构和关键交互的检查退化成“接口对了就算通过”。
+
+### PL-015 brownfield / change 任务忽略共享基础设施约定
+
+- **来源**：2026-03-19 用户复盘；AiChat.vue 下拉框为空，根因是全局 request 拦截器已做响应拆包，但实现仍按局部 `res.code === 200` 假设写逻辑
+- **真实问题**：AI 只看局部页面、接口或样式文件就开始改动，忽略共享拦截器、DTO / adapter、中间件、路由鉴权或全局样式变量等基础设施约定，导致契约判断和 UI 实现从一开始就偏了。
+- **AI-OS 必须保证**：在 `/design`、`/debug` 和跨层 review 前，先审计会影响局部实现的共享基础设施约定，再锁定契约基准、字段映射和 UI 假设。
+- **当前覆盖锚点**：`/design`、`/debug`、`framework/.agents/skills/systematic-debugging/SKILL.md`、`framework/.agents/skills/fullstack-dev-checklist/SKILL.md`、`.ai-os/DESIGN.md`、`evals/brownfield-infrastructure-audit-missed.md`、`examples/brownfield-infrastructure-audit.md`
+- **每次迭代核对**：不能只保留“集成触点”而丢掉共享包装层 / 转换层 / 样式基准的审计要求，也不能让 brownfield 任务重新退化成“看见局部文件就直接开改”。
+
+### PL-016 “可配置 / 可设置”被误解成单纯后端支持
+
+- **来源**：2026-03-19 用户复盘；用户期望前端可交互设置，但 AI 把“系统可设置”理解成后端逻辑支持数据库记录
+- **真实问题**：需求里出现“配置 / 设置 / 选项”时，AI 没有确认操作闭环，就默认按自己的理解落成静态配置、后端可配或 UI CRUD，导致范围判断偏差。
+- **AI-OS 必须保证**：在 `/align` 和 `/change-request` 遇到这类术语时，轻量追问一次“是静态预置、后台可配，还是需要用户 / 运营入口”，并把结论写进 `MISSION.md` 的澄清或范围说明。
+- **当前覆盖锚点**：`/align`、`/change-request`、`.ai-os/MISSION.md`、`evals/configurable-meant-operable-gap.md`、`examples/config-closure-clarification.md`
+- **每次迭代核对**：不能把这类术语重新当成无需确认的默认词，也不能把“轻量追问”偷偷升级成一刀切的 UI CRUD 强制要求。
 
 ### PG-001 新问题没有单独记录，重构时容易把覆盖做丢
 

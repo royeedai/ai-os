@@ -21,13 +21,15 @@ description: >
 ## 联动矩阵
 
 - `entrypoint` / `transport` / `gateway` / `auth`：
-  必须复查入口注册、路由 / 网关 / 代理、鉴权边界、错误语义、可观测性埋点
+  必须复查入口注册、路由 / 网关 / 代理、鉴权边界、错误语义、可观测性埋点，以及 request wrapper / interceptor 的共享约定
 - `schema` / `mapping` / `storage`：
-  必须复查序列化、字段映射 / 适配、迁移、兼容性、历史数据和空值处理
+  必须复查序列化、字段映射 / 适配、DTO / adapter、迁移、兼容性、历史数据和空值处理
 - `runtime-config` / `external-dependency` / `async-processing`：
   必须复查环境配置、启动参数、重启 / 冷启动、外部依赖失败恢复和目标运行态差异
 - `state-transition`：
   必须复查状态前置条件、不可逆操作、回滚策略、并发竞争和审计记录
+- `ui-foundation` / `design-token`：
+  必须复查全局样式变量、主题约定、共享布局基准和局部页面实现是否一致
 
 ## reverse-spec 额外检查
 
@@ -37,7 +39,7 @@ description: >
 
 ## 交付输出
 
-- 设计、逻辑、工程、交付四个维度的检查结果
+- 设计、逻辑、工程、交付四个维度的检查结果，并显式说明是否仍有待人工执行动作
 
 ## 禁止事项
 
@@ -47,5 +49,5 @@ description: >
 ## 维护信息
 
 - 来源：`/build`、`/verify` workflow
-- 更新时间：2026-03-17
+- 更新时间：2026-03-19
 - 已知限制：只适用于跨层联动任务

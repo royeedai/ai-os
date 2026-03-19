@@ -28,7 +28,7 @@ description: >
    - `risk_triggers`
    - `evidence_required`
    - `parity_evidence_required`（reverse-spec 适用）
-4. 根据 spec 中的 `集成触点` 和 `交互模式`，派生 `context_files`、`impact_tags`、`derived_checks`
+4. 根据 spec 中的 `集成触点`、`交互模式` 和共享基础设施约定，派生 `context_files`、`impact_tags`、`derived_checks`
 5. 对照 `../references/risk-triggers.md`，命中高风险触发时升级 `quality_tier`，并强制补审批和专项审查
 6. 更新 `.ai-os/tasks.yaml`
 7. 同步 `.ai-os/STATE.md`
@@ -39,6 +39,7 @@ description: >
 - 逻辑确认前不要把大规模实现放进早期 wave
 - review / verify / runtime evidence 必须显式占位
 - 跨层联动任务必须把入口、契约、映射、运行态影响拆成可验证项，而不是合并成一句“完成模块开发”
+- 若 brownfield / change 任务受 request wrapper、DTO / adapter、中间件、路由鉴权或样式基准影响，必须把这些共享约定纳入 `context_files` 或 `derived_checks`
 
 ## 交付输出
 
@@ -59,5 +60,5 @@ description: >
 ## 维护信息
 
 - 来源：`/plan` workflow
-- 更新时间：2026-03-17
+- 更新时间：2026-03-19
 - 已知限制：本 Skill 负责任务编排，不替代 spec 校验和验收判断

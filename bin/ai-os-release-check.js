@@ -7,6 +7,7 @@ const {
   HIGH_RISK_SPECIAL_REVIEWS,
   getProjectFilePath,
   getProjectRelativePath,
+  readInstalledMeta,
   SYM_OK,
   SYM_FAIL,
   VALIDATION_SCHEMAS,
@@ -101,7 +102,30 @@ function sectionIncludesAll(sectionContent, markers) {
   return markers.every((marker) => sectionContent.includes(marker));
 }
 
+function versionAtLeast(currentVersion, minimumVersion) {
+  const current = String(currentVersion || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const minimum = String(minimumVersion || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const length = Math.max(current.length, minimum.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const left = current[index] || 0;
+    const right = minimum[index] || 0;
+    if (left > right) return true;
+    if (left < right) return false;
+  }
+
+  return true;
+}
+
 process.stdout.write(`\nAI-OS Release Check — ${targetDir}\n\n`);
+
+const installedMeta = readInstalledMeta(targetDir);
+const enforceEnhancedDeliveryMarkers =
+  !installedMeta.exists || versionAtLeast(installedMeta.version, "5.1.1");
 
 const missingSections = requiredSections.filter((section) => !sections.has(section));
 report(
@@ -146,6 +170,17 @@ report(
   "Delivery handoff notes are specific"
 );
 
+if (enforceEnhancedDeliveryMarkers) {
+  report(
+    sectionIncludesAll(`${releaseStepsSection}\n${handoffSection}`, ["AI 已完成", "需人工执行"]),
+    "Release plan explicitly separates AI-completed and manual actions"
+  );
+  report(
+    sectionIncludesAll(`${preflightSection}\n${smokeCheckSection}`, ["静态校验"]),
+    "Release plan records static validation evidence"
+  );
+}
+
 const acceptancePath = getProjectFilePath(targetDir, "acceptance.yaml");
 const acceptance = parseAcceptanceFile(acceptancePath);
 const acceptanceContent = acceptance.exists ? acceptance.content : null;
@@ -162,6 +197,16 @@ if (acceptanceContent !== null) {
       ? [`current delivery-readiness status: ${decision}`]
       : ["missing delivery-readiness gate status"]
   );
+  if (enforceEnhancedDeliveryMarkers) {
+    report(
+      (acceptance.gateEvidence["implementation-quality"] || []).includes("static-validation-check"),
+      "Acceptance tracks static-validation-check evidence"
+    );
+    report(
+      (acceptance.gateEvidence["delivery-readiness"] || []).includes("manual-action-note"),
+      "Acceptance tracks manual-action-note evidence"
+    );
+  }
 }
 
 const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");

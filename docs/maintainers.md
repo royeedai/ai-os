@@ -35,6 +35,8 @@
 - `evals/happy-path-passed-but-null-path-broken.md`
 - `evals/change-request-before-code.md`
 - `evals/debug-overreach-regression.md`
+- `evals/brownfield-infrastructure-audit-missed.md`
+- `evals/configurable-meant-operable-gap.md`
 - `evals/problem-ledger-coverage-regression.md`
 
 ## 当前主示例
@@ -48,3 +50,5 @@
 - `examples/degraded-path-verification.md`
 - `examples/change-request-baseline-sync.md`
 - `examples/debug-bounded-fix.md`
+- `examples/brownfield-infrastructure-audit.md`
+- `examples/config-closure-clarification.md`

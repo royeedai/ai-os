@@ -44,6 +44,7 @@ description: >
 
 #### A. 编译与入口
 - [ ] 执行过项目级编译/构建命令且无错误？
+- [ ] 若仓库存在 compile / type-check / build 入口，是否至少执行并记录了一项项目原生静态校验？
 - [ ] 是否根据 `.ai-os/verification-matrix.yaml` 或 `verification_required` 明确了本次改动必须执行的动作？
 - [ ] 若命中了 `restart_required`，受影响服务是否真的完成了重启？
 - [ ] 若命中了 `cold_start_required`，是否真的执行了冷启动 Smoke Check？
@@ -61,6 +62,7 @@ description: >
 - [ ] 前后端 API 代理配置是否匹配？HTTP 工具是否已封装错误处理/Token 挂载？
 - [ ] 是否存在版本控制忽略规则文件？
 - [ ] 若项目存在目标运行态与开发 fallback 差异，是否已把 fallback 自测证据与目标运行态证据分开？
+- [ ] 若现象或改动涉及共享包装层 / 转换层，是否先核对 request wrapper / interceptor、DTO / adapter、中间件、路由鉴权或全局样式基准？
 
 **未通过 Step 0 的代码，直接判为「不合格」，不进入后续审查。**
 
@@ -80,6 +82,7 @@ description: >
 ### Step 1.5：契约基准比对 [新增硬检查]
 
 - [ ] spec 是否声明了 `契约基准`、`字段映射/适配说明`、`集成触点`？
+- [ ] brownfield / change 任务若存在共享基础设施约定，spec / DESIGN / review 记录里是否显式写清？
 - [ ] 前后端、API / worker、DTO / entity、事件发布 / 消费之间的字段名、状态枚举、错误码、分页 / 过滤字段是否与 spec 一致？
 - [ ] 若实现中存在命名差异，spec 是否显式声明映射关系，代码中是否存在明确 adapter / translator？
 - [ ] 若命中 `impact_tags` 中的 `mapping` / `schema` / `state-transition`，是否补了兼容性和 degraded-path 证据？
@@ -163,6 +166,7 @@ description: >
 - [ ] 是否分别给出了正常路径和 degraded-path（空值 / 缺字段 / 权限拒绝 / 超时 / 部分失败）的证据？
 - [ ] 若本次变更要求 restart / cold-start，是否存在 `restart-log`、`cold-start-log`、`post-restart-smoke-log`？
 - [ ] 是否分别判断了“最小可运行”和“可验收”，而不是把“能跑”直接写成“已完成”？
+- [ ] 是否明确区分了 `AI 已完成` 与 `需人工执行`，并把 SQL / 重启 / 迁移 / 补数 / 环境变更列入交付说明？
 - [ ] 未实现、未验证、仅占位或仅 demo 的能力是否已明确排除在“完成”之外？
 - [ ] 若项目存在开发 fallback 与目标运行态差异，是否避免用 fallback 证据替代正式运行态证据？
 - [ ] `.ai-os/tasks.yaml` 中的关键任务是否都附有完成证据？
@@ -250,5 +254,5 @@ description: >
 ## 维护信息
 
 - 来源：`framework/AGENTS.md`、`.agents/references/derived-rules.md`、`references/review-dimensions.md`
-- 更新时间：2026-03-17
+- 更新时间：2026-03-19
 - 已知限制：本 Skill 偏模块级自审；若涉及正式发布决策，还应继续使用 `acceptance-gate`、`release-manager` 等后续 Skill

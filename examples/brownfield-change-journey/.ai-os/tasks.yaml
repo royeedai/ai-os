@@ -54,6 +54,7 @@ tasks:
     impact_tags:
       - "mapping"
     derived_checks:
+      - "audit shared wrappers/adapters before assuming local contract"
       - "verify impacted endpoints only"
     risk_triggers: []
     blockers: []

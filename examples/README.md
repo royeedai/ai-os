@@ -13,6 +13,8 @@
 - `degraded-path-verification.md`
 - `change-request-baseline-sync.md`
 - `debug-bounded-fix.md`
+- `brownfield-infrastructure-audit.md`
+- `config-closure-clarification.md`
 
 每个示例都配一套最小 `.ai-os/` 骨架，帮助维护者判断：
 
