@@ -29,7 +29,7 @@ description: >
    - `evidence_required`
    - `parity_evidence_required`（reverse-spec 适用）
 4. 根据 spec 中的 `集成触点`、`交互模式` 和共享基础设施约定，派生 `context_files`、`impact_tags`、`derived_checks`
-5. 对照 `../references/risk-triggers.md`，命中高风险触发时升级 `quality_tier`，并强制补审批和专项审查
+5. 对照 `../../references/risk-triggers.md`，命中高风险触发时升级 `quality_tier`，并强制补审批和专项审查
 6. 更新 `.ai-os/tasks.yaml`
 7. 同步 `.ai-os/STATE.md`
 

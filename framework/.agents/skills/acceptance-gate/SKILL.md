@@ -15,7 +15,7 @@ description: >
 ## 使用方式
 
 1. 生成或更新 `.ai-os/acceptance.yaml`
-2. 根据 `../references/risk-triggers.md` 判断当前 `quality_tier`，并在高风险档写入 `required_special_reviews`
+2. 根据 `../../references/risk-triggers.md` 判断当前 `quality_tier`，并在高风险档写入 `required_special_reviews`
 2. 确保存在以下门禁：
    - `design-confirmation`
    - `logic-confirmation`

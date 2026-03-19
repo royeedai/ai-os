@@ -19,7 +19,7 @@ description: >
 
 1. 判断项目模式：`greenfield` / `reverse-spec` / `brownfield` / `change`
 2. 收敛用户目标、成功标准、目标用户、关键场景
-3. 用 `../references/risk-triggers.md` 中的硬触发规则判断当前交付档位；命中任一类时直接升级为 `high-risk`
+3. 用 `../../references/risk-triggers.md` 中的硬触发规则判断当前交付档位；命中任一类时直接升级为 `high-risk`
 4. 明确关键技术栈、目标运行态和关键工程选型，区分已确认与待确认
 5. 明确范围内 / 范围外内容
 6. 记录已有输入、待确认项和高风险触发因素
