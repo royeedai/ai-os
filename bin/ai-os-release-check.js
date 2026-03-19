@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
 const {
   fail,
   HIGH_RISK_SPECIAL_REVIEWS,
   getProjectFilePath,
   getProjectRelativePath,
   readInstalledMeta,
-  SYM_OK,
-  SYM_FAIL,
+  parseCliArgs,
+  resolveTargetDir,
+  createReporter,
   VALIDATION_SCHEMAS,
 } = require("./shared");
 const {
@@ -17,9 +16,11 @@ const {
   splitMarkdownSections,
   parseAcceptanceFile,
   parseTasksFile,
+  isDeclaredHighRisk,
 } = require("./project-state");
 
-function printHelp() {
+const parsed = parseCliArgs(process.argv);
+if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-release-check [target-dir]
 
@@ -28,31 +29,10 @@ Run delivery readiness checks against release-plan.md and related artifacts.
 Options:
   -h, --help  Show this help message
 `);
+  process.exit(0);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
-
-const targetDir = path.resolve(targetArg || ".");
-
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
+const targetDir = resolveTargetDir(parsed.positional);
 
 const releasePlanPath = getProjectFilePath(targetDir, "release-plan.md");
 const releasePlan = readUtf8IfExists(releasePlanPath);
@@ -64,20 +44,8 @@ if (releasePlan === null) {
 const sections = splitMarkdownSections(releasePlan);
 const requiredSections = VALIDATION_SCHEMAS.releasePlan;
 
-let hasFailure = false;
-
-function report(ok, label, details = []) {
-  if (ok) {
-    process.stdout.write(`  ${SYM_OK}  ${label}\n`);
-  } else {
-    hasFailure = true;
-    process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
-  }
-
-  for (const detail of details) {
-    process.stdout.write(`       - ${detail}\n`);
-  }
-}
+const reporter = createReporter();
+const { report } = reporter;
 
 function hasConcreteChecklistItems(sectionContent) {
   return sectionContent
@@ -131,7 +99,7 @@ const missingSections = requiredSections.filter((section) => !sections.has(secti
 report(
   missingSections.length === 0,
   `${getProjectRelativePath("release-plan.md")} sections complete`,
-  missingSections.map((section) => `missing section: ${section}`)
+  { details: missingSections.map((section) => `missing section: ${section}`) }
 );
 
 const preflightSection = sections.get("1. 交付前检查") || "";
@@ -193,9 +161,9 @@ if (acceptanceContent !== null) {
   report(
     decision === "passed" || decision === "approved",
     "Delivery readiness gate is passed",
-    decision
+    { details: decision
       ? [`current delivery-readiness status: ${decision}`]
-      : ["missing delivery-readiness gate status"]
+      : ["missing delivery-readiness gate status"] }
   );
   if (enforceEnhancedDeliveryMarkers) {
     report(
@@ -220,10 +188,9 @@ if (parsedTasks.exists) {
   report(
     unfinishedTasks.length === 0,
     "All tracked tasks are done",
-    unfinishedTasks.map((task) => `${task.id}: ${task.status || "unknown"}`)
+    { details: unfinishedTasks.map((task) => `${task.id}: ${task.status || "unknown"}`) }
   );
-  const declaredHighRisk =
-    acceptance.qualityTier === "high-risk" || parsedTasks.qualityTier === "high-risk";
+  const declaredHighRisk = isDeclaredHighRisk(acceptance, parsedTasks);
   const highRiskCandidateTasks = parsedTasks.tasks.filter(
     (task) => task.risk === "high" || (task.risk_triggers || []).length > 0
   );
@@ -231,7 +198,7 @@ if (parsedTasks.exists) {
   report(
     highRiskWithoutApproval.length === 0,
     "High-risk tasks declare approval requirements",
-    highRiskWithoutApproval.map((task) => `${task.id}: missing approval_required`)
+    { details: highRiskWithoutApproval.map((task) => `${task.id}: missing approval_required`) }
   );
 
   if (declaredHighRisk) {
@@ -246,15 +213,25 @@ if (parsedTasks.exists) {
       verificationMatrix !== null,
       `${getProjectRelativePath("verification-matrix.yaml")} exists for high-risk delivery`
     );
-    report(
-      acceptance.requiredSpecialReviews.length > 0,
-      "High-risk acceptance declares required_special_reviews",
-      ["expected security-guard, authorization-boundary-check, concurrency-safety-check"]
-    );
-    for (const reviewName of HIGH_RISK_SPECIAL_REVIEWS) {
+    if (acceptance.exists) {
       report(
-        acceptance.requiredSpecialReviews.includes(reviewName),
-        `High-risk acceptance includes ${reviewName}`
+        acceptance.requiredSpecialReviews.length > 0,
+        "High-risk acceptance declares required_special_reviews",
+        { details: ["expected security-guard, authorization-boundary-check, concurrency-safety-check"] }
+      );
+      for (const reviewName of HIGH_RISK_SPECIAL_REVIEWS) {
+        report(
+          acceptance.requiredSpecialReviews.includes(reviewName),
+          `High-risk acceptance includes ${reviewName}`
+        );
+      }
+      report(
+        (acceptance.gateEvidence["implementation-quality"] || []).includes("contract-baseline-check"),
+        "High-risk acceptance tracks contract-baseline-check evidence"
+      );
+      report(
+        (acceptance.gateEvidence["delivery-readiness"] || []).includes("degraded-path-check"),
+        "High-risk acceptance tracks degraded-path-check evidence"
       );
     }
     report(
@@ -266,23 +243,15 @@ if (parsedTasks.exists) {
       "High-risk runtime verification includes authorization, concurrency, and degraded-path checks"
     );
     report(
-      (acceptance.gateEvidence["implementation-quality"] || []).includes("contract-baseline-check"),
-      "High-risk acceptance tracks contract-baseline-check evidence"
-    );
-    report(
-      (acceptance.gateEvidence["delivery-readiness"] || []).includes("degraded-path-check"),
-      "High-risk acceptance tracks degraded-path-check evidence"
-    );
-    report(
       highRiskCandidateTasks.length > 0,
       "High-risk delivery has task-level risk triggers",
-      ["add risk_triggers to affected tasks so approval can be scoped correctly"]
+      { details: ["add risk_triggers to affected tasks so approval can be scoped correctly"] }
     );
   }
 }
 
 process.stdout.write("\n");
-if (hasFailure) {
+if (reporter.hasFailure) {
   process.stdout.write("Result: NOT_READY\n\n");
   process.exit(1);
 }

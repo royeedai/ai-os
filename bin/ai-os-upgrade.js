@@ -22,6 +22,7 @@ const {
   sha256File,
   getProjectFilePath,
   getProjectRelativePath,
+  serializeSimpleToml,
   fail,
 } = require("./shared");
 const { computeDiff } = require("./ai-os-diff");
@@ -211,10 +212,7 @@ const nextMetaValues = {
 };
 fs.writeFileSync(
   getProjectFilePath(targetDir, "framework.toml"),
-  [
-    ...Object.entries(nextMetaValues).map(([key, value]) => `${key} = "${value}"`),
-    "",
-  ].join("\n"),
+  serializeSimpleToml(nextMetaValues),
   "utf8"
 );
 

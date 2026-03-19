@@ -57,6 +57,6 @@ AI-OS vNext 的 Skill 组合围绕 3 件事：
 校验命令：
 
 ```bash
-npx --yes github:royeedai/ai-os skill-check .agents/skills/<skill-name>
-npx --yes github:royeedai/ai-os skill-check .agents/skills/<skill-name> --strict
+create-ai-os skill-check .agents/skills/<skill-name>
+create-ai-os skill-check .agents/skills/<skill-name> --strict
 ```

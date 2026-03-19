@@ -29,6 +29,7 @@ if (SUBCOMMANDS[_sub]) {
 const fs = require("fs");
 const path = require("path");
 const {
+  MANAGED_ROOTS,
   PROJECT_STATE_ROOT,
   readFrameworkVersion,
   readPackageJson,
@@ -126,7 +127,7 @@ for (let i = 0; i < args.length; i += 1) {
 const targetDir = path.resolve(targetArg || ".");
 ensureDir(targetDir);
 
-const existingFrameworkPaths = ["AGENTS.md", ".agents"]
+const existingFrameworkPaths = MANAGED_ROOTS
   .map((relPath) => path.join(targetDir, relPath))
   .filter((absolutePath) => fs.existsSync(absolutePath));
 const isExistingProject = existingFrameworkPaths.length > 0;

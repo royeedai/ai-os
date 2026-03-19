@@ -32,7 +32,7 @@
 ## 4. AI Agent / Workflow 应用
 
 - 重点：工具权限、上下文、memory、evals、回退路径、人工审批
-- 默认组合：`project-planner` + `task-orchestrator` + `agent-evals-guard` + `memory-manager`
+- 默认组合：`project-planner` + `task-orchestrator` + `memory-manager`
 - 推荐交付等级：L2（涉及外部 API 调用或费用消耗升级为 L3）
 
 ## 5. 数据处理 / ETL / 定时报表

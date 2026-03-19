@@ -534,6 +534,13 @@ function readStateFile(targetDir) {
   };
 }
 
+function isDeclaredHighRisk(parsedAcceptance, parsedTasks) {
+  return (
+    (parsedAcceptance.exists && parsedAcceptance.qualityTier === "high-risk") ||
+    parsedTasks.qualityTier === "high-risk"
+  );
+}
+
 module.exports = {
   PROJECT_ARTIFACT_FILES,
   readUtf8IfExists,
@@ -542,6 +549,7 @@ module.exports = {
   parseBulletKeyValueSection,
   parseTasksFile,
   parseAcceptanceFile,
+  isDeclaredHighRisk,
   summarizeTasks,
   taskStatusCategory,
   getReadyTasks,

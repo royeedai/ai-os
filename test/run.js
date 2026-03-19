@@ -46,7 +46,6 @@ process.stdout.write("\n=== Version sync ===\n");
 const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
 assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
-assert(versionFile === "5.1.1", "version bumped to 5.1.1");
 
 process.stdout.write("\n=== Root docs / evals / examples ===\n");
 assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
@@ -560,6 +559,31 @@ impact_rules:
 const releaseMissingMarkersResult = run("ai-os-release-check.js", [highRiskMissingMarkersDir]);
 assert(releaseMissingMarkersResult.status === 1, "release-check blocks high-risk release plan missing manual-action/static-validation markers");
 cleanup(highRiskMissingMarkersDir);
+
+// ---------------------------------------------------------------------------
+// diff / upgrade
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== diff / upgrade ===\n");
+
+const diffUpgradeDir = tmpDir();
+run("create-ai-os.js", [diffUpgradeDir, "--with-project-files"]);
+
+const diffCleanResult = run("ai-os-diff.js", [diffUpgradeDir]);
+assert(diffCleanResult.status === 0, "diff exits with code 0 on clean project");
+assert(diffCleanResult.stdout.includes("0 modified") && diffCleanResult.stdout.includes("0 missing"), "diff reports no changes on fresh project");
+
+const upgradeCleanResult = run("ai-os-upgrade.js", [diffUpgradeDir]);
+assert(upgradeCleanResult.status === 0, "upgrade exits with code 0 on up-to-date project");
+assert(upgradeCleanResult.stdout.includes("Already up to date"), "upgrade reports already up to date");
+
+const upgradeDryRunResult = run("ai-os-upgrade.js", [diffUpgradeDir, "--dry-run"]);
+assert(upgradeDryRunResult.status === 0, "upgrade --dry-run exits with code 0");
+
+const upgradePreflightResult = run("ai-os-upgrade.js", [diffUpgradeDir, "--preflight"]);
+assert(upgradePreflightResult.status === 0, "upgrade --preflight exits with code 0 on clean project");
+
+cleanup(diffUpgradeDir);
 
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

@@ -68,13 +68,19 @@ const HIGH_RISK_SPECIAL_REVIEWS = [
 // ---------------------------------------------------------------------------
 
 function readFrameworkVersion() {
-  return fs.readFileSync(path.join(PACKAGE_ROOT, "VERSION"), "utf8").trim();
+  const versionPath = path.join(PACKAGE_ROOT, "VERSION");
+  if (!fs.existsSync(versionPath)) {
+    fail(`VERSION file not found at ${versionPath}`);
+  }
+  return fs.readFileSync(versionPath, "utf8").trim();
 }
 
 function readPackageJson() {
-  return JSON.parse(
-    fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")
-  );
+  const pkgPath = path.join(PACKAGE_ROOT, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    fail(`package.json not found at ${pkgPath}`);
+  }
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 }
 
 // ---------------------------------------------------------------------------
@@ -221,13 +227,23 @@ function parseSimpleToml(content) {
       continue;
     }
 
-    const match = line.match(/^([A-Za-z0-9_]+)\s*=\s*"([^"]*)"$/);
+    const match = line.match(/^([A-Za-z0-9_]+)\s*=\s*"((?:[^"\\]|\\.)*)"$/);
     if (match) {
-      values[match[1]] = match[2];
+      values[match[1]] = match[2].replace(/\\"/g, '"').replace(/\\\\/g, "\\");
     }
   }
 
   return values;
+}
+
+function serializeSimpleToml(values) {
+  const lines = [];
+  for (const [key, value] of Object.entries(values)) {
+    const escaped = String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    lines.push(`${key} = "${escaped}"`);
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -358,14 +374,13 @@ function writeMetadata(targetDir) {
   ensureDir(metadataDir);
   fs.writeFileSync(
     metadataFile,
-    [
-      'mode = "npx-git"',
-      `framework_version = "${frameworkVersion}"`,
-      `package_name = "${packageJson.name}"`,
-      `package_version = "${packageJson.version}"`,
-      `managed_files_manifest = "${getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST)}"`,
-      ""
-    ].join("\n"),
+    serializeSimpleToml({
+      mode: "npx-git",
+      framework_version: frameworkVersion,
+      package_name: packageJson.name,
+      package_version: packageJson.version,
+      managed_files_manifest: getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
+    }),
     "utf8"
   );
 }
@@ -560,6 +575,98 @@ const VALIDATION_SCHEMAS = {
 };
 
 // ---------------------------------------------------------------------------
+// Shared argument parsing
+// ---------------------------------------------------------------------------
+
+function parseCliArgs(argv, spec = {}) {
+  const booleanFlags = spec.booleanFlags || [];
+  const valuedFlags = spec.valuedFlags || [];
+  const result = { positional: "", flags: {} };
+
+  for (const flag of booleanFlags) {
+    result.flags[flag.replace(/^--/, "")] = false;
+  }
+
+  const args = argv.slice(2);
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "-h" || arg === "--help") {
+      result.flags.help = true;
+      continue;
+    }
+    if (booleanFlags.includes(arg)) {
+      result.flags[arg.replace(/^--/, "")] = true;
+      continue;
+    }
+    const valuedMatch = valuedFlags.find((f) => arg === f);
+    if (valuedMatch) {
+      if (i + 1 >= args.length) {
+        fail(`${arg} requires a value`);
+      }
+      result.flags[arg.replace(/^--/, "")] = args[i + 1];
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith("-")) {
+      fail(`unknown option: ${arg}`);
+    }
+    if (result.positional) {
+      fail(`unexpected argument: ${arg}`);
+    }
+    result.positional = arg;
+  }
+
+  return result;
+}
+
+function resolveTargetDir(positionalArg) {
+  const targetDir = path.resolve(positionalArg || ".");
+  if (!fs.existsSync(targetDir)) {
+    fail(`target directory does not exist: ${targetDir}`);
+  }
+  return targetDir;
+}
+
+// ---------------------------------------------------------------------------
+// Shared reporter factory
+// ---------------------------------------------------------------------------
+
+function createReporter() {
+  let hasFailure = false;
+  let warningCount = 0;
+
+  function report(ok, label, options = {}) {
+    const { warnOnly = false, details = [] } = typeof options === "object" && !Array.isArray(options)
+      ? options
+      : { details: Array.isArray(options) ? options : [] };
+
+    if (ok) {
+      process.stdout.write(`  ${SYM_OK}  ${label}\n`);
+      return;
+    }
+
+    if (warnOnly) {
+      warningCount += 1;
+      process.stdout.write(`  ${SYM_WARN}  ${label}\n`);
+    } else {
+      hasFailure = true;
+      process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
+    }
+
+    for (const detail of details) {
+      process.stdout.write(`       - ${detail}\n`);
+    }
+  }
+
+  return {
+    report,
+    markFailure() { hasFailure = true; },
+    get hasFailure() { return hasFailure; },
+    get warningCount() { return warningCount; },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -596,6 +703,7 @@ module.exports = {
   resolveProjectPath,
   formatProjectPath,
   parseSimpleToml,
+  serializeSimpleToml,
   readInstalledMeta,
   copyFileWithMode,
   getProjectTemplatePath,
@@ -616,5 +724,8 @@ module.exports = {
   C_YELLOW,
   C_CYAN,
   C_DIM,
+  parseCliArgs,
+  resolveTargetDir,
+  createReporter,
   VALIDATION_SCHEMAS,
 };

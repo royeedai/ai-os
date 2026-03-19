@@ -6,7 +6,7 @@
 
 ## 模板依赖
 
-- `.agents/templates/project/project-charter.md`
+- `.agents/templates/project/MISSION.md`
 - `.agents/templates/project/risk-register.md`
 - `.agents/templates/project/STATE.md`
 

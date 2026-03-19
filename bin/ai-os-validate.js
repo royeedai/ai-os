@@ -14,9 +14,9 @@ const {
   getProjectFilePath,
   getProjectRelativePath,
   formatProjectPath,
-  SYM_OK,
-  SYM_FAIL,
-  SYM_WARN,
+  parseCliArgs,
+  resolveTargetDir,
+  createReporter,
   VALIDATION_SCHEMAS,
 } = require("./shared");
 const {
@@ -24,23 +24,8 @@ const {
   splitMarkdownSections,
   parseAcceptanceFile,
   parseTasksFile,
+  isDeclaredHighRisk,
 } = require("./project-state");
-
-function printHelp() {
-  process.stdout.write(`Usage:
-  ai-os-validate [target-dir]
-
-Validate the project-local delivery artifacts used by AI-OS vNext.
-
-Checks:
-  - required core artifacts: .ai-os/MISSION.md / DESIGN.md / tasks.yaml / acceptance.yaml / STATE.md / memory.md / specs/
-  - optional artifacts are validated only when present: risk-register.md / release-plan.md / design-pack/ / evals/
-  - key section completeness and phase-gate readiness
-
-Options:
-  -h, --help  Show this help message
-`);
-}
 
 function fileExists(targetDir, relPath) {
   return fs.existsSync(getProjectFilePath(targetDir, relPath));
@@ -125,51 +110,23 @@ function listEvalFiles(targetDir) {
     .sort();
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
+const parsed = parseCliArgs(process.argv);
+if (parsed.flags.help) {
+  process.stdout.write(`Usage:
+  ai-os-validate [target-dir]
 
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
+Validate the project-local delivery artifacts used by AI-OS vNext.
+
+Options:
+  -h, --help  Show this help message
+`);
+  process.exit(0);
 }
 
-const targetDir = path.resolve(targetArg || ".");
+const targetDir = resolveTargetDir(parsed.positional);
 
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
-
-let hasFailure = false;
-let warningCount = 0;
-
-function report(ok, label, warnOnly = false, details = []) {
-  if (ok) {
-    process.stdout.write(`  ${SYM_OK}  ${label}\n`);
-    return;
-  }
-
-  if (warnOnly) {
-    warningCount += 1;
-    process.stdout.write(`  ${SYM_WARN}  ${label}\n`);
-  } else {
-    hasFailure = true;
-    process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
-  }
-
-  for (const detail of details) {
-    process.stdout.write(`       - ${detail}\n`);
-  }
-}
+const reporter = createReporter();
+const { report } = reporter;
 
 process.stdout.write(`\nAI-OS Validate — ${targetDir}\n\n`);
 
@@ -187,8 +144,7 @@ if (mission !== null) {
   report(
     missingSections.length === 0,
     `${getProjectRelativePath("MISSION.md")} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
+    { details: missingSections.map((section) => `missing section: ${section}`) }
   );
 }
 
@@ -198,8 +154,7 @@ if (design !== null) {
   report(
     missingSections.length === 0,
     `${getProjectRelativePath("DESIGN.md")} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
+    { details: missingSections.map((section) => `missing section: ${section}`) }
   );
 }
 
@@ -217,8 +172,7 @@ if (memory !== null) {
   report(
     missingSections.length === 0,
     `${getProjectRelativePath("memory.md")} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
+    { details: missingSections.map((section) => `missing section: ${section}`) }
   );
 }
 
@@ -235,14 +189,12 @@ if (tasksContent !== null) {
   report(
     missingTaskMarkers.length === 0,
     `${getProjectRelativePath("tasks.yaml")} structure complete`,
-    false,
-    missingTaskMarkers.map((marker) => `missing marker: ${marker}`)
+    { details: missingTaskMarkers.map((marker) => `missing marker: ${marker}`) }
   );
   report(
     missingTaskTransitionMarkers.length === 0,
     `${getProjectRelativePath("tasks.yaml")} includes linkage/risk metadata`,
-    true,
-    missingTaskTransitionMarkers.map((marker) => `missing marker: ${marker}`)
+    { warnOnly: true, details: missingTaskTransitionMarkers.map((marker) => `missing marker: ${marker}`) }
   );
   report(parsedTasks.tasks.length > 0, `${getProjectRelativePath("tasks.yaml")} includes at least one task`);
   report(
@@ -264,24 +216,23 @@ if (tasksContent !== null) {
   report(
     parsedTasks.tasks.some((task) => (task.impact_tags || []).length > 0),
     `${getProjectRelativePath("tasks.yaml")} includes impact_tags`,
-    true
+    { warnOnly: true }
   );
   report(
     parsedTasks.tasks.some((task) => (task.derived_checks || []).length > 0),
     `${getProjectRelativePath("tasks.yaml")} includes derived_checks`,
-    true
+    { warnOnly: true }
   );
   report(
     parsedTasks.tasks.every((task) => Array.isArray(task.risk_triggers)),
     `${getProjectRelativePath("tasks.yaml")} includes risk_triggers`,
-    true
+    { warnOnly: true }
   );
   if (parsedTasks.qualityTier) {
     report(
       QUALITY_TIERS.includes(parsedTasks.qualityTier),
       `${getProjectRelativePath("tasks.yaml")} quality_tier is supported`,
-      false,
-      [`current quality_tier: ${parsedTasks.qualityTier}`]
+      { details: [`current quality_tier: ${parsedTasks.qualityTier}`] }
     );
   }
 }
@@ -295,15 +246,13 @@ for (const specFile of specFiles) {
   report(
     missingSections.length === 0,
     `${getProjectRelativePath(specFile)} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
+    { details: missingSections.map((section) => `missing section: ${section}`) }
   );
   const missingSpecMarkers = missingMarkers(content || "", VALIDATION_SCHEMAS.specMarkers);
   report(
     missingSpecMarkers.length === 0,
     `${getProjectRelativePath(specFile)} includes interaction mode / contract baseline markers`,
-    true,
-    missingSpecMarkers.map((marker) => `missing marker: ${marker}`)
+    { warnOnly: true, details: missingSpecMarkers.map((marker) => `missing marker: ${marker}`) }
   );
 }
 
@@ -322,14 +271,12 @@ if (acceptanceContent !== null) {
   report(
     missingAcceptanceMarkers.length === 0,
     `${getProjectRelativePath("acceptance.yaml")} structure complete`,
-    false,
-    missingAcceptanceMarkers.map((marker) => `missing marker: ${marker}`)
+    { details: missingAcceptanceMarkers.map((marker) => `missing marker: ${marker}`) }
   );
   report(
     missingAcceptanceTransitionMarkers.length === 0,
     `${getProjectRelativePath("acceptance.yaml")} includes contract/degraded-path markers`,
-    true,
-    missingAcceptanceTransitionMarkers.map((marker) => `missing marker: ${marker}`)
+    { warnOnly: true, details: missingAcceptanceTransitionMarkers.map((marker) => `missing marker: ${marker}`) }
   );
 
   const designGate = parsedAcceptance.gateStatuses["design-confirmation"] || "";
@@ -344,32 +291,28 @@ if (acceptanceContent !== null) {
   report(
     Boolean(parsedAcceptance.qualityTier),
     `${getProjectRelativePath("acceptance.yaml")} declares quality_tier`,
-    true
+    { warnOnly: true }
   );
   if (parsedAcceptance.qualityTier) {
     report(
       QUALITY_TIERS.includes(parsedAcceptance.qualityTier),
       `${getProjectRelativePath("acceptance.yaml")} quality_tier is supported`,
-      false,
-      [`current quality_tier: ${parsedAcceptance.qualityTier}`]
+      { details: [`current quality_tier: ${parsedAcceptance.qualityTier}`] }
     );
   }
   report(
     designGate === "passed" || designGate === "approved",
     "design confirmation gate is locked before full delivery",
-    true,
-    designGate ? [`current design gate status: ${designGate}`] : ["missing design-confirmation status"]
+    { warnOnly: true, details: designGate ? [`current design gate status: ${designGate}`] : ["missing design-confirmation status"] }
   );
   report(
     logicGate === "passed" || logicGate === "approved",
     "logic confirmation gate is locked before full delivery",
-    true,
-    logicGate ? [`current logic gate status: ${logicGate}`] : ["missing logic-confirmation status"]
+    { warnOnly: true, details: logicGate ? [`current logic gate status: ${logicGate}`] : ["missing logic-confirmation status"] }
   );
 }
 
-const declaredHighRisk =
-  parsedAcceptance.qualityTier === "high-risk" || parsedTasks.qualityTier === "high-risk";
+const declaredHighRisk = isDeclaredHighRisk(parsedAcceptance, parsedTasks);
 
 if (declaredHighRisk) {
   report(
@@ -387,8 +330,7 @@ if (declaredHighRisk) {
   report(
     parsedAcceptance.requiredSpecialReviews.length > 0,
     "high-risk acceptance declares required_special_reviews",
-    false,
-    ["expected security-guard, authorization-boundary-check, concurrency-safety-check"]
+    { details: ["expected security-guard, authorization-boundary-check, concurrency-safety-check"] }
   );
   for (const reviewName of HIGH_RISK_SPECIAL_REVIEWS) {
     report(
@@ -413,8 +355,7 @@ if (stateContent !== null) {
   report(
     missingSections.length === 0,
     `${getProjectRelativePath("STATE.md")} sections complete`,
-    false,
-    missingSections.map((section) => `missing section: ${section}`)
+    { details: missingSections.map((section) => `missing section: ${section}`) }
   );
 }
 
@@ -427,8 +368,7 @@ if (verificationMatrixContent !== null) {
   report(
     missingVerificationMarkers.length === 0,
     `${getProjectRelativePath("verification-matrix.yaml")} includes impact_rules`,
-    true,
-    missingVerificationMarkers.map((marker) => `missing marker: ${marker}`)
+    { warnOnly: true, details: missingVerificationMarkers.map((marker) => `missing marker: ${marker}`) }
   );
 }
 
@@ -441,8 +381,7 @@ if (releasePlanContent !== null) {
   report(
     missingReleasePlanMarkers.length === 0,
     `${getProjectRelativePath("release-plan.md")} includes manual-action/static-validation markers`,
-    true,
-    missingReleasePlanMarkers.map((marker) => `missing marker: ${marker}`)
+    { warnOnly: true, details: missingReleasePlanMarkers.map((marker) => `missing marker: ${marker}`) }
   );
 }
 
@@ -452,7 +391,7 @@ if (fs.existsSync(designPackDir) && fs.statSync(designPackDir).isDirectory()) {
   report(
     fs.existsSync(parityMapPath),
     `${getProjectRelativePath("design-pack/parity-map.md")} exists when design-pack is present`,
-    true
+    { warnOnly: true }
   );
 }
 
@@ -476,9 +415,9 @@ for (const relPath of PROJECT_OPTIONAL_ARTIFACT_DIRS) {
 }
 
 process.stdout.write("\n");
-if (hasFailure) {
-  process.stdout.write(`Result: INVALID${warningCount > 0 ? ` (${warningCount} warning(s))` : ""}\n\n`);
+if (reporter.hasFailure) {
+  process.stdout.write(`Result: INVALID${reporter.warningCount > 0 ? ` (${reporter.warningCount} warning(s))` : ""}\n\n`);
   process.exit(1);
 }
 
-process.stdout.write(`Result: VALID${warningCount > 0 ? ` WITH ${warningCount} WARNING(S)` : ""}\n\n`);
+process.stdout.write(`Result: VALID${reporter.warningCount > 0 ? ` WITH ${reporter.warningCount} WARNING(S)` : ""}\n\n`);

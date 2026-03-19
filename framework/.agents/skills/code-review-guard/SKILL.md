@@ -20,7 +20,7 @@ description: >
 
 ## 使用方式
 
-1. 开发完成后，打开对应模块的 `.ai-os/project-charter.md`、`.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
+1. 开发完成后，打开对应模块的 `.ai-os/MISSION.md`、`.spec.md`、`.ai-os/tasks.yaml`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`
 2. 先识别当前模块的模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）和交付档位（`exploratory` / `standard` / `high-risk`）
 3. 逐项对照 .spec 中的功能需求，检查代码是否实现
 4. 对照 `.ai-os/tasks.yaml` 检查任务是否真的满足 DoD，而不是只改了代码

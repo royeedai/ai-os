@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
 const {
-  fail,
   getProjectFilePath,
   getProjectRelativePath,
   formatProjectPath,
+  parseCliArgs,
+  resolveTargetDir,
+  fail,
 } = require("./shared");
 const {
   parseTasksFile,
@@ -14,7 +14,8 @@ const {
   getReadyTasks,
 } = require("./project-state");
 
-function printHelp() {
+const parsed = parseCliArgs(process.argv);
+if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-next [target-dir]
 
@@ -23,30 +24,10 @@ Show the next ready AI-OS tasks based on tasks.yaml and STATE.md.
 Options:
   -h, --help  Show this help message
 `);
+  process.exit(0);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
-
-const targetDir = path.resolve(targetArg || ".");
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
+const targetDir = resolveTargetDir(parsed.positional);
 
 const state = readStateFile(targetDir);
 const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));

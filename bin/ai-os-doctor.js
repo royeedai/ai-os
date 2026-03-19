@@ -22,17 +22,17 @@ const {
   readInstalledMeta,
   getProjectFilePath,
   getProjectRelativePath,
-  fail,
-  SYM_OK,
-  SYM_FAIL,
-  SYM_WARN,
+  parseCliArgs,
+  resolveTargetDir,
+  createReporter,
 } = require("./shared");
 
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
-function printHelp() {
+const parsed = parseCliArgs(process.argv, { booleanFlags: ["--strict"] });
+if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-doctor [target-dir] [--strict]
 
@@ -42,53 +42,18 @@ Options:
   --strict     Also validate project-local delivery artifacts
   -h, --help   Show this help message
 `);
+  process.exit(0);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-let strict = false;
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg === "--strict") {
-    strict = true;
-    continue;
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
-
-const targetDir = path.resolve(targetArg || ".");
-
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
+const strict = parsed.flags.strict;
+const targetDir = resolveTargetDir(parsed.positional);
 
 // ---------------------------------------------------------------------------
 // Checks
 // ---------------------------------------------------------------------------
 
-let hasFailure = false;
-
-function check(ok, label, warnOnly) {
-  if (ok) {
-    process.stdout.write(`  ${SYM_OK}  ${label}\n`);
-  } else if (warnOnly) {
-    process.stdout.write(`  ${SYM_WARN}  ${label}\n`);
-  } else {
-    process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
-    hasFailure = true;
-  }
-}
+const reporter = createReporter();
+const { report } = reporter;
 
 const frameworkVersion = readFrameworkVersion();
 
@@ -97,35 +62,34 @@ process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
 
 // 1. Metadata
 const meta = readInstalledMeta(targetDir);
-check(meta.exists, ".ai-os/framework.toml exists", false);
+report(meta.exists, ".ai-os/framework.toml exists");
 
 if (meta.exists) {
   const versionMatch = meta.version === frameworkVersion;
-  check(
+  report(
     versionMatch,
     `Framework version: ${meta.version}${versionMatch ? "" : ` (source is ${frameworkVersion})`}`,
-    !versionMatch
+    { warnOnly: !versionMatch }
   );
 }
 
 // 2. AGENTS.md
-check(
+report(
   fs.existsSync(path.join(targetDir, "AGENTS.md")),
-  "AGENTS.md exists",
-  false
+  "AGENTS.md exists"
 );
 
 // 3. .agents/skills/
 const skillsDir = path.join(targetDir, ".agents", "skills");
 const skillsOk = fs.existsSync(skillsDir) &&
   fs.readdirSync(skillsDir).filter((e) => e !== ".DS_Store").length > 0;
-check(skillsOk, ".agents/skills/ exists and is not empty", false);
+report(skillsOk, ".agents/skills/ exists and is not empty");
 
 // 4. .agents/workflows/
 const workflowsDir = path.join(targetDir, ".agents", "workflows");
 const workflowsOk = fs.existsSync(workflowsDir) &&
   fs.readdirSync(workflowsDir).filter((e) => e !== ".DS_Store").length > 0;
-check(workflowsOk, ".agents/workflows/ exists and is not empty", false);
+report(workflowsOk, ".agents/workflows/ exists and is not empty");
 
 // 5. Managed files integrity
 const sourceManaged = listManagedFiles(FRAMEWORK_ROOT);
@@ -137,12 +101,9 @@ for (const rel of sourceManaged) {
 }
 
 if (missingFiles.length === 0) {
-  check(true, `All ${sourceManaged.length} framework-managed files present`, false);
+  report(true, `All ${sourceManaged.length} framework-managed files present`);
 } else {
-  check(false, `${missingFiles.length} framework-managed file(s) missing`, false);
-  for (const f of missingFiles) {
-    process.stdout.write(`       - ${f}\n`);
-  }
+  report(false, `${missingFiles.length} framework-managed file(s) missing`, { details: missingFiles });
 }
 
 // 6. Project state files (warn only)
@@ -167,7 +128,7 @@ for (const pf of coreProjectFiles) {
   } else {
     exists = fs.existsSync(fullPath);
   }
-  check(exists, pf.label, true);
+  report(exists, pf.label, { warnOnly: true });
 }
 
 const optionalProjectFiles = [
@@ -192,7 +153,7 @@ const existingOptional = optionalProjectFiles.filter((pf) => {
 if (existingOptional.length > 0) {
   process.stdout.write(`\n  Optional project state files:\n`);
   for (const pf of existingOptional) {
-    check(true, pf.label, true);
+    report(true, pf.label, { warnOnly: true });
   }
 }
 
@@ -204,7 +165,7 @@ if (strict) {
     { stdio: "inherit" }
   );
   if (validateResult.status !== 0) {
-    hasFailure = true;
+    reporter.markFailure();
   }
 }
 
@@ -213,7 +174,7 @@ if (strict) {
 // ---------------------------------------------------------------------------
 
 process.stdout.write("\n");
-if (hasFailure) {
+if (reporter.hasFailure) {
   process.stdout.write("Result: UNHEALTHY — some checks failed.\n");
   process.stdout.write("Run `ai-os-upgrade` to fix framework file issues.\n\n");
   process.exit(1);
