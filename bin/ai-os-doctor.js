@@ -176,7 +176,7 @@ if (strict) {
 process.stdout.write("\n");
 if (reporter.hasFailure) {
   process.stdout.write("Result: UNHEALTHY — some checks failed.\n");
-  process.stdout.write("Run `ai-os-upgrade` to fix framework file issues.\n\n");
+  process.stdout.write("Run `create-ai-os upgrade` to fix framework file issues.\n\n");
   process.exit(1);
 } else {
   process.stdout.write("Result: HEALTHY\n\n");

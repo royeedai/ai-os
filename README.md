@@ -139,6 +139,8 @@ npx --yes github:royeedai/ai-os validate .
 npx --yes github:royeedai/ai-os status .
 npx --yes github:royeedai/ai-os next .
 npx --yes github:royeedai/ai-os resume .
+npx --yes github:royeedai/ai-os diff .
+npx --yes github:royeedai/ai-os upgrade .
 npx --yes github:royeedai/ai-os release-check .
 npx --yes github:royeedai/ai-os lab /tmp/ai-os-labs
 ```

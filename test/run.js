@@ -63,6 +63,8 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "debug-overreach-regression.md
 assert(fs.existsSync(path.join(repoRoot, "evals", "brownfield-infrastructure-audit-missed.md")), "brownfield infrastructure eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "configurable-meant-operable-gap.md")), "config closure eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regression.md")), "problem-ledger eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "fallback-evidence-used-as-delivery.md")), "fallback-evidence eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "missing-user-confirmation.md")), "missing-user-confirmation eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");

@@ -3,7 +3,6 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  fail,
   HIGH_RISK_SPECIAL_REVIEWS,
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_CORE_ARTIFACT_FILES,
