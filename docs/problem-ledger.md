@@ -54,7 +54,7 @@
 - **来源**：现有 README 问题基线
 - **真实问题**：页面和交互看起来像完成了，但核心流程、状态流转或业务规则不对。
 - **AI-OS 必须保证**：关键设计和关键逻辑都先锁定，并在验证阶段同时过设计门和逻辑门。
-- **当前覆盖锚点**：`/design`、`/plan`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/specs/`、`.ai-os/acceptance.yaml`、`evals/ui-looks-right-but-logic-wrong.md`
+- **当前覆盖锚点**：`/design`、`/plan`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/specs/`、`.ai-os/acceptance.yaml`、`evals/ui-looks-right-but-logic-wrong.md`、`subagent-executor`（两阶段审查拦截 spec 偏差）、`testing-strategies`（TDD 铁律强制先写测试）
 - **每次迭代核对**：不能只保留视觉或实现检查，丢掉逻辑确认门。
 
 ### PL-005 bug 修复时顺手乱改，改 A 坏 B
@@ -62,7 +62,7 @@
 - **来源**：现有 README 问题基线
 - **真实问题**：本来是单点修复，结果顺手重构或扩散修改，引入新的回归。
 - **AI-OS 必须保证**：debug 先定界、再修复、再做影响范围回归。
-- **当前覆盖锚点**：`/debug`、`.ai-os/tasks.yaml`、`.ai-os/STATE.md`、`evals/debug-overreach-regression.md`、`examples/debug-bounded-fix.md`
+- **当前覆盖锚点**：`/debug`（含最小方案确认防护和 TDD 修 Bug 要求）、`.ai-os/tasks.yaml`、`.ai-os/STATE.md`、`evals/debug-overreach-regression.md`、`examples/debug-bounded-fix.md`
 - **每次迭代核对**：不能去掉边界说明、影响范围和回归结论。
 
 ### PL-006 界面上像有功能，但其实不能真用
@@ -78,7 +78,7 @@
 - **来源**：现有 README 问题基线；2026-03-16 本地会话关于 fallback 证据与目标运行态区分
 - **真实问题**：实现能运行，但没有完整证据、交付说明、回滚条件、静态校验证据，或仍需人工执行 SQL / 重启 / 补数却被写成“已完成交付”。
 - **AI-OS 必须保证**：完成必须同时满足设计、逻辑、实现质量和交付质量，并显式区分 `AI 已完成` 与 `需人工执行`。
-- **当前覆盖锚点**：`/verify`、`/ship`、`.ai-os/acceptance.yaml`、`.ai-os/release-plan.md`、`bin/ai-os-release-check.js`、`evals/fallback-evidence-used-as-delivery.md`
+- **当前覆盖锚点**：`/verify`、`/ship`、`acceptance-gate`（含验证铁律、5 步验证门和禁止措辞清单）、`.ai-os/release-plan.md`、`bin/ai-os-release-check.js`、`evals/fallback-evidence-used-as-delivery.md`
 - **每次迭代核对**：不能把“能跑”重新当成“可交付”，不能把 dev fallback 证据当成 target runtime 证据，也不能把待人工执行动作和缺少静态校验的状态写成已完成。
 
 ### PL-008 天然流式 / 长耗时场景被错建成同步接口

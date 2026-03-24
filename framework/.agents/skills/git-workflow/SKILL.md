@@ -2,7 +2,7 @@
 name: git-workflow
 description: >
   Git 工作流管理。提交代码、管理分支、合并、解决冲突时使用。
-  涵盖提交规范、分支策略、团队协作最佳实践。
+  涵盖提交规范、分支策略、Worktree 隔离开发、团队协作最佳实践。
 ---
 
 # Git 工作流
@@ -14,6 +14,7 @@ description: >
 - 解决冲突
 - 团队协作
 - Git 最佳实践
+- `/build` 前需要创建隔离工作空间
 
 ## 操作步骤
 
@@ -150,6 +151,101 @@ git push origin --delete feature/功能名称
 git fetch --prune
 ```
 
+## Worktree 隔离开发
+
+在 `/build` 阶段开始前，推荐使用 git worktree 创建隔离工作空间，避免在主分支上直接开发。
+
+### 何时使用 Worktree
+
+- P0 项目的 `/build` 阶段（推荐）
+- 多个功能并行开发
+- 需要保持主分支干净以便随时切换任务
+
+### 创建 Worktree
+
+#### 第一步：确定 Worktree 目录
+
+按优先级检查：
+```bash
+ls -d .worktrees 2>/dev/null     # 优先（隐藏目录）
+ls -d worktrees 2>/dev/null      # 备选
+```
+
+如果都不存在，创建 `.worktrees/` 并确认 `.gitignore` 包含它：
+```bash
+mkdir -p .worktrees
+echo ".worktrees/" >> .gitignore
+git add .gitignore && git commit -m "chore: ignore worktrees directory"
+```
+
+#### 第二步：确保 Worktree 目录被 Git 忽略
+
+```bash
+git check-ignore -q .worktrees 2>/dev/null
+```
+
+如果未被忽略，必须先加入 `.gitignore` 并提交，防止 worktree 内容意外入库。
+
+#### 第三步：创建 Worktree 和分支
+
+```bash
+git worktree add .worktrees/feature-name -b feature/feature-name
+cd .worktrees/feature-name
+```
+
+#### 第四步：运行项目 Setup
+
+自动检测并运行：
+```bash
+# Node.js
+[ -f package.json ] && npm install
+
+# Python
+[ -f requirements.txt ] && pip install -r requirements.txt
+[ -f pyproject.toml ] && poetry install
+
+# Rust
+[ -f Cargo.toml ] && cargo build
+
+# Go
+[ -f go.mod ] && go mod download
+```
+
+#### 第五步：验证基线测试
+
+```bash
+npm test  # 或项目对应的测试命令
+```
+
+如果测试失败：报告失败并询问是否继续。
+如果测试通过：报告就绪状态。
+
+### 完成后收尾
+
+实现完成、测试通过后，提供 4 个选项：
+
+1. **合并到基础分支**：`git checkout main && git merge feature/name && git branch -d feature/name`
+2. **推送并创建 PR**：`git push -u origin feature/name && gh pr create`
+3. **保持分支不动**：不清理 worktree
+4. **放弃本次工作**：确认后删除分支和 worktree
+
+选择 1、2、4 后清理 worktree：
+```bash
+git worktree remove .worktrees/feature-name
+```
+
+### 快速参考
+
+| 场景 | 操作 |
+|------|------|
+| `.worktrees/` 已存在 | 使用它（验证已忽略） |
+| 目录未被忽略 | 加入 .gitignore 并提交 |
+| 基线测试失败 | 报告失败，等用户决定 |
+| 完成后选择 merge | 合并 + 删分支 + 清 worktree |
+| 完成后选择 PR | push + create PR |
+| 完成后选择保持 | 不动 |
+| 完成后选择放弃 | 需二次确认后删除 |
+
 ## 高级工作流
 
 ### 交互式 Rebase
@@ -257,6 +353,6 @@ git checkout -b recovered-branch <hash>   # 从丢失的提交创建分支
 
 ## 维护信息
 
-- 来源：Git 官方工作流、语义化提交约定、常见团队协作实践
-- 更新时间：2026-03-15
+- 来源：Git 官方工作流、语义化提交约定、常见团队协作实践，借鉴 Superpowers using-git-worktrees
+- 更新时间：2026-03-24
 - 已知限制：本 Skill 不覆盖所有托管平台的分支保护配置细节

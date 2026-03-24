@@ -13,7 +13,7 @@ AI-OS vNext 的 Skill 组合围绕 3 件事：
 | `/align` | `project-planner`、`memory-manager` |
 | `/design` | `reverse-engineer`（reverse-spec 时）、`spec-validator` |
 | `/plan` | `spec-validator`、`task-orchestrator`、`acceptance-gate` |
-| `/build` | `fullstack-dev-checklist`、`code-review-guard` |
+| `/build` | `fullstack-dev-checklist`、`code-review-guard`、`subagent-executor`（多任务执行时） |
 | `/verify` | `acceptance-gate`、`code-review-guard`、`testing-strategies` |
 | `/ship` | `release-manager` |
 
@@ -34,6 +34,7 @@ AI-OS vNext 的 Skill 组合围绕 3 件事：
 - 有截图 / API / 参考源码：必须用 `reverse-engineer`
 - 准备生成或重写 spec：必须用 `spec-validator`
 - 准备拆任务和执行波次：必须用 `task-orchestrator`
+- `/build` 阶段多任务需要隔离执行和审查：用 `subagent-executor`
 - 准备判断“做没做对”：必须用 `acceptance-gate`
 - 同类提醒重复出现：必须用 `memory-manager`
 - 一个任务同时跨页面、接口、持久化或复杂联动：用 `fullstack-dev-checklist`
