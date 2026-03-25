@@ -17,7 +17,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 
 很多团队开始用 AI 后，会遇到这些问题：
 
-| 常见问题 | AI-OS vNext 的做法 |
+| 常见问题 | AI-OS 的做法 |
 |------|------|
 | 需求一模糊，AI 就直接开工 | 先走 `/align`，把 Mission 说清 |
 | 需求补充后，AI 直接改代码，文档和代码脱节 | 先走 `/change-request`，更新 `MISSION.md` / spec 再执行 |
@@ -37,9 +37,9 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 
 这些问题的单独台账、覆盖锚点和后续迭代核对入口统一维护在 [docs/problem-ledger.md](docs/problem-ledger.md)。
 
-## vNext 心智
+## 核心心智
 
-AI-OS vNext 默认按交付阶段进入：
+AI-OS 默认按交付阶段进入：
 
 1. `/align`
 2. `/design`
@@ -59,7 +59,7 @@ AI-OS vNext 默认按交付阶段进入：
 
 ## 新版核心工件
 
-AI-OS vNext 默认围绕这套 `.ai-os/` 工件工作：
+AI-OS 默认围绕这套 `.ai-os/` 工件工作：
 
 | 文件 | 作用 |
 |------|------|

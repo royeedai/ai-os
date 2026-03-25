@@ -1,4 +1,4 @@
-# Maintainers（vNext）
+# Maintainers
 
 维护 AI-OS 时，优先看：
 

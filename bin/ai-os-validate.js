@@ -114,7 +114,7 @@ if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-validate [target-dir]
 
-Validate the project-local delivery artifacts used by AI-OS vNext.
+Validate the project-local delivery artifacts used by AI-OS.
 
 Options:
   -h, --help  Show this help message

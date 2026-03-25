@@ -1,4 +1,4 @@
-# 高风险触发与联动分类（vNext）
+# 高风险触发与联动分类
 
 本清单用于 `project-planner`、`task-orchestrator`、`acceptance-gate` 共享判定，不依赖具体语言或框架。
 

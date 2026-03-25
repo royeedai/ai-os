@@ -1,6 +1,6 @@
-# Skills 使用指南（vNext）
+# Skills 使用指南
 
-AI-OS vNext 的 Skill 组合围绕 3 件事：
+AI-OS 的 Skill 组合围绕 3 件事：
 
 1. 把目标说清
 2. 把设计和逻辑先锁住

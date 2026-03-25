@@ -1,4 +1,4 @@
-# CLI（vNext）
+# CLI
 
 ## 常用命令
 
@@ -26,8 +26,34 @@ create-ai-os skill-check .agents/skills/my-skill
 ## 框架维护命令
 
 - `diff`：对比项目中已安装的框架文件与最新源文件的差异，标记 modified / outdated / missing / extra
-- `upgrade`：将项目中的框架文件升级到最新版本，支持 `--force`、`--dry-run`、`--preflight`
+- `upgrade`：将项目中的框架文件升级到最新版本
 - `skill-check`：校验自定义 Skill 目录中的 SKILL.md，检查 frontmatter、章节结构、references 导航等；`--strict` 启用生产级检查
+
+### Upgrade 冲突处理
+
+`upgrade` 会对比每个框架托管文件（`AGENTS.md` 和 `.agents/` 下的全部文件）的 SHA-256 哈希。文件会被分为四类：
+
+- **outdated**：内容与 AI-OS 源不同，但本地哈希仍匹配安装时记录的旧版本 -> 自动更新
+- **missing**：AI-OS 源有但本地不存在 -> 自动创建
+- **modified**：内容与 AI-OS 源不同，且本地哈希也不匹配安装时的记录（说明用户做过手动修改）-> 默认阻塞
+- **extra**：本地有但 AI-OS 源没有 -> 忽略
+
+当存在 modified 文件时，upgrade 默认会阻塞并列出冲突文件。可选策略：
+
+```bash
+create-ai-os upgrade . --preflight   # 只检查是否能安全升级，不做任何修改
+create-ai-os upgrade . --dry-run     # 显示将要执行的操作，不做任何修改
+create-ai-os upgrade . --force       # 强制覆盖所有冲突文件（慎用）
+```
+
+推荐流程：
+
+1. 先跑 `diff` 查看差异全貌
+2. 用 `--preflight` 确认是否有冲突
+3. 如果有冲突，手动检查 modified 文件，决定是否保留本地修改
+4. 确认可以覆盖后，用 `--force` 执行
+
+注意：`.ai-os/` 下的项目工件（MISSION.md、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。
 
 ## Lab 命令
 

@@ -1,8 +1,8 @@
-# AI-OS Root Evals（vNext）
+# AI-OS Root Evals
 
 这里存放 AI-OS 母仓库的根层回归评估样例。
 
-vNext 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS 能不能拦住错误交付。
+AI-OS 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS 能不能拦住错误交付。
 
 ## 当前基线样例
 

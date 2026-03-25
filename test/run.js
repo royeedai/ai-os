@@ -77,8 +77,17 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix.md")), "
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-infrastructure-audit.md")), "brownfield infrastructure example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "config-closure-clarification.md")), "config closure example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "DESIGN.md")), "greenfield skeleton includes DESIGN");
+assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "tasks.yaml")), "greenfield skeleton includes tasks");
+assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "acceptance.yaml")), "greenfield skeleton includes acceptance");
+assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "STATE.md")), "greenfield skeleton includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "MISSION.md")), "reverse-spec skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "DESIGN.md")), "reverse-spec skeleton includes DESIGN");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "design-pack", "parity-map.md")), "reverse-spec skeleton includes parity map");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "acceptance.yaml")), "reverse-spec skeleton includes acceptance");
+assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "MISSION.md")), "brownfield skeleton includes MISSION");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
+assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "STATE.md")), "brownfield skeleton includes STATE");
 
 const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
 const problemLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledger.md"), "utf8");
@@ -114,6 +123,16 @@ assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc
 assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers doc references change-request example");
 assert(maintainersDoc.includes("brownfield-infrastructure-audit.md"), "maintainers doc references infrastructure example");
 assert(maintainersDoc.includes("config-closure-clarification.md"), "maintainers doc references config closure example");
+
+process.stdout.write("\n=== eval content structure ===\n");
+const EVAL_REQUIRED_SECTIONS = ["## 场景", "## 错误交付", "## AI-OS 预期行为", "## 最低证据", "## 若需改 framework，优先检查"];
+const evalDir = path.join(repoRoot, "evals");
+const evalFiles = fs.readdirSync(evalDir).filter((f) => f !== "README.md" && f.endsWith(".md"));
+for (const evalFile of evalFiles) {
+  const evalContent = fs.readFileSync(path.join(evalDir, evalFile), "utf8");
+  const missingSections = EVAL_REQUIRED_SECTIONS.filter((s) => !evalContent.includes(s));
+  assert(missingSections.length === 0, `eval ${evalFile} has all required sections${missingSections.length ? " (missing: " + missingSections.join(", ") + ")" : ""}`);
+}
 
 process.stdout.write("\n=== shared.js exports ===\n");
 const shared = require("../bin/shared");
@@ -238,10 +257,10 @@ assert(run("ai-os-skill-check.js", [taskOrchestratorSkill, "--strict"]).status =
 
 process.stdout.write("\n=== validate / doctor / status / next / resume ===\n");
 const validateResult = run("ai-os-validate.js", [initDir]);
-assert(validateResult.status === 0, "validate passes on fresh vNext project");
+assert(validateResult.status === 0, "validate passes on fresh project");
 
 const doctorResult = run("ai-os-doctor.js", [initDir, "--strict"]);
-assert(doctorResult.status === 0, "doctor --strict passes on fresh vNext project");
+assert(doctorResult.status === 0, "doctor --strict passes on fresh project");
 
 const statusResult = run("ai-os-status.js", [initDir]);
 assert(statusResult.status === 0, "status exits with code 0");

@@ -4,7 +4,7 @@ description: >
   当生成或更新 spec，或准备从 /design /plan 进入后续实现前，使用本 Skill 检查 spec 是否已经能支撑设计确认门和逻辑确认门通过。
 ---
 
-# Spec 校验器（vNext）
+# Spec 校验器
 
 ## 使用时机
 

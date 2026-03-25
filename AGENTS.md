@@ -1,4 +1,4 @@
-# AI-OS 开发规则（vNext）
+# AI-OS 开发规则
 
 本文件只用于指导 AI-OS CLI 工具自身的开发。分发给用户项目的交付宪法位于 `framework/AGENTS.md`。
 

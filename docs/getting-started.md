@@ -1,6 +1,6 @@
-# Getting Started（vNext）
+# Getting Started
 
-AI-OS vNext 的默认顺序不是“先写代码”，而是：
+AI-OS 的默认顺序不是“先写代码”，而是：
 
 1. `/align`
 2. `/design`

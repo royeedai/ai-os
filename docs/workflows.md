@@ -1,6 +1,6 @@
-# Workflows（vNext）
+# Workflows
 
-AI-OS vNext 以阶段式 workflow 为主，并补充兼容性的专项入口：`/change-request`、`/debug`、`/review` 和 `/postmortem`。
+AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/change-request`、`/debug`、`/review` 和 `/postmortem`。
 
 ## Phase Workflows
 

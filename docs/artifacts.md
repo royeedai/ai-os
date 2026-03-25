@@ -1,6 +1,6 @@
-# Artifacts（vNext）
+# Artifacts
 
-AI-OS vNext 采用“少而强的必备工件 + 按风险加深”的策略。
+AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 
 ## 核心工件
 

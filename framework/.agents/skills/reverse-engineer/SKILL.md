@@ -4,7 +4,7 @@ description: >
   在 reverse-spec 模式下，把截图、API、参考源码和口述收敛为 Design、Spec 和 Parity Map。
 ---
 
-# 逆向规格器（vNext）
+# 逆向规格器
 
 本 Skill 服务 `/design` 和 `/plan`，目标不是“照抄”，而是先把要保真的东西说清。
 

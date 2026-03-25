@@ -1,4 +1,4 @@
-# AI-OS Examples（vNext）
+# AI-OS Examples（AI-OS）
 
 这些示例的目的，是演示新版 AI-OS 如何把用户一步步带到高质量交付，而不是提供业务代码模板。
 

@@ -1,0 +1,89 @@
+# Changelog
+
+## 5.4.0
+
+- 补齐 3 个示例骨架的缺失工件文件（greenfield 补 DESIGN/tasks/acceptance，brownfield 补 MISSION，reverse-spec 补 MISSION/acceptance）
+- 创建 CHANGELOG.md
+- 移除全部文档和框架文件中的"vNext"临时标记，统一为正式版本命名
+- 新增 eval 内容结构校验（test/run.js 自动检查每个 eval 的 5 个必备章节）
+- 新增 GitHub Issue Template、PR Template 和 CONTRIBUTING.md
+- 补充 docs/cli.md 中 upgrade 命令的冲突处理说明
+- 测试覆盖从 189 项提升到 213 项
+
+## 5.3.0
+
+- 任务模板新增 `measurable_outcome` 和 `edge_cases` 字段，强制任务级可量化完成标准和异常路径前置定义
+- `/plan` workflow 禁止 `measurable_outcome` 和 `edge_cases` 为空
+- `/build` workflow 新增 wave 级自审检查点（对照 spec、measurable_outcome、越界改动）
+- 测试覆盖从 170+ 提升到 189 项
+
+## 5.1.2
+
+- 修复 vNext 重构后的断引用、死导入和缺失测试覆盖
+- 修正多个 SKILL.md 中的 reference 路径
+- 统一全部 CLI 脚本的参数解析逻辑
+- 新增 build 执行层强化机制
+
+## 5.0.0
+
+**Breaking: 完整切换到 vNext 架构，不再兼容 v2 工件格式。**
+
+### 架构重构
+- 工件目录从 `.ai-os/` 统一管理，模板从 `framework/.agents/templates/project/` 分发
+- 宪法 `framework/AGENTS.md` 重写为 8 条核心管控规则 + 5 条根层原则
+- Workflow 重写为阶段式主路径（align -> design -> plan -> build -> verify -> ship）+ 专项入口（change-request / debug / review / postmortem）+ 续跑入口（status / next / resume / auto-advance）
+- 模板重写：MISSION.md / DESIGN.md / STATE.md / memory.md / tasks.yaml v3 / acceptance.yaml v2 / specs / verification-matrix.yaml / release-plan.md / risk-register.md
+
+### 新增能力
+- `lab` 命令：批量创建多种项目类型沙盒（greenfield / reverse-spec / brownfield / debug / high-risk / degraded-path），自动跑 doctor / validate / status / next 并输出 lab-report.md
+- `release-check` 命令：基于 release-plan.md + acceptance / tasks 的发布就绪检查，高风险档强查授权 / 并发 / degraded-path 证据
+- `skill-check` 命令：校验自定义 Skill 目录的 SKILL.md 结构
+- `status` / `next` / `resume` 命令：项目状态查看、就绪任务列表、跨 session 恢复
+- 问题台账 `docs/problem-ledger.md`：16 条产品问题 + 1 条治理问题，每条绑定覆盖锚点
+- 变更评估模板 `docs/change-evaluation-template.md`
+- 15 个场景 eval + 1 个台账回归 eval
+- 11 个示例 + 3 个骨架示例
+
+### 治理增强
+- 高风险档自动升级：命中资产 / 权限 / 不可逆状态流转 / 跨用户数据时强制补 risk-register / release-plan / 专项审查
+- 分级流程（P0 / P1 / P2）适配
+- 交付区分 `AI 已完成` / `需人工执行`
+- 静态校验证据要求（compile / type-check / build）
+- degraded-path-check 拦截只测 happy path 的伪完成
+- brownfield / change 任务先审计共享基础设施约定
+- "可配置"类术语强制追问操作闭环
+
+### 删除
+- 移除所有 v2 遗留 workflow 和兼容层
+- 移除旧版 project-type 模板
+
+## 2.6.0
+
+- 版本升级和文档更新
+
+## 2.5.0
+
+- 增强测试和安装流程
+- 重构 README 和引导脚本
+
+## 2.4.0
+
+- 新增变更感知验证支持
+- 增强遗留项目集成
+- 引入全面的 AI 项目交付指南和技能
+
+## 2.3.1
+
+- 文档修复和更新
+
+## 2.0.0
+
+- 升级为 AGENTS.md + SKILL.md 开放标准
+- 支持 Antigravity / Cursor / Codex 三工具兼容
+- 新增 doctor / diff / upgrade CLI 命令
+- 引入 reverse-engineer skill 和 clone-project workflow
+- 重构 `create-ai-os` 子命令调度
+
+## 1.0.0
+
+- 初始版本：通过 `npx` 从 git 安装 AI-OS 框架到目标项目
