@@ -30,8 +30,8 @@
 - **来源**：现有 README 问题基线；多个真实项目中的常见失败模式
 - **真实问题**：需求、成功标准和范围边界还没说清，AI 就直接进入实现，后面频繁返工。
 - **AI-OS 必须保证**：先走目标对齐和待确认项暴露，再进入设计或实现。
-- **当前覆盖锚点**：`/align`、`.ai-os/MISSION.md`、`evals/missing-user-confirmation.md`、`examples/greenfield-guided-product.md`
-- **每次迭代核对**：不能弱化目标确认、范围边界和确认停点。
+- **当前覆盖锚点**：`/align`、`.ai-os/MISSION.md`、`evals/missing-user-confirmation.md`、`examples/greenfield-guided-product.md`、`tasks.yaml` 模板的 `measurable_outcome` 和 `edge_cases` 字段、`/plan` workflow 的 `measurable_outcome` / `edge_cases` 禁止事项
+- **每次迭代核对**：不能弱化目标确认、范围边界和确认停点；不能去掉任务级可量化完成标准和异常路径要求。
 
 ### PL-002 需求补充后，AI 直接改代码，文档和代码脱节
 
@@ -54,16 +54,16 @@
 - **来源**：现有 README 问题基线
 - **真实问题**：页面和交互看起来像完成了，但核心流程、状态流转或业务规则不对。
 - **AI-OS 必须保证**：关键设计和关键逻辑都先锁定，并在验证阶段同时过设计门和逻辑门。
-- **当前覆盖锚点**：`/design`、`/plan`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/specs/`、`.ai-os/acceptance.yaml`、`evals/ui-looks-right-but-logic-wrong.md`、`subagent-executor`（两阶段审查拦截 spec 偏差）、`testing-strategies`（TDD 铁律强制先写测试）
-- **每次迭代核对**：不能只保留视觉或实现检查，丢掉逻辑确认门。
+- **当前覆盖锚点**：`/design`、`/plan`、`/verify`、`.ai-os/DESIGN.md`、`.ai-os/specs/`、`.ai-os/acceptance.yaml`、`evals/ui-looks-right-but-logic-wrong.md`、`subagent-executor`（两阶段审查拦截 spec 偏差）、`testing-strategies`（TDD 铁律强制先写测试）、`/build` workflow 的 wave 自审检查点（每 wave 对照 spec 和 measurable_outcome 检查实现）
+- **每次迭代核对**：不能只保留视觉或实现检查，丢掉逻辑确认门；不能去掉 wave 级自审检查。
 
 ### PL-005 bug 修复时顺手乱改，改 A 坏 B
 
 - **来源**：现有 README 问题基线
 - **真实问题**：本来是单点修复，结果顺手重构或扩散修改，引入新的回归。
 - **AI-OS 必须保证**：debug 先定界、再修复、再做影响范围回归。
-- **当前覆盖锚点**：`/debug`（含最小方案确认防护和 TDD 修 Bug 要求）、`.ai-os/tasks.yaml`、`.ai-os/STATE.md`、`evals/debug-overreach-regression.md`、`examples/debug-bounded-fix.md`
-- **每次迭代核对**：不能去掉边界说明、影响范围和回归结论。
+- **当前覆盖锚点**：`/debug`（含最小方案确认防护和 TDD 修 Bug 要求）、`.ai-os/tasks.yaml`、`.ai-os/STATE.md`、`evals/debug-overreach-regression.md`、`examples/debug-bounded-fix.md`、`/build` workflow 的 wave 自审检查点（检查越界改动和跨 wave 影响）
+- **每次迭代核对**：不能去掉边界说明、影响范围和回归结论；不能去掉 wave 级范围守卫检查。
 
 ### PL-006 界面上像有功能，但其实不能真用
 
@@ -110,16 +110,16 @@
 - **来源**：现有 README 问题基线
 - **真实问题**：正常流程能走通，但异常、空数据、部分失败或拒绝场景缺少验证。
 - **AI-OS 必须保证**：验证必须覆盖 degraded path，而不是只测 happy path。
-- **当前覆盖锚点**：`degraded-path-check`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`、`evals/happy-path-passed-but-null-path-broken.md`、`examples/degraded-path-verification.md`
-- **每次迭代核对**：不能去掉异常路径、空数据和回归验证要求。
+- **当前覆盖锚点**：`degraded-path-check`、`.ai-os/acceptance.yaml`、`.ai-os/verification-matrix.yaml`、`evals/happy-path-passed-but-null-path-broken.md`、`examples/degraded-path-verification.md`、`tasks.yaml` 模板的 `edge_cases` 字段（任务级异常路径前置定义）、`/plan` workflow 禁止 `edge_cases` 为空
+- **每次迭代核对**：不能去掉异常路径、空数据和回归验证要求；不能去掉任务级 edge_cases 字段要求。
 
 ### PL-012 一换 session，AI 就忘了做到哪
 
 - **来源**：现有 README 问题基线
 - **真实问题**：会话切换后项目目标、当前阶段、确认停点和下一步无法稳定恢复。
 - **AI-OS 必须保证**：项目状态和稳定记忆可恢复，而不是只靠聊天上下文。
-- **当前覆盖锚点**：`.ai-os/STATE.md`、`.ai-os/memory.md`、`create-ai-os status`、`create-ai-os resume`、`PROJECT_PURPOSE.md`
-- **每次迭代核对**：不能削弱状态恢复入口、最小阅读集和稳定记忆边界。
+- **当前覆盖锚点**：`.ai-os/STATE.md`、`.ai-os/memory.md`、`create-ai-os status`、`create-ai-os resume`、`PROJECT_PURPOSE.md`、`memory-manager` skill 的分层归档策略和 session 恢复优先级、`/postmortem` workflow 的记忆归档步骤
+- **每次迭代核对**：不能削弱状态恢复入口、最小阅读集和稳定记忆边界；不能去掉 memory 分层策略和归档区。
 
 ### PL-013 用户已经点明局部改动，AI 却默认扩散成全仓分析
 

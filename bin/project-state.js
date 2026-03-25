@@ -190,6 +190,13 @@ function parseTasksFile(tasksPath) {
           "derived_checks",
           "risk_triggers",
           "blockers",
+          "measurable_outcome",
+          "edge_cases",
+          "requirement_refs",
+          "acceptance_refs",
+          "acceptance_criteria",
+          "change_scope",
+          "out_of_scope_guard",
         ].includes(key)
       ) {
         currentListKey = key;

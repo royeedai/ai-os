@@ -19,7 +19,7 @@ description: 生成 specs、tasks、acceptance 和证据计划
 4. 根据需求特征先判断交互模式：`sync` / `streaming` / `async-job` / `event-driven`
 5. 逐条建立“需求点 -> task -> acceptance”的映射，确保无遗漏、无合并丢失
 6. 对大型项目 / 模块主动拆分里程碑，明确每个里程碑的交付目标、范围、验收标准和排期 / 目标窗口
-7. 生成或更新 `.ai-os/tasks.yaml`，为任务补齐优先级、依赖关系、改动范围、风险点、`impact_tags`、`derived_checks`、`risk_triggers`、边界说明和验收映射
+7. 生成或更新 `.ai-os/tasks.yaml`，为任务补齐优先级、依赖关系、改动范围、风险点、`impact_tags`、`derived_checks`、`risk_triggers`、边界说明和验收映射；每个任务必须填写 `measurable_outcome`（用可验证的具体条件替代形容词）和 `edge_cases`（本任务必须覆盖的异常路径）
 8. 生成或更新 `.ai-os/acceptance.yaml`，写入 `quality_tier`、`required_special_reviews`、逐项验收标准和 degraded-path 证据要求
 9. 命中高风险触发时，强制补 `risk-register.md`、`release-plan.md`、`verification-matrix.yaml`
 10. 更新 `.ai-os/STATE.md`，把当前阶段切到 `plan`，并记录待用户确认的任务 / 验收摘要
@@ -38,4 +38,6 @@ description: 生成 specs、tasks、acceptance 和证据计划
 - 禁止只有 spec 没有任务波次
 - 禁止跳过交互模式判型就直接默认 request / response
 - 禁止设计门和逻辑门未定义就进入 `/build`
+- 禁止任务的 `measurable_outcome` 使用模糊形容词（如"性能良好""用户体验好"），必须转化为可验证条件
+- 禁止任务的 `edge_cases` 为空；至少列出 1 条与本任务最相关的异常路径
 - 禁止在用户未确认任务拆解和验收标准前直接开工

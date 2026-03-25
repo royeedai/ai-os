@@ -139,6 +139,12 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md create
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "acceptance.yaml")), "acceptance.yaml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md created");
+const memoryTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "memory.md"), "utf8");
+assert(memoryTemplate.includes("活跃条目数"), "memory template includes active count metadata");
+assert(memoryTemplate.includes("归档条目数"), "memory template includes archived count metadata");
+assert(memoryTemplate.includes("分层策略"), "memory template includes layered strategy");
+assert(memoryTemplate.includes("归档区"), "memory template includes archive section");
+assert(memoryTemplate.includes("active"), "memory template uses active status");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "specs", "example.spec.md")), "example spec created");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "release-plan.md")), "release-plan.md is not created by default");
 assert(!fs.existsSync(path.join(initDir, ".ai-os", "risk-register.md")), "risk-register.md is not created by default");
@@ -176,6 +182,8 @@ assert(tasksTemplate.includes("risk_triggers:"), "tasks template includes risk t
 assert(tasksTemplate.includes("requirement_refs:"), "tasks template includes requirement traceability");
 assert(tasksTemplate.includes("priority:"), "tasks template includes task priority");
 assert(tasksTemplate.includes("acceptance_criteria:"), "tasks template includes task acceptance criteria");
+assert(tasksTemplate.includes("measurable_outcome:"), "tasks template includes measurable_outcome");
+assert(tasksTemplate.includes("edge_cases:"), "tasks template includes edge_cases");
 assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
 assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
 assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");

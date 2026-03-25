@@ -538,6 +538,8 @@ const VALIDATION_SCHEMAS = {
     "definition_of_done:",
     "evidence_required:",
     "parity_evidence_required:",
+    "measurable_outcome:",
+    "edge_cases:",
   ],
   tasksTransitionalMarkers: [
     "impact_tags:",

@@ -56,6 +56,10 @@ tasks:
       - "validate"
     restart_required: false
     cold_start_required: false
+    measurable_outcome:
+      - "[用可验证的具体条件替代形容词，例如：所有关键页面的 IA 层级和导航路径已在 spec 中逐一列出]"
+    edge_cases:
+      - "[列出本任务最可能遗漏的异常路径，例如：空数据状态下的页面展示、权限不足时的流程中断]"
     definition_of_ready:
       - "Mission 已明确用户、目标和项目模式"
       - "关键输入素材已整理"
@@ -65,6 +69,8 @@ tasks:
       - "关键技术栈与关键选型已记录，并区分已确认与待确认项"
       - "设计确认门和逻辑确认门具备通过条件"
       - "需求点、任务和验收标准建立了映射"
+      - "measurable_outcome 中列出的条件全部满足"
+      - "edge_cases 中列出的异常路径已在 spec 或任务拆解中体现"
     acceptance_criteria:
       - "AC-001"
     evidence_required:
@@ -126,6 +132,10 @@ tasks:
       - "build"
     restart_required: false
     cold_start_required: false
+    measurable_outcome:
+      - "[用可验证的具体条件替代形容词，例如：核心 CRUD 流程 happy path + 3 条 degraded path 全部通过自动化测试]"
+    edge_cases:
+      - "[列出本任务必须覆盖的异常路径，例如：空列表、网络超时、并发冲突、权限拒绝、部分失败回滚]"
     definition_of_ready:
       - "设计确认门已通过"
       - "逻辑确认门已通过"
@@ -138,6 +148,8 @@ tasks:
       - "实现质量门可通过"
       - "交付质量门所需证据已补齐"
       - "只修改了已确认范围内的代码"
+      - "measurable_outcome 中列出的条件全部通过"
+      - "edge_cases 中列出的异常路径全部有验证结论"
     acceptance_criteria:
       - "AC-001"
     evidence_required:

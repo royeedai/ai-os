@@ -227,6 +227,16 @@ if (tasksContent !== null) {
     `${getProjectRelativePath("tasks.yaml")} includes risk_triggers`,
     { warnOnly: true }
   );
+  report(
+    parsedTasks.tasks.some((task) => (task.measurable_outcome || []).length > 0),
+    `${getProjectRelativePath("tasks.yaml")} includes measurable_outcome`,
+    { warnOnly: true }
+  );
+  report(
+    parsedTasks.tasks.some((task) => (task.edge_cases || []).length > 0),
+    `${getProjectRelativePath("tasks.yaml")} includes edge_cases`,
+    { warnOnly: true }
+  );
   if (parsedTasks.qualityTier) {
     report(
       QUALITY_TIERS.includes(parsedTasks.qualityTier),

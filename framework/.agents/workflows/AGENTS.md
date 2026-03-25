@@ -33,7 +33,7 @@ AI-OS vNext 仍以阶段式 workflow 为主，但补充了变更和修复的专�
 | `/change-request` | 在任何需求补充、范围调整、验收变化前，先完成影响分析和基准同步 | 更新 `MISSION.md` / `specs/` / `DESIGN.md` / `STATE.md`，形成最新需求基准并等待用户确认 |
 | `/debug` | 对单一 bug、配置修复、文案或样式微调执行轻量闭环 | 输出修复方案、边界、验证结果；若超出边界则升级到 `/change-request` 或 `/design` |
 | `/review` | 对当前方案、实现或交付进行多维度结构化审查 | 输出带风险等级的问题清单、影响说明和优化建议 |
-| `/postmortem` | 对项目或里程碑做复盘并沉淀稳定经验 | 输出复盘结论并同步更新 `memory.md` |
+| `/postmortem` | 对项目或里程碑做复盘并沉淀稳定经验 | 输出复盘结论、归档条目清单（如有）并同步更新 `memory.md` |
 
 ## Continue Workflows
 
