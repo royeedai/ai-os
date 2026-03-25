@@ -15,6 +15,7 @@ const SUBCOMMANDS = {
   next:            "./ai-os-next",
   resume:          "./ai-os-resume",
   "release-check": "./ai-os-release-check",
+  "token-budget":  "./ai-os-token-budget",
 };
 
 const _sub = process.argv[2];

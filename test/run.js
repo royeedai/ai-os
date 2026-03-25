@@ -614,5 +614,242 @@ assert(upgradePreflightResult.status === 0, "upgrade --preflight exits with code
 
 cleanup(diffUpgradeDir);
 
+// ---------------------------------------------------------------------------
+// Eval-driven guardrail tests
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== eval-driven guardrail tests ===\n");
+
+// Missing any single core artifact must cause validate to reject.
+// Each maps to an eval scenario where that artifact's absence means a guardrail failed.
+const coreArtifactEvalMap = [
+  ["DESIGN.md", "design-not-locked"],
+  ["MISSION.md", "missing-user-confirmation"],
+  ["STATE.md", "session-recovery"],
+  ["tasks.yaml", "task-plan-coverage"],
+  ["acceptance.yaml", "acceptance-gate-coverage"],
+  ["memory.md", "project-memory-coverage"],
+];
+
+for (const [artifact, evalName] of coreArtifactEvalMap) {
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.unlinkSync(path.join(dir, ".ai-os", artifact));
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, `eval/${evalName}: validate rejects missing ${artifact}`);
+  cleanup(dir);
+}
+
+// Missing specs directory → validate rejects
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.rmSync(path.join(dir, ".ai-os", "specs"), { recursive: true, force: true });
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "eval/spec-coverage: validate rejects missing specs directory");
+  cleanup(dir);
+}
+
+// Default acceptance has gates as pending → validate warns about design and logic gates
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.stdout.includes("design confirmation gate"), "eval/product-shape: validate reports design gate status");
+  assert(result.stdout.includes("logic confirmation gate"), "eval/ui-vs-logic: validate reports logic gate status");
+  cleanup(dir);
+}
+
+// Spec stripped of interaction mode markers → validate warns (interaction-mode-misclassified)
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const specPath = path.join(dir, ".ai-os", "specs", "example.spec.md");
+  fs.writeFileSync(
+    specPath,
+    fs.readFileSync(specPath, "utf8")
+      .replace(/- \*\*交互模式\*\*[^\n]*\n/, "")
+      .replace(/- \*\*推荐模式理由\*\*[^\n]*\n/, "")
+      .replace(/- \*\*拒绝的交互模式\*\*[^\n]*\n/, ""),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.stdout.includes("interaction mode"), "eval/interaction-mode: validate warns about missing interaction mode markers");
+  cleanup(dir);
+}
+
+// Acceptance stripped of transitional markers → validate warns (happy-path / cross-layer)
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
+  fs.writeFileSync(
+    acceptancePath,
+    fs.readFileSync(acceptancePath, "utf8")
+      .replace(/  quality_tier: "standard"\n/, "")
+      .replace(/\nrequired_special_reviews: \[\]\n/, "\n")
+      .replace(/      - "contract-baseline-check"\n/g, "")
+      .replace(/      - "degraded-path-check"\n/g, ""),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(
+    result.stdout.includes("contract") || result.stdout.includes("degraded-path"),
+    "eval/null-path: validate warns about missing contract/degraded-path markers"
+  );
+  cleanup(dir);
+}
+
+// Tasks stripped of impact_tags → validate warns (cross-layer-change-missed-linkage)
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8")
+      .replace(/\n    impact_tags:\n(?:      - "[^"]+"\n)+/g, "\n"),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.stdout.includes("impact_tags"), "eval/cross-layer: validate warns about missing impact_tags");
+  cleanup(dir);
+}
+
+// DESIGN.md with missing sections → validate rejects (brownfield-infrastructure-audit)
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.writeFileSync(path.join(dir, ".ai-os", "DESIGN.md"), "# Design\n\nMinimal.\n", "utf8");
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "eval/brownfield-audit: validate rejects DESIGN.md with missing sections");
+  cleanup(dir);
+}
+
+// MISSION.md with missing sections → validate rejects
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.writeFileSync(path.join(dir, ".ai-os", "MISSION.md"), "# Mission\n\nMinimal.\n", "utf8");
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "eval/mission-integrity: validate rejects MISSION.md with missing sections");
+  cleanup(dir);
+}
+
+// High-risk with partial artifacts (risk-register only) → validate still rejects
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.writeFileSync(
+    path.join(dir, ".ai-os", "tasks.yaml"),
+    fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8")
+      .replace('quality_tier: "standard"', 'quality_tier: "high-risk"'),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(dir, ".ai-os", "acceptance.yaml"),
+    fs.readFileSync(path.join(dir, ".ai-os", "acceptance.yaml"), "utf8")
+      .replace('quality_tier: "standard"', 'quality_tier: "high-risk"'),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(dir, ".ai-os", "risk-register.md"),
+    "# 风险登记表\n\n| ID | 风险 | 类型 | 影响 | 触发条件 | 缓解措施 | 状态 |\n|----|------|------|------|----------|----------|------|\n| R-001 | test | logic | high | trigger | mitigate | open |\n",
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "eval/sensitive-flow: validate rejects high-risk with only partial artifacts");
+  cleanup(dir);
+}
+
+// ---------------------------------------------------------------------------
+// Upgrade / diff error paths
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== upgrade / diff error paths ===\n");
+
+// No framework.toml → upgrade fails with helpful message
+{
+  const dir = tmpDir();
+  const result = run("ai-os-upgrade.js", [dir]);
+  assert(result.status === 1, "upgrade fails without framework.toml");
+  assert(result.stderr.includes("framework.toml"), "upgrade error mentions framework.toml");
+  cleanup(dir);
+}
+
+// Modified framework file → upgrade blocks without --force
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.appendFileSync(path.join(dir, "AGENTS.md"), "\n<!-- local edit -->\n", "utf8");
+  const result = run("ai-os-upgrade.js", [dir]);
+  assert(result.status === 1, "upgrade blocks on locally modified framework files");
+  assert(
+    result.stdout.includes("Conflict") || result.stderr.includes("blocked"),
+    "upgrade reports conflict or blocked status"
+  );
+  cleanup(dir);
+}
+
+// Modified framework file + --force → upgrade succeeds
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.appendFileSync(path.join(dir, "AGENTS.md"), "\n<!-- local edit -->\n", "utf8");
+  const result = run("ai-os-upgrade.js", [dir, "--force"]);
+  assert(result.status === 0, "upgrade --force succeeds with modified files");
+  assert(result.stdout.includes("Upgrade complete"), "upgrade --force reports completion");
+  cleanup(dir);
+}
+
+// Preflight with modified file → BLOCKED
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.appendFileSync(path.join(dir, "AGENTS.md"), "\n<!-- local edit -->\n", "utf8");
+  const result = run("ai-os-upgrade.js", [dir, "--preflight"]);
+  assert(result.status === 1, "upgrade --preflight detects conflicts");
+  assert(result.stdout.includes("BLOCKED"), "upgrade --preflight reports BLOCKED");
+  cleanup(dir);
+}
+
+// Deleted managed file → diff detects missing, upgrade restores it
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.unlinkSync(path.join(dir, "AGENTS.md"));
+  const diffResult = run("ai-os-diff.js", [dir]);
+  assert(diffResult.stdout.includes("missing") && diffResult.stdout.includes("AGENTS.md"), "diff detects deleted managed file");
+  const upgradeResult = run("ai-os-upgrade.js", [dir]);
+  assert(upgradeResult.status === 0, "upgrade restores missing managed file");
+  assert(fs.existsSync(path.join(dir, "AGENTS.md")), "AGENTS.md restored after upgrade");
+  cleanup(dir);
+}
+
+// ---------------------------------------------------------------------------
+// Token budget command
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== token-budget command ===\n");
+
+{
+  const result = run("ai-os-token-budget.js", ["--source"]);
+  assert(result.status === 0, "token-budget --source exits with code 0");
+  assert(result.stdout.includes("Total"), "token-budget --source prints total");
+  assert(result.stdout.includes("tokens"), "token-budget --source prints token counts");
+  assert(result.stdout.includes("skills"), "token-budget --source includes skills category");
+  assert(result.stdout.includes("workflows"), "token-budget --source includes workflows category");
+  assert(result.stdout.includes("Top 10"), "token-budget --source lists top files");
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir]);
+  const result = run("ai-os-token-budget.js", [dir]);
+  assert(result.status === 0, "token-budget on installed project exits with code 0");
+  assert(result.stdout.includes("Total"), "token-budget on installed project prints total");
+  cleanup(dir);
+}
+
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
