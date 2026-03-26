@@ -153,6 +153,22 @@
 - **当前覆盖锚点**：`/align`、`/change-request`、`.ai-os/MISSION.md`、`evals/configurable-meant-operable-gap.md`、`examples/config-closure-clarification.md`
 - **每次迭代核对**：不能把这类术语重新当成无需确认的默认词，也不能把“轻量追问”偷偷升级成一刀切的 UI CRUD 强制要求。
 
+### PL-017 长期迭代中 AI 引入回归和技术债指数累积
+
+- **来源**：SWE-CI 基准测试（阿里巴巴+中山大学, 2026-03, arxiv 2603.03823）；行业技术债研究（GitClear 2026）
+- **真实问题**：75%+ 的 AI 模型在 233 天 / 71 次提交的长期维护中引入回归（破坏原本通过的测试），技术债呈指数增长。根因是上下文漂移（跨 session 决策丢失）、局部最优（只修当前失败不管已通过测试）和代码模式退化（每 session 引入新模式形成死亡螺旋）。
+- **AI-OS 必须保证**：build 阶段有回归基线对比（wave 前快照、wave 后对比），verify 有零回归放行门，memory 有技术债结构化追踪，postmortem 有债务审计步骤，代码约定有显式锚点（CONVENTIONS.md）。
+- **当前覆盖锚点**：`/build` 回归基线协议、`/verify` 零回归门、`.ai-os/memory.md` 技术债追踪区、`/postmortem` 债务审计步骤、`.ai-os/CONVENTIONS.md` 模式锚点、`derived-rules.md` 4.6 回归零容忍 / 4.7 最小改动原则
+- **每次迭代核对**：不能弱化回归基线对比和零回归门；不能去掉技术债追踪区；不能让 CONVENTIONS.md 退化为可选装饰。
+
+### PL-018 代码模式跨 session 漂移无锚点
+
+- **来源**：SWE-CI 基准测试（2026-03）；BSWEN 上下文漂移分析；DTX Systems 实践指南（2026-02）
+- **真实问题**：每个 session 独立决定命名、错误处理、API 调用等代码模式，跨 session 无一致性锚点。Session 1 写 `fetchUser()`，Session 10 写 `getUser()`，代码库逐渐混乱，AI 读到混乱代码后忠实复现混乱，形成不可逆的退化螺旋。
+- **AI-OS 必须保证**：项目级代码约定有显式工件（`.ai-os/CONVENTIONS.md`），build 实现时对照检查，verify 做模式一致性检查，postmortem 审查约定是否需要更新。
+- **当前覆盖锚点**：`.ai-os/CONVENTIONS.md` 模板、`/build` CONVENTIONS 对照步骤、`/verify` 模式一致性检查、`/postmortem` CONVENTIONS 审查、`/design` 阶段初始化 CONVENTIONS
+- **每次迭代核对**：不能把 CONVENTIONS.md 的对照检查从 build 和 verify 中去掉；不能让代码约定退化成只在 design 阶段写一次就再不看的文档。
+
 ### PG-001 新问题没有单独记录，重构时容易把覆盖做丢
 
 - **来源**：2026-03-18 用户反馈

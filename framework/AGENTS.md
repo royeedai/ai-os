@@ -111,7 +111,7 @@
 
 1. 设计确认门
 2. 逻辑确认门
-3. 实现质量门
+3. 实现质量门（含回归基线对比：存在测试套件时，原本通过的测试不允许变为失败）
 4. 交付质量门
 
 对 reverse-spec 项目，再加：
@@ -133,7 +133,8 @@
 - `.ai-os/STATE.md` 是恢复上下文的第一入口
 - `.ai-os/MISSION.md` 负责记录目标、范围、模式、质量标准和最新确认基准
 - `.ai-os/DESIGN.md` 负责记录已锁定的设计与关键流程
-- `.ai-os/memory.md` 只记录稳定决策、约束、偏好和坑点；通过分层归档（active / archived）防止记忆膨胀，不再有效的条目归档而非删除
+- `.ai-os/CONVENTIONS.md` 负责记录项目级代码约定（命名、模式、分层、日志），防止跨 session 代码模式漂移
+- `.ai-os/memory.md` 只记录稳定决策、约束、偏好、坑点和技术债；通过分层归档（active / archived）防止记忆膨胀，不再有效的条目归档而非删除
 - 新 session 或上下文切换时，必须先读 `STATE.md`，再按最小阅读集扩展；`memory.md` 优先加载 `active` 条目，`archived` 条目按需查阅
 
 ## Workflows

@@ -368,6 +368,27 @@ if (stateContent !== null) {
   );
 }
 
+const conventionsContent = readUtf8IfExists(getProjectFilePath(targetDir, "CONVENTIONS.md"));
+const qualityTier = parsedTasks.qualityTier || parsedAcceptance.qualityTier || "";
+const isStandardOrHigher = qualityTier === "standard" || qualityTier === "high-risk" || declaredHighRisk;
+if (conventionsContent === null && isStandardOrHigher) {
+  report(false, `${getProjectRelativePath("CONVENTIONS.md")} exists for standard/high-risk delivery`, { warnOnly: true });
+} else if (conventionsContent !== null) {
+  const conventionsSections = markdownHasSections(conventionsContent, [
+    ["命名约定", "Naming"],
+    ["代码模式", "Code Patterns", "Patterns"],
+  ]);
+  report(
+    conventionsSections.length === 0,
+    `${getProjectRelativePath("CONVENTIONS.md")} sections complete`,
+    { warnOnly: true, details: conventionsSections.map((section) => `missing section: ${section}`) }
+  );
+}
+
+if (stateContent !== null && stateContent.includes("测试基线") && !stateContent.includes("当前回归数")) {
+  report(false, `${getProjectRelativePath("STATE.md")} has test baseline but missing regression count`, { warnOnly: true });
+}
+
 const verificationMatrixContent = readUtf8IfExists(getProjectFilePath(targetDir, "verification-matrix.yaml"));
 if (verificationMatrixContent !== null) {
   const missingVerificationMarkers = missingMarkers(

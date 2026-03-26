@@ -27,6 +27,13 @@
 | verify | pending | |
 | ship | pending | |
 
+## 代码库健康（可选，有测试套件时填写）
+
+- **测试基线**：[通过数/总数] @ [日期]
+- **当前回归数**：0
+- **lint 状态**：pass / N warnings / N errors
+- **CONVENTIONS.md**：存在 / 不适用
+
 ## 已锁定内容
 
 - [无]

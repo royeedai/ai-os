@@ -13,7 +13,7 @@ AI-OS 的 Skill 组合围绕 3 件事：
 | `/align` | `project-planner`、`memory-manager` |
 | `/design` | `reverse-engineer`（reverse-spec 时）、`spec-validator` |
 | `/plan` | `spec-validator`、`task-orchestrator`、`acceptance-gate` |
-| `/build` | `fullstack-dev-checklist`、`code-review-guard`、`subagent-executor`（多任务执行时） |
+| `/build` | `fullstack-dev-checklist`、`code-review-guard`（含 CONVENTIONS.md 模式一致性检查）、`subagent-executor`（多任务执行时） |
 | `/verify` | `acceptance-gate`、`code-review-guard`、`testing-strategies` |
 | `/ship` | `release-manager` |
 
