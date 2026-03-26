@@ -1,5 +1,22 @@
 # Changelog
 
+## 5.5.0
+
+### 新功能
+- `--lite` 安装模式：只安装核心 workflow（align/design/build/verify/debug）、必要 skill（acceptance-gate/memory-manager）和全部模板，token 成本从 ~99K 降到 ~32K（减少 68%）
+- `cursor-rules` 子命令：将已安装框架转换为 `.cursor/rules/*.mdc`，AGENTS.md 生成为 `alwaysApply: true`，workflow/skill 按需加载
+- `token-budget --lite`：对比完整安装与 lite 安装的 token 占用
+
+### 内容增强
+- README 新增「为什么需要 AI-OS」章节：引用 2026 年行业数据（AI 代码 bug 率 1.7x、45% 安全漏洞、信任度降至 60%）和运行时护栏工具差异化对比
+- 问题台账新增 PG-002（token 预算治理）、PG-003（advisory 规则可被忽略）、PG-004（IDE 格式兼容性）
+- 4 个新示例骨架：high-risk-state-change（含 risk-register）、debug-bounded-fix、change-request-baseline-sync、degraded-path-verification（含 acceptance.yaml）
+- CLI 文档补充 Lite 模式、Cursor Rules、Token Budget 章节
+
+### 测试
+- 测试覆盖从 247 项提升到 296 项（+49）
+- 新增测试：lite 安装正确性、cursor-rules 生成、新 example 骨架、problem-ledger 条目、README 内容、shared.js 导出
+
 ## 5.4.0
 
 - 补齐 3 个示例骨架的缺失工件文件（greenfield 补 DESIGN/tasks/acceptance，brownfield 补 MISSION，reverse-spec 补 MISSION/acceptance）

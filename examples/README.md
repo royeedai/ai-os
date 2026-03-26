@@ -1,8 +1,14 @@
-# AI-OS Examples（AI-OS）
+# AI-OS Examples
 
 这些示例的目的，是演示新版 AI-OS 如何把用户一步步带到高质量交付，而不是提供业务代码模板。
 
-## 当前示例
+## Quickstart
+
+**首次了解 AI-OS？从这里开始：**
+
+- `quickstart-todo-cli/` — 一个完整走通 `/align` → `/ship` 的迷你项目演示，展示每个阶段产出的真实工件
+
+## 场景示例
 
 - `greenfield-guided-product.md`
 - `reverse-spec-admin-console.md`

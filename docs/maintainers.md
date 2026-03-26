@@ -41,14 +41,21 @@
 
 ## 当前主示例
 
-- `examples/greenfield-guided-product.md`
-- `examples/reverse-spec-admin-console.md`
-- `examples/brownfield-change-journey.md`
+- `examples/greenfield-guided-product.md`（含 `.ai-os/` 骨架）
+- `examples/reverse-spec-admin-console.md`（含 `.ai-os/` 骨架）
+- `examples/brownfield-change-journey.md`（含 `.ai-os/` 骨架）
 - `examples/interaction-mode-chat.md`
-- `examples/high-risk-state-change.md`
+- `examples/high-risk-state-change.md`（含 `.ai-os/` 骨架 + risk-register）
 - `examples/cross-layer-schema-change.md`
-- `examples/degraded-path-verification.md`
-- `examples/change-request-baseline-sync.md`
-- `examples/debug-bounded-fix.md`
+- `examples/degraded-path-verification.md`（含 `.ai-os/` 骨架 + acceptance.yaml）
+- `examples/change-request-baseline-sync.md`（含 `.ai-os/` 骨架）
+- `examples/debug-bounded-fix.md`（含 `.ai-os/` 骨架）
 - `examples/brownfield-infrastructure-audit.md`
 - `examples/config-closure-clarification.md`
+
+## 治理问题台账
+
+- PG-001: 新问题没有单独记录，重构时容易把覆盖做丢
+- PG-002: 框架 token 成本占用过高 → `--lite` / `token-budget`
+- PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
+- PG-004: 不适配主流 IDE 原生规则系统 → `cursor-rules` 子命令

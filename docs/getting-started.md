@@ -1,6 +1,6 @@
 # Getting Started
 
-AI-OS 的默认顺序不是“先写代码”，而是：
+AI-OS 的默认顺序不是"先写代码"，而是：
 
 1. `/align`
 2. `/design`
@@ -8,6 +8,26 @@ AI-OS 的默认顺序不是“先写代码”，而是：
 4. `/build`
 5. `/verify`
 6. `/ship`
+
+## 选择安装方式
+
+**完整安装**（19 个 skill + 15 个 workflow，~99K tokens）：
+
+```bash
+npx --yes github:royeedai/ai-os my-project --with-project-files
+```
+
+**轻量安装**（核心 workflow + 必要 skill，~32K tokens，适合小项目或首次体验）：
+
+```bash
+npx --yes github:royeedai/ai-os my-project --with-project-files --lite
+```
+
+**使用 Cursor？** 安装后追加生成 `.cursor/rules/`：
+
+```bash
+npx --yes github:royeedai/ai-os cursor-rules my-project
+```
 
 ## 第一次使用先记住 4 件事
 
@@ -19,8 +39,8 @@ AI-OS 的默认顺序不是“先写代码”，而是：
 ## 安装后你会看到什么
 
 - `AGENTS.md`
-- `.agents/skills/`
-- `.agents/workflows/`
+- `.agents/skills/`（lite 模式只含 acceptance-gate 和 memory-manager）
+- `.agents/workflows/`（lite 模式只含 align/design/build/verify/debug）
 - `.ai-os/MISSION.md`
 - `.ai-os/DESIGN.md`
 - `.ai-os/tasks.yaml`
@@ -42,4 +62,12 @@ AI-OS 的默认顺序不是“先写代码”，而是：
 - Design 没锁：不要进入完整 `/build`
 - Spec / tasks / acceptance 不完整：先 `/plan`
 - 命中资产、权限、不可逆状态流转、跨用户数据或并发敏感更新：直接升到 `high-risk`
-- 想判断“是不是真的做对了”：用 `/verify`
+- 想判断"是不是真的做对了"：用 `/verify`
+
+## 检查你的项目
+
+```bash
+npx --yes github:royeedai/ai-os doctor .        # 框架和工件健康检查
+npx --yes github:royeedai/ai-os validate .       # 交付工件完整性校验
+npx --yes github:royeedai/ai-os token-budget .   # 查看框架 token 占用
+```

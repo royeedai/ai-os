@@ -1,0 +1,40 @@
+version: 2
+scope: "todo-cli 全量交付"
+quality_tier: "standard"
+required_special_reviews: []
+baseline_source: "MISSION.md + specs/"
+
+confirmed_stack_decisions:
+  - "Node.js + JSON 文件存储 + 零依赖"
+
+gates:
+  - id: "design-confirmation"
+    description: "命令结构、数据格式、存储路径已确认"
+    status: passed
+    evidence:
+      - "DESIGN.md §6 设计确认记录"
+
+  - id: "logic-confirmation"
+    description: "4 个命令的输入输出和异常路径已在 spec 中定义"
+    status: passed
+    evidence:
+      - "specs/todo-cli.spec.md §4 关键流程"
+      - "specs/todo-cli.spec.md §6 异常处理"
+
+  - id: "implementation-quality"
+    description: "代码实现与 spec 一致，测试通过"
+    status: passed
+    evidence:
+      - "npm test 全部通过"
+      - "node bin/todo.js add/list/done/delete 手动验证"
+      - "task-flow-check"
+      - "static-validation-check"
+
+  - id: "delivery-readiness"
+    description: "可安装、可运行、有使用说明"
+    status: passed
+    evidence:
+      - "README.md 包含安装和使用说明"
+      - "contract-baseline-check"
+      - "degraded-path-check"
+      - "manual-action-note"
