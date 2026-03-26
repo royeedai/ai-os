@@ -13,6 +13,7 @@ const path = require("path");
 const {
   FRAMEWORK_ROOT,
   MANAGED_ROOTS,
+  isLiteIncluded,
   listFilesRecursively,
   parseCliArgs,
   C_RESET,
@@ -23,17 +24,18 @@ const {
 } = require("./shared");
 
 const parsed = parseCliArgs(process.argv, {
-  booleanFlags: ["--source"],
+  booleanFlags: ["--source", "--lite"],
 });
 
 if (parsed.flags.help) {
   process.stdout.write(`Usage:
-  ai-os-token-budget [target-dir] [--source]
+  ai-os-token-budget [target-dir] [--source] [--lite]
 
 Analyze the token budget consumed by AI-OS framework files.
 
 Options:
   --source    Analyze the source framework (mother repo) instead of an installed project
+  --lite      Show only files included in --lite install mode
   -h, --help  Show this help message
 `);
   process.exit(0);
@@ -53,19 +55,21 @@ if (!fs.existsSync(baseDir)) {
 // -------------------------------------------------------------------------
 
 const allEntries = [];
+const liteFilter = parsed.flags.lite;
 
 for (const rootRel of MANAGED_ROOTS) {
   const rootPath = path.join(baseDir, rootRel);
   if (!fs.existsSync(rootPath)) continue;
   if (fs.statSync(rootPath).isFile()) {
-    allEntries.push({ rel: rootRel, abs: rootPath });
+    const rel = rootRel;
+    if (liteFilter && !isLiteIncluded(rel)) continue;
+    allEntries.push({ rel, abs: rootPath });
     continue;
   }
   for (const absFile of listFilesRecursively(rootPath)) {
-    allEntries.push({
-      rel: path.relative(baseDir, absFile).replace(/\\/g, "/"),
-      abs: absFile,
-    });
+    const rel = path.relative(baseDir, absFile).replace(/\\/g, "/");
+    if (liteFilter && !isLiteIncluded(rel)) continue;
+    allEntries.push({ rel, abs: absFile });
   }
 }
 
@@ -130,7 +134,8 @@ const measured = allEntries.map((entry) => {
 // Report
 // -------------------------------------------------------------------------
 
-process.stdout.write(`\nAI-OS Token Budget — ${baseDir}\n\n`);
+const modeLabel = liteFilter ? " (lite mode)" : "";
+process.stdout.write(`\nAI-OS Token Budget${modeLabel} — ${baseDir}\n\n`);
 
 const categoryOrder = ["AGENTS.md (root)", "workflows", "skills", "templates", "policies", "references", "other"];
 let grandChars = 0;

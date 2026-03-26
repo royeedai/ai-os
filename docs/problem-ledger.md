@@ -160,3 +160,27 @@
 - **AI-OS 必须保证**：新增问题先登记到本台账；每次重构、学习迭代和覆盖重写，都要在变更评估里写清回看的条目和覆盖结果。
 - **当前覆盖锚点**：`docs/problem-ledger.md`、`AGENTS.md`、`docs/change-evaluation-template.md`、`docs/maintainers.md`、`evals/problem-ledger-coverage-regression.md`、`test/run.js`
 - **每次迭代核对**：只要动到 workflow、模板、README、eval 或根层治理文档，就要同步检查受影响条目。
+
+### PG-002 框架 token 成本占用过高，挤压业务上下文空间
+
+- **来源**：2026-03 行业研究；AGENTS.md 标准最小化原则（Gloaguen 等人 2026）
+- **真实问题**：AI-OS 完整框架（19 个 skill + 15 个 workflow + 模板）一次性注入上下文窗口时，token 占用过高，挤压了项目本身的代码和业务上下文空间，尤其在 128K 窗口的模型上影响 agent 表现。
+- **AI-OS 必须保证**：提供按场景动态加载的机制和 `--lite` 最小安装选项；token-budget 命令可估算框架成本；不必要的规则不应被注入上下文。
+- **当前覆盖锚点**：`bin/ai-os-token-budget.js`、`create-ai-os --lite`、`PROJECT_PURPOSE.md`
+- **每次迭代核对**：不能把新增 skill 或 workflow 视为零成本；每次新增框架内容时需关注 token 预算变化。
+
+### PG-003 框架规则只是建议性的，AI 可以在上下文压力下忽略
+
+- **来源**：2026-03 行业研究；DTX Systems 实践指南关于 enforcement beyond config
+- **真实问题**：写在 AGENTS.md 和 markdown 中的规则是 advisory 的，LLM 在上下文压力、长会话或复杂指令下可能忽略关键规则，导致护栏形同虚设。
+- **AI-OS 必须保证**：关键门禁（如"没有 DESIGN.md 不能进 build"）在 CLI 层面有确定性校验（validate/doctor）；未来探索运行时 hook 执行层。
+- **当前覆盖锚点**：`bin/ai-os-validate.js`、`bin/ai-os-doctor.js`、`test/run.js` 的 eval-driven guardrail tests
+- **每次迭代核对**：不能假设 markdown 规则会被 100% 遵守；核心禁止项应尽可能有 CLI 校验支撑。
+
+### PG-004 框架只兼容 AGENTS.md 格式，不适配主流 IDE 原生规则系统
+
+- **来源**：2026-03 行业研究；Cursor .cursor/rules/*.mdc、Codex AGENTS.md、Windsurf 等各有原生格式
+- **真实问题**：用户使用 Cursor 时，AGENTS.md 优先级低于 .cursor/rules/*.mdc；框架规则可能不被优先加载，或用户不知道如何让 IDE 识别 AI-OS 规则。
+- **AI-OS 必须保证**：提供 `cursor-rules` 子命令，将框架文件转换为 .cursor/rules/*.mdc 格式；未来按需支持其他 IDE 格式。
+- **当前覆盖锚点**：`bin/ai-os-cursor-rules.js`、`create-ai-os cursor-rules`
+- **每次迭代核对**：新增 workflow 或 skill 时需确保 cursor-rules 转换器能正确处理。

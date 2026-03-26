@@ -4,12 +4,15 @@
 
 ```bash
 create-ai-os .
+create-ai-os . --lite
 create-ai-os doctor .
 create-ai-os validate .
 create-ai-os status .
 create-ai-os next .
 create-ai-os resume .
 create-ai-os release-check .
+create-ai-os cursor-rules .
+create-ai-os token-budget .
 create-ai-os lab /tmp/ai-os-labs
 create-ai-os diff .
 create-ai-os upgrade .
@@ -54,6 +57,43 @@ create-ai-os upgrade . --force       # 强制覆盖所有冲突文件（慎用�
 4. 确认可以覆盖后，用 `--force` 执行
 
 注意：`.ai-os/` 下的项目工件（MISSION.md、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。
+
+## Lite 模式
+
+`--lite` 只安装最小必要文件集，token 占用从 ~99K 降到 ~32K（减少 68%）：
+
+```bash
+create-ai-os . --lite --with-project-files
+```
+
+包含：`AGENTS.md` + 核心 workflow（align/design/build/verify/debug）+ 必要 skill（acceptance-gate/memory-manager）+ 全部模板 + references + policies。
+
+适用场景：小项目、首次体验、token 预算敏感的模型。
+
+## Cursor Rules 适配
+
+将已安装的 AI-OS 框架转换为 `.cursor/rules/*.mdc` 格式，让 Cursor 原生加载：
+
+```bash
+create-ai-os cursor-rules .
+create-ai-os cursor-rules . --clean   # 清理旧的再重新生成
+```
+
+生成规则：
+- `AGENTS.md` → `ai-os-constitution.mdc`（alwaysApply: true）
+- 每个 workflow → `ai-os-wf-<name>.mdc`
+- 每个 skill → `ai-os-sk-<name>.mdc`
+- Router 索引 → `ai-os-workflow-router.mdc` / `ai-os-skill-router.mdc`
+
+## Token Budget
+
+分析框架文件的 token 占用：
+
+```bash
+create-ai-os token-budget .
+create-ai-os token-budget --source        # 分析母仓库源
+create-ai-os token-budget --source --lite  # 对比 lite 模式
+```
 
 ## Lab 命令
 

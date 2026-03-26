@@ -43,6 +43,25 @@ const PROJECT_ARTIFACT_DIRS = [
   ...PROJECT_CORE_ARTIFACT_DIRS,
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
 ];
+const LITE_INCLUDES = [
+  "AGENTS.md",
+  ".agents/workflows/AGENTS.md",
+  ".agents/workflows/align.md",
+  ".agents/workflows/design.md",
+  ".agents/workflows/build.md",
+  ".agents/workflows/verify.md",
+  ".agents/workflows/debug.md",
+  ".agents/skills/AGENTS.md",
+  ".agents/skills/acceptance-gate/SKILL.md",
+  ".agents/skills/memory-manager/SKILL.md",
+  ".agents/references/derived-rules.md",
+  ".agents/references/risk-triggers.md",
+  ".agents/policies/approval-policy.md",
+];
+const LITE_DIR_PREFIXES = [
+  ".agents/templates/",
+];
+
 const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
 const IMPACT_TAGS = [
   "entrypoint",
@@ -295,14 +314,21 @@ function defaultLogger(message) {
   process.stdout.write(`${message}\n`);
 }
 
+function isLiteIncluded(relativePath) {
+  const normalized = relativePath.replace(/\\/g, "/");
+  if (LITE_INCLUDES.includes(normalized)) return true;
+  return LITE_DIR_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
 function copyFramework(targetDir, options = {}) {
-  const { overwrite = false, logger = defaultLogger } = options;
+  const { overwrite = false, lite = false, logger = defaultLogger } = options;
 
   for (const rootRel of MANAGED_ROOTS) {
     const srcRoot = path.join(FRAMEWORK_ROOT, rootRel);
     const dstRoot = path.join(targetDir, rootRel);
 
     if (fs.statSync(srcRoot).isFile()) {
+      if (lite && !isLiteIncluded(rootRel)) continue;
       if (fs.existsSync(dstRoot) && !overwrite) {
         logger(`keep existing managed file: ${rootRel}`);
         continue;
@@ -315,6 +341,7 @@ function copyFramework(targetDir, options = {}) {
     const files = listFilesRecursively(srcRoot);
     for (const srcFile of files) {
       const relativePath = path.relative(FRAMEWORK_ROOT, srcFile);
+      if (lite && !isLiteIncluded(relativePath.replace(/\\/g, "/"))) continue;
       const dstFile = path.join(targetDir, relativePath);
       if (fs.existsSync(dstFile) && !overwrite) {
         logger(`keep existing managed file: ${relativePath}`);
@@ -686,6 +713,9 @@ module.exports = {
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
+  LITE_INCLUDES,
+  LITE_DIR_PREFIXES,
+  isLiteIncluded,
   QUALITY_TIERS,
   IMPACT_TAGS,
   HIGH_RISK_SPECIAL_REVIEWS,

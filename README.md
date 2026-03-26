@@ -37,6 +37,34 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 
 这些问题的单独台账、覆盖锚点和后续迭代核对入口统一维护在 [docs/problem-ledger.md](docs/problem-ledger.md)。
 
+## 为什么需要 AI-OS
+
+### 2026 年的 AI 编程现实
+
+AI 编码工具已经普及（92% 的美国开发者日常使用），但质量危机正在加深：
+
+- AI 生成代码的 bug 率是人类代码的 **1.7 倍**（CodeRabbit 2026）
+- **45%** 的 AI 生成代码含安全漏洞
+- 开发者对 AI 代码的信任度从 77% 降至 **60%**
+- 技术债积累速度是传统方式的 **3 倍**
+- 开发者自以为快了 20%，实际上复杂任务 **慢了 19%**（METR 研究）
+
+核心问题不是 AI 写不出代码，而是 AI 不知道什么时候该停下来确认、什么才算真正完成。
+
+### AI-OS 的差异化
+
+市场上已有运行时护栏工具（如 AgentSteer、Caliper、Ouro Loop），它们在代码层拦截错误动作。AI-OS 做的是更上游的事：
+
+| 层面 | 运行时护栏工具 | AI-OS |
+|------|--------------|-------|
+| 拦截层 | 代码生成后 | 需求对齐前 |
+| 关注点 | 代码安全、工具调用 | 交付质量、目标正确性 |
+| 覆盖范围 | 单次 agent turn | 全项目生命周期 |
+| 记忆 | 无跨会话记忆 | STATE.md + memory.md |
+| 治理深度 | 规则匹配 | 自适应分级（P0/P1/P2） |
+
+AI-OS 不替代这些工具，而是在它们之上提供交付层治理：先确保目标对、设计锁、逻辑通，再让代码护栏去拦实现错误。
+
 ## 核心心智
 
 AI-OS 默认按交付阶段进入：
@@ -142,6 +170,8 @@ npx --yes github:royeedai/ai-os resume .
 npx --yes github:royeedai/ai-os diff .
 npx --yes github:royeedai/ai-os upgrade .
 npx --yes github:royeedai/ai-os release-check .
+npx --yes github:royeedai/ai-os cursor-rules .
+npx --yes github:royeedai/ai-os token-budget .
 npx --yes github:royeedai/ai-os lab /tmp/ai-os-labs
 ```
 

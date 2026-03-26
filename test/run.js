@@ -851,5 +851,119 @@ process.stdout.write("\n=== token-budget command ===\n");
   cleanup(dir);
 }
 
+// ---------------------------------------------------------------------------
+// Lite mode
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== --lite install mode ===\n");
+
+{
+  const dir = tmpDir();
+  const liteResult = run("create-ai-os.js", [dir, "--lite", "--with-project-files"]);
+  assert(liteResult.status === 0, "lite init exits with code 0");
+  assert(liteResult.stdout.includes("(lite)"), "lite init prints lite label");
+  assert(fs.existsSync(path.join(dir, "AGENTS.md")), "lite: AGENTS.md installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "workflows", "align.md")), "lite: align workflow installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "workflows", "design.md")), "lite: design workflow installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "workflows", "build.md")), "lite: build workflow installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "workflows", "verify.md")), "lite: verify workflow installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "workflows", "debug.md")), "lite: debug workflow installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "skills", "acceptance-gate", "SKILL.md")), "lite: acceptance-gate skill installed");
+  assert(fs.existsSync(path.join(dir, ".agents", "skills", "memory-manager", "SKILL.md")), "lite: memory-manager skill installed");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "lite: project files created");
+  assert(!fs.existsSync(path.join(dir, ".agents", "workflows", "ship.md")), "lite: non-core workflow excluded");
+  assert(!fs.existsSync(path.join(dir, ".agents", "skills", "code-review-guard", "SKILL.md")), "lite: non-core skill excluded");
+  assert(!fs.existsSync(path.join(dir, ".agents", "skills", "api-design", "SKILL.md")), "lite: api-design skill excluded");
+
+  const liteTokenResult = run("ai-os-token-budget.js", [dir, "--lite"]);
+  assert(liteTokenResult.status === 0, "token-budget --lite exits with code 0");
+  assert(liteTokenResult.stdout.includes("lite mode"), "token-budget --lite shows mode label");
+
+  cleanup(dir);
+}
+
+// ---------------------------------------------------------------------------
+// cursor-rules command
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== cursor-rules command ===\n");
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const cursorResult = run("ai-os-cursor-rules.js", [dir]);
+  assert(cursorResult.status === 0, "cursor-rules exits with code 0");
+  assert(cursorResult.stdout.includes("Generated"), "cursor-rules prints generation count");
+  assert(fs.existsSync(path.join(dir, ".cursor", "rules", "ai-os-constitution.mdc")), "cursor-rules: constitution .mdc created");
+  assert(fs.existsSync(path.join(dir, ".cursor", "rules", "ai-os-wf-align.mdc")), "cursor-rules: align workflow .mdc created");
+  assert(fs.existsSync(path.join(dir, ".cursor", "rules", "ai-os-wf-build.mdc")), "cursor-rules: build workflow .mdc created");
+  assert(fs.existsSync(path.join(dir, ".cursor", "rules", "ai-os-sk-acceptance-gate.mdc")), "cursor-rules: acceptance-gate .mdc created");
+  assert(fs.existsSync(path.join(dir, ".cursor", "rules", "ai-os-workflow-router.mdc")), "cursor-rules: workflow router .mdc created");
+  assert(fs.existsSync(path.join(dir, ".cursor", "rules", "ai-os-skill-router.mdc")), "cursor-rules: skill router .mdc created");
+
+  const constitutionContent = fs.readFileSync(path.join(dir, ".cursor", "rules", "ai-os-constitution.mdc"), "utf8");
+  assert(constitutionContent.includes("alwaysApply: true"), "constitution .mdc is always-apply");
+  assert(constitutionContent.includes("<!-- ai-os-generated -->"), "constitution .mdc has generated marker");
+
+  const wfContent = fs.readFileSync(path.join(dir, ".cursor", "rules", "ai-os-wf-align.mdc"), "utf8");
+  assert(wfContent.includes("alwaysApply: false"), "workflow .mdc is not always-apply");
+
+  const cleanResult = run("ai-os-cursor-rules.js", [dir, "--clean"]);
+  assert(cleanResult.status === 0, "cursor-rules --clean exits with code 0");
+
+  cleanup(dir);
+}
+
+// ---------------------------------------------------------------------------
+// New example skeletons
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== new example skeletons ===\n");
+
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "MISSION.md")), "high-risk example skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "STATE.md")), "high-risk example skeleton includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "risk-register.md")), "high-risk example skeleton includes risk-register");
+assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix", ".ai-os", "MISSION.md")), "debug example skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix", ".ai-os", "STATE.md")), "debug example skeleton includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync", ".ai-os", "MISSION.md")), "change-request example skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync", ".ai-os", "STATE.md")), "change-request example skeleton includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification", ".ai-os", "MISSION.md")), "degraded-path example skeleton includes MISSION");
+assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification", ".ai-os", "STATE.md")), "degraded-path example skeleton includes STATE");
+
+// ---------------------------------------------------------------------------
+// Problem ledger new entries
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== problem ledger new entries ===\n");
+
+const updatedLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledger.md"), "utf8");
+assert(updatedLedger.includes("PG-002"), "problem ledger includes PG-002 token budget entry");
+assert(updatedLedger.includes("PG-003"), "problem ledger includes PG-003 advisory rules entry");
+assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE format entry");
+
+// ---------------------------------------------------------------------------
+// README new section
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== README positioning section ===\n");
+
+const updatedReadme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
+assert(updatedReadme.includes("为什么需要 AI-OS"), "README includes why-AI-OS section");
+assert(updatedReadme.includes("1.7 倍"), "README cites AI bug rate data");
+assert(updatedReadme.includes("运行时护栏工具"), "README differentiates from runtime guardrail tools");
+
+// ---------------------------------------------------------------------------
+// shared.js new exports
+// ---------------------------------------------------------------------------
+
+process.stdout.write("\n=== shared.js new exports ===\n");
+
+assert(Array.isArray(shared.LITE_INCLUDES), "LITE_INCLUDES exported");
+assert(Array.isArray(shared.LITE_DIR_PREFIXES), "LITE_DIR_PREFIXES exported");
+assert(typeof shared.isLiteIncluded === "function", "isLiteIncluded exported");
+assert(shared.isLiteIncluded("AGENTS.md") === true, "isLiteIncluded returns true for AGENTS.md");
+assert(shared.isLiteIncluded(".agents/workflows/align.md") === true, "isLiteIncluded returns true for align workflow");
+assert(shared.isLiteIncluded(".agents/skills/api-design/SKILL.md") === false, "isLiteIncluded returns false for non-lite skill");
+
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
