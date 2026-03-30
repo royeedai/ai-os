@@ -137,6 +137,37 @@
 - `.ai-os/memory.md` 只记录稳定决策、约束、偏好、坑点和技术债；通过分层归档（active / archived）防止记忆膨胀，不再有效的条目归档而非删除
 - 新 session 或上下文切换时，必须先读 `STATE.md`，再按最小阅读集扩展；`memory.md` 优先加载 `active` 条目，`archived` 条目按需查阅
 
+## 六、团队协作
+
+多人使用 AI-OS 同时开发同一项目时，`.ai-os/` 中的文件按以下规则分治：
+
+### 文件分类
+
+| 类别 | 文件 | 版本控制 | 说明 |
+|------|------|----------|------|
+| 项目共识 | `MISSION.md`, `DESIGN.md`, `specs/`, `acceptance.yaml`, `CONVENTIONS.md` | 入版本控制 | 项目真理源，团队共享 |
+| 追加式知识 | `memory.md`, `tasks.yaml` | 入版本控制（merge=union） | 通过 `.gitattributes` 合并策略减少冲突 |
+| 会话状态 | `STATE.md`, `context-snapshot.md`, `codebase-map.md` | 不入版本控制 | 每位开发者本地维护，`/resume` 可从项目工件重建 |
+| 元数据 | `framework.toml`, `managed-files.tsv` | 不入版本控制 | CLI 安装/升级时自动生成 |
+
+### 分支与阶段约定
+
+- `/align` 和 `/design` 在主干分支（main/develop）上完成并确认后，团队成员再分支并行开发
+- `MISSION.md` 和 `DESIGN.md` 在 `/design` 确认后视为锁定；后续变更必须走 `/change-request` 并同步团队
+- 每位开发者在各自的功能分支上工作，通过 PR 合并回主干
+
+### 任务分配
+
+- `tasks.yaml` 中的 `owner` 字段标明任务责任人
+- 不同开发者只更新自己负责的任务状态，避免修改他人任务
+- 新增任务时使用不会冲突的 ID 命名规则（如以开发者缩写为前缀：`TASK-DW-001`）
+
+### 记忆合并
+
+- `memory.md` 中的条目使用唯一 ID（DD-001、CD-001 等），不同开发者追加不同 ID 的条目
+- PR 合并时，若 `memory.md` 出现冲突，保留双方条目（决策记录不可丢弃）
+- 归档操作（将条目从 active 移至 archived）建议在主干分支上统一执行
+
 ## Workflows
 
 主要阶段入口如下：

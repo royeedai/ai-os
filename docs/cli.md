@@ -70,6 +70,21 @@ create-ai-os . --lite --with-project-files
 
 适用场景：小项目、首次体验、token 预算敏感的模型。
 
+## 团队协作配置（默认开启）
+
+`init` / `upgrade` 完成后会自动（幂等）追加：
+
+- `.gitignore`：忽略会话态与 CLI 元数据（如 `.ai-os/STATE.md`、`framework.toml`、`managed-files.tsv` 等）
+- `.gitattributes`：为 `memory.md`、`tasks.yaml` 设置 `merge=union`，降低多人并行合并冲突
+
+若不需要上述行为（例如自有 Git 策略），安装时使用：
+
+```bash
+create-ai-os . --no-team-config
+```
+
+`upgrade` 也会在结束时尝试补全上述条目（同样幂等）；详见已安装项目中的 `AGENTS.md`「团队协作」一节。
+
 ## Cursor Rules 适配
 
 将已安装的 AI-OS 框架转换为 `.cursor/rules/*.mdc` 格式，让 Cursor 原生加载：

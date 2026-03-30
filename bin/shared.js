@@ -83,6 +83,81 @@ const HIGH_RISK_SPECIAL_REVIEWS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Team collaboration: .gitignore / .gitattributes entries
+// ---------------------------------------------------------------------------
+
+const GITIGNORE_MARKER = "# AI-OS session & metadata";
+const GITIGNORE_ENTRIES = [
+  `${GITIGNORE_MARKER}`,
+  `${PROJECT_STATE_ROOT}/STATE.md`,
+  `${PROJECT_STATE_ROOT}/context-snapshot.md`,
+  `${PROJECT_STATE_ROOT}/codebase-map.md`,
+  `${PROJECT_STATE_ROOT}/${PROJECT_METADATA_FILE}`,
+  `${PROJECT_STATE_ROOT}/${PROJECT_MANAGED_FILES_MANIFEST}`,
+];
+
+const GITATTRIBUTES_MARKER = "# AI-OS merge strategies";
+const GITATTRIBUTES_ENTRIES = [
+  `${GITATTRIBUTES_MARKER}`,
+  `${PROJECT_STATE_ROOT}/memory.md merge=union`,
+  `${PROJECT_STATE_ROOT}/tasks.yaml merge=union`,
+];
+
+/**
+ * Append AI-OS entries to .gitignore if not already present.
+ * Idempotent — skips if the marker comment is found.
+ */
+function appendGitignoreEntries(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+  const gitignorePath = path.join(targetDir, ".gitignore");
+
+  let existing = "";
+  if (fs.existsSync(gitignorePath)) {
+    existing = fs.readFileSync(gitignorePath, "utf8");
+    if (existing.includes(GITIGNORE_MARKER)) {
+      logger("skip .gitignore (AI-OS entries already present)");
+      return false;
+    }
+  }
+
+  const separator = existing && !existing.endsWith("\n") ? "\n\n" : existing ? "\n" : "";
+  fs.writeFileSync(
+    gitignorePath,
+    existing + separator + GITIGNORE_ENTRIES.join("\n") + "\n",
+    "utf8"
+  );
+  logger("appended AI-OS session entries to .gitignore");
+  return true;
+}
+
+/**
+ * Append AI-OS merge strategy entries to .gitattributes if not already present.
+ * Idempotent — skips if the marker comment is found.
+ */
+function appendGitattributesEntries(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+  const gitattrsPath = path.join(targetDir, ".gitattributes");
+
+  let existing = "";
+  if (fs.existsSync(gitattrsPath)) {
+    existing = fs.readFileSync(gitattrsPath, "utf8");
+    if (existing.includes(GITATTRIBUTES_MARKER)) {
+      logger("skip .gitattributes (AI-OS entries already present)");
+      return false;
+    }
+  }
+
+  const separator = existing && !existing.endsWith("\n") ? "\n\n" : existing ? "\n" : "";
+  fs.writeFileSync(
+    gitattrsPath,
+    existing + separator + GITATTRIBUTES_ENTRIES.join("\n") + "\n",
+    "utf8"
+  );
+  logger("appended AI-OS merge strategies to .gitattributes");
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Read metadata from the AI-OS source (mother repo)
 // ---------------------------------------------------------------------------
 
@@ -745,6 +820,10 @@ module.exports = {
   writeMetadata,
   writeManagedFilesManifest,
   removeManagedPaths,
+  appendGitignoreEntries,
+  appendGitattributesEntries,
+  GITIGNORE_ENTRIES,
+  GITATTRIBUTES_ENTRIES,
   cleanYamlScalar,
   parseInlineArray,
   SYM_OK,
