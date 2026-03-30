@@ -159,6 +159,20 @@ npx --yes github:royeedai/ai-os .
 
 `/debug -> /verify`
 
+## 团队协作
+
+多人使用 AI-OS 同时开发同一项目时，`create-ai-os` 会自动配置 `.gitignore` 和 `.gitattributes`：
+
+- **会话文件**（`STATE.md`、`context-snapshot.md` 等）不入版本控制，每位开发者本地维护；`/resume` 可从项目工件自动重建
+- **追加式知识**（`memory.md`、`tasks.yaml`）使用 `merge=union` 策略减少合并冲突
+- **项目共识**（`MISSION.md`、`DESIGN.md`、`specs/`、`acceptance.yaml`）正常入版本控制，团队共享
+
+如需跳过自动配置：
+
+```bash
+npx --yes github:royeedai/ai-os my-project --with-project-files --no-team-config
+```
+
 ## 常用 CLI
 
 ```bash
