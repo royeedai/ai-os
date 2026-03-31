@@ -5,9 +5,8 @@ const path = require("path");
 const {
   fail,
   listFilesRecursively,
-  SYM_OK,
-  SYM_FAIL,
-  SYM_WARN,
+  cleanYamlScalar,
+  createReporter,
 } = require("./shared");
 
 const NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
@@ -76,19 +75,7 @@ Options:
 `);
 }
 
-function stripQuotes(value) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "";
-  }
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
-}
+const stripQuotes = cleanYamlScalar;
 
 function parseFrontmatter(content) {
   const lines = content.split(/\r?\n/);
@@ -254,28 +241,8 @@ const refsIndexPath = path.join(refsDir, "index.md");
 const refsFiles = refsExists ? listFilesRecursively(refsDir) : [];
 const dirName = path.basename(skillDir);
 
-let failures = 0;
-let warnings = 0;
-
-function report(ok, label, options = {}) {
-  const { warnOnly = false, details = [] } = options;
-  if (ok) {
-    process.stdout.write(`  ${SYM_OK}  ${label}\n`);
-    return;
-  }
-
-  if (warnOnly) {
-    warnings += 1;
-    process.stdout.write(`  ${SYM_WARN}  ${label}\n`);
-  } else {
-    failures += 1;
-    process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
-  }
-
-  for (const detail of details) {
-    process.stdout.write(`       - ${detail}\n`);
-  }
-}
+const reporter = createReporter();
+const { report } = reporter;
 
 process.stdout.write(`\nAI-OS Skill Check — ${skillDir}${strict ? " (strict)" : ""}\n\n`);
 
@@ -284,7 +251,7 @@ report(parsed.error === undefined, "SKILL.md frontmatter is present", {
 });
 
 if (parsed.error) {
-  process.stdout.write(`\nSummary: ${failures} failed, ${warnings} warnings\n`);
+  process.stdout.write(`\nSummary: 1 failed, 0 warnings\n`);
   process.exit(1);
 }
 
@@ -375,8 +342,9 @@ if (refsExists) {
   });
 }
 
-process.stdout.write(`\nSummary: ${failures} failed, ${warnings} warnings\n`);
+const failCount = reporter.hasFailure ? 1 : 0;
+process.stdout.write(`\nSummary: ${failCount > 0 ? "FAILED" : "PASSED"}, ${reporter.warningCount} warning(s)\n`);
 
-if (failures > 0) {
+if (reporter.hasFailure) {
   process.exit(1);
 }

@@ -20,30 +20,162 @@ const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
 const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
-const PROJECT_ARTIFACT_FILES = [
-  "project-charter.md",
-  "risk-register.md",
+
+const PROJECT_CORE_ARTIFACT_FILES = [
+  "MISSION.md",
+  "DESIGN.md",
   "tasks.yaml",
   "acceptance.yaml",
-  "release-plan.md",
-  "memory.md",
   "STATE.md",
+  "memory.md",
+];
+const PROJECT_OPTIONAL_ARTIFACT_FILES = [
+  "risk-register.md",
+  "release-plan.md",
   "verification-matrix.yaml",
 ];
-const PROJECT_ARTIFACT_DIRS = ["specs", "evals"];
+const PROJECT_CORE_ARTIFACT_DIRS = ["specs"];
+const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["design-pack", "evals"];
+const PROJECT_ARTIFACT_FILES = [
+  ...PROJECT_CORE_ARTIFACT_FILES,
+  ...PROJECT_OPTIONAL_ARTIFACT_FILES,
+];
+const PROJECT_ARTIFACT_DIRS = [
+  ...PROJECT_CORE_ARTIFACT_DIRS,
+  ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
+];
+const LITE_INCLUDES = [
+  "AGENTS.md",
+  ".agents/workflows/AGENTS.md",
+  ".agents/workflows/align.md",
+  ".agents/workflows/design.md",
+  ".agents/workflows/build.md",
+  ".agents/workflows/verify.md",
+  ".agents/workflows/debug.md",
+  ".agents/skills/AGENTS.md",
+  ".agents/skills/acceptance-gate/SKILL.md",
+  ".agents/skills/memory-manager/SKILL.md",
+  ".agents/references/derived-rules.md",
+  ".agents/references/risk-triggers.md",
+  ".agents/policies/approval-policy.md",
+];
+const LITE_DIR_PREFIXES = [
+  ".agents/templates/",
+];
+
+const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
+const IMPACT_TAGS = [
+  "entrypoint",
+  "transport",
+  "gateway",
+  "auth",
+  "schema",
+  "mapping",
+  "storage",
+  "runtime-config",
+  "external-dependency",
+  "state-transition",
+  "async-processing",
+];
+const HIGH_RISK_SPECIAL_REVIEWS = [
+  "security-guard",
+  "authorization-boundary-check",
+  "concurrency-safety-check",
+];
+
+// ---------------------------------------------------------------------------
+// Team collaboration: .gitignore / .gitattributes entries
+// ---------------------------------------------------------------------------
+
+const GITIGNORE_MARKER = "# AI-OS session & metadata";
+const GITIGNORE_ENTRIES = [
+  `${GITIGNORE_MARKER}`,
+  `${PROJECT_STATE_ROOT}/STATE.md`,
+  `${PROJECT_STATE_ROOT}/context-snapshot.md`,
+  `${PROJECT_STATE_ROOT}/codebase-map.md`,
+  `${PROJECT_STATE_ROOT}/${PROJECT_METADATA_FILE}`,
+  `${PROJECT_STATE_ROOT}/${PROJECT_MANAGED_FILES_MANIFEST}`,
+];
+
+const GITATTRIBUTES_MARKER = "# AI-OS merge strategies";
+const GITATTRIBUTES_ENTRIES = [
+  `${GITATTRIBUTES_MARKER}`,
+  `${PROJECT_STATE_ROOT}/memory.md merge=union`,
+  `${PROJECT_STATE_ROOT}/tasks.yaml merge=union`,
+];
+
+/**
+ * Append AI-OS entries to .gitignore if not already present.
+ * Idempotent — skips if the marker comment is found.
+ */
+function appendGitignoreEntries(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+  const gitignorePath = path.join(targetDir, ".gitignore");
+
+  let existing = "";
+  if (fs.existsSync(gitignorePath)) {
+    existing = fs.readFileSync(gitignorePath, "utf8");
+    if (existing.includes(GITIGNORE_MARKER)) {
+      logger("skip .gitignore (AI-OS entries already present)");
+      return false;
+    }
+  }
+
+  const separator = existing && !existing.endsWith("\n") ? "\n\n" : existing ? "\n" : "";
+  fs.writeFileSync(
+    gitignorePath,
+    existing + separator + GITIGNORE_ENTRIES.join("\n") + "\n",
+    "utf8"
+  );
+  logger("appended AI-OS session entries to .gitignore");
+  return true;
+}
+
+/**
+ * Append AI-OS merge strategy entries to .gitattributes if not already present.
+ * Idempotent — skips if the marker comment is found.
+ */
+function appendGitattributesEntries(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+  const gitattrsPath = path.join(targetDir, ".gitattributes");
+
+  let existing = "";
+  if (fs.existsSync(gitattrsPath)) {
+    existing = fs.readFileSync(gitattrsPath, "utf8");
+    if (existing.includes(GITATTRIBUTES_MARKER)) {
+      logger("skip .gitattributes (AI-OS entries already present)");
+      return false;
+    }
+  }
+
+  const separator = existing && !existing.endsWith("\n") ? "\n\n" : existing ? "\n" : "";
+  fs.writeFileSync(
+    gitattrsPath,
+    existing + separator + GITATTRIBUTES_ENTRIES.join("\n") + "\n",
+    "utf8"
+  );
+  logger("appended AI-OS merge strategies to .gitattributes");
+  return true;
+}
 
 // ---------------------------------------------------------------------------
 // Read metadata from the AI-OS source (mother repo)
 // ---------------------------------------------------------------------------
 
 function readFrameworkVersion() {
-  return fs.readFileSync(path.join(PACKAGE_ROOT, "VERSION"), "utf8").trim();
+  const versionPath = path.join(PACKAGE_ROOT, "VERSION");
+  if (!fs.existsSync(versionPath)) {
+    fail(`VERSION file not found at ${versionPath}`);
+  }
+  return fs.readFileSync(versionPath, "utf8").trim();
 }
 
 function readPackageJson() {
-  return JSON.parse(
-    fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")
-  );
+  const pkgPath = path.join(PACKAGE_ROOT, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    fail(`package.json not found at ${pkgPath}`);
+  }
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 }
 
 function readInstallProfiles() {
@@ -73,6 +205,21 @@ function getInstallProfile(profileName) {
     description: profile.description || "",
     includeProjectFiles: Boolean(profile.includeProjectFiles),
   };
+}
+
+function detectInstallProfileName(targetDir, options = {}) {
+  const meta = options.meta || readInstalledMeta(targetDir);
+  if (meta.installProfile) {
+    return meta.installProfile;
+  }
+
+  const hasProjectArtifacts = [
+    ...PROJECT_ARTIFACT_FILES.map((relPath) => getProjectFilePath(targetDir, relPath)),
+    ...PROJECT_ARTIFACT_DIRS.map((relPath) => getProjectFilePath(targetDir, relPath)),
+    getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
+  ].some((absolutePath) => fs.existsSync(absolutePath));
+
+  return hasProjectArtifacts ? "project" : getDefaultInstallProfileName();
 }
 
 // ---------------------------------------------------------------------------
@@ -145,42 +292,53 @@ function getProjectRoot(targetDir) {
   return path.join(targetDir, PROJECT_STATE_ROOT);
 }
 
+function normalizeRelativePath(relPath = "") {
+  return relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function stripProjectRootPrefix(relPath = "") {
+  const normalized = normalizeRelativePath(relPath);
+  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
+    return normalized.slice(PROJECT_STATE_ROOT.length + 1);
+  }
+  if (normalized === PROJECT_STATE_ROOT) {
+    return "";
+  }
+  return normalized;
+}
+
 function getProjectFilePath(targetDir, relPath = "") {
-  return path.join(getProjectRoot(targetDir), relPath);
+  const normalized = stripProjectRootPrefix(relPath);
+  return path.join(getProjectRoot(targetDir), normalized);
 }
 
 function getProjectRelativePath(relPath = "") {
-  return path.posix.join(PROJECT_STATE_ROOT, relPath).replace(/\\/g, "/");
+  const normalized = stripProjectRootPrefix(relPath);
+  return normalized
+    ? path.posix.join(PROJECT_STATE_ROOT, normalized).replace(/\\/g, "/")
+    : PROJECT_STATE_ROOT;
 }
 
 function getProjectMetadataPath(targetDir) {
   return getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
 }
 
-function normalizeRelativePath(relPath = "") {
-  return relPath.replace(/\\/g, "/").replace(/^\.\//, "");
-}
-
 function isProjectArtifactPath(relPath = "") {
-  const normalized = normalizeRelativePath(relPath);
+  const normalized = stripProjectRootPrefix(relPath);
   if (!normalized) {
     return false;
-  }
-  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
-    return true;
   }
   if (PROJECT_ARTIFACT_FILES.includes(normalized)) {
     return true;
   }
-  return PROJECT_ARTIFACT_DIRS.some((dirName) => normalized === dirName || normalized.startsWith(`${dirName}/`));
+  return PROJECT_ARTIFACT_DIRS.some(
+    (dirName) => normalized === dirName || normalized.startsWith(`${dirName}/`)
+  );
 }
 
 function resolveProjectPath(targetDir, relPath = "") {
   const normalized = normalizeRelativePath(relPath);
   if (isProjectArtifactPath(normalized)) {
-    if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
-      return path.join(targetDir, normalized);
-    }
     return getProjectFilePath(targetDir, normalized);
   }
   return path.join(targetDir, normalized);
@@ -208,13 +366,23 @@ function parseSimpleToml(content) {
       continue;
     }
 
-    const match = line.match(/^([A-Za-z0-9_]+)\s*=\s*"([^"]*)"$/);
+    const match = line.match(/^([A-Za-z0-9_]+)\s*=\s*"((?:[^"\\]|\\.)*)"$/);
     if (match) {
-      values[match[1]] = match[2];
+      values[match[1]] = match[2].replace(/\\"/g, '"').replace(/\\\\/g, "\\");
     }
   }
 
   return values;
+}
+
+function serializeSimpleToml(values) {
+  const lines = [];
+  for (const [key, value] of Object.entries(values)) {
+    const escaped = String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    lines.push(`${key} = "${escaped}"`);
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -273,14 +441,21 @@ function defaultLogger(message) {
   process.stdout.write(`${message}\n`);
 }
 
+function isLiteIncluded(relativePath) {
+  const normalized = relativePath.replace(/\\/g, "/");
+  if (LITE_INCLUDES.includes(normalized)) return true;
+  return LITE_DIR_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
 function copyFramework(targetDir, options = {}) {
-  const { overwrite = false, logger = defaultLogger } = options;
+  const { overwrite = false, lite = false, logger = defaultLogger } = options;
 
   for (const rootRel of MANAGED_ROOTS) {
     const srcRoot = path.join(FRAMEWORK_ROOT, rootRel);
     const dstRoot = path.join(targetDir, rootRel);
 
     if (fs.statSync(srcRoot).isFile()) {
+      if (lite && !isLiteIncluded(rootRel)) continue;
       if (fs.existsSync(dstRoot) && !overwrite) {
         logger(`keep existing managed file: ${rootRel}`);
         continue;
@@ -293,6 +468,7 @@ function copyFramework(targetDir, options = {}) {
     const files = listFilesRecursively(srcRoot);
     for (const srcFile of files) {
       const relativePath = path.relative(FRAMEWORK_ROOT, srcFile);
+      if (lite && !isLiteIncluded(relativePath.replace(/\\/g, "/"))) continue;
       const dstFile = path.join(targetDir, relativePath);
       if (fs.existsSync(dstFile) && !overwrite) {
         logger(`keep existing managed file: ${relativePath}`);
@@ -321,12 +497,12 @@ function copyTemplateIfMissing(targetDir, src, dst, options = {}) {
 function createProjectFiles(targetDir, options = {}) {
   const { logger = defaultLogger } = options;
 
-  for (const dirName of PROJECT_ARTIFACT_DIRS) {
+  ensureDir(getProjectRoot(targetDir));
+  for (const dirName of PROJECT_CORE_ARTIFACT_DIRS) {
     ensureDir(getProjectFilePath(targetDir, dirName));
   }
-  ensureDir(getProjectRoot(targetDir));
 
-  for (const fileName of PROJECT_ARTIFACT_FILES) {
+  for (const fileName of PROJECT_CORE_ARTIFACT_FILES) {
     copyTemplateIfMissing(
       targetDir,
       getProjectTemplatePath(fileName),
@@ -341,23 +517,16 @@ function createProjectFiles(targetDir, options = {}) {
     getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
     { logger }
   );
-
-  copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath(path.join("evals", "eval-example.md")),
-    getProjectFilePath(targetDir, path.join("evals", "eval-example.md")),
-    { logger }
-  );
 }
 
 function getProjectArtifactEntries(targetDir) {
   return [
-    ...PROJECT_ARTIFACT_FILES.map((relPath) => ({
+    ...PROJECT_CORE_ARTIFACT_FILES.map((relPath) => ({
       kind: "file",
       relPath: getProjectRelativePath(relPath),
       absolutePath: getProjectFilePath(targetDir, relPath),
     })),
-    ...PROJECT_ARTIFACT_DIRS.map((relPath) => ({
+    ...PROJECT_CORE_ARTIFACT_DIRS.map((relPath) => ({
       kind: "dir",
       relPath: getProjectRelativePath(relPath),
       absolutePath: getProjectFilePath(targetDir, relPath),
@@ -378,7 +547,10 @@ function getProjectArtifactEntries(targetDir) {
 function buildInstallPlan(targetDir, options = {}) {
   const profile = getInstallProfile(options.installProfile);
   const overwriteFramework = Boolean(options.overwriteFramework);
-  const frameworkFiles = listManagedFiles(FRAMEWORK_ROOT).map((relPath) => {
+  const lite = Boolean(options.lite);
+  const frameworkFiles = listManagedFiles(FRAMEWORK_ROOT)
+    .filter((relPath) => !lite || isLiteIncluded(relPath))
+    .map((relPath) => {
     const destinationPath = path.join(targetDir, relPath);
     const exists = fs.existsSync(destinationPath);
     return {
@@ -388,7 +560,7 @@ function buildInstallPlan(targetDir, options = {}) {
       exists,
       action: exists && !overwriteFramework ? "keep" : "copy",
     };
-  });
+    });
 
   const metadataFiles = [
     getProjectRelativePath(PROJECT_METADATA_FILE),
@@ -427,6 +599,7 @@ function buildInstallPlan(targetDir, options = {}) {
   return {
     targetDir,
     profile,
+    lite,
     entries: allEntries,
     frameworkFiles,
     metadataFiles,
@@ -440,20 +613,21 @@ function writeMetadata(targetDir, options = {}) {
   const metadataFile = getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
   const frameworkVersion = readFrameworkVersion();
   const packageJson = readPackageJson();
-  const profileName = getInstallProfile(options.installProfile).name;
+  const profileName = getInstallProfile(
+    options.installProfile || detectInstallProfileName(targetDir)
+  ).name;
 
   ensureDir(metadataDir);
   fs.writeFileSync(
     metadataFile,
-    [
-      'mode = "npx-git"',
-      `framework_version = "${frameworkVersion}"`,
-      `package_name = "${packageJson.name}"`,
-      `package_version = "${packageJson.version}"`,
-      `install_profile = "${profileName}"`,
-      `managed_files_manifest = "${getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST)}"`,
-      ""
-    ].join("\n"),
+    serializeSimpleToml({
+      mode: "npx-git",
+      framework_version: frameworkVersion,
+      package_name: packageJson.name,
+      package_version: packageJson.version,
+      install_profile: profileName,
+      managed_files_manifest: getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
+    }),
     "utf8"
   );
 }
@@ -484,7 +658,7 @@ function removeManagedPaths(targetDir) {
 }
 
 // ---------------------------------------------------------------------------
-// YAML utilities (shared by project-state and ai-os-affected)
+// YAML utilities shared by project-state and CLI validators
 // ---------------------------------------------------------------------------
 
 function cleanYamlScalar(value) {
@@ -536,70 +710,210 @@ const C_DIM = "\x1b[2m";
 // ---------------------------------------------------------------------------
 
 const VALIDATION_SCHEMAS = {
-  projectCharter: [
-    "1. 项目概述",
-    "2. 范围边界",
-    "3. 关键场景",
-    "4. 非功能需求",
-    "5. 里程碑",
-    "6. 模块拆分",
-    "7. 外部依赖",
-    "8. 审批点",
-    "9. 风险摘要",
+  mission: [
+    ["1. 宿主项目与当前交付定义", "1. 当前交付定义", "1. 任务定义"],
+    "2. 用户与场景",
+    "3. 项目模式、质量目标与关键选型",
+    "4. 范围边界",
+    "5. 阶段计划",
+    "6. 已知输入与待确认项",
+    "7. 风险与外部依赖",
+  ],
+  design: [
+    "1. 设计目标",
+    "2. 信息架构",
+    "3. 关键页面与交互",
+    "4. 关键流程",
+    "5. 视觉方向",
+    "6. 设计确认记录",
+    "7. 差异与待确认项",
   ],
   releasePlan: [
-    "1. 发布前检查",
-    "2. 迁移与变更",
-    "3. 受影响服务与重启顺序",
-    "4. 发布步骤",
-    "5. Smoke Check",
-    "6. 回滚触发条件",
-    "7. 发布后观察",
+    "1. 交付前检查",
+    "2. 变更范围与依赖",
+    "3. 发布步骤",
+    "4. 运行态验证",
+    "5. 回滚触发条件",
+    "6. 交付说明与移交",
   ],
   memory: [
     "元数据",
-    "1. 架构决策（Architecture Decisions）",
-    "2. 编码约定（Conventions）",
-    "3. 已知坑点（Pitfalls）",
-    "4. 用户偏好（Preferences）",
-    "5. 硬性约束（Constraints）",
+    "1. 设计决策",
+    "2. 逻辑与契约决策",
+    "3. 工程约束",
+    "4. 用户偏好",
+    "5. 已知坑点",
   ],
   state: [
-    "当前位置",
+    "当前方位",
     "进度概览",
-    "阻塞项",
-    "最近决策",
+    "已锁定内容",
+    "待确认项",
+    "最近偏差 / 回退",
     "下一步",
-    "快速任务记录",
+    "最小阅读集",
   ],
   spec: [
-    "概述",
-    ["页面/接口清单", "界面 / 接口 / 命令清单"],
-    "功能需求",
-    ["数据模型", "数据模型（如涉及持久化）"],
-    ["API 定义", "API 定义（如涉及接口）"],
-    "非功能需求",
-    "关联模块",
-    "验收标准",
+    "1. 模块概述",
+    "2. 业务规则与目标",
+    "3. 界面 / 接口 / 命令清单",
+    "4. 关键流程与状态流转",
+    "5. 数据与契约",
+    "6. 边界条件与异常处理",
+    "7. 验收与证据",
+  ],
+  specMarkers: [
+    "**交互模式**",
+    "**推荐模式理由**",
+    "**拒绝的交互模式**",
+    "**契约基准**",
+    "**字段映射/适配说明**",
+    "**集成触点**",
+    "**异常/空数据证据**",
   ],
   riskRegisterTablePattern: /\| ID \| 风险 \| 类型 \|/,
   tasksMarkers: [
     "version:",
+    "mission:",
     "milestones:",
     "tasks:",
     "wave:",
+    "execution_role:",
+    "approval_required:",
     "context_files:",
     "definition_of_ready:",
     "definition_of_done:",
     "evidence_required:",
-    "affected_components:",
-    "verification_required:",
-    "restart_required:",
-    "cold_start_required:",
+    "parity_evidence_required:",
+    "measurable_outcome:",
+    "edge_cases:",
   ],
-  acceptanceMarkers: ["version:", "scope:", "gates:", "result:", "GATE-004", "uat-result", "verification-plan"],
-  verificationMatrixMarkers: ["version:", "commands:", "rules:", "affected_components:", "actions:"],
+  tasksTransitionalMarkers: [
+    "impact_tags:",
+    "derived_checks:",
+    "risk_triggers:",
+  ],
+  acceptanceMarkers: [
+    "version:",
+    "scope:",
+    "gates:",
+    "design-confirmation",
+    "logic-confirmation",
+    "implementation-quality",
+    "delivery-readiness",
+    "parity-gate",
+  ],
+  acceptanceMarkersTransitional: [
+    "quality_tier:",
+    "required_special_reviews:",
+    "contract-baseline-check",
+    "degraded-path-check",
+    "static-validation-check",
+    "manual-action-note",
+  ],
+  verificationMatrixMarkers: [
+    "commands:",
+    "rules:",
+    "impact_rules:",
+  ],
+  releasePlanMarkersTransitional: [
+    "AI 已完成",
+    "需人工执行",
+    "静态校验",
+  ],
 };
+
+// ---------------------------------------------------------------------------
+// Shared argument parsing
+// ---------------------------------------------------------------------------
+
+function parseCliArgs(argv, spec = {}) {
+  const booleanFlags = spec.booleanFlags || [];
+  const valuedFlags = spec.valuedFlags || [];
+  const result = { positional: "", flags: {} };
+
+  for (const flag of booleanFlags) {
+    result.flags[flag.replace(/^--/, "")] = false;
+  }
+
+  const args = argv.slice(2);
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "-h" || arg === "--help") {
+      result.flags.help = true;
+      continue;
+    }
+    if (booleanFlags.includes(arg)) {
+      result.flags[arg.replace(/^--/, "")] = true;
+      continue;
+    }
+    const valuedMatch = valuedFlags.find((f) => arg === f);
+    if (valuedMatch) {
+      if (i + 1 >= args.length) {
+        fail(`${arg} requires a value`);
+      }
+      result.flags[arg.replace(/^--/, "")] = args[i + 1];
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith("-")) {
+      fail(`unknown option: ${arg}`);
+    }
+    if (result.positional) {
+      fail(`unexpected argument: ${arg}`);
+    }
+    result.positional = arg;
+  }
+
+  return result;
+}
+
+function resolveTargetDir(positionalArg) {
+  const targetDir = path.resolve(positionalArg || ".");
+  if (!fs.existsSync(targetDir)) {
+    fail(`target directory does not exist: ${targetDir}`);
+  }
+  return targetDir;
+}
+
+// ---------------------------------------------------------------------------
+// Shared reporter factory
+// ---------------------------------------------------------------------------
+
+function createReporter() {
+  let hasFailure = false;
+  let warningCount = 0;
+
+  function report(ok, label, options = {}) {
+    const { warnOnly = false, details = [] } = typeof options === "object" && !Array.isArray(options)
+      ? options
+      : { details: Array.isArray(options) ? options : [] };
+
+    if (ok) {
+      process.stdout.write(`  ${SYM_OK}  ${label}\n`);
+      return;
+    }
+
+    if (warnOnly) {
+      warningCount += 1;
+      process.stdout.write(`  ${SYM_WARN}  ${label}\n`);
+    } else {
+      hasFailure = true;
+      process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
+    }
+
+    for (const detail of details) {
+      process.stdout.write(`       - ${detail}\n`);
+    }
+  }
+
+  return {
+    report,
+    markFailure() { hasFailure = true; },
+    get hasFailure() { return hasFailure; },
+    get warningCount() { return warningCount; },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Exports
@@ -614,11 +928,22 @@ module.exports = {
   PROJECT_METADATA_FILE,
   PROJECT_MANAGED_FILES_MANIFEST,
   PROJECT_TEMPLATE_ROOT,
+  PROJECT_CORE_ARTIFACT_FILES,
+  PROJECT_OPTIONAL_ARTIFACT_FILES,
   PROJECT_ARTIFACT_FILES,
+  PROJECT_CORE_ARTIFACT_DIRS,
+  PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
+  LITE_INCLUDES,
+  LITE_DIR_PREFIXES,
+  isLiteIncluded,
+  QUALITY_TIERS,
+  IMPACT_TAGS,
+  HIGH_RISK_SPECIAL_REVIEWS,
   readFrameworkVersion,
   readPackageJson,
   readInstallProfiles,
+  detectInstallProfileName,
   getDefaultInstallProfileName,
   getInstallProfile,
   ensureDir,
@@ -635,6 +960,7 @@ module.exports = {
   resolveProjectPath,
   formatProjectPath,
   parseSimpleToml,
+  serializeSimpleToml,
   readInstalledMeta,
   copyFileWithMode,
   getProjectTemplatePath,
@@ -646,6 +972,10 @@ module.exports = {
   writeMetadata,
   writeManagedFilesManifest,
   removeManagedPaths,
+  appendGitignoreEntries,
+  appendGitattributesEntries,
+  GITIGNORE_ENTRIES,
+  GITATTRIBUTES_ENTRIES,
   cleanYamlScalar,
   parseInlineArray,
   SYM_OK,
@@ -657,5 +987,8 @@ module.exports = {
   C_YELLOW,
   C_CYAN,
   C_DIM,
+  parseCliArgs,
+  resolveTargetDir,
+  createReporter,
   VALIDATION_SCHEMAS,
 };

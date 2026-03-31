@@ -61,7 +61,7 @@ function parseMarkdownBulletList(sectionContent) {
       continue;
     }
     const value = match[1].trim();
-    if (value && value !== "[无]") {
+    if (value && value !== "[无]" && value !== "无") {
       items.push(value);
     }
   }
@@ -71,7 +71,7 @@ function parseMarkdownBulletList(sectionContent) {
 function parseTasksFile(tasksPath) {
   const content = readUtf8IfExists(tasksPath);
   if (content === null) {
-    return { exists: false, tasks: [] };
+    return { exists: false, mission: "", qualityTier: "", tasks: [] };
   }
 
   const tasks = [];
@@ -79,6 +79,9 @@ function parseTasksFile(tasksPath) {
   let inTasksSection = false;
   let currentTask = null;
   let currentListKey = null;
+  let mission = "";
+  let inScope = false;
+  let qualityTier = "";
 
   function flushCurrentTask() {
     if (currentTask) {
@@ -89,8 +92,31 @@ function parseTasksFile(tasksPath) {
   }
 
   for (const line of lines) {
+    const missionMatch = line.match(/^mission:\s*(.+)$/);
+    if (missionMatch) {
+      mission = cleanYamlScalar(missionMatch[1]);
+      continue;
+    }
+
+    if (/^scope:\s*$/.test(line)) {
+      inScope = true;
+      continue;
+    }
+
+    if (inScope) {
+      const tierMatch = line.match(/^\s+quality_tier:\s*(.+)$/);
+      if (tierMatch) {
+        qualityTier = cleanYamlScalar(tierMatch[1]);
+        continue;
+      }
+      if (/^[A-Za-z_][A-Za-z0-9_]*:\s*/.test(line)) {
+        inScope = false;
+      }
+    }
+
     if (/^tasks:\s*$/.test(line)) {
       inTasksSection = true;
+      inScope = false;
       continue;
     }
 
@@ -116,6 +142,8 @@ function parseTasksFile(tasksPath) {
         milestone: "",
         parent: "",
         wave: null,
+        execution_role: "",
+        approval_required: "",
         depends_on: [],
         inputs: [],
         context_files: [],
@@ -123,8 +151,12 @@ function parseTasksFile(tasksPath) {
         definition_of_ready: [],
         definition_of_done: [],
         evidence_required: [],
+        parity_evidence_required: [],
         affected_components: [],
         verification_required: [],
+        impact_tags: [],
+        derived_checks: [],
+        risk_triggers: [],
         blockers: [],
         notes: "",
         restart_required: false,
@@ -151,9 +183,20 @@ function parseTasksFile(tasksPath) {
           "definition_of_ready",
           "definition_of_done",
           "evidence_required",
+          "parity_evidence_required",
           "affected_components",
           "verification_required",
+          "impact_tags",
+          "derived_checks",
+          "risk_triggers",
           "blockers",
+          "measurable_outcome",
+          "edge_cases",
+          "requirement_refs",
+          "acceptance_refs",
+          "acceptance_criteria",
+          "change_scope",
+          "out_of_scope_guard",
         ].includes(key)
       ) {
         currentListKey = key;
@@ -163,7 +206,19 @@ function parseTasksFile(tasksPath) {
 
       currentListKey = null;
 
-      if (["title", "status", "owner", "risk", "milestone", "parent", "notes"].includes(key)) {
+      if (
+        [
+          "title",
+          "status",
+          "owner",
+          "risk",
+          "milestone",
+          "parent",
+          "notes",
+          "execution_role",
+          "approval_required",
+        ].includes(key)
+      ) {
         currentTask[key] = cleanYamlScalar(value);
       } else if (key === "wave") {
         const parsedValue = Number.parseInt(cleanYamlScalar(value), 10);
@@ -184,8 +239,144 @@ function parseTasksFile(tasksPath) {
 
   return {
     exists: true,
+    mission,
+    qualityTier,
     tasks,
   };
+}
+
+function parseAcceptanceFile(acceptancePath) {
+  const content = readUtf8IfExists(acceptancePath);
+  if (content === null) {
+    return {
+      exists: false,
+      qualityTier: "",
+      requiredSpecialReviews: [],
+      gateStatuses: {},
+      gateEvidence: {},
+      content: "",
+    };
+  }
+
+  const lines = content.split(/\r?\n/);
+  let inScope = false;
+  let inRequiredSpecialReviews = false;
+  let inGates = false;
+  let currentGateId = "";
+  let currentGateListKey = "";
+
+  const result = {
+    exists: true,
+    qualityTier: "",
+    requiredSpecialReviews: [],
+    gateStatuses: {},
+    gateEvidence: {},
+    content,
+  };
+
+  for (const line of lines) {
+    if (/^scope:\s*$/.test(line)) {
+      inScope = true;
+      inRequiredSpecialReviews = false;
+      inGates = false;
+      currentGateId = "";
+      currentGateListKey = "";
+      continue;
+    }
+
+    const requiredMatch = line.match(/^required_special_reviews:\s*(.*)$/);
+    if (requiredMatch) {
+      inScope = false;
+      inRequiredSpecialReviews = true;
+      inGates = false;
+      currentGateId = "";
+      currentGateListKey = "";
+      result.requiredSpecialReviews = requiredMatch[1]
+        ? parseInlineArray(requiredMatch[1])
+        : [];
+      continue;
+    }
+
+    if (/^gates:\s*$/.test(line)) {
+      inScope = false;
+      inRequiredSpecialReviews = false;
+      inGates = true;
+      currentGateId = "";
+      currentGateListKey = "";
+      continue;
+    }
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*:\s*/.test(line) && !/^required_special_reviews:\s*/.test(line)) {
+      inScope = false;
+      inRequiredSpecialReviews = false;
+      if (!/^gates:\s*$/.test(line)) {
+        currentGateId = "";
+        currentGateListKey = "";
+      }
+    }
+
+    if (inScope) {
+      const tierMatch = line.match(/^\s+quality_tier:\s*(.+)$/);
+      if (tierMatch) {
+        result.qualityTier = cleanYamlScalar(tierMatch[1]);
+      }
+      continue;
+    }
+
+    if (inRequiredSpecialReviews) {
+      const listItemMatch = line.match(/^\s*-\s+(.+)$/);
+      if (listItemMatch) {
+        result.requiredSpecialReviews.push(cleanYamlScalar(listItemMatch[1]));
+        continue;
+      }
+      if (/^[A-Za-z_][A-Za-z0-9_]*:\s*/.test(line) || /^gates:\s*$/.test(line)) {
+        inRequiredSpecialReviews = false;
+      } else {
+        continue;
+      }
+    }
+
+    if (!inGates) {
+      continue;
+    }
+
+    const gateStartMatch = line.match(/^\s*-\s+id:\s*(.+)$/);
+    if (gateStartMatch) {
+      currentGateId = cleanYamlScalar(gateStartMatch[1]);
+      currentGateListKey = "";
+      result.gateStatuses[currentGateId] = "";
+      result.gateEvidence[currentGateId] = [];
+      continue;
+    }
+
+    if (!currentGateId) {
+      continue;
+    }
+
+    const statusMatch = line.match(/^\s+status:\s*(.+)$/);
+    if (statusMatch) {
+      result.gateStatuses[currentGateId] = cleanYamlScalar(statusMatch[1]);
+      currentGateListKey = "";
+      continue;
+    }
+
+    const evidenceMatch = line.match(/^\s+evidence:\s*(.*)$/);
+    if (evidenceMatch) {
+      currentGateListKey = "evidence";
+      result.gateEvidence[currentGateId] = evidenceMatch[1]
+        ? parseInlineArray(evidenceMatch[1])
+        : [];
+      continue;
+    }
+
+    const listItemMatch = line.match(/^\s*-\s+(.+)$/);
+    if (currentGateListKey === "evidence" && listItemMatch) {
+      result.gateEvidence[currentGateId].push(cleanYamlScalar(listItemMatch[1]));
+    }
+  }
+
+  result.requiredSpecialReviews = [...new Set(result.requiredSpecialReviews.filter(Boolean))];
+  return result;
 }
 
 function summarizeTasks(tasks) {
@@ -293,6 +484,12 @@ function getCurrentTask(tasks, state) {
 function collectResumeFiles(state, currentTask) {
   const files = ["STATE.md"];
 
+  for (const preferredFile of state.minimalReadSet || []) {
+    if (!files.includes(preferredFile)) {
+      files.push(preferredFile);
+    }
+  }
+
   if (currentTask) {
     for (const relPath of [...(currentTask.context_files || []), ...(currentTask.inputs || [])]) {
       if (!files.includes(relPath)) {
@@ -301,7 +498,7 @@ function collectResumeFiles(state, currentTask) {
     }
   }
 
-  for (const defaultFile of ["memory.md", "acceptance.yaml", "tasks.yaml"]) {
+  for (const defaultFile of ["MISSION.md", "DESIGN.md", "memory.md", "acceptance.yaml", "tasks.yaml"]) {
     if (!files.includes(defaultFile)) {
       files.push(defaultFile);
     }
@@ -321,6 +518,10 @@ function readStateFile(targetDir) {
       blockers: [],
       nextSteps: [],
       recentDecisions: [],
+      lockedItems: [],
+      pendingQuestions: [],
+      deviations: [],
+      minimalReadSet: [],
     };
   }
 
@@ -328,12 +529,23 @@ function readStateFile(targetDir) {
   return {
     exists: true,
     path: statePath,
-    position: parseBulletKeyValueSection(sections.get("当前位置") || ""),
+    position: parseBulletKeyValueSection(sections.get("当前方位") || sections.get("当前位置") || ""),
     blockers: parseMarkdownBulletList(sections.get("阻塞项") || ""),
     nextSteps: parseMarkdownBulletList(sections.get("下一步") || ""),
     recentDecisions: parseMarkdownBulletList(sections.get("最近决策") || ""),
+    lockedItems: parseMarkdownBulletList(sections.get("已锁定内容") || ""),
+    pendingQuestions: parseMarkdownBulletList(sections.get("待确认项") || ""),
+    deviations: parseMarkdownBulletList(sections.get("最近偏差 / 回退") || ""),
+    minimalReadSet: parseMarkdownBulletList(sections.get("最小阅读集") || ""),
     progressOverview: sections.get("进度概览") || "",
   };
+}
+
+function isDeclaredHighRisk(parsedAcceptance, parsedTasks) {
+  return (
+    (parsedAcceptance.exists && parsedAcceptance.qualityTier === "high-risk") ||
+    parsedTasks.qualityTier === "high-risk"
+  );
 }
 
 module.exports = {
@@ -343,6 +555,8 @@ module.exports = {
   parseMarkdownBulletList,
   parseBulletKeyValueSection,
   parseTasksFile,
+  parseAcceptanceFile,
+  isDeclaredHighRisk,
   summarizeTasks,
   taskStatusCategory,
   getReadyTasks,

@@ -4,14 +4,14 @@
  * ai-os-plan — Preview an AI-OS installation plan without mutating files.
  *
  * Usage:
- *   ai-os-plan [target-dir] [--profile <name>] [--with-project-files] [--json]
+ *   ai-os-plan [target-dir] [--profile <name>] [--with-project-files] [--lite] [--json]
  *   ai-os-plan --help
  */
 
 const path = require("path");
 const {
-  getDefaultInstallProfileName,
   buildInstallPlan,
+  detectInstallProfileName,
   readInstalledMeta,
   fail,
 } = require("./shared");
@@ -27,6 +27,7 @@ function serializePlan(plan) {
   return {
     targetDir: plan.targetDir,
     profile: plan.profile,
+    lite: plan.lite,
     framework: {
       copy: mapRelPaths(plan.frameworkFiles, "copy"),
       keep: mapRelPaths(plan.frameworkFiles, "keep"),
@@ -44,15 +45,16 @@ function serializePlan(plan) {
 
 function printHelp() {
   process.stdout.write(`Usage:
-  ai-os-plan [target-dir] [--profile <name>] [--with-project-files] [--force-framework] [--json]
+  ai-os-plan [target-dir] [--profile <name>] [--with-project-files] [--force-framework] [--lite] [--json]
 
 Preview what create-ai-os would manage without copying files.
 The target path may point to an existing project or a new directory.
 
 Options:
-  --profile <name>      Install profile to preview. Defaults to the current install profile or manifest default.
+  --profile <name>      Install profile to preview. Defaults to the detected install profile or manifest default.
   --with-project-files  Compatibility alias for --profile project.
   --force-framework     Preview framework overwrite instead of keep-existing behavior.
+  --lite                Preview the minimal framework footprint.
   --json                Emit machine-readable JSON.
   -h, --help            Show this help message
 `);
@@ -63,6 +65,7 @@ let targetArg = "";
 let profileArg = "";
 let useProjectProfile = false;
 let forceFramework = false;
+let lite = false;
 let json = false;
 
 for (let i = 0; i < args.length; i += 1) {
@@ -77,6 +80,10 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--force-framework") {
     forceFramework = true;
+    continue;
+  }
+  if (arg === "--lite") {
+    lite = true;
     continue;
   }
   if (arg === "--json") {
@@ -109,12 +116,13 @@ const targetDir = path.resolve(targetArg || ".");
 const installedMeta = readInstalledMeta(targetDir);
 const profileName = useProjectProfile
   ? "project"
-  : (profileArg || installedMeta.installProfile || getDefaultInstallProfileName());
+  : (profileArg || detectInstallProfileName(targetDir, { meta: installedMeta }));
 let plan;
 try {
   plan = buildInstallPlan(targetDir, {
     installProfile: profileName,
     overwriteFramework: forceFramework,
+    lite,
   });
 } catch (error) {
   fail(error.message);
@@ -130,7 +138,7 @@ process.stdout.write(`Profile: ${plan.profile.name}\n`);
 process.stdout.write(`Description: ${plan.profile.description}\n\n`);
 
 process.stdout.write("Managed scope:\n");
-process.stdout.write(`  - framework: ${plan.frameworkFiles.length} file(s) under AGENTS.md and .agents/\n`);
+process.stdout.write(`  - framework: ${plan.frameworkFiles.length} file(s) under AGENTS.md and .agents/${plan.lite ? " (lite)" : ""}\n`);
 process.stdout.write(`  - metadata: ${plan.metadataFiles.length} file(s) under .ai-os/\n`);
 if (plan.profile.includeProjectFiles) {
   process.stdout.write(
@@ -150,4 +158,4 @@ if (plan.profile.includeProjectFiles) {
 }
 
 process.stdout.write("\nApply with:\n");
-process.stdout.write(`  create-ai-os ${plan.targetDir} --profile ${plan.profile.name}\n\n`);
+process.stdout.write(`  create-ai-os ${plan.targetDir} --profile ${plan.profile.name}${plan.lite ? " --lite" : ""}\n\n`);

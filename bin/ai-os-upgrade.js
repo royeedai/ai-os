@@ -22,6 +22,9 @@ const {
   sha256File,
   getProjectFilePath,
   getProjectRelativePath,
+  serializeSimpleToml,
+  appendGitignoreEntries,
+  appendGitattributesEntries,
   fail,
 } = require("./shared");
 const { computeDiff } = require("./ai-os-diff");
@@ -211,10 +214,7 @@ const nextMetaValues = {
 };
 fs.writeFileSync(
   getProjectFilePath(targetDir, "framework.toml"),
-  [
-    ...Object.entries(nextMetaValues).map(([key, value]) => `${key} = "${value}"`),
-    "",
-  ].join("\n"),
+  serializeSimpleToml(nextMetaValues),
   "utf8"
 );
 
@@ -241,3 +241,16 @@ if (diff.extra.length > 0) {
 }
 
 process.stdout.write("\n");
+
+const gitignoreAdded = appendGitignoreEntries(targetDir, { logger() {} });
+const gitattrsAdded = appendGitattributesEntries(targetDir, { logger() {} });
+if (gitignoreAdded || gitattrsAdded) {
+  process.stdout.write("Team collaboration config:\n");
+  if (gitignoreAdded) {
+    process.stdout.write("  + .gitignore: added AI-OS session file entries (STATE.md etc. are now local-only)\n");
+  }
+  if (gitattrsAdded) {
+    process.stdout.write("  + .gitattributes: added merge strategies for memory.md and tasks.yaml\n");
+  }
+  process.stdout.write("  Use --no-team-config on next init to opt out.\n\n");
+}

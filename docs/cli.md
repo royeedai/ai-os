@@ -1,280 +1,135 @@
-# CLI Reference
+# CLI
 
-AI-OS 的 CLI 分成两类：
-
-- 初始化框架
-- 检查、恢复、维护和发布辅助
-
-官方推荐的主入口是统一使用 `create-ai-os`。
-
-通过 GitHub 直接执行时，文档统一写成：
+## 常用命令
 
 ```bash
-npx --yes github:royeedai/ai-os <command> .
+create-ai-os .
+create-ai-os plan . --profile core
+create-ai-os my-project --profile project
+create-ai-os . --lite
+create-ai-os doctor .
+create-ai-os validate .
+create-ai-os status .
+create-ai-os next .
+create-ai-os resume .
+create-ai-os release-check .
+create-ai-os cursor-rules .
+create-ai-os token-budget .
+create-ai-os lab /tmp/ai-os-labs
+create-ai-os diff .
+create-ai-os upgrade .
+create-ai-os skill-check .agents/skills/my-skill
 ```
 
-兼容别名如 `ai-os-status`、`ai-os-validate` 仍然存在，但不建议作为主文档入口。
+## 最重要的 4 个命令
 
-## 初始化
+- `doctor`：看框架和核心工件是否齐
+- `validate`：看 Mission / Design / Spec / Tasks / Acceptance / State 是否完整，并对新旧结构给出 fail / warning
+- `resume`：导出最小阅读集
+- `release-check`：看当前交付是否具备发布条件，并在 `high-risk` 档强查授权 / 并发 / degraded-path 证据
 
-### 新项目
+## 框架维护命令
+
+- `diff`：对比项目中已安装的框架文件与最新源文件的差异，标记 modified / outdated / missing / extra
+- `upgrade`：将项目中的框架文件升级到最新版本
+- `skill-check`：校验自定义 Skill 目录中的 SKILL.md，检查 frontmatter、章节结构、references 导航等；`--strict` 启用生产级检查
+
+### Upgrade 冲突处理
+
+`upgrade` 会对比每个框架托管文件（`AGENTS.md` 和 `.agents/` 下的全部文件）的 SHA-256 哈希。文件会被分为四类：
+
+- **outdated**：内容与 AI-OS 源不同，但本地哈希仍匹配安装时记录的旧版本 -> 自动更新
+- **missing**：AI-OS 源有但本地不存在 -> 自动创建
+- **modified**：内容与 AI-OS 源不同，且本地哈希也不匹配安装时的记录（说明用户做过手动修改）-> 默认阻塞
+- **extra**：本地有但 AI-OS 源没有 -> 忽略
+
+当存在 modified 文件时，upgrade 默认会阻塞并列出冲突文件。可选策略：
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --profile project
+create-ai-os upgrade . --preflight   # 只检查是否能安全升级，不做任何修改
+create-ai-os upgrade . --dry-run     # 显示将要执行的操作，不做任何修改
+create-ai-os upgrade . --force       # 强制覆盖所有冲突文件（慎用）
 ```
 
-执行后通常会看到三类内容：
+推荐流程：
 
-- `AGENTS.md`、`.agents/skills/`、`.agents/workflows/` 这类框架文件
-- `.agents/templates/project/` 这类内部参考模板
-- `.ai-os/` 下的项目状态文件
+1. 先跑 `diff` 查看差异全貌
+2. 用 `--preflight` 确认是否有冲突
+3. 如果有冲突，手动检查 modified 文件，决定是否保留本地修改
+4. 确认可以覆盖后，用 `--force` 执行
 
-真正需要持续维护的项目工件主要在 `.ai-os/`。
+注意：`.ai-os/` 下的项目工件（MISSION.md、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。
 
-从 `v2.7.0` 开始，新初始化项目的工件还会明确：
+## Lite 模式
 
-- 核心模块属于什么模块类型（页面 / API / 数据处理 / 工具）
-- 默认交付等级是什么（L1 / L2 / L3）
-- 是否存在共享基础能力依赖结构
+`--lite` 只安装最小必要文件集，token 占用从 ~99K 降到 ~32K（减少 68%）：
 
-安装 profile 说明：
+```bash
+create-ai-os my-project --profile project --lite
+```
+
+包含：`AGENTS.md` + 核心 workflow（align/design/build/verify/debug）+ 必要 skill（acceptance-gate/memory-manager）+ 全部模板 + references + policies。
+
+适用场景：小项目、首次体验、token 预算敏感的模型。
+
+## 安装 profile 与计划预览
 
 - `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`
 - `project`：安装框架层，并补齐 starter 项目工件
 - `--with-project-files`：兼容别名，等价于 `--profile project`
 
-### 老项目第一次接入
+在真正写文件前，可以先预览：
 
 ```bash
-npx --yes github:royeedai/ai-os .
+create-ai-os plan . --profile core
+create-ai-os plan my-project --profile project
+create-ai-os plan my-project --profile project --lite --json
 ```
 
-### 固定版本
+如果项目是用 `core` profile 安装，且尚未初始化 starter 工件，`doctor --strict` 会跳过项目工件校验。
+
+## 团队协作配置（默认开启）
+
+`init` / `upgrade` 完成后会自动（幂等）追加：
+
+- `.gitignore`：忽略会话态与 CLI 元数据（如 `.ai-os/STATE.md`、`framework.toml`、`managed-files.tsv` 等）
+- `.gitattributes`：为 `memory.md`、`tasks.yaml` 设置 `merge=union`，降低多人并行合并冲突
+
+若不需要上述行为（例如自有 Git 策略），安装时使用：
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --profile project
+create-ai-os my-project --profile project --no-team-config
 ```
 
-## 帮助
+`upgrade` 也会在结束时尝试补全上述条目（同样幂等）；详见已安装项目中的 `AGENTS.md`「团队协作」一节。
 
-查看主帮助：
+## Cursor Rules 适配
+
+将已安装的 AI-OS 框架转换为 `.cursor/rules/*.mdc` 格式，让 Cursor 原生加载：
 
 ```bash
-node ./bin/create-ai-os.js --help
+create-ai-os cursor-rules .
+create-ai-os cursor-rules . --clean   # 清理旧的再重新生成
 ```
 
-当前入口摘要：
+生成规则：
+- `AGENTS.md` → `ai-os-constitution.mdc`（alwaysApply: true）
+- 每个 workflow → `ai-os-wf-<name>.mdc`
+- 每个 skill → `ai-os-sk-<name>.mdc`
+- Router 索引 → `ai-os-workflow-router.mdc` / `ai-os-skill-router.mdc`
 
-- `create-ai-os [target-dir]`
-- `create-ai-os plan [target-dir]`
-- `create-ai-os doctor [target-dir]`
-- `create-ai-os validate [target-dir]`
-- `create-ai-os skill-check [skill-dir]`
-- `create-ai-os status [target-dir]`
-- `create-ai-os next [target-dir]`
-- `create-ai-os resume [target-dir]`
-- `create-ai-os affected [target-dir]`
-- `create-ai-os diff [target-dir]`
-- `create-ai-os upgrade [target-dir]`
-- `create-ai-os release-check [target-dir]`
+## Token Budget
 
-## 检查类命令
-
-### `plan`
-
-预览当前 profile 会管理哪些内容，不实际写文件。
+分析框架文件的 token 占用：
 
 ```bash
-npx --yes github:royeedai/ai-os plan . --profile core
-npx --yes github:royeedai/ai-os plan my-project --profile project
-npx --yes github:royeedai/ai-os plan my-project --profile project --json
+create-ai-os token-budget .
+create-ai-os token-budget --source        # 分析母仓库源
+create-ai-os token-budget --source --lite  # 对比 lite 模式
 ```
 
-适用场景：
+## Lab 命令
 
-- 想先确认会不会创建 `.ai-os/` starter 工件
-- 想看现有项目里哪些框架文件会 `copy`，哪些会 `keep`
-- 在自动化里读取 machine-readable 安装计划
-
-`--json` 会输出摘要和相对路径分组，`--force-framework` 会按覆盖模式预览框架文件动作。
-
-### `doctor`
-
-检查 AI-OS 框架是否安装完整。
-
-```bash
-npx --yes github:royeedai/ai-os doctor .
-npx --yes github:royeedai/ai-os doctor . --strict
-```
-
-`--strict` 会进一步校验项目本地交付工件。
-
-如果项目是用 `core` profile 安装，且尚未初始化 starter 工件，`doctor` 会把这些文件标记为 optional，并在 `--strict` 模式下跳过项目工件校验。
-
-### `validate`
-
-检查 `.ai-os/` 中关键工件的结构完整性。
-
-```bash
-npx --yes github:royeedai/ai-os validate .
-```
-
-重点覆盖：
-
-- `project-charter.md`
-- `risk-register.md`
-- `tasks.yaml`
-- `acceptance.yaml`
-- `release-plan.md`
-- `memory.md`
-- `STATE.md`
-- `verification-matrix.yaml`
-- `specs/`
-- `evals/`
-
-从 `v2.7.0` 起，`validate` 也会兼容新的 spec 结构：
-
-- spec 中允许记录模块类型和交付等级
-- “界面 / 接口 / 命令清单”这类更通用的章节标题会被识别
-- 不再强依赖所有模块都按页面 + API + 数据库三件套书写
-
-### `skill-check`
-
-检查一个自定义 Skill 的结构是否达到 AI-OS 的基线或严格规范。
-
-```bash
-npx --yes github:royeedai/ai-os skill-check .agents/skills/my-skill
-npx --yes github:royeedai/ai-os skill-check .agents/skills/my-skill --strict
-```
-
-适用场景：
-
-- 新增项目自定义 Skill
-- 重构现有 Skill
-- 准备把项目内 Skill 沉淀为长期复用资产
-
-检查重点：
-
-- `SKILL.md` frontmatter 是否完整
-- `description` 是否说明“做什么 + 何时使用”
-- 是否存在触发条件、执行流程、边界说明
-- 是否包含模板 / 输出 / 示例等可复用交付格式
-- 长 Skill 是否已拆到 `references/`，且有 `references/index.md`
-
-配套参考：
-
-- `.agents/skills/references/skill-spec.md`
-- `.agents/skills/references/quality-checklist.md`
-- `.agents/skills/references/anti-patterns.md`
-
-## 恢复与继续
-
-### `status`
-
-查看当前位置、阻塞项和任务概览。
-
-```bash
-npx --yes github:royeedai/ai-os status .
-```
-
-### `next`
-
-推断依赖已经满足的下一批任务。
-
-```bash
-npx --yes github:royeedai/ai-os next .
-```
-
-### `resume`
-
-输出恢复 session 需要的最小上下文包。
-
-这三个命令仍然围绕 `.ai-os/STATE.md`、`.ai-os/tasks.yaml` 工作；如果项目已经按模块类型和交付等级记录，它们会更容易给出贴合当前模块的续做入口。
-
-```bash
-npx --yes github:royeedai/ai-os resume .
-npx --yes github:royeedai/ai-os resume . --markdown
-```
-
-补充：
-
-- 默认输出面向终端阅读的恢复信息
-- `--markdown` 会输出一份可直接复制到新 session 的上下文快照
-- 快照结构与 `.agents/templates/project/context-snapshot.md` 对齐，但它不是项目必填工件
-
-## 变更感知验证
-
-### `affected`
-
-根据代码变更和 `.ai-os/verification-matrix.yaml` 决定应该执行哪些验证动作。
-
-```bash
-npx --yes github:royeedai/ai-os affected .
-npx --yes github:royeedai/ai-os affected . --staged
-npx --yes github:royeedai/ai-os affected . --base origin/main
-npx --yes github:royeedai/ai-os affected . --execute
-```
-
-默认输出计划。带 `--execute` 时才真正执行。
-
-## 框架维护
-
-### `diff`
-
-对比目标项目的框架受管文件和当前 AI-OS 源。
-
-```bash
-npx --yes github:royeedai/ai-os diff .
-npx --yes github:royeedai/ai-os diff . --quiet
-npx --yes github:royeedai/ai-os diff . --stat
-```
-
-### `upgrade`
-
-升级框架受管文件。
-
-```bash
-npx --yes github:royeedai/ai-os upgrade .
-npx --yes github:royeedai/ai-os upgrade . --dry-run
-npx --yes github:royeedai/ai-os upgrade . --preflight
-npx --yes github:royeedai/ai-os upgrade . --force
-```
-
-注意：
-
-- 默认只升级安全可替换的框架文件
-- `--preflight` 用来先检查冲突
-- `--force` 会覆盖冲突的框架受管文件
-- 项目自己的 `.ai-os/specs/`、`.ai-os/tasks.yaml`、`.ai-os/memory.md` 不应被框架覆盖
-
-## 发布前检查
-
-### `release-check`
-
-检查发布计划、验收条件和任务完成情况是否具备交付条件。
-
-```bash
-npx --yes github:royeedai/ai-os release-check .
-```
-
-对于 `L3` 高风险模块，`release-check` 更重要，因为这类模块通常还要求额外的安全、架构和回滚准备。
-
-## 本地开发时的调用方式
-
-在仓库开发阶段，推荐直接调用本地入口：
-
-```bash
-node ./bin/create-ai-os.js my-project --profile project
-node ./bin/create-ai-os.js plan my-project --profile core
-node ./bin/create-ai-os.js doctor my-project
-node ./bin/create-ai-os.js validate my-project
-node ./bin/create-ai-os.js skill-check my-project/.agents/skills/my-skill --strict
-node ./bin/create-ai-os.js affected my-project
-node ./bin/create-ai-os.js diff my-project
-node ./bin/create-ai-os.js upgrade my-project
-node ./bin/create-ai-os.js status my-project
-node ./bin/create-ai-os.js next my-project
-node ./bin/create-ai-os.js resume my-project
-node ./bin/create-ai-os.js resume my-project --markdown
-node ./bin/create-ai-os.js release-check my-project
-```
+- `lab`：批量创建 `greenfield`、`reverse-spec`、`brownfield`、`debug`、`high-risk`、`degraded-path` 场景沙盒
+- 自动执行 `doctor` / `validate` / `status` / `next`
+- 在目标目录生成 `lab-report.md`，方便只在需要人工验收或审批时再介入

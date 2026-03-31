@@ -27,7 +27,7 @@ description: >
 
 ## 必须同步检查
 
-- `.ai-os/project-charter.md`
+- `.ai-os/MISSION.md`
 - 对应 `.spec.md`
 - `.ai-os/tasks.yaml`
 - `.ai-os/acceptance.yaml`
@@ -62,7 +62,7 @@ description: >
 
 | 维度 | 是否受影响 | 说明 |
 |------|------------|------|
-| project-charter | 否 / 是 | |
+| MISSION | 否 / 是 | |
 | spec | 否 / 是 | |
 | tasks | 否 / 是 | |
 | tests | 否 / 是 | |

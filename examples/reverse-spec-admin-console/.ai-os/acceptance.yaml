@@ -1,0 +1,70 @@
+version: 2
+scope:
+  mode: "reverse-spec"
+  focus: "admin-console"
+  baseline_source: "MISSION.md + specs/"
+  change_control: "all requirement changes must go through /change-request"
+  quality_tier: "standard"
+  primary_spec: "specs/admin-list.spec.md"
+
+required_special_reviews: []
+
+gates:
+  - id: design-confirmation
+    title: "设计确认门"
+    status: in_progress
+    checks:
+      - "MISSION.md 已是本轮最新且已确认的需求基准"
+      - "关键页面、信息架构和关键交互已确认"
+      - "需要保真的页面已标记对照证据来源"
+    evidence:
+      - "design-decision-log"
+      - "screen-reference"
+
+  - id: logic-confirmation
+    title: "逻辑确认门"
+    status: pending
+    checks:
+      - "核心接口、状态流转和业务规则已确认"
+      - "关键异常路径和边界条件已确认"
+    evidence:
+      - "spec-review"
+      - "contract-note"
+
+  - id: implementation-quality
+    title: "实现质量门"
+    status: pending
+    checks:
+      - "核心实现完成"
+      - "契约基准与实现一致"
+    evidence:
+      - "build-log"
+      - "test-log"
+
+  - id: delivery-readiness
+    title: "交付质量门"
+    status: pending
+    checks:
+      - "运行态验证已完成"
+      - "交付说明齐全"
+    evidence:
+      - "runtime-check"
+      - "handoff-note"
+
+  - id: parity-gate
+    title: "对照一致性门"
+    status: in_progress
+    checks:
+      - "reverse-spec 项目已给出关键页面、关键 API 或关键流程对照证据"
+      - "允许改写的差异已在 DESIGN 或 spec 中显式说明"
+    evidence:
+      - "screenshot-compare"
+      - "api-compare"
+      - "behavior-note"
+
+result:
+  design_locked: in_progress
+  logic_locked: blocked
+  implementation_ready: blocked
+  delivery_ready: blocked
+  blockers: []

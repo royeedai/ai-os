@@ -1,94 +1,136 @@
 ---
 name: task-orchestrator
 description: >
-  将项目章程或模块 .spec 拆成可执行任务图，包含依赖、状态、wave 并行分组、上下文注入、Definition of Ready、Definition of Done 和 Evidence Pack。
-  当需要拆任务、排期、减少漏项，或在编码前建立执行顺序时必须使用。
+  当 spec 已可进入 build、需要在 /plan 阶段拆任务时，使用本 Skill 把 Mission / Design / Spec 收敛为可执行任务波次和角色分工。
+  P0 任务要求步骤级粒度：精确文件路径、完整代码和验证命令。
 ---
 
 # 任务编排器
 
-本 Skill 用于把“需求”转成“可执行任务图”，避免 AI 只会从 spec 直接跳到编码。
-
 ## 使用时机
 
-- 项目或模块需求已经明确，准备拆任务
-- 编码前需要先建立执行顺序和依赖关系
-- 任务过大、漏项过多、上下文切换频繁，需要重新编排
+- 设计和逻辑已经足够明确
+- 准备进入 build
+- 需要按 wave 和 execution_role 组织任务
 
 ## 使用方式
 
-1. 输入来源可以是 `.ai-os/project-charter.md` 或某个模块的 `.spec.md`
-2. 先识别当前对象的模块类型（`页面类` / `API 类` / `数据处理类` / `工具类`）和交付等级（`L1` / `L2` / `L3`）
-3. 使用模板生成或更新 `.ai-os/tasks.yaml`
-4. 对每个任务明确依赖、风险、输入、输出、DoR、DoD、Evidence Pack
-5. 结合 `.ai-os/verification-matrix.yaml`，为每个任务补齐 `affected_components`、`verification_required`、`restart_required`、`cold_start_required`
-6. 将测试、文档、发布、回滚、验收任务显式拆出；但是否拆成独立任务，取决于模块类型和交付等级
-7. 为任务分配 wave 编号（基于依赖图拓扑排序），同一 wave 内的任务可并行执行
-8. 为每个任务指定 `context_files`，列出执行该任务前必须加载的文件
-9. 每次任务状态变化都要回写 `.ai-os/tasks.yaml` 和 `.ai-os/STATE.md`
-10. 对存在共享基础能力依赖的项目，按 `.agents/references/derived-rules.md` 的“共享基础能力优先”规则建立依赖图
+P0 任务的计划，假设执行者是一个**有开发能力但没有项目上下文、没有设计品味、对测试缺乏主动性**的人。因此计划必须把所有决策和细节前置到计划中，不留给执行阶段判断。
+
+### 必做步骤
+
+1. 读取 `MISSION.md`、`DESIGN.md`、specs 和 `STATE.md`
+2. 把任务拆成可独立验证的单元
+3. 为每个任务指定：
+   - `wave`
+   - `execution_role`
+   - `approval_required`
+   - `context_files`
+   - `impact_tags`
+   - `derived_checks`
+   - `risk_triggers`
+   - `evidence_required`
+   - `parity_evidence_required`（reverse-spec 适用）
+4. 根据 spec 中的 `集成触点`、`交互模式` 和共享基础设施约定，派生 `context_files`、`impact_tags`、`derived_checks`
+5. 对照 `../../references/risk-triggers.md`，命中高风险触发时升级 `quality_tier`，并强制补审批和专项审查
+6. **P0 任务额外要求：为每个任务写出步骤级执行计划**（见下方"步骤级粒度要求"）
+7. 更新 `.ai-os/tasks.yaml`
+8. 同步 `.ai-os/STATE.md`
+
+## 步骤级粒度要求（P0 强制 / P1 推荐 / P2 可选）
+
+P0 项目的每个任务必须包含步骤级执行计划。每步 2-5 分钟，严格 TDD 顺序：
+
+### 任务结构模板
+
+```yaml
+task_id: "T-003"
+name: "用户邮箱验证"
+wave: 2
+execution_role: implementer
+files:
+  create:
+    - "src/validators/email.ts"
+  modify:
+    - "src/services/user.ts:45-60"
+  test:
+    - "tests/validators/email.test.ts"
+steps:
+  - id: "T-003-01"
+    action: "写失败测试"
+    detail: |
+      在 tests/validators/email.test.ts 中：
+      ```typescript
+      test('拒绝空邮箱', () => {
+        expect(validateEmail('')).toEqual({
+          valid: false,
+          error: 'Email required'
+        });
+      });
+      ```
+    verify: "npm test tests/validators/email.test.ts -- 预期 FAIL: validateEmail is not defined"
+
+  - id: "T-003-02"
+    action: "最小实现"
+    detail: |
+      在 src/validators/email.ts 中：
+      ```typescript
+      export function validateEmail(email: string) {
+        if (!email?.trim()) {
+          return { valid: false, error: 'Email required' };
+        }
+        return { valid: true, error: null };
+      }
+      ```
+    verify: "npm test tests/validators/email.test.ts -- 预期 PASS"
+
+  - id: "T-003-03"
+    action: "提交"
+    detail: "git add src/validators/email.ts tests/validators/email.test.ts && git commit -m 'feat: add email validation with empty check'"
+```
+
+### 关键要求
+
+- **精确文件路径**：不写"在相关文件中"，写 `src/validators/email.ts`
+- **完整代码**：不写"加入验证逻辑"，写出完整代码
+- **精确命令和预期输出**：不写"运行测试"，写 `npm test tests/xxx.test.ts -- 预期 FAIL: xxx`
+- **TDD 顺序**：写测试 → 看失败 → 写实现 → 看通过 → 提交
+- **每步 2-5 分钟**：如果一步超过 5 分钟，继续拆分
+
+### P1/P2 的简化
+
+- **P1**：推荐步骤级粒度，但允许合并为"写测试+实现"的组合步骤，仍需精确文件路径
+- **P2**：只需任务级描述（当前格式），但仍需 `evidence_required`
 
 ## 拆分原则
 
-- 一个任务只能对应一个清晰结果
-- 一个任务必须有可验证的完成证据
-- 高风险任务要单独拆出并标记审批点
-- 共性基础设施、迁移、回归检查不得藏在“顺手做”
-- 命中 `verification-matrix.yaml` 的运行时变更，必须显式拆出重启 / 冷启动验证任务，或在当前任务中写明验证动作
-- 一个任务的全部输入（spec 引用、依赖代码、实现代码、测试代码）加起来不应超出 AI 单次有效处理能力；经验法则：一个任务涉及的新增/修改代码不应超过 500 行
-- 如果 AI 在执行任务时出现“我先做 A 部分，稍后再做 B 部分”的自述，说明任务粒度过大，应回退拆分
+- 设计未锁定的工作不要和实现任务混在一起
+- 逻辑确认前不要把大规模实现放进早期 wave
+- review / verify / runtime evidence 必须显式占位
+- 跨层联动任务必须把入口、契约、映射、运行态影响拆成可验证项，而不是合并成一句"完成模块开发"
+- 若 brownfield / change 任务受 request wrapper、DTO / adapter、中间件、路由鉴权或样式基准影响，必须把这些共享约定纳入 `context_files` 或 `derived_checks`
 
-## 按模块类型拆任务
+## 交付输出
 
-- `页面类`：至少覆盖界面结构、状态处理、API 对接、路由/导航接入、关键交互验证
-- `API 类`：至少覆盖契约、鉴权/权限、核心处理逻辑、错误处理、契约测试或接口样例
-- `数据处理类`：至少覆盖输入源、转换/执行逻辑、调度或触发方式、失败重试/补数、结果校验与日志
-- `工具类`：至少覆盖命令入口、参数 / 配置、输出格式、安装 / 运行验证、使用说明
+- `.ai-os/tasks.yaml`
+- 更新后的 `.ai-os/STATE.md`
 
-## 按交付等级缩放任务
+### 示例：根据集成触点派生任务上下文
 
-- `L1`：允许把文档、验收和部分 supporting work 合并进主任务，但仍必须保留任务记录、最小完成证据和验证动作
-- `L2`：显式拆出实现、测试、验收、必要的运行验证任务
-- `L3`：在 L2 基础上，额外拆出安全、架构、发布 / 回滚、人工审批点等任务
-
-## Wave 并行分组规则
-
-- 无依赖的任务归入 wave 1
-- 依赖项全部在 wave N 或更早完成的任务，归入 wave N+1
-- 同一 wave 内的任务可以使用 IDE 的 subagent / Task 工具并行执行
-- wave 按顺序推进，当前 wave 全部完成才进入下一个 wave
-- 文件冲突（多个任务修改同一文件）的任务必须放入不同 wave 或合并为同一任务
-- 依赖基础能力的业务模块不得与其前置基础能力放在同一 wave 假并行推进
-
-## 上下文注入协议
-
-每个任务的 `context_files` 字段列出执行前必须加载的文件。`context_files`、`inputs`、`outputs` 中的路径均相对于 `.ai-os/` 目录。执行任务时：
-
-1. 读取 `.ai-os/STATE.md` 恢复全局方位
-2. 读取该任务 `context_files` 中的所有文件
-3. 读取 `.ai-os/memory.md` 获取长期约束和决策
-4. 若使用 subagent / Task 工具执行，必须在 prompt 中包含以上关键内容摘要
+- 输入：Mission、Design、带 `集成触点` 和 `交互模式` 的 spec
+- 输出：带 `context_files`、`impact_tags`、`derived_checks`、`risk_triggers` 的 tasks
+- P0 任务额外输出步骤级执行计划
 
 ## 禁止事项
 
-- 禁止把“开发整个模块”写成一个任务
-- 禁止没有依赖关系就并行推进互相阻塞的任务
-- 禁止未满足 DoR 就把任务标记为进行中
-- 禁止一个任务涉及超过 500 行新增 / 修改代码而不拆分
-- 禁止忽略模块类型和交付等级，把所有任务图都拆成同一套模板
-
-## 模板引用
-
-- 任务图：读取 `.agents/templates/project/tasks.yaml` 作为模板生成 `.ai-os/tasks.yaml`
-
-### 示例：L2 API 模块任务拆分
-
-- 输入：模块 `.spec.md`、当前 `.ai-os/verification-matrix.yaml`
-- 输出：实现、测试、验收、运行验证分开的任务项和 wave
-- 约束：不要把整个模块压成一个任务；要显式写出 `context_files` 和验证动作
+- 禁止把"开发整个模块"写成一个任务
+- 禁止不写 execution_role 和 approval_required
+- 禁止忽略 spec 中的集成触点，导致 `context_files` 和联动检查缺失
+- P0 任务禁止只写描述性步骤（如"加入验证"）而不给出具体代码
+- P0 任务禁止不写验证命令和预期输出
 
 ## 维护信息
 
-- 来源：`framework/AGENTS.md`、`.agents/templates/project/tasks.yaml`、`.agents/references/derived-rules.md`
-- 更新时间：2026-03-15
-- 已知限制：本 Skill 负责任务图编排，不负责替代 spec 校验、代码实现和最终验收
+- 来源：`/plan` workflow，借鉴 Superpowers writing-plans 的步骤级粒度
+- 更新时间：2026-03-24
+- 已知限制：本 Skill 负责任务编排，不替代 spec 校验和验收判断

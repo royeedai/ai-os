@@ -1,0 +1,19 @@
+# 支付回调 degraded-path 验收清单（示例骨架）
+version: 1
+feature: payment-callback
+scenarios:
+  - id: empty-body
+    description: 空 body 回调应返回 400 并记录，不更新订单
+    status: pending
+  - id: bad-signature
+    description: 验签失败应拒绝并审计
+    status: pending
+  - id: duplicate-callback
+    description: 重复回调 ID 应幂等，不重复改状态
+    status: pending
+  - id: success-after-closed
+    description: 订单已关单后收到成功回调应明确策略（拒绝或人工队列）
+    status: pending
+  - id: gateway-timeout
+    description: 网关超时/无响应时的重试与对账边界
+    status: pending

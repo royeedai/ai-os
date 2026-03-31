@@ -1,161 +1,59 @@
 # Artifacts
 
-AI-OS 的关键价值之一，是把项目事实落到仓库里，而不是留在聊天上下文里。
+AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 
-这份文档解释项目里几类 AI-OS 文件分别负责什么。
+## 核心工件
 
-## 三类内容
+| 文件 | 作用 |
+|------|------|
+| `.ai-os/MISSION.md` | 定义宿主项目必要上下文，以及当前交付的目标、范围、模式、治理档位和最新确认的需求基准 |
+| `.ai-os/DESIGN.md` | 锁定关键页面、信息架构、交互和流程 |
+| `.ai-os/specs/` | 定义逻辑规则、契约、状态流转、边界条件和验收映射 |
+| `.ai-os/tasks.yaml` | 编排 wave、角色、审批点、impact_tags、边界和证据要求 |
+| `.ai-os/acceptance.yaml` | 管理质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
+| `.ai-os/STATE.md` | 恢复当前方位、已锁定内容、待确认项和确认停点 |
+| `.ai-os/memory.md` | 记录稳定决策和约束 |
 
-### 1. 框架受管文件
+## 按需工件
 
-这些文件由 AI-OS 框架负责：
-
-- `AGENTS.md`
-- `.agents/skills/`
-- `.agents/workflows/`
-- `.ai-os/framework.toml`
-- `.ai-os/managed-files.tsv`
-
-它们解决的是“AI 怎么工作”的问题。
-
-### 2. 框架内置模板
-
-这些文件也会跟着框架一起安装：
-
-- `.agents/templates/project/`
-
-它们不是当前项目的真实状态文件，而是给 workflow / skill 生成 `.ai-os/*` 文件时使用的参考模板。
-
-如果你看到这里和 `.ai-os/` 中有相似文件名，这是正常设计，不是重复安装错误。
-
-这里也包括一些“可选导出模板”，例如：
-
-- `.agents/templates/project/context-snapshot.md`
-
-它用于把当前项目状态导出成可复制的上下文快照，不是新的项目必填工件。
-
-### 3. 项目本地文件
-
-这些文件由项目自己维护：
-
-- `.ai-os/project-charter.md`
-- `.ai-os/risk-register.md`
-- `.ai-os/tasks.yaml`
-- `.ai-os/acceptance.yaml`
 - `.ai-os/release-plan.md`
-- `.ai-os/memory.md`
-- `.ai-os/STATE.md`
+- `.ai-os/risk-register.md`
 - `.ai-os/verification-matrix.yaml`
-- `.ai-os/specs/`
+- `.ai-os/design-pack/parity-map.md`
 - `.ai-os/evals/`
 
-它们解决的是“这个项目当前是什么状态”的问题。
+## 使用原则
+
+- `MISSION.md` + `specs/` 是当前交付的唯一需求真理源
+- `brownfield` / `change` 下，`MISSION.md` 写的是当前这轮交付，不是整个存量项目
+- 任何需求变化先更新工件，再改代码
+- 轻量流程也必须同步 `STATE.md` 和验证证据
 
 补充说明：
 
 - `core` profile 初始化时不会直接创建这批 starter 文件
 - `project` profile（或兼容别名 `--with-project-files`）会在初始化阶段创建它们
-- 老项目也可以先装 `core`，再通过 `/init` 基于现有代码生成项目事实
+- 老项目也可以先装 `core`，再通过 `/align` / `/plan` 逐步补齐项目事实
 
-## 重点文件说明
+## 三档深度
 
-| 文件 | 它回答的问题 | 什么时候最重要 |
-|------|------|------|
-| `.ai-os/project-charter.md` | 这个项目要做什么，不做什么；各模块属于什么类型、什么交付等级 | 项目启动、范围争议时 |
-| `.ai-os/risk-register.md` | 现在有哪些重要风险 | 涉及外部依赖、上线风险、复杂协作时 |
-| `.ai-os/specs/*.spec.md` | 这个模块到底要实现什么；它是什么模块类型、走什么交付等级 | 模块开发前和验收前 |
-| `.ai-os/specs/*.context.md` | 需求澄清时确认过什么 | 需求反复变化或容易误解时；不是每个模块都必须有 |
-| `.ai-os/tasks.yaml` | 现在要做哪些任务、依赖关系如何；任务是否按类型和等级被适当拆分 | 执行和排期时 |
-| `.ai-os/acceptance.yaml` | 什么才算完成，需要什么证据；证据是否按类型和等级缩放 | 自测、评审、交付前 |
-| `.ai-os/release-plan.md` | 上线时要怎么做，回滚怎么做 | 准备发布时 |
-| `.ai-os/memory.md` | 这个项目有哪些长期有效的经验和约定 | 多次协作、多人协作时 |
-| `.ai-os/STATE.md` | 当前做到哪了，下一步做什么 | 每次恢复上下文时 |
-| `.ai-os/verification-matrix.yaml` | 某类改动需要跑哪些验证 | 改动后验证时 |
-| `.ai-os/evals/` | 哪些问题以后不能再犯 | 同类错误反复出现时 |
-
-补充：
-
-- `.ai-os/codebase-map.md` 更偏 brownfield 工件
-- 它通常由 `/init` 或 `/map-codebase` 在分析已有代码库后生成
-- 因此新项目初始化时不一定会先创建它
-
-## 为什么 `STATE.md` 很关键
-
-AI 很容易在会话切换后丢上下文。
-
-AI-OS 把 `.ai-os/STATE.md` 作为恢复方位的第一入口，目的是让新 session 不必重新通读所有文件，也不用只靠聊天记录猜测当前进度。
-
-一个好的 `STATE.md` 至少应该回答：
-
-- 当前在哪个里程碑、模块、阶段
-- 当前任务进展如何
-- 有哪些 blocker
-- 最近做了什么关键决策
-- 下一步最应该做什么
-
-如果项目在按模块推进，还应该能看出：
-
-- 当前模块属于什么类型
-- 当前模块处于什么交付等级
-- 当前里程碑是否允许现在插入这项工作
-
-如果你只是想把这些信息快速导出到新 session，而不是手动整理，可以直接运行：
-
-```bash
-npx --yes github:royeedai/ai-os resume . --markdown
-```
-
-它会输出一份 Markdown 上下文快照，结构对齐 `.agents/templates/project/context-snapshot.md`，但不会在 `.ai-os/` 下强制新增文件。
-
-## `tasks.yaml` 和 `acceptance.yaml` 为什么要分开
-
-这两个文件很容易被混淆：
-
-- `tasks.yaml` 关注的是“怎么做”
-- `acceptance.yaml` 关注的是“做到什么程度算完成”
-
-前者是执行视角，后者是验收视角。
-
-如果只有任务没有验收，最后很容易变成“代码写了，但没有完成口径”。
-
-现在它们还有一个区别：
-
-- `tasks.yaml` 更关心“这个模块在当前类型和等级下需要做哪些工作”
-- `acceptance.yaml` 更关心“这个模块在当前类型和等级下需要哪些完成证据”
-
-## `memory.md` 和 `evals/` 的区别
-
-这两者都在做沉淀，但作用不同：
-
-- `memory.md` 记录稳定事实、经验、约定和坑点
-- `evals/` 记录可重复验证的回归样例
-
-可以简单理解为：
-
-- `memory` 负责让 AI 以后少走弯路
-- `evals` 负责让 AI 以后少犯同样的错
+- 探索档：Mission + State + 最小设计笔记
+- 标准档：再加 Design + Spec + Tasks + Acceptance
+- 高风险档：再加 Risk + Release + 运行态证据
 
 ## 初始化时哪些文件会自动创建
 
 使用 `--profile project` 时，会自动创建：
 
-- `project-charter.md`
-- `risk-register.md`
+- `MISSION.md`
+- `DESIGN.md`
 - `tasks.yaml`
 - `acceptance.yaml`
-- `release-plan.md`
-- `memory.md`
 - `STATE.md`
-- `verification-matrix.yaml`
+- `memory.md`
+- `specs/`
 - `specs/example.spec.md`
-- `evals/eval-example.md`
+
+按需工件如 `release-plan.md`、`risk-register.md`、`verification-matrix.yaml`、`design-pack/` 和 `evals/` 不会在初始化时默认创建。
 
 `--with-project-files` 仍保留，作为 `--profile project` 的兼容别名。
-
-与此同时，项目里还会保留 `.agents/templates/project/` 作为内部参考模板。
-
-## 相关资料
-
-- 上手方式：见 [getting-started.md](getting-started.md)
-- workflow 选择：见 [workflows.md](workflows.md)
-- CLI 参考：见 [cli.md](cli.md)

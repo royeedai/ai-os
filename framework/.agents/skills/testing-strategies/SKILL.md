@@ -1,191 +1,104 @@
 ---
 name: testing-strategies
 description: >
-  软件质量保障的测试策略指南。规划测试覆盖率、实施测试金字塔或搭建测试基础设施时使用。
-  涵盖单元测试、集成测试、E2E 测试、TDD 及测试最佳实践。
+  软件质量保障的测试策略指南。实现任何功能或修复任何 Bug 之前必须使用。
+  以 TDD 铁律为核心：没有失败的测试，不写生产代码。
+  涵盖测试驱动开发、测试金字塔、集成测试、E2E 测试及反模式防范。
   本 Skill 适用于任何技术栈。
 ---
 
 # 测试策略指南
 
+## TDD 铁律
+
+```
+没有先写失败测试，不得编写任何生产代码
+```
+
+先写了代码再补测试？**删掉代码，从头开始。** 不要留作参考、不要看着它"适配"测试。删掉就是删掉。
+
 ## 使用时机
-- **新项目**：制定测试策略
-- **质量问题**：Bug 频出
-- **重构前**：先建安全网
-- **CI/CD 搭建**：自动化测试
 
-## 操作步骤
+**必须使用 TDD 的场景**：新功能、Bug 修复、重构、行为变更。
 
-### 第一步：理解测试金字塔
+**允许例外（需用户明确同意）**：纯探索性原型（探索完后删掉用 TDD 重做）、生成代码、纯配置文件。
+
+## 操作步骤：红-绿-重构
+
+### RED — 写一个失败的测试
+
+一个测试只测一个行为，名称清晰，使用真实代码（mock 只在不可避免时用）。
+
+### 验证 RED — 必须看到测试失败
+
+**强制步骤。** 运行测试，确认失败原因是功能缺失（不是拼写错误）。测试直接通过？说明在测已有行为。
+
+### GREEN — 最小实现
+
+写最简单的代码让测试通过。不加功能、不重构、不"改善"超出测试范围的东西。
+
+### 验证 GREEN — 必须看到测试通过
+
+**强制步骤。** 确认新测试通过、其他测试仍通过、输出干净。测试失败？修代码不修测试。
+
+### REFACTOR — 清理
+
+在测试全绿后才重构：消除重复、改善命名、提取辅助函数。不添加新行为。
+
+## 测试金字塔
 
 ```
        /\
       /E2E\          ← 少量（慢、成本高）
      /______\
-    /        \
-   / 集成测试  \    ← 适量
-  /____________\
- /              \
-/    单元测试    \  ← 大量（快、成本低）
-/________________\
+    / 集成测试 \     ← 适量
+   /____________\
+  /   单元测试   \   ← 大量（快、成本低）
+ /________________\
 ```
 
-**比例建议**：
-- 单元测试：70%
-- 集成测试：20%
-- E2E 测试：10%
+比例建议：单元 70% / 集成 20% / E2E 10%。不要把验证都堆到 E2E。
 
-### 第二步：单元测试策略
+## 测试质量检查清单
 
-**Given-When-Then 模式**：
-```typescript
-describe('calculateDiscount', () => {
-  it('订单超过100元应打9折', () => {
-    // Given：准备数据
-    const order = { total: 150, customerId: '123' };
+- [ ] 每个新函数/方法都有测试
+- [ ] 每个测试都先看到了失败且失败原因正确
+- [ ] 每个实现都是让测试通过的最小代码
+- [ ] 全部测试通过，输出干净
+- [ ] 测试使用真实代码，边界和异常已覆盖
 
-    // When：执行操作
-    const discount = calculateDiscount(order);
+无法全部打勾？你跳过了 TDD。从头开始。
 
-    // Then：验证结果
-    expect(discount).toBe(15);
-  });
+## Bug 修复的 TDD 流程
 
-  it('订单不足100元不打折', () => {
-    const order = { total: 50, customerId: '123' };
-    const discount = calculateDiscount(order);
-    expect(discount).toBe(0);
-  });
-
-  it('无效订单应抛出错误', () => {
-    const order = { total: -10, customerId: '123' };
-    expect(() => calculateDiscount(order)).toThrow('Invalid order');
-  });
-});
-```
-
-**Mock 策略**：
-```typescript
-// Mock 外部依赖
-jest.mock('../services/emailService');
-import { sendEmail } from '../services/emailService';
-
-describe('UserService', () => {
-  it('注册时应发送欢迎邮件', async () => {
-    const mockSendEmail = sendEmail as jest.MockedFunction<typeof sendEmail>;
-    mockSendEmail.mockResolvedValueOnce(true);
-
-    await userService.register({ email: 'test@example.com', password: 'pass' });
-
-    expect(mockSendEmail).toHaveBeenCalledWith({
-      to: 'test@example.com',
-      subject: 'Welcome!',
-      body: expect.any(String)
-    });
-  });
-});
-```
-
-### 第三步：集成测试
-
-**API 接口测试**：
-```typescript
-describe('POST /api/users', () => {
-  beforeEach(async () => {
-    await db.user.deleteMany();  // 清空数据库
-  });
-
-  it('有效数据应成功创建用户', async () => {
-    const response = await request(app)
-      .post('/api/users')
-      .send({
-        email: 'test@example.com',
-        username: 'testuser',
-        password: 'Password123!'
-      });
-
-    expect(response.status).toBe(201);
-    expect(response.body.user).toMatchObject({
-      email: 'test@example.com',
-      username: 'testuser'
-    });
-
-    // 验证数据确实已保存到数据库
-    const user = await db.user.findUnique({ where: { email: 'test@example.com' } });
-    expect(user).toBeTruthy();
-  });
-
-  it('重复邮箱应返回冲突错误', async () => {
-    await request(app)
-      .post('/api/users')
-      .send({ email: 'test@example.com', username: 'user1', password: 'Pass123!' });
-
-    const response = await request(app)
-      .post('/api/users')
-      .send({ email: 'test@example.com', username: 'user2', password: 'Pass123!' });
-
-    expect(response.status).toBe(409);
-  });
-});
-```
-
-### 第四步：E2E 测试（Playwright）
-
-```typescript
-import { test, expect } from '@playwright/test';
-
-test.describe('用户注册流程', () => {
-  test('应完成完整的注册过程', async ({ page }) => {
-    await page.goto('http://localhost:3000');
-    await page.click('text=注册');
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await expect(page.locator('text=欢迎')).toBeVisible();
-    await expect(page).toHaveURL('http://localhost:3000/dashboard');
-  });
-});
-```
-
-### 第五步：TDD（测试驱动开发）
-
-**红-绿-重构 循环**：
-1. **红**：编写一个会失败的测试
-2. **绿**：用最少的代码让测试通过
-3. **重构**：优化代码，保持测试通过
+1. 写复现 Bug 的失败测试 → 2. 确认因 Bug 而失败 → 3. 修复 → 4. 确认通过 → 5. 确认无回归。没有测试就不修 Bug。
 
 ## 约束规则
 
-### 必须遵守
-1. **测试隔离**：每个测试独立运行
-2. **快速反馈**：单元测试应快速完成（<1 分钟）
-3. **确定性**：相同输入 → 相同结果
+- **TDD 顺序**：先测试、看失败、再实现、看通过、再重构
+- **测试隔离**：每个测试独立运行
+- **快速反馈**：单元测试 < 1 分钟
+- **确定性**：相同输入 → 相同结果
+- **禁止**：测试间依赖、使用生产数据库、Sleep/Timeout、先实现后补测试
 
-### 禁止事项
-1. **测试间依赖**：不要让测试 A 依赖测试 B
-2. **使用生产数据库**：不要在测试中使用真实数据库
-3. **Sleep/Timeout**：避免基于时间的测试
+## 自我合理化防御与反模式
 
-## 最佳实践
+详见 `references/tdd-rationalizations.md` 和 `references/testing-anti-patterns.md`。
 
-1. **AAA 模式**：Arrange（准备）- Act（执行）- Assert（断言）
-2. **测试命名**：清晰描述测试意图
-3. **边界用例**：边界值、null、空值
-4. **正常路径 + 异常路径**：覆盖成功和失败场景
+核心信号：只要出现"太简单不需要测试""先实现后补""就这一次""手动测试过了""删掉太浪费"等念头，**停下来，删掉代码，从 TDD 重新开始**。
 
-## 模板引用
+## 交付输出
 
-- 输出物：测试策略说明、覆盖分层、关键测试用例清单、自动化入口建议
+- 测试策略说明、覆盖分层、关键测试用例清单
+- 每次实现的 RED-GREEN-REFACTOR 证据
 
 ### 示例：模块测试策略
 
 - 输入：模块 `.spec.md`、风险等级、关键业务路径
 - 输出：单元 / 集成 / E2E 的覆盖建议和优先级
-- 约束：不要把所有验证都堆到 E2E；优先用成本更低的层级兜底
 
 ## 维护信息
 
-- 来源：测试金字塔、TDD、集成测试与 E2E 实践
-- 更新时间：2026-03-15
-- 已知限制：本 Skill 提供测试策略，不直接替代具体测试框架配置
+- 来源：测试金字塔、TDD、集成测试与 E2E 实践，借鉴 Superpowers test-driven-development
+- 更新时间：2026-03-24
+- 已知限制：本 Skill 提供测试策略和 TDD 执行规范，不直接替代具体测试框架配置

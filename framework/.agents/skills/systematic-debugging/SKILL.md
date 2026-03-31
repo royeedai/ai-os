@@ -83,6 +83,12 @@ description: 遇到任何 Bug、测试失败或异常行为时，在提出修复
    然后调查该特定组件
    ```
 
+   **如果系统存在共享包装层或转换层，也要先把它们纳入证据链**：
+   - request wrapper / interceptor
+   - DTO / adapter / serializer
+   - 路由 / 鉴权 / 中间件
+   - 全局样式变量 / 主题基准
+
 5. **追踪数据流**
    - 错误值从哪里来？
    - 谁用错误值调用了这里？
@@ -213,6 +219,7 @@ description: 遇到任何 Bug、测试失败或异常行为时，在提出修复
 - 最小化验证步骤
 - 修复前测试或复现方式
 - 修复后验证结果
+- 若问题跨越共享包装层 / 转换层，附上对应审计结论
 - 若连续失败 3 次以上，明确提出架构质疑或升级处理建议
 
 ### 示例：测试失败根因定位
@@ -224,5 +231,5 @@ description: 遇到任何 Bug、测试失败或异常行为时，在提出修复
 ## 维护信息
 
 - 来源：`references/root-cause-tracing.md`、`references/condition-based-waiting.md`、`references/defense-in-depth.md`
-- 更新时间：2026-03-15
+- 更新时间：2026-03-19
 - 已知限制：本 Skill 约束的是调试流程，不直接保证外部环境或第三方系统可控

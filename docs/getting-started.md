@@ -1,44 +1,21 @@
 # Getting Started
 
-这份文档给第一次接触 AI-OS 的人看。
+AI-OS 的默认顺序不是"先写代码"，而是：
 
-如果你之前没有系统化使用过 AI 开发，可以先把 AI-OS 理解成：
+1. `/align`
+2. `/design`
+3. `/plan`
+4. `/build`
+5. `/verify`
+6. `/ship`
 
-- 一套安装到仓库里的交付规则
-- 一组可复用的技能和工作流
-- 一套让 AI 能跨会话恢复上下文的项目文件
+## 选择安装方式
 
-它的目标不是让 AI 更会“聊天”，而是让 AI 更会“交付”。
+**完整安装**（19 个 skill + 15 个 workflow，~99K tokens）：
 
-## 先建立一个正确心智
-
-很多人第一次看到 AI-OS，会误以为它是：
-
-- 一个业务脚手架
-- 一套提示词合集
-- 一个只能在单一工具里使用的插件
-
-其实都不是。
-
-AI-OS 更接近下面这个模型：
-
-1. 你先把 AI-OS 安装进项目。
-2. 项目里会多出 `AGENTS.md`、`.agents/` 和 `.ai-os/`。
-3. 你在 Codex、Cursor、Antigravity 这类工具里，通过 workflow 驱动 AI。
-4. AI 按项目方式工作，并把项目状态写回 `.ai-os/`。
-
-这里有一个第一次很容易误会的点：
-
-- `.agents/templates/project/` 里放的是框架自带模板
-- `.ai-os/` 里放的是你这个项目真正要维护的文件
-
-如果两个目录里都出现了 `project-charter.md`、`tasks.yaml`、`STATE.md` 之类的名字，不代表初始化出错，而是“模板”和“实例”同时存在。
-
-## 环境要求
-
-- Node.js 18+
-- npm / npx
-- 能访问 GitHub 仓库
+```bash
+npx --yes github:royeedai/ai-os my-project --profile project
+```
 
 安装前如果想先确认 AI-OS 会管理哪些内容，可以先预览：
 
@@ -53,158 +30,61 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 - `project` 会额外创建 starter 项目工件
 - `--with-project-files` 仍保留，作为 `--profile project` 的兼容别名
 
-## 最常见的三种上手路径
-
-### 场景一：从 0 开始做新项目
-
-1. 初始化项目
+**轻量安装**（核心 workflow + 必要 skill，~32K tokens，适合小项目或首次体验）：
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --profile project
+npx --yes github:royeedai/ai-os my-project --profile project --lite
 ```
 
-2. 在 AI 工具里使用 `/new-project`
-
-这一步的重点不是立刻写代码，而是先把下面这些东西定下来：
-
-- 目标和成功标准
-- 范围边界
-- 风险和约束
-- 项目里程碑
-- 模块和任务图
-
-3. 之后每做一个模块，用 `/new-module`
-
-如果只是一个特别小的改动，可以走 `/quick`。
-
-现在要多记一件事：
-
-- `/new-module` 不再默认所有模块都走同一条重流程
-- 它会先判断模块类型（页面 / API / 数据处理 / 工具）和交付等级（L1 / L2 / L3）
-- 如果页面类模块里有可独立切分的静态 UI 子任务，可以先交给更适合视觉产出的模型处理静态结构和样式，再回到主流程做工程接入
-- 目标是“最低足够流程”，而不是所有需求都按全栈大模块处理
-
-### 场景二：老项目第一次接入 AI-OS
-
-1. 在项目根目录安装框架
+**使用 Cursor？** 安装后追加生成 `.cursor/rules/`：
 
 ```bash
-npx --yes github:royeedai/ai-os .
+npx --yes github:royeedai/ai-os cursor-rules my-project
 ```
 
-2. 在 AI 工具里使用 `/init`
+## 第一次使用先记住 4 件事
 
-`/init` 会先分析现有代码库，再生成基础项目文件。重点是：
+- `MISSION.md` + `specs/` 是当前交付的唯一需求真理源
+- `brownfield` / `change` 下，`MISSION.md` 记录的是本轮要交付什么，不是把整个老项目重新定义一遍
+- `DESIGN.md` 负责锁关键页面和关键流程
+- `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清
+- `STATE.md` 负责恢复上下文、确认停点和下一步
 
-- 不是从空模板开始手填
-- 而是尽量根据现有代码、结构和约束生成真实内容
-
-3. 后续按场景继续
-
-- 加功能或模块：`/map-codebase` 然后 `/new-module`
-- 小改动：`/quick`
-- 需求变化：`/change-request`
-
-### 场景三：已有仓库上继续开发新功能
-
-如果项目已经接入 AI-OS，推荐这样做：
-
-1. 先用 `/map-codebase`
-2. 再用 `/new-module`
-3. 模块完成前用 `/review`
-4. 准备交付时用 `/ship`
-
-这样做的原因很简单：
-
-- `map-codebase` 帮 AI 先理解当前架构
-- `new-module` 让需求、任务、编码、验收保持同步
-- `review` 和 `ship` 避免“代码做了，但交付没闭环”
-
-如果是工具类、数据处理类或纯 API 模块，现在的流程会比以前更贴合实际，不会强行套页面 + API + 数据库三件套。
-
-## 如果只是修个小问题怎么办
-
-AI-OS 并不是所有事情都要走完整流程。
-
-下面这类任务通常适合 `/quick`：
-
-- 1 到 3 个文件的小改动
-- 小 bug 修复
-- 配置修改
-- 文案调整
-- 纯视觉微调和低风险静态样式调整
-
-但如果出现下面这些情况，就不该继续走 `/quick`：
-
-- 改动开始扩散
-- 牵涉表结构、接口契约、权限、金额或删除类操作
-- 需要跨模块联动
-- 已经开始涉及交互逻辑、状态管理、真实数据接入或路由改造
-
-这时应该升级到正式模块流程。
-
-## 安装后会生成什么
-
-### 框架文件
-
-这部分由 AI-OS 维护：
+## 安装后你会看到什么
 
 - `AGENTS.md`
-- `.agents/skills/`
-- `.agents/workflows/`
-- `.ai-os/framework.toml`
-
-### 项目文件
-
-这部分记录项目事实：
-
-- `.ai-os/project-charter.md`
-- `.ai-os/risk-register.md`
+- `.agents/skills/`（lite 模式只含 acceptance-gate 和 memory-manager）
+- `.agents/workflows/`（lite 模式只含 align/design/build/verify/debug）
+- `.ai-os/MISSION.md`
+- `.ai-os/DESIGN.md`
 - `.ai-os/tasks.yaml`
 - `.ai-os/acceptance.yaml`
-- `.ai-os/release-plan.md`
-- `.ai-os/memory.md`
 - `.ai-os/STATE.md`
-- `.ai-os/verification-matrix.yaml`
+- `.ai-os/memory.md`
 - `.ai-os/specs/`
-- `.ai-os/evals/`
 
 只有使用 `project` profile（或兼容别名 `--with-project-files`）时，这些 starter 文件才会在初始化阶段直接创建。`core` profile 只会先写入框架和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`。
 
-其中有 3 个点值得特别留意：
+## 什么时候用专项入口
 
-- `project-charter.md` 现在除了项目目标，也会记录模块类型和默认交付等级
-- `specs/*.spec.md` 会明确当前模块是页面类、API 类、数据处理类还是工具类
-- `specs/*.context.md` 不是每次都生成，只有需求还模糊时才用来记录澄清结果
+- 需求补充、范围变化、验收改变：`/change-request`
+- 单一 bug、样式微调、文案修正、配置修复：`/debug`
+- 需要正式审查当前方案或实现：`/review`
+- 项目 / 里程碑结束后做复盘：`/postmortem`
 
-另外，`.agents/templates/project/` 也会一起出现在项目里。它们是 workflow 和 skill 的参考模板，不是你日常应该直接维护的项目工件。
+## 什么时候继续往下做
 
-## 固定版本初始化
+- Mission 说不清：不要离开 `/align`
+- 老项目新增需求时，不要把整个存量项目重写成 Mission；先锁本轮交付基准
+- Design 没锁：不要进入完整 `/build`
+- Spec / tasks / acceptance 不完整：先 `/plan`
+- 命中资产、权限、不可逆状态流转、跨用户数据或并发敏感更新：直接升到 `high-risk`
+- 想判断"是不是真的做对了"：用 `/verify`
 
-如果你希望新项目以后可以稳定复现，不要总是追主分支，可以固定 tag 或 commit：
+## 检查你的项目
 
 ```bash
-npm exec --yes --package=github:royeedai/ai-os#<tag-or-commit> -- create-ai-os my-project --profile project
+npx --yes github:royeedai/ai-os doctor .        # 框架和工件健康检查
+npx --yes github:royeedai/ai-os validate .       # 交付工件完整性校验
+npx --yes github:royeedai/ai-os token-budget .   # 查看框架 token 占用
 ```
-
-例如：
-
-```bash
-npm exec --yes --package=github:royeedai/ai-os#<release-tag> -- create-ai-os my-project --profile project
-```
-
-前提是对应 tag 或 commit 已经存在于远端仓库。
-
-## 第一次接入后，建议你先确认这几件事
-
-- `AGENTS.md`、`.agents/`、`.ai-os/` 是否已写入仓库
-- 团队实际使用的 AI 工具是否能读取 `AGENTS.md`
-- `STATE.md` 是否被当成恢复上下文的第一入口
-- 小改动和正式模块开发是否明确区分
-- 需求变化时，是否会同步更新 `spec`、`tasks`、`acceptance`
-
-## 下一步看什么
-
-- 想知道不同 workflow 怎么选：看 [workflows.md](workflows.md)
-- 想知道各个项目文件有什么用：看 [artifacts.md](artifacts.md)
-- 想看 CLI 命令：看 [cli.md](cli.md)

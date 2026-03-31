@@ -1,15 +1,21 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const { fail, getProjectFilePath, getProjectRelativePath, formatProjectPath } = require("./shared");
+const {
+  getProjectFilePath,
+  getProjectRelativePath,
+  formatProjectPath,
+  parseCliArgs,
+  resolveTargetDir,
+  fail,
+} = require("./shared");
 const {
   parseTasksFile,
   readStateFile,
   getReadyTasks,
 } = require("./project-state");
 
-function printHelp() {
+const parsed = parseCliArgs(process.argv);
+if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-next [target-dir]
 
@@ -18,30 +24,10 @@ Show the next ready AI-OS tasks based on tasks.yaml and STATE.md.
 Options:
   -h, --help  Show this help message
 `);
+  process.exit(0);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
-
-const targetDir = path.resolve(targetArg || ".");
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
+const targetDir = resolveTargetDir(parsed.positional);
 
 const state = readStateFile(targetDir);
 const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
@@ -74,7 +60,8 @@ if (readyTasks.length === 0) {
 for (const task of readyTasks.slice(0, 5)) {
   const riskLabel = task.risk ? ` [risk=${task.risk}]` : "";
   const waveLabel = task.wave !== null ? ` [wave=${task.wave}]` : "";
-  process.stdout.write(`- ${task.id}: ${task.title || "未命名任务"}${riskLabel}${waveLabel}\n`);
+  const roleLabel = task.execution_role ? ` [role=${task.execution_role}]` : "";
+  process.stdout.write(`- ${task.id}: ${task.title || "未命名任务"}${riskLabel}${waveLabel}${roleLabel}\n`);
   if ((task.context_files || []).length > 0) {
     process.stdout.write(`  Context: ${task.context_files.map((relPath) => formatProjectPath(relPath)).join(" / ")}\n`);
   }

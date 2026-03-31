@@ -8,6 +8,7 @@ const SUBCOMMANDS = {
   plan:            "./ai-os-plan",
   doctor:          "./ai-os-doctor",
   diff:            "./ai-os-diff",
+  lab:             "./ai-os-lab",
   upgrade:         "./ai-os-upgrade",
   validate:        "./ai-os-validate",
   "skill-check":   "./ai-os-skill-check",
@@ -15,7 +16,8 @@ const SUBCOMMANDS = {
   next:            "./ai-os-next",
   resume:          "./ai-os-resume",
   "release-check": "./ai-os-release-check",
-  affected:        "./ai-os-affected",
+  "token-budget":  "./ai-os-token-budget",
+  "cursor-rules":  "./ai-os-cursor-rules",
 };
 
 const _sub = process.argv[2];
@@ -30,7 +32,9 @@ if (SUBCOMMANDS[_sub]) {
 const fs = require("fs");
 const path = require("path");
 const {
+  MANAGED_ROOTS,
   PROJECT_STATE_ROOT,
+  detectInstallProfileName,
   getDefaultInstallProfileName,
   getInstallProfile,
   readInstalledMeta,
@@ -44,6 +48,8 @@ const {
   writeMetadata,
   writeManagedFilesManifest,
   removeManagedPaths,
+  appendGitignoreEntries,
+  appendGitattributesEntries,
 } = require("./shared");
 
 const FRAMEWORK_VERSION = readFrameworkVersion();
@@ -52,29 +58,28 @@ const PACKAGE_JSON = readPackageJson();
 function printHelp() {
   process.stdout.write(`Usage:
   create-ai-os [target-dir] [--target <dir>] [--profile <name>] [--with-project-files] [--force-framework]
+  create-ai-os [target-dir] [--target <dir>] [--profile <name>] [--with-project-files] [--force-framework] [--lite]
   create-ai-os <command> [target-dir]
 
-First workflow to use:
-  /init                     Initialize project base files for an existing codebase
-  /new-project              Start a new project from scratch
-  /map-codebase -> /new-module
-                            Add a feature in an existing repository
-  /quick                    Handle a small 1-3 file change
-  /clone-project            Rebuild an existing product from references
+Primary workflow phases:
+  /align                    Clarify the current delivery mission, users, quality bar, and project mode
+  /design                   Lock key pages, IA, flows, and visual direction
+  /plan                     Generate specs, tasks, acceptance, and evidence plan
+  /build                    Implement wave-by-wave after design/logic are locked
+  /verify                   Validate design quality, logic correctness, and runtime readiness
+  /ship                     Prepare handoff, release, rollback, and delivery notes
 
 Check your setup:
   create-ai-os plan [target-dir]           Preview managed install scope
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
   create-ai-os skill-check [skill-dir]     Validate a custom Skill
+  create-ai-os lab [target-dir]            Bootstrap multi-scenario lab sandboxes
 
 Recover and continue:
   create-ai-os status [target-dir]         Show current delivery status
   create-ai-os next [target-dir]           Show next ready tasks
   create-ai-os resume [target-dir]         Print resume context pack
-
-Change-aware verification:
-  create-ai-os affected [target-dir]       Plan or execute verification actions from code changes
 
 Maintain framework:
   create-ai-os diff [target-dir]           Compare framework files against source
@@ -83,17 +88,19 @@ Maintain framework:
 Prepare delivery:
   create-ai-os release-check [target-dir]  Check release readiness
 
+Cross-tool adapters:
+  create-ai-os cursor-rules [target-dir]   Generate .cursor/rules/*.mdc from framework
+
   Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
   are open standards supported by Antigravity, Cursor, and Codex.
 
-  Compatibility aliases such as ai-os-validate and ai-os-status are still shipped,
-  but create-ai-os <command> is the primary documented entrypoint.
-
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
-  --profile <name>      Install profile. Defaults to ${getDefaultInstallProfileName()}.
+  --profile <name>      Install profile. Defaults to the detected install profile or ${getDefaultInstallProfileName()}.
   --with-project-files  Compatibility alias for --profile project.
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
+  --lite                Install minimal framework: AGENTS.md + core workflows (align/design/build/verify/debug) + essential skills; ~60% fewer files, ideal for small projects or first-time users
+  --no-team-config      Skip automatic .gitignore/.gitattributes setup for team collaboration
   -h, --help            Show this help message
 `);
 }
@@ -103,6 +110,8 @@ let targetArg = "";
 let withProjectFiles = false;
 let forceFramework = false;
 let profileArg = "";
+let liteMode = false;
+let noTeamConfig = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -124,6 +133,14 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--force-framework") {
     forceFramework = true;
+    continue;
+  }
+  if (arg === "--lite") {
+    liteMode = true;
+    continue;
+  }
+  if (arg === "--no-team-config") {
+    noTeamConfig = true;
     continue;
   }
   if (arg === "--target") {
@@ -156,13 +173,13 @@ try {
   installProfile = getInstallProfile(
     withProjectFiles
       ? "project"
-      : (profileArg || installedMeta.installProfile || getDefaultInstallProfileName())
+      : (profileArg || detectInstallProfileName(targetDir, { meta: installedMeta }))
   );
 } catch (error) {
   fail(error.message);
 }
 
-const existingFrameworkPaths = ["AGENTS.md", ".agents"]
+const existingFrameworkPaths = MANAGED_ROOTS
   .map((relPath) => path.join(targetDir, relPath))
   .filter((absolutePath) => fs.existsSync(absolutePath));
 const isExistingProject = existingFrameworkPaths.length > 0;
@@ -171,10 +188,11 @@ if (forceFramework) {
   removeManagedPaths(targetDir);
 }
 
-process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION} into ${targetDir} (profile: ${installProfile.name})\n`);
+const modeLabel = liteMode ? " (lite)" : "";
+process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION}${modeLabel} into ${targetDir} (profile: ${installProfile.name})\n`);
 
 const overwrite = forceFramework || !isExistingProject;
-copyFramework(targetDir, { overwrite });
+copyFramework(targetDir, { overwrite, lite: liteMode });
 
 if (installProfile.includeProjectFiles) {
   createProjectFiles(targetDir);
@@ -182,6 +200,11 @@ if (installProfile.includeProjectFiles) {
 
 writeMetadata(targetDir, { installProfile: installProfile.name });
 writeManagedFilesManifest(targetDir);
+
+if (!noTeamConfig) {
+  appendGitignoreEntries(targetDir);
+  appendGitattributesEntries(targetDir);
+}
 
 if (isExistingProject && !forceFramework) {
   process.stdout.write(`
@@ -192,14 +215,15 @@ Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
 Target project: ${targetDir}
 Install profile: ${installProfile.name}
 
-AI-OS framework installed. Use /init in your AI tool to initialize project files
-(project-charter, tasks, STATE, etc.) with real content from your codebase.
+AI-OS framework installed. Use /align in your AI tool to initialize project files
+(MISSION, DESIGN, tasks, acceptance, STATE, etc.) with real content from your codebase.
 
 Pick a workflow to start:
-  /init              Initialize project base files for an existing codebase
-  /map-codebase      Analyze existing codebase first
-  /new-module        Add a feature or module
-  /quick             Small fix (1-3 files)
+  /align             Clarify goal, users, mode, and quality bar
+  /design            Lock key pages, IA, and core flows
+  /plan              Generate specs, tasks, and acceptance gates
+  /build             Execute approved work waves
+  /verify            Review quality and runtime evidence
 
 Commit the framework files (AGENTS.md, .agents/, .ai-os/) into your repository.
 `);
@@ -214,10 +238,11 @@ Install profile: ${installProfile.name}
 
 Next steps:
 1. Pick the right start workflow:
-   - brand-new project: /new-project
-   - existing codebase: /init or /map-codebase -> /new-module
-   - small change: /quick
-   - product rebuild: /clone-project
+   - clarify the mission first: /align
+   - lock design and flows: /design
+   - generate delivery artifacts: /plan
+   - execute implementation waves: /build
+   - verify quality before ship: /verify
 2. When you come back later, use create-ai-os status/resume to recover context.
 3. Commit the generated framework and project state files into the target repository.
 

@@ -1,52 +1,38 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
 const {
   fail,
+  HIGH_RISK_SPECIAL_REVIEWS,
   getProjectFilePath,
   getProjectRelativePath,
-  SYM_OK,
-  SYM_FAIL,
-  SYM_WARN,
+  readInstalledMeta,
+  parseCliArgs,
+  resolveTargetDir,
+  createReporter,
   VALIDATION_SCHEMAS,
 } = require("./shared");
-const { readUtf8IfExists, splitMarkdownSections, parseTasksFile } = require("./project-state");
+const {
+  readUtf8IfExists,
+  splitMarkdownSections,
+  parseAcceptanceFile,
+  parseTasksFile,
+  isDeclaredHighRisk,
+} = require("./project-state");
 
-function printHelp() {
+const parsed = parseCliArgs(process.argv);
+if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-release-check [target-dir]
 
-Run release readiness checks against release-plan.md and related artifacts.
+Run delivery readiness checks against release-plan.md and related artifacts.
 
 Options:
   -h, --help  Show this help message
 `);
+  process.exit(0);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
-
-const targetDir = path.resolve(targetArg || ".");
-
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
+const targetDir = resolveTargetDir(parsed.positional);
 
 const releasePlanPath = getProjectFilePath(targetDir, "release-plan.md");
 const releasePlan = readUtf8IfExists(releasePlanPath);
@@ -58,20 +44,8 @@ if (releasePlan === null) {
 const sections = splitMarkdownSections(releasePlan);
 const requiredSections = VALIDATION_SCHEMAS.releasePlan;
 
-let hasFailure = false;
-
-function report(ok, label, details = []) {
-  if (ok) {
-    process.stdout.write(`  ${SYM_OK}  ${label}\n`);
-  } else {
-    hasFailure = true;
-    process.stdout.write(`  ${SYM_FAIL}  ${label}\n`);
-  }
-
-  for (const detail of details) {
-    process.stdout.write(`       - ${detail}\n`);
-  }
-}
+const reporter = createReporter();
+const { report } = reporter;
 
 function hasConcreteChecklistItems(sectionContent) {
   return sectionContent
@@ -92,59 +66,115 @@ function hasConcreteNumberedSteps(sectionContent) {
     .some((line) => /^\d+\.\s+/.test(line) && !/\[步骤\]/.test(line));
 }
 
+function sectionIncludesAll(sectionContent, markers) {
+  return markers.every((marker) => sectionContent.includes(marker));
+}
+
+function versionAtLeast(currentVersion, minimumVersion) {
+  const current = String(currentVersion || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const minimum = String(minimumVersion || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const length = Math.max(current.length, minimum.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const left = current[index] || 0;
+    const right = minimum[index] || 0;
+    if (left > right) return true;
+    if (left < right) return false;
+  }
+
+  return true;
+}
+
 process.stdout.write(`\nAI-OS Release Check — ${targetDir}\n\n`);
+
+const installedMeta = readInstalledMeta(targetDir);
+const enforceEnhancedDeliveryMarkers =
+  !installedMeta.exists || versionAtLeast(installedMeta.version, "5.1.1");
 
 const missingSections = requiredSections.filter((section) => !sections.has(section));
 report(
   missingSections.length === 0,
   `${getProjectRelativePath("release-plan.md")} sections complete`,
-  missingSections.map((section) => `missing section: ${section}`)
+  { details: missingSections.map((section) => `missing section: ${section}`) }
 );
 
-const preflightSection = sections.get("1. 发布前检查") || "";
+const preflightSection = sections.get("1. 交付前检查") || "";
 report(
   hasConcreteChecklistItems(preflightSection),
-  "Release preflight checklist is specific"
+  "Delivery preflight checklist is specific"
 );
 
-const restartSection = sections.get("3. 受影响服务与重启顺序") || "";
+const dependencySection = sections.get("2. 变更范围与依赖") || "";
 report(
-  hasConcreteChecklistItems(restartSection),
-  "Affected services and restart order are specific"
+  hasConcreteChecklistItems(dependencySection),
+  "Change scope and dependency notes are specific"
 );
 
-const releaseStepsSection = sections.get("4. 发布步骤") || "";
+const releaseStepsSection = sections.get("3. 发布步骤") || "";
 report(
   hasConcreteNumberedSteps(releaseStepsSection),
-  "Release steps are specific"
+  "Delivery steps are specific"
 );
 
-const smokeCheckSection = sections.get("5. Smoke Check") || "";
+const smokeCheckSection = sections.get("4. 运行态验证") || "";
 report(
   hasConcreteChecklistItems(smokeCheckSection),
-  "Smoke Check list is specific"
+  "Runtime verification list is specific"
 );
 
-const rollbackSection = sections.get("6. 回滚触发条件") || "";
+const rollbackSection = sections.get("5. 回滚触发条件") || "";
 report(
   hasConcreteChecklistItems(rollbackSection),
   "Rollback triggers are specific"
 );
 
+const handoffSection = sections.get("6. 交付说明与移交") || "";
+report(
+  hasConcreteChecklistItems(handoffSection),
+  "Delivery handoff notes are specific"
+);
+
+if (enforceEnhancedDeliveryMarkers) {
+  report(
+    sectionIncludesAll(`${releaseStepsSection}\n${handoffSection}`, ["AI 已完成", "需人工执行"]),
+    "Release plan explicitly separates AI-completed and manual actions"
+  );
+  report(
+    sectionIncludesAll(`${preflightSection}\n${smokeCheckSection}`, ["静态校验"]),
+    "Release plan records static validation evidence"
+  );
+}
+
 const acceptancePath = getProjectFilePath(targetDir, "acceptance.yaml");
-const acceptanceContent = readUtf8IfExists(acceptancePath);
+const acceptance = parseAcceptanceFile(acceptancePath);
+const acceptanceContent = acceptance.exists ? acceptance.content : null;
 report(
   acceptanceContent !== null,
   `${getProjectRelativePath("acceptance.yaml")} exists`
 );
 if (acceptanceContent !== null) {
-  const decisionMatch = acceptanceContent.match(/decision:\s*(.+)\s*$/m);
-  const decision = decisionMatch ? decisionMatch[1].trim() : "";
+  const decision = acceptance.gateStatuses["delivery-readiness"] || "";
   report(
-    decision === "passed",
-    "Acceptance decision is passed",
-    decision ? [`current decision: ${decision}`] : ["missing result.decision"]
+    decision === "passed" || decision === "approved",
+    "Delivery readiness gate is passed",
+    { details: decision
+      ? [`current delivery-readiness status: ${decision}`]
+      : ["missing delivery-readiness gate status"] }
   );
+  if (enforceEnhancedDeliveryMarkers) {
+    report(
+      (acceptance.gateEvidence["implementation-quality"] || []).includes("static-validation-check"),
+      "Acceptance tracks static-validation-check evidence"
+    );
+    report(
+      (acceptance.gateEvidence["delivery-readiness"] || []).includes("manual-action-note"),
+      "Acceptance tracks manual-action-note evidence"
+    );
+  }
 }
 
 const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
@@ -158,14 +188,72 @@ if (parsedTasks.exists) {
   report(
     unfinishedTasks.length === 0,
     "All tracked tasks are done",
-    unfinishedTasks.map((task) => `${task.id}: ${task.status || "unknown"}`)
+    { details: unfinishedTasks.map((task) => `${task.id}: ${task.status || "unknown"}`) }
   );
+  const declaredHighRisk = isDeclaredHighRisk(acceptance, parsedTasks);
+  const highRiskCandidateTasks = parsedTasks.tasks.filter(
+    (task) => task.risk === "high" || (task.risk_triggers || []).length > 0
+  );
+  const highRiskWithoutApproval = highRiskCandidateTasks.filter((task) => !task.approval_required);
+  report(
+    highRiskWithoutApproval.length === 0,
+    "High-risk tasks declare approval requirements",
+    { details: highRiskWithoutApproval.map((task) => `${task.id}: missing approval_required`) }
+  );
+
+  if (declaredHighRisk) {
+    const riskRegister = readUtf8IfExists(getProjectFilePath(targetDir, "risk-register.md"));
+    const verificationMatrix = readUtf8IfExists(getProjectFilePath(targetDir, "verification-matrix.yaml"));
+
+    report(
+      riskRegister !== null,
+      `${getProjectRelativePath("risk-register.md")} exists for high-risk delivery`
+    );
+    report(
+      verificationMatrix !== null,
+      `${getProjectRelativePath("verification-matrix.yaml")} exists for high-risk delivery`
+    );
+    if (acceptance.exists) {
+      report(
+        acceptance.requiredSpecialReviews.length > 0,
+        "High-risk acceptance declares required_special_reviews",
+        { details: ["expected security-guard, authorization-boundary-check, concurrency-safety-check"] }
+      );
+      for (const reviewName of HIGH_RISK_SPECIAL_REVIEWS) {
+        report(
+          acceptance.requiredSpecialReviews.includes(reviewName),
+          `High-risk acceptance includes ${reviewName}`
+        );
+      }
+      report(
+        (acceptance.gateEvidence["implementation-quality"] || []).includes("contract-baseline-check"),
+        "High-risk acceptance tracks contract-baseline-check evidence"
+      );
+      report(
+        (acceptance.gateEvidence["delivery-readiness"] || []).includes("degraded-path-check"),
+        "High-risk acceptance tracks degraded-path-check evidence"
+      );
+    }
+    report(
+      sectionIncludesAll(smokeCheckSection, [
+        "authorization-boundary-check",
+        "concurrency-safety-check",
+        "degraded-path-check",
+      ]),
+      "High-risk runtime verification includes authorization, concurrency, and degraded-path checks"
+    );
+    report(
+      highRiskCandidateTasks.length > 0,
+      "High-risk delivery has task-level risk triggers",
+      { details: ["add risk_triggers to affected tasks so approval can be scoped correctly"] }
+    );
+  }
 }
 
 process.stdout.write("\n");
-if (hasFailure) {
+if (reporter.hasFailure) {
   process.stdout.write("Result: NOT_READY\n\n");
   process.exit(1);
 }
 
-process.stdout.write("Result: READY_FOR_MANUAL_RELEASE_REVIEW\n\n");
+process.stdout.write("Result: READY_FOR_MANUAL_DELIVERY_REVIEW\n\n");

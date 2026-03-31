@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const { fail, getProjectFilePath, getProjectRelativePath } = require("./shared");
+const {
+  getProjectFilePath,
+  getProjectRelativePath,
+  parseCliArgs,
+  resolveTargetDir,
+  fail,
+} = require("./shared");
 const {
   parseTasksFile,
   summarizeTasks,
@@ -10,7 +14,8 @@ const {
   getCurrentTask,
 } = require("./project-state");
 
-function printHelp() {
+const parsed = parseCliArgs(process.argv);
+if (parsed.flags.help) {
   process.stdout.write(`Usage:
   ai-os-status [target-dir]
 
@@ -19,30 +24,10 @@ Show the current AI-OS delivery position for a project.
 Options:
   -h, --help  Show this help message
 `);
+  process.exit(0);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
-
-const targetDir = path.resolve(targetArg || ".");
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
-}
+const targetDir = resolveTargetDir(parsed.positional);
 
 const state = readStateFile(targetDir);
 const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
@@ -52,8 +37,8 @@ if (!state.exists) {
 }
 
 process.stdout.write(`\nAI-OS Status — ${targetDir}\n\n`);
-process.stdout.write(`当前位置:\n`);
-for (const label of ["里程碑", "当前模块", "当前阶段", "当前任务", "交付等级"]) {
+process.stdout.write(`当前方位:\n`);
+for (const label of ["项目模式", "当前阶段", "当前目标", "当前任务", "当前交付档位", "当前质量焦点"]) {
   process.stdout.write(`- ${label}: ${state.position[label] || "未记录"}\n`);
 }
 
@@ -72,6 +57,35 @@ if (tasks.exists) {
     process.stdout.write(`- risk: ${currentTask.risk || "unknown"}\n`);
     process.stdout.write(`- milestone: ${currentTask.milestone || "未记录"}\n`);
     process.stdout.write(`- wave: ${currentTask.wave ?? "未记录"}\n`);
+    process.stdout.write(`- role: ${currentTask.execution_role || "未记录"}\n`);
+    process.stdout.write(`- approval: ${currentTask.approval_required || "未记录"}\n`);
+  }
+}
+
+process.stdout.write(`\n已锁定内容:\n`);
+if (state.lockedItems.length === 0) {
+  process.stdout.write(`- 未记录\n`);
+} else {
+  for (const item of state.lockedItems) {
+    process.stdout.write(`- ${item}\n`);
+  }
+}
+
+process.stdout.write(`\n待确认项:\n`);
+if (state.pendingQuestions.length === 0) {
+  process.stdout.write(`- 无\n`);
+} else {
+  for (const item of state.pendingQuestions) {
+    process.stdout.write(`- ${item}\n`);
+  }
+}
+
+process.stdout.write(`\n最近偏差 / 回退:\n`);
+if (state.deviations.length === 0) {
+  process.stdout.write(`- 无\n`);
+} else {
+  for (const item of state.deviations) {
+    process.stdout.write(`- ${item}\n`);
   }
 }
 

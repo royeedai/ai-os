@@ -1,0 +1,90 @@
+version: 3
+mission: "todo-cli: 本地文件存储的命令行 Todo 管理工具"
+quality_tier: "standard"
+
+milestones:
+  - id: m1
+    title: "核心 CRUD"
+    target: "4 个命令可用"
+
+tasks:
+  - id: t1
+    title: "实现 JSON 文件读写层"
+    wave: 1
+    status: done
+    execution_role: "implementer"
+    approval_required: "none"
+    context_files:
+      - "specs/todo-cli.spec.md"
+    inputs:
+      - "specs/todo-cli.spec.md"
+    outputs:
+      - "src/store.js"
+    definition_of_ready:
+      - "DESIGN.md 已锁定数据格式"
+    definition_of_done:
+      - "读写正常、空文件自动初始化"
+    evidence_required:
+      - "单元测试通过"
+    parity_evidence_required: []
+    measurable_outcome:
+      - "读写 JSON 不丢数据"
+      - "文件不存在时自动创建"
+    edge_cases:
+      - "文件损坏时的错误提示"
+      - "权限不足时的错误提示"
+    impact_tags:
+      - "storage"
+    derived_checks:
+      - "文件读写回归"
+    risk_triggers: []
+    risk: low
+    priority: high
+    requirement_refs:
+      - "MISSION §4 范围内: JSON 文件持久化"
+    acceptance_criteria:
+      - "JSON 读写无数据丢失"
+
+  - id: t2
+    title: "实现 add/list/done/delete 命令"
+    wave: 2
+    status: done
+    execution_role: "implementer"
+    approval_required: "none"
+    depends_on:
+      - "t1"
+    context_files:
+      - "specs/todo-cli.spec.md"
+    inputs:
+      - "specs/todo-cli.spec.md"
+    outputs:
+      - "src/commands.js"
+      - "bin/todo.js"
+    definition_of_ready:
+      - "store.js 已完成"
+    definition_of_done:
+      - "4 个命令均可执行且输出正确"
+    evidence_required:
+      - "手动测试截图或命令输出"
+    parity_evidence_required: []
+    measurable_outcome:
+      - "add 返回新 ID"
+      - "list 输出格式与 DESIGN 一致"
+      - "done 切换状态"
+      - "delete 移除条目"
+    edge_cases:
+      - "delete 不存在的 ID"
+      - "done 已完成的任务"
+      - "add 空文本"
+    impact_tags:
+      - "entrypoint"
+    derived_checks:
+      - "命令输出格式回归"
+    risk_triggers: []
+    risk: low
+    priority: high
+    requirement_refs:
+      - "MISSION §4 范围内: add/list/done/delete 命令"
+    acceptance_criteria:
+      - "4 个命令执行正确"
+      - "异常输入有提示"
