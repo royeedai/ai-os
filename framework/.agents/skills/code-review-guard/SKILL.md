@@ -44,6 +44,7 @@ description: >
 
 #### A. 编译与入口
 - [ ] 执行过项目级编译/构建命令且无错误？
+- [ ] 上述编译/构建命令的证据是否来自项目构建工具链（而非仅来自 IDE 内置诊断如 ReadLints）？
 - [ ] 若仓库存在 compile / type-check / build 入口，是否至少执行并记录了一项项目原生静态校验？
 - [ ] 是否根据 `.ai-os/verification-matrix.yaml` 或 `verification_required` 明确了本次改动必须执行的动作？
 - [ ] 若命中了 `restart_required`，受影响服务是否真的完成了重启？

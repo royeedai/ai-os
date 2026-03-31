@@ -169,6 +169,14 @@
 - **当前覆盖锚点**：`.ai-os/CONVENTIONS.md` 模板、`/build` CONVENTIONS 对照步骤、`/verify` 模式一致性检查、`/postmortem` CONVENTIONS 审查、`/design` 阶段初始化 CONVENTIONS
 - **每次迭代核对**：不能把 CONVENTIONS.md 的对照检查从 build 和 verify 中去掉；不能让代码约定退化成只在 design 阶段写一次就再不看的文档。
 
+### PL-019 外部编排（IDE Plan 模式）场景下验证闭环被系统性跳过
+
+- **来源**：2026-03 用户复盘；Cursor Plan 模式下跨前后端多文件改动完成后 `/verify` 和 `/ship` 被完全跳过
+- **真实问题**：当任务由 IDE 计划模式或 todo 列表驱动时，AI 把"todo 清零"等同于"交付完成"，跳过项目原生编译/类型检查和交付收口；同时 IDE 内置诊断（ReadLints）被错误等同于项目原生静态校验。
+- **AI-OS 必须保证**：不论执行编排方式如何（命令式、plan 模式、todo 列表），build 完成后必须进入 `/verify` 执行项目原生校验，再进入 `/ship` 完成交付；IDE 诊断不可替代项目构建工具链的校验证据。
+- **当前覆盖锚点**：`framework/AGENTS.md` Section 6 / Section 8、`/verify` workflow 触发条件、`/build` workflow 出口规则、`acceptance-gate` 证据要求表和自我合理化防御表、`code-review-guard` Step 0
+- **每次迭代核对**：不能把"编排完成 = 交付完成"重新引入任何 workflow；不能让 IDE 诊断重新成为唯一校验证据。
+
 ### PG-001 新问题没有单独记录，重构时容易把覆盖做丢
 
 - **来源**：2026-03-18 用户反馈
