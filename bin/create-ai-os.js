@@ -56,7 +56,7 @@ function printHelp() {
   create-ai-os <command> [target-dir]
 
 Primary workflow phases:
-  /align                    Clarify mission, users, quality bar, and project mode
+  /align                    Clarify the current delivery mission, users, quality bar, and project mode
   /design                   Lock key pages, IA, flows, and visual direction
   /plan                     Generate specs, tasks, acceptance, and evidence plan
   /build                    Implement wave-by-wave after design/logic are locked

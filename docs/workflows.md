@@ -34,6 +34,7 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 ## 使用原则
 
 - 新项目、新模块、模糊需求先走 `/align`
+- brownfield / change 下，先锁当前这轮交付基准，不要把整个存量项目重新当成 mission
 - 关键设计未锁时停在 `/design`
 - 需求变化先走 `/change-request`，禁止直接按聊天指令改代码
 - 单点修复先走 `/debug`，禁止越界顺手改

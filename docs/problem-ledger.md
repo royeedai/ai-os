@@ -177,6 +177,14 @@
 - **当前覆盖锚点**：`framework/AGENTS.md` Section 6 / Section 8、`/verify` workflow 触发条件、`/build` workflow 出口规则、`acceptance-gate` 证据要求表和自我合理化防御表、`code-review-guard` Step 0
 - **每次迭代核对**：不能把"编排完成 = 交付完成"重新引入任何 workflow；不能让 IDE 诊断重新成为唯一校验证据。
 
+### PL-020 brownfield / change 场景把整个存量项目误当成当前 mission
+
+- **来源**：2026-03-31 用户反馈；老项目接入 AI-OS 后新增需求时，AI 容易把整个存量项目重新当成当前 mission
+- **真实问题**：在已有项目里做一个新需求、变更或局部重构时，AI 不是围绕“本轮要交付什么”建立基准，而是把整个历史项目重新当成 mission 去对齐，导致范围被放大、问题提问过重、需求基准和宿主项目上下文混在一起，后续 tasks / spec / verify 也容易失焦。
+- **AI-OS 必须保证**：在 `brownfield` / `change` 场景下，`MISSION.md` 记录的是“当前这轮交付基准”，不是整个存量项目本身；只保留理解本轮变更所必需的宿主项目上下文，并把范围内 / 范围外严格限定到本轮交付。
+- **当前覆盖锚点**：`framework/AGENTS.md`、`/align`、`/change-request`、`framework/.agents/templates/project/MISSION.md`、`README.md`、`docs/artifacts.md`、`docs/getting-started.md`、`examples/change-request-baseline-sync/.ai-os/MISSION.md`、`examples/brownfield-change-journey/.ai-os/MISSION.md`
+- **每次迭代核对**：不能让 brownfield / change 任务重新退化成“先重新定义整个项目”；也不能只写当前需求而丢失理解本轮交付所需的宿主项目上下文。
+
 ### PG-001 新问题没有单独记录，重构时容易把覆盖做丢
 
 - **来源**：2026-03-18 用户反馈

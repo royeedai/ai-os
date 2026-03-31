@@ -31,7 +31,8 @@ npx --yes github:royeedai/ai-os cursor-rules my-project
 
 ## 第一次使用先记住 4 件事
 
-- `MISSION.md` + `specs/` 是唯一需求真理源
+- `MISSION.md` + `specs/` 是当前交付的唯一需求真理源
+- `brownfield` / `change` 下，`MISSION.md` 记录的是本轮要交付什么，不是把整个老项目重新定义一遍
 - `DESIGN.md` 负责锁关键页面和关键流程
 - `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清
 - `STATE.md` 负责恢复上下文、确认停点和下一步
@@ -59,6 +60,7 @@ npx --yes github:royeedai/ai-os cursor-rules my-project
 ## 什么时候继续往下做
 
 - Mission 说不清：不要离开 `/align`
+- 老项目新增需求时，不要把整个存量项目重写成 Mission；先锁本轮交付基准
 - Design 没锁：不要进入完整 `/build`
 - Spec / tasks / acceptance 不完整：先 `/plan`
 - 命中资产、权限、不可逆状态流转、跨用户数据或并发敏感更新：直接升到 `high-risk`

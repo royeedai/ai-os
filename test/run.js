@@ -176,7 +176,10 @@ const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "accepta
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
 const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
 
-assert(missionTemplate.includes("## 1. 任务定义"), "MISSION template has mission definition section");
+assert(missionTemplate.includes("## 1. 宿主项目与当前交付定义"), "MISSION template has current delivery definition section");
+assert(missionTemplate.includes("宿主项目 / 系统"), "MISSION template includes host project field");
+assert(missionTemplate.includes("当前交付主题"), "MISSION template includes current delivery subject");
+assert(missionTemplate.includes("brownfield` / `change"), "MISSION template clarifies brownfield/change semantics");
 assert(missionTemplate.includes("关键选型"), "MISSION template includes key decisions");
 assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has phase plan");
 assert(missionTemplate.includes("高风险触发因素"), "MISSION template includes high-risk triggers");
@@ -956,6 +959,7 @@ const updatedLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledge
 assert(updatedLedger.includes("PG-002"), "problem ledger includes PG-002 token budget entry");
 assert(updatedLedger.includes("PG-003"), "problem ledger includes PG-003 advisory rules entry");
 assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE format entry");
+assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");
 
 // ---------------------------------------------------------------------------
 // README new section
@@ -967,6 +971,7 @@ const updatedReadme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
 assert(updatedReadme.includes("为什么需要 AI-OS"), "README includes why-AI-OS section");
 assert(updatedReadme.includes("1.7 倍"), "README cites AI bug rate data");
 assert(updatedReadme.includes("运行时护栏工具"), "README differentiates from runtime guardrail tools");
+assert(updatedReadme.includes("只定义本轮交付基准"), "README clarifies brownfield mission scope");
 
 // ---------------------------------------------------------------------------
 // End-to-end delivery failure scenario tests

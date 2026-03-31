@@ -19,7 +19,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 
 | workflow | 用途 | 结果 |
 |------|------|------|
-| `/align` | 澄清目标、用户、模式、质量标准、输入素材和待确认项 | 产出或更新 `MISSION.md` 和 `STATE.md`，等待用户确认需求基准 |
+| `/align` | 澄清目标、用户、模式、质量标准、输入素材和待确认项 | 产出或更新 `MISSION.md` 和 `STATE.md`，等待用户确认需求基准；brownfield / change 先锁本轮交付，不重写整个存量项目 |
 | `/design` | 锁定信息架构、关键页面、关键交互、视觉方向、关键流程和对照差异 | 产出或更新 `DESIGN.md`，必要时补 `design-pack/parity-map.md`，等待用户确认设计方案 |
 | `/plan` | 生成 spec、任务波次、门禁和证据计划 | 产出或更新 `specs/`、`tasks.yaml`、`acceptance.yaml`，等待用户确认任务与验收 |
 | `/build` | 按 wave 实现，执行角色分工和审批停点 | 更新代码、任务、状态和实现证据 |

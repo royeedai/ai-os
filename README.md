@@ -19,7 +19,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 
 | 常见问题 | AI-OS 的做法 |
 |------|------|
-| 需求一模糊，AI 就直接开工 | 先走 `/align`，把 Mission 说清 |
+| 需求一模糊，AI 就直接开工 | 先走 `/align`，把当前交付 Mission 说清 |
 | 需求补充后，AI 直接改代码，文档和代码脱节 | 先走 `/change-request`，更新 `MISSION.md` / spec 再执行 |
 | 技术栈或关键方案没对齐，AI 就自己拍板 | 在 `/align` 和 `/design` 里把关键选型、确认状态和待确认项写清 |
 | 页面做出来了，但逻辑经常错 | 先锁 Design 和关键逻辑，再进入 build |
@@ -29,6 +29,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 天然流式 / 长耗时场景被错建成同步接口 | 在 `/plan` 先锁 `interaction_mode`，避免后置重构 |
 | 跨层字段或配置改动总是漏联动 | 用 `contract baseline`、`impact_tags`、`impact_rules` 补联动检查 |
 | brownfield 任务里藏着全局拆包 / DTO / 样式约定，AI 却只看局部文件就开改 | 在 `/design`、`/debug` 和 review 里先做共享基础设施审计，再锁局部契约 |
+| 老项目开始做新需求时，AI 把整个项目重新当成 mission | 在 brownfield / change 中，`MISSION.md` 只定义本轮交付基准，宿主项目只保留必要上下文 |
 | 用户说“系统可设置”，AI 却没确认到底谁来操作、在哪里操作 | 在 `/align` 和 `/change-request` 里轻量追问配置闭环，避免把“可设置”直接等价成某一种实现方式 |
 | 资产 / 权限 / 状态流转类需求没被自动升级 | 用硬触发高风险档和专项审查拦截 |
 | happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
@@ -91,7 +92,7 @@ AI-OS 默认围绕这套 `.ai-os/` 工件工作：
 
 | 文件 | 作用 |
 |------|------|
-| `.ai-os/MISSION.md` | 项目目标、用户、范围、模式、质量标准和最新需求基准 |
+| `.ai-os/MISSION.md` | 宿主项目必要上下文 + 当前交付目标、范围、模式、质量标准和最新需求基准 |
 | `.ai-os/DESIGN.md` | 信息架构、关键页面、关键交互、视觉方向、关键流程 |
 | `.ai-os/specs/` | 业务规则、交互模式、契约基准、状态流转、边界条件 |
 | `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求 |
@@ -127,7 +128,7 @@ npx --yes github:royeedai/ai-os .
 
 - 从想法开始做项目：`/align`
 - 有截图 / API / 参考源码：`/align`，模式设为 `reverse-spec`
-- 已有仓库上的需求变更：`/change-request`
+- 已有仓库上的需求变更：`/change-request`（`MISSION.md` 写本轮交付，不重写整个项目）
 - 修一个单点 bug 或做微调：`/debug`
 - 需要审查当前方案或实现：`/review`
 - 项目 / 里程碑结束复盘：`/postmortem`
