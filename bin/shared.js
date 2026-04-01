@@ -288,6 +288,37 @@ function listManagedFiles(baseDir) {
   return relativePaths.sort();
 }
 
+function normalizeFrameworkFootprint(value) {
+  return value === "lite" ? "lite" : "full";
+}
+
+function detectFrameworkFootprint(targetDir, options = {}) {
+  const meta = options.meta || readInstalledMeta(targetDir);
+  const managedFiles = options.managedFiles || listManagedFiles(targetDir);
+  const sourceManaged = new Set(listManagedFiles(FRAMEWORK_ROOT));
+  const installedSourceManaged = managedFiles.filter((relPath) => sourceManaged.has(relPath));
+
+  if (installedSourceManaged.some((relPath) => !isLiteIncluded(relPath))) {
+    return "full";
+  }
+
+  if (meta.frameworkFootprint) {
+    return normalizeFrameworkFootprint(meta.frameworkFootprint);
+  }
+
+  if (installedSourceManaged.length > 0) {
+    return "lite";
+  }
+
+  return "full";
+}
+
+function listSourceManagedFiles(options = {}) {
+  const frameworkFootprint = normalizeFrameworkFootprint(options.frameworkFootprint);
+  return listManagedFiles(FRAMEWORK_ROOT)
+    .filter((relPath) => frameworkFootprint !== "lite" || isLiteIncluded(relPath));
+}
+
 function getProjectRoot(targetDir) {
   return path.join(targetDir, PROJECT_STATE_ROOT);
 }
@@ -391,7 +422,8 @@ function serializeSimpleToml(values) {
 
 /**
  * Read the installed AI-OS metadata from a target project.
- * Returns { exists, version, mode, installProfile, frameworkTomlPath } or { exists: false }.
+ * Returns { exists, version, mode, installProfile, frameworkFootprint, frameworkTomlPath }
+ * or { exists: false }.
  */
 function readInstalledMeta(targetDir) {
   const tomlPath = getProjectMetadataPath(targetDir);
@@ -402,6 +434,7 @@ function readInstalledMeta(targetDir) {
       version: null,
       mode: null,
       installProfile: null,
+      frameworkFootprint: null,
       frameworkTomlPath: tomlPath,
     };
   }
@@ -414,6 +447,7 @@ function readInstalledMeta(targetDir) {
     version: values.framework_version || "unknown",
     mode: values.mode || "unknown",
     installProfile: values.install_profile || null,
+    frameworkFootprint: values.framework_footprint || null,
     frameworkTomlPath: tomlPath,
     values,
   };
@@ -536,11 +570,6 @@ function getProjectArtifactEntries(targetDir) {
       relPath: getProjectRelativePath(path.join("specs", "example.spec.md")),
       absolutePath: getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
     },
-    {
-      kind: "file",
-      relPath: getProjectRelativePath(path.join("evals", "eval-example.md")),
-      absolutePath: getProjectFilePath(targetDir, path.join("evals", "eval-example.md")),
-    },
   ];
 }
 
@@ -616,6 +645,9 @@ function writeMetadata(targetDir, options = {}) {
   const profileName = getInstallProfile(
     options.installProfile || detectInstallProfileName(targetDir)
   ).name;
+  const frameworkFootprint = normalizeFrameworkFootprint(
+    options.frameworkFootprint || detectFrameworkFootprint(targetDir)
+  );
 
   ensureDir(metadataDir);
   fs.writeFileSync(
@@ -626,15 +658,21 @@ function writeMetadata(targetDir, options = {}) {
       package_name: packageJson.name,
       package_version: packageJson.version,
       install_profile: profileName,
+      framework_footprint: frameworkFootprint,
       managed_files_manifest: getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
     }),
     "utf8"
   );
 }
 
-function writeManagedFilesManifest(targetDir) {
+function writeManagedFilesManifest(targetDir, options = {}) {
   const manifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
-  const lines = listManagedFiles(targetDir).map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
+  const frameworkFootprint = normalizeFrameworkFootprint(
+    options.frameworkFootprint || detectFrameworkFootprint(targetDir)
+  );
+  const lines = listSourceManagedFiles({ frameworkFootprint })
+    .filter((relPath) => fs.existsSync(path.join(targetDir, relPath)))
+    .map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
   ensureDir(path.dirname(manifestPath));
   fs.writeFileSync(manifestPath, [...lines, ""].join("\n"), "utf8");
 }
@@ -944,8 +982,10 @@ module.exports = {
   readPackageJson,
   readInstallProfiles,
   detectInstallProfileName,
+  detectFrameworkFootprint,
   getDefaultInstallProfileName,
   getInstallProfile,
+  listSourceManagedFiles,
   ensureDir,
   fail,
   sha256File,

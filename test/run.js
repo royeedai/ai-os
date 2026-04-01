@@ -176,6 +176,10 @@ assert(
   fs.readFileSync(path.join(initDir, ".ai-os", "framework.toml"), "utf8").includes('install_profile = "project"'),
   "framework metadata records project profile"
 );
+assert(
+  fs.readFileSync(path.join(initDir, ".ai-os", "framework.toml"), "utf8").includes('framework_footprint = "full"'),
+  "framework metadata records full footprint"
+);
 assert(fs.existsSync(path.join(initDir, ".ai-os", "acceptance.yaml")), "acceptance.yaml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md created");
 const memoryTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "memory.md"), "utf8");
@@ -292,6 +296,7 @@ assert(!fs.existsSync(path.join(coreDir, ".ai-os", "STATE.md")), "core profile d
 
 const coreMetadata = fs.readFileSync(path.join(coreDir, ".ai-os", "framework.toml"), "utf8");
 assert(coreMetadata.includes('install_profile = "core"'), "framework metadata records core profile");
+assert(coreMetadata.includes('framework_footprint = "full"'), "core metadata records full footprint");
 
 const planJsonResult = run("ai-os-plan.js", [coreDir, "--json"]);
 assert(planJsonResult.status === 0, "ai-os-plan --json exits with code 0");
@@ -310,6 +315,7 @@ assert(futurePlanResult.status === 0, "create-ai-os plan works on a new target p
 const futurePlanJson = JSON.parse(futurePlanResult.stdout);
 assert(futurePlanJson.profile.name === "project", "create-ai-os plan accepts project profile for a new target path");
 assert(futurePlanJson.summary.projectCreateCount > 0, "new-target plan reports starter project artifacts to create");
+assert(!futurePlanJson.project.create.includes(".ai-os/evals/eval-example.md"), "plan omits on-demand eval starter files");
 
 const litePlanResult = run("create-ai-os.js", ["plan", futureProjectDir, "--profile", "project", "--lite", "--json"]);
 assert(litePlanResult.status === 0, "create-ai-os plan --lite works on a new target path");
@@ -872,6 +878,26 @@ process.stdout.write("\n=== upgrade / diff error paths ===\n");
   cleanup(dir);
 }
 
+// Missing local metadata on an installed project → doctor warns, upgrade recreates metadata
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.unlinkSync(path.join(dir, ".ai-os", "framework.toml"));
+  fs.unlinkSync(path.join(dir, ".ai-os", "managed-files.tsv"));
+
+  const doctorResult = run("ai-os-doctor.js", [dir]);
+  assert(doctorResult.status === 0, "doctor tolerates missing local metadata on installed project");
+  assert(doctorResult.stdout.includes("metadata will be inferred"), "doctor explains metadata inference");
+  assert(doctorResult.stdout.includes("Install profile: project (inferred)"), "doctor infers install profile when metadata is missing");
+
+  const upgradeResult = run("ai-os-upgrade.js", [dir]);
+  assert(upgradeResult.status === 0, "upgrade recreates missing local metadata when framework is current");
+  assert(upgradeResult.stdout.includes("Refreshed local install metadata"), "upgrade reports metadata refresh");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "framework.toml")), "upgrade restores framework.toml");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "managed-files.tsv")), "upgrade restores managed-files.tsv");
+  cleanup(dir);
+}
+
 // Modified framework file → upgrade blocks without --force
 {
   const dir = tmpDir();
@@ -969,6 +995,22 @@ process.stdout.write("\n=== --lite install mode ===\n");
   assert(!fs.existsSync(path.join(dir, ".agents", "workflows", "ship.md")), "lite: non-core workflow excluded");
   assert(!fs.existsSync(path.join(dir, ".agents", "skills", "code-review-guard", "SKILL.md")), "lite: non-core skill excluded");
   assert(!fs.existsSync(path.join(dir, ".agents", "skills", "api-design", "SKILL.md")), "lite: api-design skill excluded");
+  assert(
+    fs.readFileSync(path.join(dir, ".ai-os", "framework.toml"), "utf8").includes('framework_footprint = "lite"'),
+    "lite metadata records lite footprint"
+  );
+
+  const liteDoctorResult = run("ai-os-doctor.js", [dir]);
+  assert(liteDoctorResult.status === 0, "doctor passes on lite install");
+  assert(liteDoctorResult.stdout.includes("Framework footprint: lite"), "doctor reports lite footprint");
+
+  const liteDiffResult = run("ai-os-diff.js", [dir, "--stat"]);
+  assert(liteDiffResult.status === 0, "diff --stat works on lite install");
+  assert(liteDiffResult.stdout.includes("0 missing"), "diff does not report missing full-framework files on lite install");
+
+  const liteUpgradePreflightResult = run("ai-os-upgrade.js", [dir, "--preflight"]);
+  assert(liteUpgradePreflightResult.status === 0, "upgrade --preflight passes on lite install");
+  assert(!liteUpgradePreflightResult.stdout.includes("Files to create"), "upgrade --preflight does not try to expand lite install to full");
 
   const liteTokenResult = run("ai-os-token-budget.js", [dir, "--lite"]);
   assert(liteTokenResult.status === 0, "token-budget --lite exits with code 0");

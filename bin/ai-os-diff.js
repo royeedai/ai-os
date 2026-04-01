@@ -15,6 +15,8 @@ const {
   PROJECT_MANAGED_FILES_MANIFEST,
   readFrameworkVersion,
   listManagedFiles,
+  listSourceManagedFiles,
+  detectFrameworkFootprint,
   readInstalledMeta,
   sha256File,
   fail,
@@ -59,11 +61,12 @@ function readManagedFilesManifest(targetDir, meta) {
 }
 
 function computeDiff(targetDir) {
-  const sourceManaged = listManagedFiles(FRAMEWORK_ROOT);
   const targetManaged = listManagedFiles(targetDir);
+  const meta = readInstalledMeta(targetDir);
+  const frameworkFootprint = detectFrameworkFootprint(targetDir, { meta, managedFiles: targetManaged });
+  const sourceManaged = listSourceManagedFiles({ frameworkFootprint });
   const sourceSet = new Set(sourceManaged);
   const targetSet = new Set(targetManaged);
-  const meta = readInstalledMeta(targetDir);
   const installedManifest = readManagedFilesManifest(targetDir, meta);
 
   const modified = [];
@@ -108,6 +111,7 @@ function computeDiff(targetDir) {
     sourceVersion: readFrameworkVersion(),
     targetVersion: meta.exists ? meta.version : "unknown",
     baselineAvailable: installedManifest.size > 0,
+    frameworkFootprint,
   };
 }
 

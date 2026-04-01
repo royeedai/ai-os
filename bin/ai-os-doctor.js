@@ -12,15 +12,16 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const {
-  FRAMEWORK_ROOT,
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_CORE_ARTIFACT_FILES,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_FILES,
   detectInstallProfileName,
+  detectFrameworkFootprint,
   getInstallProfile,
   readFrameworkVersion,
   listManagedFiles,
+  listSourceManagedFiles,
   readInstalledMeta,
   getProjectFilePath,
   getProjectRelativePath,
@@ -64,7 +65,18 @@ process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
 
 // 1. Metadata
 const meta = readInstalledMeta(targetDir);
-report(meta.exists, ".ai-os/framework.toml exists");
+const installedManagedFiles = listManagedFiles(targetDir);
+if (meta.exists) {
+  report(true, ".ai-os/framework.toml exists");
+} else if (installedManagedFiles.length > 0) {
+  report(
+    false,
+    ".ai-os/framework.toml missing; install metadata will be inferred from framework files",
+    { warnOnly: true }
+  );
+} else {
+  report(false, ".ai-os/framework.toml exists");
+}
 
 if (meta.exists) {
   const versionMatch = meta.version === frameworkVersion;
@@ -76,15 +88,25 @@ if (meta.exists) {
 }
 
 let installedProfile = null;
-if (meta.exists) {
-  try {
-    installedProfile = getInstallProfile(detectInstallProfileName(targetDir, { meta }));
-    process.stdout.write(`Install profile: ${installedProfile.name}\n`);
-  } catch (error) {
-    report(false, `Unknown install profile in metadata: ${meta.installProfile || error.message}`, {
-      warnOnly: true,
-    });
+try {
+  installedProfile = getInstallProfile(detectInstallProfileName(targetDir, { meta }));
+  if (installedManagedFiles.length > 0 || meta.exists) {
+    process.stdout.write(`Install profile: ${installedProfile.name}${meta.exists ? "" : " (inferred)"}\n`);
   }
+} catch (error) {
+  report(false, `Unknown install profile in metadata: ${meta.installProfile || error.message}`, {
+    warnOnly: true,
+  });
+}
+
+const frameworkFootprint = detectFrameworkFootprint(targetDir, {
+  meta,
+  managedFiles: installedManagedFiles,
+});
+if (installedManagedFiles.length > 0) {
+  process.stdout.write(
+    `Framework footprint: ${frameworkFootprint}${meta.exists ? "" : " (inferred)"}\n`
+  );
 }
 
 // 2. AGENTS.md
@@ -106,7 +128,7 @@ const workflowsOk = fs.existsSync(workflowsDir) &&
 report(workflowsOk, ".agents/workflows/ exists and is not empty");
 
 // 5. Managed files integrity
-const sourceManaged = listManagedFiles(FRAMEWORK_ROOT);
+const sourceManaged = listSourceManagedFiles({ frameworkFootprint });
 const missingFiles = [];
 for (const rel of sourceManaged) {
   if (!fs.existsSync(path.join(targetDir, rel))) {
@@ -115,7 +137,10 @@ for (const rel of sourceManaged) {
 }
 
 if (missingFiles.length === 0) {
-  report(true, `All ${sourceManaged.length} framework-managed files present`);
+  report(
+    true,
+    `All ${sourceManaged.length} framework-managed files present${frameworkFootprint === "lite" ? " for lite footprint" : ""}`
+  );
 } else {
   report(false, `${missingFiles.length} framework-managed file(s) missing`, { details: missingFiles });
 }

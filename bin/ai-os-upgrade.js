@@ -13,16 +13,16 @@ const path = require("path");
 const {
   FRAMEWORK_ROOT,
   PROJECT_MANAGED_FILES_MANIFEST,
+  detectInstallProfileName,
+  detectFrameworkFootprint,
   readFrameworkVersion,
-  readPackageJson,
   readInstalledMeta,
   copyFileWithMode,
-  ensureDir,
   listManagedFiles,
-  sha256File,
   getProjectFilePath,
   getProjectRelativePath,
-  serializeSimpleToml,
+  writeMetadata,
+  writeManagedFilesManifest,
   appendGitignoreEntries,
   appendGitattributesEntries,
   fail,
@@ -91,14 +91,15 @@ if (!fs.existsSync(targetDir)) {
 // ---------------------------------------------------------------------------
 
 const meta = readInstalledMeta(targetDir);
-if (!meta.exists) {
+const installedManagedFiles = listManagedFiles(targetDir);
+if (!meta.exists && installedManagedFiles.length === 0) {
   fail(
     `No ${getProjectRelativePath("framework.toml")} found in ${targetDir}.\n` +
     `Initialize the project first:\n` +
     `  npx --yes github:royeedai/ai-os ${targetDir === process.cwd() ? "." : targetDir}`
   );
 }
-if (meta.mode === "submodule") {
+if (meta.exists && meta.mode === "submodule") {
   fail(
     [
       "ai-os-upgrade does not manage submodule installations.",
@@ -108,7 +109,17 @@ if (meta.mode === "submodule") {
 }
 
 const frameworkVersion = readFrameworkVersion();
-const packageJson = readPackageJson();
+const installProfileName = detectInstallProfileName(targetDir, { meta });
+const frameworkFootprint = detectFrameworkFootprint(targetDir, {
+  meta,
+  managedFiles: installedManagedFiles,
+});
+const metadataManifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
+const needsLocalMetadataRefresh =
+  !meta.exists ||
+  !fs.existsSync(metadataManifestPath) ||
+  !meta.installProfile ||
+  !meta.frameworkFootprint;
 
 // ---------------------------------------------------------------------------
 // Compute diff
@@ -119,6 +130,17 @@ const diff = computeDiff(targetDir);
 const totalChanges = diff.modified.length + diff.outdated.length + diff.missing.length;
 
 if (totalChanges === 0) {
+  if (!preflight && !dryRun && needsLocalMetadataRefresh) {
+    writeMetadata(targetDir, {
+      installProfile: installProfileName,
+      frameworkFootprint,
+    });
+    writeManagedFilesManifest(targetDir, { frameworkFootprint });
+    process.stdout.write(
+      `\nAlready up to date (v${frameworkVersion}). Refreshed local install metadata.\n\n`
+    );
+    process.exit(0);
+  }
   process.stdout.write(`\nAlready up to date (v${frameworkVersion}).\n\n`);
   process.exit(0);
 }
@@ -201,26 +223,11 @@ for (const rel of filesToWrite) {
   copyFileWithMode(src, dst);
 }
 
-// Update framework.toml
-const metaDir = path.dirname(getProjectFilePath(targetDir, "framework.toml"));
-ensureDir(metaDir);
-const nextMetaValues = {
-  ...meta.values,
-  mode: meta.mode || "npx-git",
-  framework_version: frameworkVersion,
-  package_name: packageJson.name,
-  package_version: packageJson.version,
-  managed_files_manifest: meta.values?.managed_files_manifest || getProjectRelativePath(PROJECT_MANAGED_FILES_MANIFEST),
-};
-fs.writeFileSync(
-  getProjectFilePath(targetDir, "framework.toml"),
-  serializeSimpleToml(nextMetaValues),
-  "utf8"
-);
-
-const manifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
-const manifestLines = listManagedFiles(targetDir).map((relPath) => `${sha256File(path.join(targetDir, relPath))}\t${relPath}`);
-fs.writeFileSync(manifestPath, [...manifestLines, ""].join("\n"), "utf8");
+writeMetadata(targetDir, {
+  installProfile: installProfileName,
+  frameworkFootprint,
+});
+writeManagedFilesManifest(targetDir, { frameworkFootprint });
 
 // ---------------------------------------------------------------------------
 // Report
