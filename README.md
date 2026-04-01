@@ -94,6 +94,7 @@ AI-OS 默认围绕这套 `.ai-os/` 工件工作：
 |------|------|
 | `.ai-os/MISSION.md` | 宿主项目必要上下文 + 当前交付目标、范围、模式、质量标准和最新需求基准 |
 | `.ai-os/DESIGN.md` | 信息架构、关键页面、关键交互、视觉方向、关键流程 |
+| `.ai-os/CONVENTIONS.md` | 项目级代码约定（命名、模式、分层、日志），防止跨 session 实现风格漂移 |
 | `.ai-os/specs/` | 业务规则、交互模式、契约基准、状态流转、边界条件 |
 | `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求 |
 | `.ai-os/acceptance.yaml` | 质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
@@ -157,7 +158,7 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 - 准备判断“是不是做对了”：`/verify`
 - 准备交付：`/ship`
 
-## 三条推荐路径
+## 四条推荐路径
 
 ### 1. 从想法开始的新项目
 
@@ -181,7 +182,7 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 
 - **会话文件**（`STATE.md`、`context-snapshot.md` 等）不入版本控制，每位开发者本地维护；`/resume` 可从项目工件自动重建
 - **追加式知识**（`memory.md`、`tasks.yaml`）使用 `merge=union` 策略减少合并冲突
-- **项目共识**（`MISSION.md`、`DESIGN.md`、`specs/`、`acceptance.yaml`）正常入版本控制，团队共享
+- **项目共识**（`MISSION.md`、`DESIGN.md`、`CONVENTIONS.md`、`specs/`、`acceptance.yaml`）正常入版本控制，团队共享
 
 如需跳过自动配置：
 
@@ -207,13 +208,15 @@ npx --yes github:royeedai/ai-os my-project --profile project --no-team-config
 - 在 Codex CLI 中，`.agents/skills/` 原生作为 skill 被发现
 - 在 Antigravity 中，`AGENTS.md` 原生加载 + `GEMINI.md` 提供命令快速参考
 
+进入 AI-OS CLI 主能力的规则，默认要求在所有已承诺支持的环境都有等价承接；如果只能在单一 IDE 生效，就留在该 IDE 的适配层，不进入 CLI 主能力。
+
 如需跳过 IDE 文件生成：
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --no-ide-files
+npx --yes github:royeedai/ai-os my-project --profile project --no-ide-files
 ```
 
-如需手动重新生成（例如删除了 `.cursor/` 后恢复）：
+如需手动重新生成（例如删除了 IDE 适配文件后恢复）：
 
 ```bash
 npx --yes github:royeedai/ai-os cursor-rules .

@@ -24,6 +24,7 @@ const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", 
 const PROJECT_CORE_ARTIFACT_FILES = [
   "MISSION.md",
   "DESIGN.md",
+  "CONVENTIONS.md",
   "tasks.yaml",
   "acceptance.yaml",
   "STATE.md",

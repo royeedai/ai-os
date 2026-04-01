@@ -11,7 +11,7 @@ AI-OS 的默认顺序不是"先写代码"，而是：
 
 ## 选择安装方式
 
-**完整安装**（19 个 skill + 15 个 workflow，~99K tokens）：
+**完整安装**（19 个 skill + 14 个 workflow，~99K tokens）：
 
 ```bash
 npx --yes github:royeedai/ai-os my-project --profile project
@@ -36,17 +36,26 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 npx --yes github:royeedai/ai-os my-project --profile project --lite
 ```
 
-**使用 Cursor？** 安装后追加生成 `.cursor/rules/`：
+**IDE 适配文件**：安装时会自动生成 `.cursor/`、`CLAUDE.md`、`GEMINI.md`。
+
+如需手动恢复：
 
 ```bash
 npx --yes github:royeedai/ai-os cursor-rules my-project
 ```
 
-## 第一次使用先记住 4 件事
+如需跳过生成：
+
+```bash
+npx --yes github:royeedai/ai-os my-project --profile project --no-ide-files
+```
+
+## 第一次使用先记住 6 件事
 
 - `MISSION.md` + `specs/` 是当前交付的唯一需求真理源
 - `brownfield` / `change` 下，`MISSION.md` 记录的是本轮要交付什么，不是把整个老项目重新定义一遍
 - `DESIGN.md` 负责锁关键页面和关键流程
+- `CONVENTIONS.md` 负责锁项目级代码约定，避免多 session / 多人协作时模式漂移
 - `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清
 - `STATE.md` 负责恢复上下文、确认停点和下一步
 
@@ -57,6 +66,7 @@ npx --yes github:royeedai/ai-os cursor-rules my-project
 - `.agents/workflows/`（lite 模式只含 align/design/build/verify/debug）
 - `.ai-os/MISSION.md`
 - `.ai-os/DESIGN.md`
+- `.ai-os/CONVENTIONS.md`
 - `.ai-os/tasks.yaml`
 - `.ai-os/acceptance.yaml`
 - `.ai-os/STATE.md`

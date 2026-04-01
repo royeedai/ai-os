@@ -58,7 +58,7 @@
 - PG-001: 新问题没有单独记录，重构时容易把覆盖做丢
 - PG-002: 框架 token 成本占用过高 → `--lite` / `token-budget`
 - PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
-- PG-004: 不适配主流 IDE 原生规则系统 → `cursor-rules` 子命令
+- PG-004: CLI / 框架能力只在单一 IDE 可用 → 必须写清 Codex / Cursor / Claude Code 等承接路径，否则不纳入 CLI 主能力
 
 ## 本地开发补充
 

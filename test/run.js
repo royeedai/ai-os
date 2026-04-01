@@ -110,6 +110,9 @@ assert(problemLedger.includes("PG-001"), "problem ledger records governance cove
 assert(problemLedger.includes("每次重构、学习进步"), "problem ledger documents iteration review rule");
 assert(agentsDoc.includes("docs/problem-ledger.md"), "AGENTS references problem ledger");
 assert(readmeDoc.includes("docs/problem-ledger.md"), "README links to problem ledger");
+assert(readmeDoc.includes("`.ai-os/CONVENTIONS.md`"), "README documents CONVENTIONS as a project artifact");
+assert(readmeDoc.includes("## 四条推荐路径"), "README path-count heading matches the documented paths");
+assert(readmeDoc.includes("`MISSION.md`、`DESIGN.md`、`CONVENTIONS.md`"), "README team-collaboration section includes CONVENTIONS");
 assert(changeEvaluationTemplate.includes("关联问题台账与覆盖核对"), "change evaluation template includes ledger coverage section");
 assert(changeEvaluationTemplate.includes("需补或更新的 eval / example / CLI / test"), "change evaluation template requires coverage follow-up");
 assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
@@ -133,10 +136,16 @@ assert(readmeDoc.includes("npx --yes github:royeedai/ai-os plan . --profile core
 assert(readmeDoc.includes("npx --yes github:royeedai/ai-os my-project --profile project"), "README uses project profile for new-project install");
 assert(gettingStartedDoc.includes("plan my-project --profile project"), "getting-started explains project-profile plan preview");
 assert(gettingStartedDoc.includes("my-project --profile project --lite"), "getting-started uses project profile for lite installs");
+assert(gettingStartedDoc.includes("自动生成 `.cursor/`、`CLAUDE.md`、`GEMINI.md`"), "getting-started explains automatic IDE file generation");
+assert(gettingStartedDoc.includes("第一次使用先记住 6 件事"), "getting-started heading count matches checklist");
+assert(gettingStartedDoc.includes("`CONVENTIONS.md` 负责锁项目级代码约定"), "getting-started explains the role of CONVENTIONS");
 assert(artifactsDoc.includes("`core` profile 初始化时不会直接创建"), "artifacts doc explains core profile starter-file behavior");
 assert(artifactsDoc.includes("`--profile project`"), "artifacts doc explains project profile for starter files");
+assert(artifactsDoc.includes("`.ai-os/CONVENTIONS.md`"), "artifacts doc includes CONVENTIONS");
 assert(cliDoc.includes("create-ai-os plan . --profile core"), "cli doc documents plan preview");
 assert(cliDoc.includes("create-ai-os my-project --profile project"), "cli doc uses project profile for initialization");
+assert(cliDoc.includes("`create-ai-os` 初始化和 `upgrade`"), "cli doc uses the current command names for team config");
+assert(cliDoc.includes("所有已承诺支持的环境承接"), "cli doc requires CLI features to be portable across supported environments");
 assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
 assert(maintainersDoc.includes("node ./bin/create-ai-os.js plan /tmp/test-project --profile project"), "maintainers doc includes plan preview in local examples");
 
@@ -170,6 +179,7 @@ assert(fs.existsSync(path.join(initDir, ".agents", "workflows")), ".agents/workf
 assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "MISSION.md")), "MISSION.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "DESIGN.md")), "DESIGN.md created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "CONVENTIONS.md")), "CONVENTIONS.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
 assert(
@@ -195,6 +205,7 @@ assert(!fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")),
 
 const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "MISSION.md"), "utf8");
 const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "DESIGN.md"), "utf8");
+const conventionsTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "CONVENTIONS.md"), "utf8");
 const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "tasks.yaml"), "utf8");
 const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "acceptance.yaml"), "utf8");
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
@@ -218,6 +229,9 @@ assert(designTemplate.includes("必须用户确认的核心设计决策"), "DESI
 assert(designTemplate.includes("## 8. 方案选型依据"), "DESIGN template includes decision rationale section");
 assert(designTemplate.includes("## 10. 风险与注意事项"), "DESIGN template includes risk notes section");
 assert(designTemplate.includes("共享基础设施约定"), "DESIGN template includes shared infrastructure constraint");
+assert(conventionsTemplate.includes("## 命名约定"), "CONVENTIONS template has naming section");
+assert(conventionsTemplate.includes("## 代码模式"), "CONVENTIONS template has code patterns section");
+assert(conventionsTemplate.includes("## 禁止模式"), "CONVENTIONS template has anti-pattern section");
 assert(tasksTemplate.includes("version: 3"), "tasks template upgraded to version 3");
 assert(tasksTemplate.includes("execution_role:"), "tasks template includes execution_role");
 assert(tasksTemplate.includes("approval_required:"), "tasks template includes approval_required");
@@ -315,6 +329,7 @@ assert(futurePlanResult.status === 0, "create-ai-os plan works on a new target p
 const futurePlanJson = JSON.parse(futurePlanResult.stdout);
 assert(futurePlanJson.profile.name === "project", "create-ai-os plan accepts project profile for a new target path");
 assert(futurePlanJson.summary.projectCreateCount > 0, "new-target plan reports starter project artifacts to create");
+assert(futurePlanJson.project.create.includes(".ai-os/CONVENTIONS.md"), "project plan includes CONVENTIONS starter file");
 assert(!futurePlanJson.project.create.includes(".ai-os/evals/eval-example.md"), "plan omits on-demand eval starter files");
 
 const litePlanResult = run("create-ai-os.js", ["plan", futureProjectDir, "--profile", "project", "--lite", "--json"]);
@@ -1125,6 +1140,8 @@ const updatedLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledge
 assert(updatedLedger.includes("PG-002"), "problem ledger includes PG-002 token budget entry");
 assert(updatedLedger.includes("PG-003"), "problem ledger includes PG-003 advisory rules entry");
 assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE format entry");
+assert(updatedLedger.includes("Codex CLI"), "problem ledger documents Codex CLI in IDE portability rule");
+assert(updatedLedger.includes("默认不纳入 CLI 主能力"), "problem ledger blocks single-IDE features from CLI mainline");
 assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");
 
 // ---------------------------------------------------------------------------
@@ -1138,6 +1155,7 @@ assert(updatedReadme.includes("为什么需要 AI-OS"), "README includes why-AI-
 assert(updatedReadme.includes("1.7 倍"), "README cites AI bug rate data");
 assert(updatedReadme.includes("运行时护栏工具"), "README differentiates from runtime guardrail tools");
 assert(updatedReadme.includes("只定义本轮交付基准"), "README clarifies brownfield mission scope");
+assert(updatedReadme.includes("所有已承诺支持的环境都有等价承接"), "README states CLI features must work across supported IDE environments");
 
 // ---------------------------------------------------------------------------
 // End-to-end delivery failure scenario tests

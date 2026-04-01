@@ -15,6 +15,7 @@
 - 新问题先登记到 `docs/problem-ledger.md`
 - 每次重构、学习进步和规则替换，都要在变更评估里写明关联问题条目和覆盖结果
 - 如果覆盖锚点被移动、删除或弱化，必须同步补 eval / example / CLI / test，而不是只改文案
+- 若变更要进入 CLI 或根层治理，还要写清 Codex CLI、Cursor、Claude Code 等已支持环境的承接方式；只在单一 IDE 生效的方案不能直接升格成 CLI 主能力
 
 ## 最低证据
 
@@ -22,6 +23,7 @@
 - 更新后的 `docs/change-evaluation-template.md`
 - 关联的 eval / example / CLI check / test
 - 维护说明里能看见问题台账的使用要求
+- 若变更涉及 CLI / IDE 适配，还要有跨环境承接说明或不纳入结论
 
 ## 若需改 framework，优先检查
 

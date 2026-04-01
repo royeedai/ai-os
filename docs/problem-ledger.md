@@ -209,10 +209,10 @@
 - **当前覆盖锚点**：`bin/ai-os-validate.js`、`bin/ai-os-doctor.js`、`test/run.js` 的 eval-driven guardrail tests
 - **每次迭代核对**：不能假设 markdown 规则会被 100% 遵守；核心禁止项应尽可能有 CLI 校验支撑。
 
-### PG-004 框架只兼容 AGENTS.md 格式，不适配主流 IDE 原生规则系统
+### PG-004 CLI / 框架能力只在单一 IDE 可用，无法稳定投射到已支持环境
 
-- **来源**：2026-03 行业研究；Cursor .cursor/rules/*.mdc、Codex AGENTS.md、Windsurf 等各有原生格式
-- **真实问题**：用户使用 Cursor 时，AGENTS.md 优先级低于 .cursor/rules/*.mdc；框架规则可能不被优先加载，或用户不知道如何让 IDE 识别 AI-OS 规则。
-- **AI-OS 必须保证**：提供 `cursor-rules` 子命令，将框架文件转换为 .cursor/rules/*.mdc 格式；未来按需支持其他 IDE 格式。
-- **当前覆盖锚点**：`bin/ai-os-cursor-rules.js`、`create-ai-os cursor-rules`
-- **每次迭代核对**：新增 workflow 或 skill 时需确保 cursor-rules 转换器能正确处理。
+- **来源**：2026-03 行业研究；Cursor `.cursor/rules/*.mdc`、Codex `AGENTS.md`、Claude Code `CLAUDE.md` 等各有原生加载方式；2026-04 用户约束确认
+- **真实问题**：某些能力只在单一 IDE 或单一 agent 客户端里能生效，但一旦被升格成 CLI 主能力，用户会误以为 Codex CLI、Cursor、Claude Code 等环境都可用，最终导致跨环境行为不一致、文档承诺失真、评估样例无法复现。
+- **AI-OS 必须保证**：进入 CLI 或根层治理的能力，必须能被当前已承诺支持的环境稳定承接，或至少提供等价 fallback；做不到就留在适配层 / 示例 / 文档，默认不纳入 CLI 主能力。当前最少要说明 `Codex CLI`、`Cursor`、`Claude Code` 的承接路径；若影响其他已支持环境，也必须一并说明。
+- **当前覆盖锚点**：`bin/ai-os-cursor-rules.js`、`bin/create-ai-os.js` 的 IDE 文件生成、`README.md` 的 IDE 兼容性说明、`docs/cli.md`、`test/run.js` 的 IDE integration tests
+- **每次迭代核对**：新增 CLI 命令、workflow 路由、门禁或运行时增强时，都要写清各支持环境的加载路径和退化路径；不能把只在某一个 IDE 生效的能力直接挂成 AI-OS CLI 主能力。

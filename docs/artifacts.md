@@ -8,6 +8,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 |------|------|
 | `.ai-os/MISSION.md` | 定义宿主项目必要上下文，以及当前交付的目标、范围、模式、治理档位和最新确认的需求基准 |
 | `.ai-os/DESIGN.md` | 锁定关键页面、信息架构、交互和流程 |
+| `.ai-os/CONVENTIONS.md` | 记录项目级代码约定（命名、模式、分层、日志），降低跨 session / 多人协作漂移 |
 | `.ai-os/specs/` | 定义逻辑规则、契约、状态流转、边界条件和验收映射 |
 | `.ai-os/tasks.yaml` | 编排 wave、角色、审批点、impact_tags、边界和证据要求 |
 | `.ai-os/acceptance.yaml` | 管理质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
@@ -38,7 +39,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 ## 三档深度
 
 - 探索档：Mission + State + 最小设计笔记
-- 标准档：再加 Design + Spec + Tasks + Acceptance
+- 标准档：再加 Design + Conventions + Spec + Tasks + Acceptance
 - 高风险档：再加 Risk + Release + 运行态证据
 
 ## 初始化时哪些文件会自动创建
@@ -47,6 +48,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 
 - `MISSION.md`
 - `DESIGN.md`
+- `CONVENTIONS.md`
 - `tasks.yaml`
 - `acceptance.yaml`
 - `STATE.md`

@@ -28,6 +28,8 @@ create-ai-os skill-check .agents/skills/my-skill
 - `resume`：导出最小阅读集
 - `release-check`：看当前交付是否具备发布条件，并在 `high-risk` 档强查授权 / 并发 / degraded-path 证据
 
+CLI 新能力默认要求能被所有已承诺支持的环境承接。只在单一 IDE 生效的行为，不进入 CLI 主命令，最多作为该 IDE 的适配层扩展。
+
 ## 框架维护命令
 
 - `diff`：对比项目中已安装的框架文件与最新源文件的差异，标记 modified / outdated / missing / extra
@@ -90,7 +92,7 @@ create-ai-os plan my-project --profile project --lite --json
 
 ## 团队协作配置（默认开启）
 
-`init` / `upgrade` 完成后会自动（幂等）追加：
+`create-ai-os` 初始化和 `upgrade` 完成后会自动（幂等）追加：
 
 - `.gitignore`：忽略会话态与 CLI 元数据（如 `.ai-os/STATE.md`、`framework.toml`、`managed-files.tsv` 等）
 - `.gitattributes`：为 `memory.md`、`tasks.yaml` 设置 `merge=union`，降低多人并行合并冲突
@@ -117,6 +119,8 @@ create-ai-os cursor-rules . --clean   # 清理旧的再重新生成
 - 每个 workflow → `ai-os-wf-<name>.mdc`
 - 每个 skill → `ai-os-sk-<name>.mdc`
 - Router 索引 → `ai-os-workflow-router.mdc` / `ai-os-skill-router.mdc`
+
+说明：`cursor-rules` 只是 Cursor 的适配器再生成入口，不代表 AI-OS 可以接受“只在 Cursor 生效”的 CLI 主能力。CLI 层规则仍需满足跨环境承接要求。
 
 ## Token Budget
 
