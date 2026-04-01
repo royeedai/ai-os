@@ -95,6 +95,7 @@ const GITIGNORE_ENTRIES = [
   `${PROJECT_STATE_ROOT}/codebase-map.md`,
   `${PROJECT_STATE_ROOT}/${PROJECT_METADATA_FILE}`,
   `${PROJECT_STATE_ROOT}/${PROJECT_MANAGED_FILES_MANIFEST}`,
+  "# IDE integration files (CLAUDE.md, GEMINI.md, .cursor/) are team-shareable — do NOT gitignore them",
 ];
 
 const GITATTRIBUTES_MARKER = "# AI-OS merge strategies";
@@ -862,6 +863,423 @@ const VALIDATION_SCHEMAS = {
 };
 
 // ---------------------------------------------------------------------------
+// IDE integration — generate Cursor / Claude Code / Antigravity files
+// ---------------------------------------------------------------------------
+
+const IDE_GENERATED_MARKER = "<!-- ai-os-generated -->";
+
+function extractFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!match) return { name: "", description: "", body: content };
+  const fm = match[1];
+  const body = content.slice(match[0].length);
+  let name = "";
+  let description = "";
+  const nameMatch = fm.match(/^name:\s*(.+)$/m);
+  if (nameMatch) name = nameMatch[1].trim();
+  const descMatch = fm.match(/^description:\s*(.+)$/m);
+  if (descMatch) {
+    const val = descMatch[1].trim();
+    if (val !== ">" && val !== ">-") {
+      description = val;
+    }
+  }
+  if (!description) {
+    const multiDescMatch = fm.match(/^description:\s*>-?\s*\n([\s\S]*?)(?=\n[a-zA-Z_-]+:|\s*$)/m);
+    if (multiDescMatch) {
+      description = multiDescMatch[1].replace(/\n\s+/g, " ").trim();
+    }
+  }
+  return { name, description, body };
+}
+
+function sanitizeSlug(name) {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+}
+
+/**
+ * Collect workflow metadata from the installed .agents/workflows/ directory.
+ * Returns array of { slug, name, description, filePath }.
+ */
+function collectWorkflows(targetDir) {
+  const workflowsDir = path.join(targetDir, ".agents", "workflows");
+  if (!fs.existsSync(workflowsDir)) return [];
+  const results = [];
+  const files = fs.readdirSync(workflowsDir).filter((f) => f.endsWith(".md") && f !== "AGENTS.md");
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(workflowsDir, file), "utf8");
+    const { name, description } = extractFrontmatter(content);
+    const slug = file.replace(/\.md$/, "");
+    results.push({
+      slug,
+      name: name || slug,
+      description: description || `AI-OS /${slug} workflow`,
+      filePath: `.agents/workflows/${file}`,
+    });
+  }
+  return results;
+}
+
+/**
+ * Collect skill metadata from the installed .agents/skills/ directory.
+ * Returns array of { slug, name, description, filePath }.
+ */
+function collectSkills(targetDir) {
+  const skillsDir = path.join(targetDir, ".agents", "skills");
+  if (!fs.existsSync(skillsDir)) return [];
+  const results = [];
+  const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const skillMd = path.join(skillsDir, entry.name, "SKILL.md");
+    if (!fs.existsSync(skillMd)) continue;
+    const content = fs.readFileSync(skillMd, "utf8");
+    const { name, description } = extractFrontmatter(content);
+    results.push({
+      slug: entry.name,
+      name: name || entry.name,
+      description: description || `AI-OS skill: ${entry.name}`,
+      filePath: `.agents/skills/${entry.name}/SKILL.md`,
+    });
+  }
+  return results;
+}
+
+const WORKFLOW_CURSOR_DESCRIPTIONS = {
+  align: "AI-OS /align workflow：澄清目标、用户、范围、项目模式和质量标准。当用户提到 /align、需求对齐、项目启动、需求不清、目标确认、clarify goals 时触发。",
+  design: "AI-OS /design workflow：锁定信息架构、关键页面、交互和视觉方向。当用户提到 /design、设计方案、锁定设计、页面设计、UI设计、lock design 时触发。",
+  plan: "AI-OS /plan workflow：生成 spec、任务波次和验收计划。当用户提到 /plan、任务拆解、拆任务、规划任务、task planning 时触发。",
+  build: "AI-OS /build workflow：按 wave 实现已确认的任务。当用户提到 /build、开始实现、开始开发、start building、implement 时触发。",
+  verify: "AI-OS /verify workflow：验证设计一致性、逻辑正确性和交付证据。当用户提到 /verify、验证、验收、质量检查、quality check 时触发。",
+  ship: "AI-OS /ship workflow：交付、发布、回滚和移交。当用户提到 /ship、发布、上线、交付、deploy、release 时触发。",
+  "change-request": "AI-OS /change-request workflow：需求变更管理。当用户提到 /change-request、需求变更、改需求、scope change 时触发。",
+  debug: "AI-OS /debug workflow：单点 bug 修复的轻量闭环。当用户提到 /debug、修 bug、调试、fix bug、troubleshoot 时触发。",
+  review: "AI-OS /review workflow：多维度结构化审查。当用户提到 /review、代码审查、方案审查、code review 时触发。",
+  postmortem: "AI-OS /postmortem workflow：复盘并沉淀经验。当用户提到 /postmortem、复盘、回顾、retrospective 时触发。",
+  status: "AI-OS /status workflow：查看当前方位和进度。当用户提到 /status、项目状态、当前进度、project status 时触发。",
+  next: "AI-OS /next workflow：推断下一个就绪任务。当用户提到 /next、下一步、接下来做什么、what's next 时触发。",
+  resume: "AI-OS /resume workflow：恢复项目上下文。当用户提到 /resume、恢复上下文、继续项目、resume project 时触发。",
+  "auto-advance": "AI-OS /auto-advance workflow：自动按任务波次推进。当用户提到 /auto-advance、自动推进、批量执行 时触发。",
+};
+
+const WORKFLOW_SUMMARIES = {
+  align: "当用户需要澄清项目目标、启动新项目或处理模糊需求时使用。\n\n## 快速入口\n\n- 新项目/新模块/需求模糊 → 完整 /align\n- 已有项目局部变更 → 轻量确认目标、范围、验收",
+  design: "当需要锁定关键页面、信息架构、交互和视觉方向时使用。\n\n## 快速入口\n\n- 有设计素材（截图/参考站） → 先收敛为 IA 和关键页面\n- 纯技术方案 → 锁定架构、接口和状态流转",
+  plan: "当需求和设计已确认，需要拆解为可执行任务时使用。\n\n## 快速入口\n\n- P0 任务 → 完整拆解 spec / tasks / acceptance\n- P1 任务 → 轻量任务清单 + 验收标准",
+  build: "当任务已确认，准备按 wave 实现时使用。\n\n## 快速入口\n\n- 有审批停点的任务 → 逐个确认后推进\n- 简单任务 → 按波次批量实现",
+  verify: "当实现完成，需要验证质量和收集交付证据时使用。\n\n## 快速入口\n\n- 逐项核验需求 / 设计 / spec 的覆盖\n- 收集编译、测试、运行态证据",
+  ship: "当验证通过，准备交付和发布时使用。\n\n## 快速入口\n\n- 输出交付说明、已实现/未实现清单\n- 确认回滚条件和人工操作清单",
+  "change-request": "当已确认的需求发生变化时使用。\n\n## 快速入口\n\n- 先分析影响范围\n- 更新 MISSION / spec / DESIGN 基准后再执行",
+  debug: "当遇到单点 bug 或轻量改动时使用。\n\n## 快速入口\n\n- 先定界：根因、影响、修复方案\n- 确认后定点修改 + 回归验证",
+  review: "当需要对方案或代码做结构化审查时使用。\n\n## 快速入口\n\n- 输出带风险等级的问题清单\n- 按维度逐项审查",
+  postmortem: "当项目或里程碑完成后需要复盘时使用。\n\n## 快速入口\n\n- 做得好/做得不好/改进措施\n- 沉淀到 memory.md",
+  status: "查看当前项目状态、进度和待确认项。",
+  next: "推断当前最值得执行且已满足条件的就绪任务。",
+  resume: "从 STATE.md 恢复项目上下文和最小阅读集，用于新 session 或中断后继续。",
+  "auto-advance": "在设计门和逻辑门通过后，按任务波次自动推进实现。需要用户明确授权。",
+};
+
+// --- Cursor generation ---
+
+function generateCursorConstitutionRule(targetDir) {
+  const cursorRulesDir = path.join(targetDir, ".cursor", "rules");
+  ensureDir(cursorRulesDir);
+
+  const agentsMdPath = path.join(targetDir, "AGENTS.md");
+  if (!fs.existsSync(agentsMdPath)) return 0;
+
+  const constitution = fs.readFileSync(agentsMdPath, "utf8");
+
+  const workflowRouterPath = path.join(targetDir, ".agents", "workflows", "AGENTS.md");
+  let routerSection = "";
+  if (fs.existsSync(workflowRouterPath)) {
+    routerSection = "\n\n---\n\n" + fs.readFileSync(workflowRouterPath, "utf8");
+  }
+
+  const skillRouterPath = path.join(targetDir, ".agents", "skills", "AGENTS.md");
+  if (fs.existsSync(skillRouterPath)) {
+    routerSection += "\n\n---\n\n" + fs.readFileSync(skillRouterPath, "utf8");
+  }
+
+  const lines = [
+    "---",
+    'description: "AI-OS delivery constitution — core rules for all AI actions in this project"',
+    "alwaysApply: true",
+    "---",
+    "",
+    IDE_GENERATED_MARKER,
+    "",
+    constitution.trim(),
+    routerSection.trim(),
+    "",
+  ];
+
+  fs.writeFileSync(
+    path.join(cursorRulesDir, "ai-os-constitution.mdc"),
+    lines.join("\n"),
+    "utf8"
+  );
+  return 1;
+}
+
+function generateCursorSkills(targetDir) {
+  const cursorSkillsDir = path.join(targetDir, ".cursor", "skills");
+  let count = 0;
+
+  const workflows = collectWorkflows(targetDir);
+  for (const wf of workflows) {
+    const skillDir = path.join(cursorSkillsDir, `ai-os-${sanitizeSlug(wf.slug)}`);
+    ensureDir(skillDir);
+
+    const desc = WORKFLOW_CURSOR_DESCRIPTIONS[wf.slug] ||
+      `AI-OS /${wf.slug} workflow：${wf.description}。当用户提到 /${wf.slug} 时触发。`;
+    const summary = WORKFLOW_SUMMARIES[wf.slug] || wf.description;
+
+    const content = [
+      "---",
+      `name: ai-os-${sanitizeSlug(wf.slug)}`,
+      "description: >-",
+      `  ${desc}`,
+      "---",
+      IDE_GENERATED_MARKER,
+      "",
+      `# /${wf.slug} — ${wf.description}`,
+      "",
+      summary,
+      "",
+      "## 详细流程",
+      "",
+      `完整的 /${wf.slug} 工作流定义在 \`${wf.filePath}\`，请阅读该文件获取完整步骤和禁止事项。`,
+      "",
+    ];
+
+    fs.writeFileSync(path.join(skillDir, "SKILL.md"), content.join("\n"), "utf8");
+    count += 1;
+  }
+
+  const skills = collectSkills(targetDir);
+  for (const sk of skills) {
+    const skillDir = path.join(cursorSkillsDir, `ai-os-${sanitizeSlug(sk.slug)}`);
+    ensureDir(skillDir);
+
+    const content = [
+      "---",
+      `name: ai-os-${sanitizeSlug(sk.slug)}`,
+      "description: >-",
+      `  AI-OS skill：${sk.description}`,
+      "---",
+      IDE_GENERATED_MARKER,
+      "",
+      `# ${sk.name}`,
+      "",
+      sk.description,
+      "",
+      "## 详细指引",
+      "",
+      `完整的 skill 定义在 \`${sk.filePath}\`，请阅读该文件获取完整步骤。`,
+      "",
+    ];
+
+    fs.writeFileSync(path.join(skillDir, "SKILL.md"), content.join("\n"), "utf8");
+    count += 1;
+  }
+
+  return count;
+}
+
+// --- Claude Code generation ---
+
+function generateClaudeMd(targetDir) {
+  const claudePath = path.join(targetDir, "CLAUDE.md");
+
+  if (fs.existsSync(claudePath)) {
+    const existing = fs.readFileSync(claudePath, "utf8");
+    if (!existing.includes(IDE_GENERATED_MARKER)) return 0;
+  }
+
+  const workflows = collectWorkflows(targetDir);
+  const skills = collectSkills(targetDir);
+
+  const wfRows = workflows.map((wf) =>
+    `| /${wf.slug} | ${wf.description} | \`${wf.filePath}\` |`
+  );
+
+  const skRows = skills.map((sk) =>
+    `| ${sk.name} | ${sk.description.slice(0, 80)}${sk.description.length > 80 ? "…" : ""} | \`${sk.filePath}\` |`
+  );
+
+  const lines = [
+    IDE_GENERATED_MARKER,
+    "",
+    "# AI-OS 项目交付操作系统",
+    "",
+    "本项目使用 AI-OS 进行交付管理。完整规则见 `AGENTS.md`。",
+    "",
+    "## 会话初始化",
+    "",
+    "每次新 session 启动时，依次读取以下文件了解项目当前状态：",
+    "",
+    "1. `.ai-os/STATE.md` — 当前阶段、进度和待确认项",
+    "2. `.ai-os/MISSION.md` — 当前交付目标和范围",
+    "3. `.ai-os/memory.md` — 稳定决策和约束（优先读 active 条目）",
+    "",
+    "如果上述文件不存在，说明项目尚未初始化，从 `/align` 开始。",
+    "",
+    "## 核心原则",
+    "",
+    "- 无已确认需求基准不编写业务代码",
+    "- 关键设计和逻辑未锁定不大规模实现",
+    "- 需求变更先更新基准再改代码",
+    "- 完成必须有证据，不接受口头声明",
+    "- 详细规则见 `AGENTS.md`",
+    "",
+    "## Workflow 命令",
+    "",
+    "| 命令 | 用途 | 详细流程 |",
+    "|------|------|---------|",
+    ...wfRows,
+    "",
+    "## Skill 能力",
+    "",
+    "遇到以下场景时，读取对应 skill 文件获取详细指引：",
+    "",
+    "| Skill | 触发场景 | 文件 |",
+    "|-------|---------|------|",
+    ...skRows,
+    "",
+    "## 分级流程",
+    "",
+    "- **P0**（新项目/大变更）：/align → /design → /plan → /build → /verify → /ship",
+    "- **P1**（小功能）：/change-request → /plan → /build → /verify",
+    "- **P2**（bug/微调）：/debug（方案确认 → 定界修改 → 验证回归）",
+    "",
+  ];
+
+  fs.writeFileSync(claudePath, lines.join("\n"), "utf8");
+  return 1;
+}
+
+// --- Antigravity (Gemini) generation ---
+
+function generateGeminiMd(targetDir) {
+  const geminiPath = path.join(targetDir, "GEMINI.md");
+
+  if (fs.existsSync(geminiPath)) {
+    const existing = fs.readFileSync(geminiPath, "utf8");
+    if (!existing.includes(IDE_GENERATED_MARKER)) return 0;
+  }
+
+  const workflows = collectWorkflows(targetDir);
+
+  const wfRows = workflows.map((wf) =>
+    `| /${wf.slug} | ${wf.description} | \`${wf.filePath}\` |`
+  );
+
+  const lines = [
+    IDE_GENERATED_MARKER,
+    "",
+    "# AI-OS 项目交付操作系统",
+    "",
+    "本项目使用 AI-OS 进行交付管理。完整规则已在 `AGENTS.md` 中定义（Antigravity 会自动加载）。",
+    "本文件提供补充的快速参考。",
+    "",
+    "## 会话初始化",
+    "",
+    "每次新 session 启动时，依次读取：",
+    "",
+    "1. `.ai-os/STATE.md` — 当前阶段和进度",
+    "2. `.ai-os/MISSION.md` — 当前交付目标",
+    "3. `.ai-os/memory.md` — 稳定决策和约束",
+    "",
+    "## Workflow 命令",
+    "",
+    "| 命令 | 用途 | 详细流程 |",
+    "|------|------|---------|",
+    ...wfRows,
+    "",
+    "## Skill 引用",
+    "",
+    "专项能力定义在 `.agents/skills/` 下，每个子目录包含 `SKILL.md`。",
+    "关键 skill 触发条件见 `.agents/skills/AGENTS.md`。",
+    "",
+  ];
+
+  fs.writeFileSync(geminiPath, lines.join("\n"), "utf8");
+  return 1;
+}
+
+// --- Clean generated IDE files ---
+
+function cleanGeneratedIdeFiles(targetDir) {
+  let removed = 0;
+
+  const cursorRulesDir = path.join(targetDir, ".cursor", "rules");
+  if (fs.existsSync(cursorRulesDir)) {
+    for (const file of fs.readdirSync(cursorRulesDir).filter((f) => f.endsWith(".mdc"))) {
+      const content = fs.readFileSync(path.join(cursorRulesDir, file), "utf8");
+      if (content.includes(IDE_GENERATED_MARKER)) {
+        fs.unlinkSync(path.join(cursorRulesDir, file));
+        removed += 1;
+      }
+    }
+  }
+
+  const cursorSkillsDir = path.join(targetDir, ".cursor", "skills");
+  if (fs.existsSync(cursorSkillsDir)) {
+    for (const entry of fs.readdirSync(cursorSkillsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !entry.name.startsWith("ai-os-")) continue;
+      const skillMd = path.join(cursorSkillsDir, entry.name, "SKILL.md");
+      if (fs.existsSync(skillMd)) {
+        const content = fs.readFileSync(skillMd, "utf8");
+        if (content.includes(IDE_GENERATED_MARKER)) {
+          fs.rmSync(path.join(cursorSkillsDir, entry.name), { recursive: true, force: true });
+          removed += 1;
+        }
+      }
+    }
+  }
+
+  for (const file of ["CLAUDE.md", "GEMINI.md"]) {
+    const filePath = path.join(targetDir, file);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf8");
+      if (content.includes(IDE_GENERATED_MARKER)) {
+        fs.unlinkSync(filePath);
+        removed += 1;
+      }
+    }
+  }
+
+  return removed;
+}
+
+/**
+ * Generate IDE integration files for Cursor, Claude Code, and Antigravity.
+ * Codex CLI needs no extra files (.agents/skills/ is natively compatible).
+ */
+function generateIdeFiles(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+
+  if (!fs.existsSync(path.join(targetDir, "AGENTS.md"))) return null;
+
+  cleanGeneratedIdeFiles(targetDir);
+
+  const count = { cursor: 0, claude: 0, gemini: 0 };
+
+  count.cursor += generateCursorConstitutionRule(targetDir);
+  count.cursor += generateCursorSkills(targetDir);
+  count.claude += generateClaudeMd(targetDir);
+  count.gemini += generateGeminiMd(targetDir);
+
+  logger(
+    `IDE integration: Cursor (1 rule + ${count.cursor - 1} skills), ` +
+    `Claude Code (CLAUDE.md), Antigravity (GEMINI.md)`
+  );
+
+  return count;
+}
+
+// ---------------------------------------------------------------------------
 // Shared argument parsing
 // ---------------------------------------------------------------------------
 
@@ -1031,4 +1449,7 @@ module.exports = {
   resolveTargetDir,
   createReporter,
   VALIDATION_SCHEMAS,
+  IDE_GENERATED_MARKER,
+  generateIdeFiles,
+  cleanGeneratedIdeFiles,
 };

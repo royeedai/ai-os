@@ -25,6 +25,7 @@ const {
   writeManagedFilesManifest,
   appendGitignoreEntries,
   appendGitattributesEntries,
+  generateIdeFiles,
   fail,
 } = require("./shared");
 const { computeDiff } = require("./ai-os-diff");
@@ -228,6 +229,8 @@ writeMetadata(targetDir, {
   frameworkFootprint,
 });
 writeManagedFilesManifest(targetDir, { frameworkFootprint });
+
+generateIdeFiles(targetDir);
 
 // ---------------------------------------------------------------------------
 // Report

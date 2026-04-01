@@ -189,6 +189,38 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 npx --yes github:royeedai/ai-os my-project --profile project --no-team-config
 ```
 
+## IDE 兼容性
+
+安装时自动生成所有 IDE 适配文件，无需额外步骤：
+
+| IDE 工具 | 加载机制 | 生成产物 |
+|----------|---------|---------|
+| **Codex CLI** | 原生读取 `AGENTS.md` + `.agents/skills/` | 无需额外文件 |
+| **Cursor** | `.cursor/rules/` + `.cursor/skills/` | 1 条 alwaysApply 规则 + N 个渐进式披露 Skill |
+| **Claude Code** | 优先读 `CLAUDE.md` | 会话初始化 + workflow 命令表 + skill 触发表 |
+| **Antigravity** | 原生读 `AGENTS.md`，`GEMINI.md` 补充 | workflow 快速参考 |
+
+安装后的效果：
+
+- 在 Cursor 中输入 `/align`、`/design` 等命令，agent 自动发现对应 workflow skill
+- 在 Claude Code 中新建 session，自动加载 `CLAUDE.md` 获得 workflow 和 skill 引用
+- 在 Codex CLI 中，`.agents/skills/` 原生作为 skill 被发现
+- 在 Antigravity 中，`AGENTS.md` 原生加载 + `GEMINI.md` 提供命令快速参考
+
+如需跳过 IDE 文件生成：
+
+```bash
+npx --yes github:royeedai/ai-os my-project --no-ide-files
+```
+
+如需手动重新生成（例如删除了 `.cursor/` 后恢复）：
+
+```bash
+npx --yes github:royeedai/ai-os cursor-rules .
+```
+
+IDE 适配文件（`CLAUDE.md`、`GEMINI.md`、`.cursor/`）建议入版本控制，供团队共享。
+
 ## 常用 CLI 命令
 
 官方推荐的主入口是 `create-ai-os`。通过 GitHub 直接执行时，下面这些示例会写成 `npx --yes github:royeedai/ai-os <command> ...` 的形式。
@@ -217,6 +249,7 @@ npx --yes github:royeedai/ai-os lab /tmp/ai-os-labs
 - `status` / `next` / `resume`：恢复项目上下文
 - `diff` / `upgrade`：对比并升级框架文件
 - `release-check`：发布前做最后检查
+- `cursor-rules`：手动重新生成 IDE 适配文件（安装时已自动生成，通常不需要单独运行）
 
 `lab` 会批量创建多种项目类型的本地沙盒，自动跑 `doctor` / `validate` / `status` / `next`，并输出一份 `lab-report.md`，适合做 AI-OS 自身的 smoke 和“做到哪一步才该叫用户验收”的演练。
 

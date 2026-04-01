@@ -50,6 +50,7 @@ const {
   removeManagedPaths,
   appendGitignoreEntries,
   appendGitattributesEntries,
+  generateIdeFiles,
 } = require("./shared");
 
 const FRAMEWORK_VERSION = readFrameworkVersion();
@@ -89,10 +90,16 @@ Prepare delivery:
   create-ai-os release-check [target-dir]  Check release readiness
 
 Cross-tool adapters:
-  create-ai-os cursor-rules [target-dir]   Generate .cursor/rules/*.mdc from framework
+  create-ai-os cursor-rules [target-dir]   Regenerate IDE integration files manually
 
-  Cross-tool compatibility: The generated AGENTS.md and .agents/skills/*/SKILL.md
-  are open standards supported by Antigravity, Cursor, and Codex.
+  IDE integration files (.cursor/, CLAUDE.md, GEMINI.md) are generated automatically
+  during install. Use cursor-rules only to regenerate after manual deletion.
+
+  Cross-tool compatibility:
+  - AGENTS.md + .agents/skills/: natively supported by Codex CLI and Antigravity
+  - .cursor/rules/ + .cursor/skills/: generated for Cursor
+  - CLAUDE.md: generated for Claude Code
+  - GEMINI.md: generated for Antigravity (supplements AGENTS.md)
 
 Options:
   --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
@@ -101,6 +108,7 @@ Options:
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   --lite                Install minimal framework: AGENTS.md + core workflows (align/design/build/verify/debug) + essential skills; ~60% fewer files, ideal for small projects or first-time users
   --no-team-config      Skip automatic .gitignore/.gitattributes setup for team collaboration
+  --no-ide-files        Skip generating IDE integration files (CLAUDE.md, GEMINI.md, .cursor/)
   -h, --help            Show this help message
 `);
 }
@@ -112,6 +120,7 @@ let forceFramework = false;
 let profileArg = "";
 let liteMode = false;
 let noTeamConfig = false;
+let noIdeFiles = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -141,6 +150,10 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--no-team-config") {
     noTeamConfig = true;
+    continue;
+  }
+  if (arg === "--no-ide-files") {
+    noIdeFiles = true;
     continue;
   }
   if (arg === "--target") {
@@ -201,6 +214,10 @@ if (installProfile.includeProjectFiles) {
 writeMetadata(targetDir, { installProfile: installProfile.name });
 writeManagedFilesManifest(targetDir);
 
+if (!noIdeFiles) {
+  generateIdeFiles(targetDir);
+}
+
 if (!noTeamConfig) {
   appendGitignoreEntries(targetDir);
   appendGitattributesEntries(targetDir);
@@ -224,6 +241,12 @@ Pick a workflow to start:
   /plan              Generate specs, tasks, and acceptance gates
   /build             Execute approved work waves
   /verify            Review quality and runtime evidence
+
+IDE integration:
+  Cursor:       .cursor/rules/ + .cursor/skills/ (auto-generated)
+  Claude Code:  CLAUDE.md (auto-generated)
+  Antigravity:  GEMINI.md (auto-generated)
+  Codex CLI:    .agents/skills/ natively compatible
 
 Commit the framework files (AGENTS.md, .agents/, .ai-os/) into your repository.
 `);
@@ -250,9 +273,11 @@ Note:
 - .agents/templates/project/ contains framework reference templates.
 - Your project's working state files live under .ai-os/.
 
-Cross-tool compatibility:
-- AGENTS.md: supported by Antigravity, Cursor, and Codex
-- .agents/skills/*/SKILL.md: supported by Antigravity, Cursor, and Codex
+IDE integration:
+  Cursor:       .cursor/rules/ + .cursor/skills/ (auto-generated)
+  Claude Code:  CLAUDE.md (auto-generated)
+  Antigravity:  GEMINI.md (auto-generated)
+  Codex CLI:    .agents/skills/ natively compatible
 `);
 }
 
