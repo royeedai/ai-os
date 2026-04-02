@@ -169,12 +169,9 @@ let projectArtifactsPresent = false;
 
 for (const pf of coreProjectFiles) {
   const fullPath = pf.path;
-  let exists = false;
-  if (pf.isDir) {
-    exists = fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory();
-  } else {
-    exists = fs.existsSync(fullPath);
-  }
+  const exists = pf.isDir
+    ? fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()
+    : fs.existsSync(fullPath);
   if (exists) {
     projectArtifactsPresent = true;
     report(true, pf.label);

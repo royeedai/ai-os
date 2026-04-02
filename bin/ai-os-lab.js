@@ -7,7 +7,6 @@ const {
   ensureDir,
   fail,
   getProjectFilePath,
-  getProjectRelativePath,
   getProjectTemplatePath,
   copyFramework,
   copyTemplateIfMissing,

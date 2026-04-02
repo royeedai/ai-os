@@ -60,6 +60,18 @@
 - PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
 - PG-004: CLI / 框架能力只在单一 IDE 可用 → 必须写清 Codex / Cursor / Claude Code 等承接路径，否则不纳入 CLI 主能力
 
+## 版本纪律
+
+- **patch** (6.0.x)：bugfix、文案修正、文档补全
+- **minor** (6.x.0)：新增 skill / workflow / CLI 命令、非破坏性增强
+- **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
+
+发版前：
+
+1. 同步更新 `VERSION` 和 `package.json` 的 `version`
+2. 在 `CHANGELOG.md` 顶部补充变更记录
+3. 运行 `npm test` 确认全绿
+
 ## 本地开发补充
 
 常用本地调用方式：

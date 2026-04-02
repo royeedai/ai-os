@@ -33,7 +33,6 @@ const fs = require("fs");
 const path = require("path");
 const {
   MANAGED_ROOTS,
-  PROJECT_STATE_ROOT,
   detectInstallProfileName,
   getDefaultInstallProfileName,
   getInstallProfile,
@@ -42,7 +41,6 @@ const {
   readPackageJson,
   ensureDir,
   fail,
-  getProjectRelativePath,
   copyFramework,
   createProjectFiles,
   writeMetadata,

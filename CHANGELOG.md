@@ -1,128 +1,136 @@
 # Changelog
 
-## 6.0.0
+版本号遵守 [Semantic Versioning](https://semver.org/)：
 
-### Breaking
-- `MISSION.md` 重构为“低频、已确认、共享的交付基线章程”，不再承载阶段计划、待确认项、澄清问题和需求变更同步记录
-- 新增 `.ai-os/baseline-log/` 作为共享基线记录目录；每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，团队协作默认改为“串行基线、并行实现”
-- `tasks.yaml` 与 `acceptance.yaml` 顶层新增 `baseline_id`，用于校验任务 / 验收是否仍对齐当前确认基线
+- **patch** (6.0.x)：bugfix、文案修正、文档补全
+- **minor** (6.x.0)：新增 skill / workflow / CLI 命令、非破坏性增强
+- **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-### CLI / 模板
-- `create-ai-os` 新脚手架会创建真实时间戳命名的初始 baseline record（如 `baseline-log/BL-20260402-153045-initial-baseline.md`），`memory.md` 保留 `.gitattributes merge=union`，`tasks.yaml` 移除 `merge=union` 改为正常合并（避免并发编辑被静默拼接）
-- `validate` 支持薄 Mission 结构、`baseline-log/` 记录结构校验、`baseline_id` 一致性校验，并对旧版 Mission 结构和旧版 `baseline-log.md` 给出迁移 warning
-- `doctor`、`status`、`resume` 新增当前确认基线和最新 confirmed baseline 展示
-- `status`、`next`、`resume` 在 `STATE.md` 缺失时自动从共享工件（MISSION / DESIGN / tasks / acceptance / baseline-log）重建最小状态
+---
 
-### 测试
-- 测试覆盖从 296 项提升到 526 项（+230）
-- 新增测试：薄 Mission 结构校验、baseline-log 目录结构与记录校验、baseline_id 三方一致性、向后兼容（旧 Mission / 旧单文件 log / 旧序号命名）、process-style goal 警告、git merge 策略清理、STATE.md 自动重建、示例工件全量 validate
+## 6.0.0 (2026-04-02)
 
-### 内容增强
-- 更新 `framework/AGENTS.md`、`/align`、`/change-request`、`project-planner` 等规则，把 Mission 明确为锁定章程而非协作日志
-- 更新 README、artifacts/workflows/getting-started 文档，补充多人协作下的 baseline-sync 约定
-- 问题台账新增 PG-005：多人协作下 Mission 冲突热点治理
+### Breaking Changes
 
-## 5.5.0
+- `MISSION.md` 改为薄基线章程：移除阶段计划、需求变更同步记录等高频协作内容
+- 新增 `baseline-log/` 目录，取代原 `baseline-log.md` 单文件记录，每条基线/变更请求一个独立文件（`BL-YYYYMMDD-HHMMSS-slug.md` / `CR-YYYYMMDD-HHMMSS-slug.md`）
+- `tasks.yaml` 升级到 version 3，新增 `owner`、`baseline_id` 字段，移除顶级 `mission` 字段
+- `acceptance.yaml` 新增 `baseline_id`、`baseline_source` 字段
+- 安装时自动生成 `.gitignore`（排除 `STATE.md` 等 session 文件）和 `.gitattributes`（`memory.md` 使用 `merge=union`）
 
-### 新功能
-- `--lite` 安装模式：只安装核心 workflow（align/design/build/verify/debug）、必要 skill（acceptance-gate/memory-manager）和全部模板，token 成本从 ~99K 降到 ~32K（减少 68%）
-- `cursor-rules` 子命令：将已安装框架转换为 `.cursor/rules/*.mdc`，AGENTS.md 生成为 `alwaysApply: true`，workflow/skill 按需加载
-- `token-budget --lite`：对比完整安装与 lite 安装的 token 占用
+### Added
 
-### 内容增强
-- README 新增「为什么需要 AI-OS」章节：引用 2026 年行业数据（AI 代码 bug 率 1.7x、45% 安全漏洞、信任度降至 60%）和运行时护栏工具差异化对比
-- 问题台账新增 PG-002（token 预算治理）、PG-003（advisory 规则可被忽略）、PG-004（IDE 格式兼容性）
-- 4 个新示例骨架：high-risk-state-change（含 risk-register）、debug-bounded-fix、change-request-baseline-sync、degraded-path-verification（含 acceptance.yaml）
-- CLI 文档补充 Lite 模式、Cursor Rules、Token Budget 章节
+- `CONVENTIONS.md` 模板：锁定项目级代码约定（命名、代码模式、禁止模式），防止跨 session 模式漂移
+- 团队协作配置：`--no-team-config` 可跳过 `.gitignore` / `.gitattributes` 生成
+- PG-005（Mission 多人冲突热点）登记到问题台账，覆盖锚点已落地
+- PL-020（brownfield 场景把整个存量项目误当成当前 mission）登记到问题台账
+- `baseline_id` 一致性校验：`validate` 检查 Mission / tasks / acceptance 三处 baseline_id 是否一致
 
-### 测试
-- 测试覆盖从 247 项提升到 296 项（+49）
-- 新增测试：lite 安装正确性、cursor-rules 生成、新 example 骨架、problem-ledger 条目、README 内容、shared.js 导出
+### Changed
 
-## 5.4.0
+- 旧版 `baseline-log.md` 单文件和 `BL-001` 式短 ID 仍可通过校验（带 WARNING）
+- `upgrade` 自动清理 `.gitattributes` 中过时的 `tasks.yaml merge=union` 条目
+- IDE 兼容性说明新增 Codex CLI / Cursor / Claude Code 的承接路径要求
 
-- 补齐 3 个示例骨架的缺失工件文件（greenfield 补 DESIGN/tasks/acceptance，brownfield 补 MISSION，reverse-spec 补 MISSION/acceptance）
-- 创建 CHANGELOG.md
-- 移除全部文档和框架文件中的"vNext"临时标记，统一为正式版本命名
-- 新增 eval 内容结构校验（test/run.js 自动检查每个 eval 的 5 个必备章节）
-- 新增 GitHub Issue Template、PR Template 和 CONTRIBUTING.md
-- 补充 docs/cli.md 中 upgrade 命令的冲突处理说明
-- 测试覆盖从 189 项提升到 213 项
+---
 
-## 5.3.0
+## 5.7.0 (2026-03-31)
 
-- 任务模板新增 `measurable_outcome` 和 `edge_cases` 字段，强制任务级可量化完成标准和异常路径前置定义
-- `/plan` workflow 禁止 `measurable_outcome` 和 `edge_cases` 为空
-- `/build` workflow 新增 wave 级自审检查点（对照 spec、measurable_outcome、越界改动）
-- 测试覆盖从 170+ 提升到 189 项
+### Added
 
-## 5.1.2
+- PL-019（外部编排场景验证闭环被跳过）登记并落地
+- `acceptance-gate` 新增证据要求表和自我合理化防御表
+- `code-review-guard` Step 0 强制项目原生校验
 
-- 修复 vNext 重构后的断引用、死导入和缺失测试覆盖
-- 修正多个 SKILL.md 中的 reference 路径
-- 统一全部 CLI 脚本的参数解析逻辑
-- 新增 build 执行层强化机制
+### Changed
 
-## 5.0.0
+- `verify` workflow 触发条件扩展到外部编排完成后
+- `build` workflow 出口规则：完成后必须进入 `/verify`
 
-**Breaking: 完整切换到 vNext 架构，不再兼容 v2 工件格式。**
+---
 
-### 架构重构
-- 工件目录从 `.ai-os/` 统一管理，模板从 `framework/.agents/templates/project/` 分发
-- 宪法 `framework/AGENTS.md` 重写为 8 条核心管控规则 + 5 条根层原则
-- Workflow 重写为阶段式主路径（align -> design -> plan -> build -> verify -> ship）+ 专项入口（change-request / debug / review / postmortem）+ 续跑入口（status / next / resume / auto-advance）
-- 模板重写：MISSION.md / DESIGN.md / STATE.md / memory.md / tasks.yaml v3 / acceptance.yaml v2 / specs / verification-matrix.yaml / release-plan.md / risk-register.md
+## 5.6.0 (2026-03-30)
 
-### 新增能力
-- `lab` 命令：批量创建多种项目类型沙盒（greenfield / reverse-spec / brownfield / debug / high-risk / degraded-path），自动跑 doctor / validate / status / next 并输出 lab-report.md
-- `release-check` 命令：基于 release-plan.md + acceptance / tasks 的发布就绪检查，高风险档强查授权 / 并发 / degraded-path 证据
-- `skill-check` 命令：校验自定义 Skill 目录的 SKILL.md 结构
-- `status` / `next` / `resume` 命令：项目状态查看、就绪任务列表、跨 session 恢复
-- 问题台账 `docs/problem-ledger.md`：16 条产品问题 + 1 条治理问题，每条绑定覆盖锚点
-- 变更评估模板 `docs/change-evaluation-template.md`
-- 15 个场景 eval + 1 个台账回归 eval
-- 11 个示例 + 3 个骨架示例
+### Added
 
-### 治理增强
-- 高风险档自动升级：命中资产 / 权限 / 不可逆状态流转 / 跨用户数据时强制补 risk-register / release-plan / 专项审查
-- 分级流程（P0 / P1 / P2）适配
-- 交付区分 `AI 已完成` / `需人工执行`
-- 静态校验证据要求（compile / type-check / build）
-- degraded-path-check 拦截只测 happy path 的伪完成
-- brownfield / change 任务先审计共享基础设施约定
-- "可配置"类术语强制追问操作闭环
+- 团队协作测试用例（`.gitignore` / `.gitattributes` helpers）
+- README 团队协作章节
 
-### 删除
-- 移除所有 v2 遗留 workflow 和兼容层
-- 移除旧版 project-type 模板
+---
 
-## 2.6.0
+## 5.5.1 (2026-03-30)
 
-- 版本升级和文档更新
+### Added
 
-## 2.5.0
+- `appendGitignoreEntries` / `appendGitattributesEntries` 幂等写入
+- 团队协作指引文档
 
-- 增强测试和安装流程
-- 重构 README 和引导脚本
+---
 
-## 2.4.0
+## 5.5.0 (2026-03-26)
 
-- 新增变更感知验证支持
-- 增强遗留项目集成
-- 引入全面的 AI 项目交付指南和技能
+### Added
 
-## 2.3.1
+- `--lite` 安装模式：只安装核心 workflow 和 skill，减少 token 占用
+- `ai-os-cursor-rules` 子命令：生成 / 清理 Cursor IDE 衍生文件
+- `ai-os-token-budget` 子命令：估算框架 token 体量，支持 `--source` 和 `--lite` 对比
+- `CLAUDE.md` / `GEMINI.md` IDE 入口文件自动生成
+- Quickstart 示例（`examples/quickstart-todo-cli/`）
 
-- 文档修复和更新
+### Changed
 
-## 2.0.0
+- 文档、示例、eval 全面补齐
 
-- 升级为 AGENTS.md + SKILL.md 开放标准
-- 支持 Antigravity / Cursor / Codex 三工具兼容
-- 新增 doctor / diff / upgrade CLI 命令
-- 引入 reverse-engineer skill 和 clone-project workflow
-- 重构 `create-ai-os` 子命令调度
+---
 
-## 1.0.0
+## 5.4.0 (2026-03-25)
 
-- 初始版本：通过 `npx` 从 git 安装 AI-OS 框架到目标项目
+### Changed
+
+- 示例、文档、命名和测试覆盖整体打磨
+
+---
+
+## 5.3.0 (2026-03-25)
+
+### Added
+
+- `tasks.yaml` 新增 `measurable_outcome` 和 `edge_cases` 字段
+- `/plan` workflow 禁止 `edge_cases` 为空
+
+---
+
+## 5.1.2 (2026-03-19)
+
+### Fixed
+
+- Skill 文档中的引用路径修正
+- CLI 多脚本参数解析增强
+
+### Added
+
+- 交付检查增强：基础设施和配置缺口检测
+- PL-015（brownfield 忽略共享基础设施约定）、PL-016（可配置被误解）登记
+
+---
+
+## 5.0.0 (2026-03-17)
+
+### Breaking Changes
+
+- 移除所有 legacy v1 兼容（`new-project`、`new-module`、`quick` 等旧 workflow）
+- 强制 v2-only workflows
+
+### Added
+
+- `/review` workflow
+- `/postmortem` workflow
+- `ai-os-lab` 多场景实验沙箱
+- 问题台账覆盖检查
+- 跨层交付守卫和风险升级
+- PL-013（局部改动不默认全仓扫描）、PL-014（产品形态检查）登记
+
+### Changed
+
+- 确认门和可用性门重新校准
+- 项目模板收紧

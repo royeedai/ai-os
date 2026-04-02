@@ -52,15 +52,32 @@ const PROJECT_ARTIFACT_DIRS = [
 ];
 const LITE_INCLUDES = [
   "AGENTS.md",
+  // workflows: all phases + key specialized/continue
   ".agents/workflows/AGENTS.md",
   ".agents/workflows/align.md",
   ".agents/workflows/design.md",
+  ".agents/workflows/plan.md",
   ".agents/workflows/build.md",
   ".agents/workflows/verify.md",
+  ".agents/workflows/ship.md",
   ".agents/workflows/debug.md",
+  ".agents/workflows/change-request.md",
+  ".agents/workflows/resume.md",
+  ".agents/workflows/status.md",
+  // skills: only those referenced by workflows
   ".agents/skills/AGENTS.md",
+  ".agents/skills/project-planner/SKILL.md",
   ".agents/skills/acceptance-gate/SKILL.md",
   ".agents/skills/memory-manager/SKILL.md",
+  ".agents/skills/spec-validator/SKILL.md",
+  ".agents/skills/task-orchestrator/SKILL.md",
+  ".agents/skills/code-review-guard/SKILL.md",
+  ".agents/skills/fullstack-dev-checklist/SKILL.md",
+  ".agents/skills/testing-strategies/SKILL.md",
+  ".agents/skills/release-manager/SKILL.md",
+  ".agents/skills/subagent-executor/SKILL.md",
+  ".agents/skills/reverse-engineer/SKILL.md",
+  // references and policies
   ".agents/references/derived-rules.md",
   ".agents/references/risk-triggers.md",
   ".agents/policies/approval-policy.md",
@@ -866,15 +883,9 @@ function writeManagedFilesManifest(targetDir, options = {}) {
 function removeManagedPaths(targetDir) {
   for (const relPath of MANAGED_ROOTS) {
     const absolutePath = path.join(targetDir, relPath);
-    let exists = false;
     try {
       fs.lstatSync(absolutePath);
-      exists = true;
-    } catch (_error) {
-      exists = false;
-    }
-
-    if (!exists) {
+    } catch (_e) {
       continue;
     }
     fs.rmSync(absolutePath, { recursive: true, force: true });

@@ -54,8 +54,8 @@ function hasConcreteChecklistItems(sectionContent) {
     .some(
       (line) =>
         /^- /.test(line) &&
-        !/^\-\s*\[(?:检查项|触发条件)?\]\s*$/.test(line) &&
-        !/^\-\s*\*\*[^\]]*\*\*：\s*$/.test(line)
+        !/^-\s*\[(?:检查项|触发条件)?\]\s*$/.test(line) &&
+        !/^-\s*\*\*[^\]]*\*\*：\s*$/.test(line)
     );
 }
 
