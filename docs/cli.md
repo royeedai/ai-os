@@ -60,7 +60,7 @@ create-ai-os upgrade . --force       # 强制覆盖所有冲突文件（慎用�
 3. 如果有冲突，手动检查 modified 文件，决定是否保留本地修改
 4. 确认可以覆盖后，用 `--force` 执行
 
-注意：`.ai-os/` 下的项目工件（MISSION.md、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。
+注意：`.ai-os/` 下的项目工件（MISSION.md、baseline-log/、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。
 
 ## Lite 模式
 
@@ -95,7 +95,9 @@ create-ai-os plan my-project --profile project --lite --json
 `create-ai-os` 初始化和 `upgrade` 完成后会自动（幂等）追加：
 
 - `.gitignore`：忽略会话态与 CLI 元数据（如 `.ai-os/STATE.md`、`framework.toml`、`managed-files.tsv` 等）
-- `.gitattributes`：为 `memory.md`、`tasks.yaml` 设置 `merge=union`，降低多人并行合并冲突
+- `.gitattributes`：仅为 `memory.md` 设置 `merge=union`；`tasks.yaml` 保持正常合并，避免把同一任务的并发编辑静默拼接；`baseline-log/` 通过一条记录一个文件降低多人并行合并冲突
+
+此外，`status` / `next` / `resume` 在 `STATE.md` 缺失时，会从 `MISSION.md`、最新 confirmed baseline、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml` 自动重建最小状态。
 
 若不需要上述行为（例如自有 Git 策略），安装时使用：
 

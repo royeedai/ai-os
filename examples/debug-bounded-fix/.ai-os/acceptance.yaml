@@ -1,0 +1,81 @@
+version: 2
+baseline_id: "BL-20260322-101500-dropdown-empty-fix"
+scope:
+  mode: "brownfield"
+  focus: "aichat-model-dropdown"
+  baseline_source: "MISSION.md + specs/"
+  change_control: "all requirement changes must go through /change-request"
+  quality_tier: "standard"
+  primary_spec: "specs/dropdown.spec.md"
+  confirmed_stack_decisions: "沿用现有 request interceptor 与页面数据流"
+  target_runtime: "现有 Web 客户端"
+  dev_fallback: "不适用"
+
+required_special_reviews: []
+
+gates:
+  - id: design-confirmation
+    title: "设计确认门"
+    status: passed
+    checks:
+      - "MISSION.md 已是本轮最新且已确认的需求基准"
+      - "修复边界与非目标已确认"
+      - "不扩大到全局 request 层"
+    evidence:
+      - "design-decision-log"
+      - "boundary-check"
+
+  - id: logic-confirmation
+    title: "逻辑确认门"
+    status: passed
+    checks:
+      - "根因已定位为组件消费已拆包响应"
+      - "baseline-log/ 已留下本轮基线确认记录文件"
+      - "修复方案与验收标准一一对应"
+    evidence:
+      - "root-cause-note"
+      - "spec-review"
+
+  - id: implementation-quality
+    title: "实现质量门"
+    status: pending
+    checks:
+      - "单点修复完成"
+      - "没有越界修改 request 层"
+      - "项目原生静态校验已完成"
+    evidence:
+      - "build-log"
+      - "test-log"
+      - "task-flow-check"
+      - "static-validation-check"
+      - "contract-baseline-check"
+
+  - id: delivery-readiness
+    title: "交付质量门"
+    status: pending
+    checks:
+      - "运行态验证已完成"
+      - "异常 / 空数据路径有结论"
+      - "交付说明已区分 AI 已完成 与 需人工执行"
+    evidence:
+      - "runtime-check"
+      - "degraded-path-check"
+      - "manual-action-note"
+      - "handoff-note"
+
+  - id: parity-gate
+    title: "对照一致性门"
+    status: not_applicable
+    checks:
+      - "非 reverse-spec 项目"
+    evidence:
+      - "behavior-note"
+
+result:
+  design_locked: passed
+  logic_locked: passed
+  implementation_ready: blocked
+  delivery_ready: blocked
+  blockers: []
+  advisories: []
+  user_confirmation_blockers: []

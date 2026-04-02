@@ -216,3 +216,11 @@
 - **AI-OS 必须保证**：进入 CLI 或根层治理的能力，必须能被当前已承诺支持的环境稳定承接，或至少提供等价 fallback；做不到就留在适配层 / 示例 / 文档，默认不纳入 CLI 主能力。当前最少要说明 `Codex CLI`、`Cursor`、`Claude Code` 的承接路径；若影响其他已支持环境，也必须一并说明。
 - **当前覆盖锚点**：`bin/ai-os-cursor-rules.js`、`bin/create-ai-os.js` 的 IDE 文件生成、`README.md` 的 IDE 兼容性说明、`docs/cli.md`、`test/run.js` 的 IDE integration tests
 - **每次迭代核对**：新增 CLI 命令、workflow 路由、门禁或运行时增强时，都要写清各支持环境的加载路径和退化路径；不能把只在某一个 IDE 生效的能力直接挂成 AI-OS CLI 主能力。
+
+### PG-005 多人协作下 Mission 成为高频冲突热点，导致基线漂移和确认记录丢失
+
+- **来源**：2026-04-02 用户反馈；多人协作 / 多 agent 并行开发时，`MISSION.md` 频繁冲突
+- **真实问题**：`MISSION.md` 同时承载锁定章程、待确认项、阶段状态和变更日志，导致多人并发时所有高频编辑都集中打到一个共享热点文件；冲突解决时容易覆盖确认记录、丢失变更分析，最终让需求基线漂移。
+- **AI-OS 必须保证**：`MISSION.md` 只记录低频、已确认、共享的交付基线；高频协作信息拆到 `baseline-log/` 和 `STATE.md`；多人协作默认采用“串行基线、并行实现”。
+- **当前覆盖锚点**：`framework/.agents/templates/project/MISSION.md`、`framework/.agents/templates/project/baseline-log/BL-template.md`、`framework/.agents/workflows/align.md`、`framework/.agents/workflows/change-request.md`、`framework/AGENTS.md`、`bin/ai-os-validate.js`、`bin/ai-os-status.js`、`bin/ai-os-resume.js`、`README.md`、`docs/artifacts.md`
+- **每次迭代核对**：不能再把待确认项、阶段状态或需求变更同步记录塞回 `MISSION.md`；不能让 `baseline-log/` 退化成新的需求真理源；不能让多人协作默认再次回到“所有人都直接改 Mission”。

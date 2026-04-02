@@ -10,8 +10,10 @@ const {
 const {
   parseTasksFile,
   summarizeTasks,
-  readStateFile,
+  ensureStateFile,
   getCurrentTask,
+  readMissionFile,
+  readBaselineLogFile,
 } = require("./project-state");
 
 const parsed = parseCliArgs(process.argv);
@@ -29,14 +31,20 @@ Options:
 
 const targetDir = resolveTargetDir(parsed.positional);
 
-const state = readStateFile(targetDir);
+const ensuredState = ensureStateFile(targetDir);
+const state = ensuredState.state;
 const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
+const mission = readMissionFile(targetDir);
+const baselineLog = readBaselineLogFile(targetDir);
 
 if (!state.exists) {
-  fail(`${getProjectRelativePath("STATE.md")} not found in ${targetDir}`);
+  fail(`${getProjectRelativePath("STATE.md")} missing and could not be rebuilt from project artifacts in ${targetDir}`);
 }
 
 process.stdout.write(`\nAI-OS Status — ${targetDir}\n\n`);
+if (ensuredState.rebuilt) {
+  process.stdout.write(`已从共享工件重建 ${getProjectRelativePath("STATE.md")}。\n\n`);
+}
 process.stdout.write(`当前方位:\n`);
 for (const label of ["项目模式", "当前阶段", "当前目标", "当前任务", "当前交付档位", "当前质量焦点"]) {
   process.stdout.write(`- ${label}: ${state.position[label] || "未记录"}\n`);
@@ -60,6 +68,19 @@ if (tasks.exists) {
     process.stdout.write(`- role: ${currentTask.execution_role || "未记录"}\n`);
     process.stdout.write(`- approval: ${currentTask.approval_required || "未记录"}\n`);
   }
+}
+
+process.stdout.write(`\n基线概览:\n`);
+process.stdout.write(`- Mission 当前基线 ID: ${mission.currentBaselineId || "未记录"}\n`);
+if (baselineLog.latestConfirmed) {
+  process.stdout.write(`- 最新 confirmed 基线: ${baselineLog.latestConfirmed.id}\n`);
+  process.stdout.write(`- 基线摘要: ${baselineLog.latestConfirmed.summary || "未记录"}\n`);
+  process.stdout.write(`- 影响范围: ${baselineLog.latestConfirmed.affects || "未记录"}\n`);
+  process.stdout.write(`- 确认时间: ${baselineLog.latestConfirmed.confirmedAt || "未记录"}\n`);
+} else if (baselineLog.exists) {
+  process.stdout.write(`- 最新 confirmed 基线: 未记录\n`);
+} else {
+  process.stdout.write(`- 基线日志目录: ${getProjectRelativePath("baseline-log")}/ 未创建\n`);
 }
 
 process.stdout.write(`\n已锁定内容:\n`);

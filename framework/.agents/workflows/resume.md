@@ -10,11 +10,12 @@ description: 从 STATE.md 恢复当前方位和最小阅读集
 1. `.ai-os/STATE.md`
    - 若 `STATE.md` 不存在（团队协作模式下此文件为 session-local、不入版本控制），执行以下重建：
      a. 读取 `MISSION.md` 获取项目模式、质量标准
-     b. 读取 `DESIGN.md` 获取已锁定设计
-     c. 读取 `tasks.yaml` 获取当前任务状态和进度
-     d. 读取 `acceptance.yaml` 获取门禁状态
-     e. 根据上述信息填充一份新的 `STATE.md`（按模板结构），写入 `.ai-os/STATE.md`
-     f. 在 STATE.md 的"最近偏差 / 回退"中注明"STATE 从项目工件重建（首次 session 或团队协作切换）"
+     b. 读取最新 confirmed `baseline-log/` 记录，确认当前共享基线
+     c. 读取 `DESIGN.md` 获取已锁定设计
+     d. 读取 `tasks.yaml` 获取当前任务状态和进度
+     e. 读取 `acceptance.yaml` 获取门禁状态
+     f. 根据上述信息填充一份新的 `STATE.md`（按模板结构），写入 `.ai-os/STATE.md`
+     g. 在 STATE.md 的"最近偏差 / 回退"中注明"STATE 从项目工件重建（首次 session 或团队协作切换）"
 2. `STATE.md` 中的最小阅读集
 3. 当前任务相关的 `MISSION.md` / `DESIGN.md` / `specs`
 4. 当前任务的 `context_files`

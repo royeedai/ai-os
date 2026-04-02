@@ -130,19 +130,44 @@ const diff = computeDiff(targetDir);
 
 const totalChanges = diff.modified.length + diff.outdated.length + diff.missing.length;
 
+function printTeamConfigSummary(gitignoreAdded, gitattrsAdded) {
+  if (!gitignoreAdded && !gitattrsAdded) {
+    return;
+  }
+  process.stdout.write("Team collaboration config:\n");
+  if (gitignoreAdded) {
+    process.stdout.write("  + .gitignore: added AI-OS session file entries (STATE.md etc. are now local-only)\n");
+  }
+  if (gitattrsAdded) {
+    process.stdout.write("  + .gitattributes: aligned merge strategies (kept memory.md merge=union, removed tasks.yaml merge=union)\n");
+  }
+  process.stdout.write("  Use --no-team-config on next init to opt out.\n\n");
+}
+
 if (totalChanges === 0) {
+  let metadataRefreshed = false;
   if (!preflight && !dryRun && needsLocalMetadataRefresh) {
     writeMetadata(targetDir, {
       installProfile: installProfileName,
       frameworkFootprint,
     });
     writeManagedFilesManifest(targetDir, { frameworkFootprint });
-    process.stdout.write(
-      `\nAlready up to date (v${frameworkVersion}). Refreshed local install metadata.\n\n`
-    );
-    process.exit(0);
+    metadataRefreshed = true;
   }
-  process.stdout.write(`\nAlready up to date (v${frameworkVersion}).\n\n`);
+
+  let gitignoreAdded = false;
+  let gitattrsAdded = false;
+  if (!preflight && !dryRun) {
+    gitignoreAdded = appendGitignoreEntries(targetDir, { logger() {} });
+    gitattrsAdded = appendGitattributesEntries(targetDir, { logger() {} });
+  }
+
+  process.stdout.write(
+    metadataRefreshed
+      ? `\nAlready up to date (v${frameworkVersion}). Refreshed local install metadata.\n\n`
+      : `\nAlready up to date (v${frameworkVersion}).\n\n`
+  );
+  printTeamConfigSummary(gitignoreAdded, gitattrsAdded);
   process.exit(0);
 }
 
@@ -254,13 +279,4 @@ process.stdout.write("\n");
 
 const gitignoreAdded = appendGitignoreEntries(targetDir, { logger() {} });
 const gitattrsAdded = appendGitattributesEntries(targetDir, { logger() {} });
-if (gitignoreAdded || gitattrsAdded) {
-  process.stdout.write("Team collaboration config:\n");
-  if (gitignoreAdded) {
-    process.stdout.write("  + .gitignore: added AI-OS session file entries (STATE.md etc. are now local-only)\n");
-  }
-  if (gitattrsAdded) {
-    process.stdout.write("  + .gitattributes: added merge strategies for memory.md and tasks.yaml\n");
-  }
-  process.stdout.write("  Use --no-team-config on next init to opt out.\n\n");
-}
+printTeamConfigSummary(gitignoreAdded, gitattrsAdded);

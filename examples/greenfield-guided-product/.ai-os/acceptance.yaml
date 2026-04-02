@@ -1,4 +1,5 @@
 version: 2
+baseline_id: "BL-20260316-090000-guided-product-baseline"
 scope:
   mode: "greenfield"
   focus: "homepage-and-main-flow"
@@ -14,6 +15,7 @@ gates:
     status: pending
     checks:
       - "MISSION.md 已是本轮最新且已确认的需求基准"
+      - "acceptance.yaml / tasks.yaml / Mission 的 baseline_id 一致"
       - "关键页面、信息架构和关键交互已确认"
       - "关键视觉方向和不采用的风格已写清"
     evidence:
@@ -26,6 +28,7 @@ gates:
     checks:
       - "核心接口、状态流转和业务规则已确认"
       - "关键异常路径和边界条件已确认"
+      - "baseline-log 已留下本轮基线确认记录"
     evidence:
       - "spec-review"
       - "contract-note"

@@ -28,6 +28,7 @@ description: >
 ## 必须同步检查
 
 - `.ai-os/MISSION.md`
+- `.ai-os/baseline-log/`
 - 对应 `.spec.md`
 - `.ai-os/tasks.yaml`
 - `.ai-os/acceptance.yaml`
@@ -63,6 +64,7 @@ description: >
 | 维度 | 是否受影响 | 说明 |
 |------|------------|------|
 | MISSION | 否 / 是 | |
+| baseline-log | 否 / 是 | |
 | spec | 否 / 是 | |
 | tasks | 否 / 是 | |
 | tests | 否 / 是 | |

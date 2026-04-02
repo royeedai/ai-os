@@ -15,9 +15,10 @@
 ### 1. 需求基准与全生命周期管理
 
 - `.ai-os/MISSION.md` 与 `.ai-os/specs/` 是当前交付的唯一需求真理源；开发、变更、修复、验收都必须以它们为准，禁止以零散聊天记录或临时一句话指令直接替代基准
+- `.ai-os/MISSION.md` 是低频、已确认、共享的交付基线章程；待确认项、阶段状态和协作过程记录不要塞回 Mission，应进入 `.ai-os/STATE.md` 或 `.ai-os/baseline-log/`
 - `greenfield` / `reverse-spec` 场景下，`MISSION.md` 通常接近整个项目目标；`brownfield` / `change` 场景下，`MISSION.md` 记录的是“当前这轮交付基准”，不是整个存量项目本身，只需保留理解本轮工作所必需的宿主项目上下文
 - 无已确认的需求基准，不得编写业务代码；新项目、新模块、新需求必须先完成 `/align`
-- 任何需求补充、范围调整、验收标准变化，都必须先走 `/change-request`：先分析影响，再更新 `MISSION.md` / 对应 spec，再向用户同步整合后的最新基准，最后等待用户明确确认
+- 任何需求补充、范围调整、验收标准变化，都必须先走 `/change-request`：先分析影响并新增 `.ai-os/baseline-log/CR-YYYYMMDD-HHMMSS-slug.md`，再按需更新 `MISSION.md` / 对应 spec，再向用户同步整合后的最新基准，最后等待用户明确确认
 - 所有已确认需求、设计决策、范围变化、风险和例外处理，都必须同步回写 `.ai-os/` 工件，确保中断恢复、多人接手和跨 session 仍能准确继续
 
 ### 2. 需求对齐与模糊需求处理
@@ -27,7 +28,7 @@
 - 对所有歧义点、默认假设、需要用户拍板的内容，必须形成清单式问题并请求确认
 - 需求中出现“配置 / 设置 / 选项”时，必须轻量追问一次操作闭环：它是静态预置、后台可配，还是需要用户 / 运营入口；禁止直接默认成某一种实现方式
 - 必须主动把需求拆成“当前最小可行闭环”和“可后续补充项”，引导用户选择节奏，而不是一刀切要求一次定义全部细节
-- `/align` 结束后，必须输出 `MISSION.md` 核心摘要与待确认项，等待用户明确回复“确认需求对齐，可进入下一阶段”后，才能继续推进
+- `/align` 结束后，必须输出 `MISSION.md` 核心摘要、`baseline-log/` 最新记录与待确认项，等待用户明确回复“确认需求对齐，可进入下一阶段”后，才能继续推进
 
 ### 3. 设计与核心决策管控
 
@@ -136,7 +137,8 @@
 ## 五、可恢复的项目记忆
 
 - `.ai-os/STATE.md` 是恢复上下文的第一入口
-- `.ai-os/MISSION.md` 负责记录宿主项目必要上下文、当前交付目标、范围、模式、质量标准和最新确认基准
+- `.ai-os/MISSION.md` 负责记录宿主项目必要上下文、当前交付目标、范围、模式、质量标准和当前确认基线 ID；它是低频锁定章程，不是协作日志
+- `.ai-os/baseline-log/` 负责记录共享的基线分析、确认和升格记录，供多人协作时对齐和审计；它不是新的需求真理源
 - `.ai-os/DESIGN.md` 负责记录已锁定的设计与关键流程
 - `.ai-os/CONVENTIONS.md` 负责记录项目级代码约定（命名、模式、分层、日志），防止跨 session 代码模式漂移
 - `.ai-os/memory.md` 只记录稳定决策、约束、偏好、坑点和技术债；通过分层归档（active / archived）防止记忆膨胀，不再有效的条目归档而非删除
@@ -151,7 +153,7 @@
 | 类别 | 文件 | 版本控制 | 说明 |
 |------|------|----------|------|
 | 项目共识 | `MISSION.md`, `DESIGN.md`, `specs/`, `acceptance.yaml`, `CONVENTIONS.md` | 入版本控制 | 项目真理源，团队共享 |
-| 追加式知识 | `memory.md`, `tasks.yaml` | 入版本控制（merge=union） | 通过 `.gitattributes` 合并策略减少冲突 |
+| 追加式知识 | `baseline-log/`, `memory.md`, `tasks.yaml` | 入版本控制 | `baseline-log/` 通过一条记录一个文件降低冲突；`memory.md` 使用 `.gitattributes` 追加式合并；`tasks.yaml` 保持正常合并并依赖唯一 ID / owner 规则避免静默冲突 |
 | 会话状态 | `STATE.md`, `context-snapshot.md`, `codebase-map.md` | 不入版本控制 | 每位开发者本地维护，`/resume` 可从项目工件重建 |
 | 元数据 | `framework.toml`, `managed-files.tsv` | 不入版本控制 | CLI 安装/升级时自动生成 |
 
@@ -159,16 +161,19 @@
 
 - `/align` 和 `/design` 在主干分支（main/develop）上完成并确认后，团队成员再分支并行开发
 - `MISSION.md` 和 `DESIGN.md` 在 `/design` 确认后视为锁定；后续变更必须走 `/change-request` 并同步团队
+- 会改变 `MISSION.md` 的基线调整，默认先走独立的 baseline-sync PR / commit 落主干；功能分支消费最新基线后再并行实现
 - 每位开发者在各自的功能分支上工作，通过 PR 合并回主干
 
 ### 任务分配
 
 - `tasks.yaml` 中的 `owner` 字段标明任务责任人
-- 不同开发者只更新自己负责的任务状态，避免修改他人任务
-- 新增任务时使用不会冲突的 ID 命名规则（如以开发者缩写为前缀：`TASK-DW-001`）
+- 不同开发者只更新自己负责的任务运行态字段，避免修改他人任务、`baseline_id`、里程碑定义和需求映射
+- 新增任务时使用不会冲突的 ID 命名规则（如以开发者缩写为前缀：`TASK-DW-001`，推荐统一成 `TASK-<OWNER>-NNN`）
 
 ### 记忆合并
 
+- `baseline-log/` 中每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件；新增记录只新建文件，不回写历史文件
+- 若 `baseline-log/` 出现并行记录，优先保留双方文件，再由主干上的基线升格记录明确当前有效的 confirmed baseline
 - `memory.md` 中的条目使用唯一 ID（DD-001、CD-001 等），不同开发者追加不同 ID 的条目
 - PR 合并时，若 `memory.md` 出现冲突，保留双方条目（决策记录不可丢弃）
 - 归档操作（将条目从 active 移至 archived）建议在主干分支上统一执行

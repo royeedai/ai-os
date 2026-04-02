@@ -29,6 +29,10 @@ const {
   resolveTargetDir,
   createReporter,
 } = require("./shared");
+const {
+  readMissionFile,
+  readBaselineLogFile,
+} = require("./project-state");
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -59,6 +63,8 @@ const reporter = createReporter();
 const { report } = reporter;
 
 const frameworkVersion = readFrameworkVersion();
+const mission = readMissionFile(targetDir);
+const baselineLog = readBaselineLogFile(targetDir);
 
 process.stdout.write(`\nAI-OS Doctor — ${targetDir}\n`);
 process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
@@ -204,6 +210,17 @@ if (existingOptional.length > 0) {
   process.stdout.write(`\n  Optional project state files:\n`);
   for (const pf of existingOptional) {
     report(true, pf.label, { warnOnly: true });
+  }
+}
+
+if (mission.exists || baselineLog.exists) {
+  process.stdout.write(`\n  Baseline summary:\n`);
+  process.stdout.write(`  - Mission 当前基线 ID: ${mission.currentBaselineId || "未记录"}\n`);
+  if (baselineLog.latestConfirmed) {
+    process.stdout.write(`  - Latest confirmed baseline: ${baselineLog.latestConfirmed.id}\n`);
+    process.stdout.write(`  - Summary: ${baselineLog.latestConfirmed.summary || "未记录"}\n`);
+  } else if (baselineLog.exists) {
+    process.stdout.write("  - Latest confirmed baseline: 未记录\n");
   }
 }
 

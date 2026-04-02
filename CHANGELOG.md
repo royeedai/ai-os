@@ -1,5 +1,27 @@
 # Changelog
 
+## 6.0.0
+
+### Breaking
+- `MISSION.md` 重构为“低频、已确认、共享的交付基线章程”，不再承载阶段计划、待确认项、澄清问题和需求变更同步记录
+- 新增 `.ai-os/baseline-log/` 作为共享基线记录目录；每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，团队协作默认改为“串行基线、并行实现”
+- `tasks.yaml` 与 `acceptance.yaml` 顶层新增 `baseline_id`，用于校验任务 / 验收是否仍对齐当前确认基线
+
+### CLI / 模板
+- `create-ai-os` 新脚手架会创建真实时间戳命名的初始 baseline record（如 `baseline-log/BL-20260402-153045-initial-baseline.md`），`memory.md` 保留 `.gitattributes merge=union`，`tasks.yaml` 移除 `merge=union` 改为正常合并（避免并发编辑被静默拼接）
+- `validate` 支持薄 Mission 结构、`baseline-log/` 记录结构校验、`baseline_id` 一致性校验，并对旧版 Mission 结构和旧版 `baseline-log.md` 给出迁移 warning
+- `doctor`、`status`、`resume` 新增当前确认基线和最新 confirmed baseline 展示
+- `status`、`next`、`resume` 在 `STATE.md` 缺失时自动从共享工件（MISSION / DESIGN / tasks / acceptance / baseline-log）重建最小状态
+
+### 测试
+- 测试覆盖从 296 项提升到 526 项（+230）
+- 新增测试：薄 Mission 结构校验、baseline-log 目录结构与记录校验、baseline_id 三方一致性、向后兼容（旧 Mission / 旧单文件 log / 旧序号命名）、process-style goal 警告、git merge 策略清理、STATE.md 自动重建、示例工件全量 validate
+
+### 内容增强
+- 更新 `framework/AGENTS.md`、`/align`、`/change-request`、`project-planner` 等规则，把 Mission 明确为锁定章程而非协作日志
+- 更新 README、artifacts/workflows/getting-started 文档，补充多人协作下的 baseline-sync 约定
+- 问题台账新增 PG-005：多人协作下 Mission 冲突热点治理
+
 ## 5.5.0
 
 ### 新功能

@@ -53,11 +53,12 @@ npx --yes github:royeedai/ai-os my-project --profile project --no-ide-files
 ## 第一次使用先记住 6 件事
 
 - `MISSION.md` + `specs/` 是当前交付的唯一需求真理源
+- `MISSION.md` 是低频共享章程，`baseline-log/` 是共享基线记录目录
 - `brownfield` / `change` 下，`MISSION.md` 记录的是本轮要交付什么，不是把整个老项目重新定义一遍
 - `DESIGN.md` 负责锁关键页面和关键流程
 - `CONVENTIONS.md` 负责锁项目级代码约定，避免多 session / 多人协作时模式漂移
-- `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清
-- `STATE.md` 负责恢复上下文、确认停点和下一步
+- `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清；多人协作时任务要有稳定 `owner` 和唯一 ID
+- `STATE.md` 负责恢复上下文、确认停点和下一步；缺失时 `status` / `next` / `resume` 会自动重建
 
 ## 安装后你会看到什么
 
@@ -65,6 +66,7 @@ npx --yes github:royeedai/ai-os my-project --profile project --no-ide-files
 - `.agents/skills/`（lite 模式只含 acceptance-gate 和 memory-manager）
 - `.agents/workflows/`（lite 模式只含 align/design/build/verify/debug）
 - `.ai-os/MISSION.md`
+- `.ai-os/baseline-log/`
 - `.ai-os/DESIGN.md`
 - `.ai-os/CONVENTIONS.md`
 - `.ai-os/tasks.yaml`

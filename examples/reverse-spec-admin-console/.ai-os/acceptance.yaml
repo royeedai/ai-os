@@ -1,4 +1,5 @@
 version: 2
+baseline_id: "BL-20260316-100000-admin-console-parity"
 scope:
   mode: "reverse-spec"
   focus: "admin-console"
@@ -6,6 +7,9 @@ scope:
   change_control: "all requirement changes must go through /change-request"
   quality_tier: "standard"
   primary_spec: "specs/admin-list.spec.md"
+  confirmed_stack_decisions: "existing web admin stack + current request wrapper + parity-map driven design"
+  target_runtime: "browser-based internal admin console"
+  dev_fallback: "local mock API + screenshot parity check"
 
 required_special_reviews: []
 
@@ -20,6 +24,7 @@ gates:
     evidence:
       - "design-decision-log"
       - "screen-reference"
+      - "contract-baseline-check"
 
   - id: logic-confirmation
     title: "逻辑确认门"
@@ -30,6 +35,7 @@ gates:
     evidence:
       - "spec-review"
       - "contract-note"
+      - "degraded-path-check"
 
   - id: implementation-quality
     title: "实现质量门"
@@ -40,6 +46,8 @@ gates:
     evidence:
       - "build-log"
       - "test-log"
+      - "static-validation-check"
+      - "contract-baseline-check"
 
   - id: delivery-readiness
     title: "交付质量门"
@@ -50,6 +58,8 @@ gates:
     evidence:
       - "runtime-check"
       - "handoff-note"
+      - "manual-action-note"
+      - "degraded-path-check"
 
   - id: parity-gate
     title: "对照一致性门"

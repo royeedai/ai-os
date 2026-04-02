@@ -1,17 +1,29 @@
 version: 3
-mission: "todo-cli: 本地文件存储的命令行 Todo 管理工具"
-quality_tier: "standard"
+baseline_id: "BL-20260316-083000-todo-cli-baseline"
+scope:
+  mode: "greenfield"
+  focus: "todo-cli"
+  baseline_source: "MISSION.md + specs/"
+  quality_tier: "standard"
 
 milestones:
-  - id: m1
+  - id: M1
     title: "核心 CRUD"
-    target: "4 个命令可用"
+    goal: "4 个命令可用"
+    scope: "本地 JSON 存储与 add/list/done/delete 命令"
+    acceptance_goal: "命令行为与 spec 一致，异常输入有提示"
+    target_window: "quickstart"
 
 tasks:
-  - id: t1
+  - id: TASK-AI-001
     title: "实现 JSON 文件读写层"
+    milestone: M1
+    parent: null
     wave: 1
     status: done
+    owner: AI
+    risk: low
+    priority: high
     execution_role: "implementer"
     approval_required: "none"
     context_files:
@@ -38,21 +50,26 @@ tasks:
     derived_checks:
       - "文件读写回归"
     risk_triggers: []
-    risk: low
-    priority: high
+    blockers: []
     requirement_refs:
       - "MISSION §4 范围内: JSON 文件持久化"
     acceptance_criteria:
       - "JSON 读写无数据丢失"
+    notes: ""
 
-  - id: t2
+  - id: TASK-AI-002
     title: "实现 add/list/done/delete 命令"
+    milestone: M1
+    parent: null
     wave: 2
     status: done
+    owner: AI
+    risk: low
+    priority: high
     execution_role: "implementer"
     approval_required: "none"
     depends_on:
-      - "t1"
+      - "TASK-AI-001"
     context_files:
       - "specs/todo-cli.spec.md"
     inputs:
@@ -81,10 +98,10 @@ tasks:
     derived_checks:
       - "命令输出格式回归"
     risk_triggers: []
-    risk: low
-    priority: high
+    blockers: []
     requirement_refs:
       - "MISSION §4 范围内: add/list/done/delete 命令"
     acceptance_criteria:
       - "4 个命令执行正确"
       - "异常输入有提示"
+    notes: ""

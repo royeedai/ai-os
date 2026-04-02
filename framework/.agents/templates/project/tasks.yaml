@@ -1,6 +1,6 @@
 # 本模板所有内容必须严格基于用户确认的需求基准生成，禁止擅自超出范围、脑补内容，所有核心决策必须有用户确认依据。
 version: 3
-mission: "MISSION.md"
+baseline_id: "{{INITIAL_BASELINE_ID}}"
 scope:
   mode: "greenfield"
   focus: "example-module"
@@ -22,12 +22,12 @@ milestones:
     target_window: "[计划时间窗口]"
 
 tasks:
-  - id: TASK-001
+  - id: TASK-AI-001
     title: "将关键页面、流程与接口契约收敛到 spec"
     milestone: M1
     parent: null
     status: todo
-    owner: ai
+    owner: AI
     risk: medium
     priority: P1
     wave: 1
@@ -62,6 +62,7 @@ tasks:
       - "[列出本任务最可能遗漏的异常路径，例如：空数据状态下的页面展示、权限不足时的流程中断]"
     definition_of_ready:
       - "Mission 已明确用户、目标和项目模式"
+      - "baseline_id 与最新确认基线一致"
       - "关键输入素材已整理"
       - "核心待确认项已显式暴露"
     definition_of_done:
@@ -94,19 +95,19 @@ tasks:
       - "不进入未确认的实现工作"
     notes: ""
 
-  - id: TASK-002
+  - id: TASK-AI-002
     title: "按已锁定设计和契约完成实现"
     milestone: M2
     parent: null
     status: todo
-    owner: ai
+    owner: AI
     risk: medium
     priority: P0
     wave: 2
     execution_role: "implementer"
     approval_required: "before_execution"
     depends_on:
-      - "TASK-001"
+      - "TASK-AI-001"
     requirement_refs:
       - "REQ-001"
     acceptance_refs:
@@ -139,6 +140,7 @@ tasks:
     definition_of_ready:
       - "设计确认门已通过"
       - "逻辑确认门已通过"
+      - "baseline_id 与 Mission 当前基线 ID 一致"
       - "不存在阻塞性的技术选型待确认项"
       - "不存在阻塞性待确认项"
       - "用户已确认本轮任务边界和验收标准"

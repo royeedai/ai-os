@@ -6,7 +6,7 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 
 | workflow | 用途 |
 |------|------|
-| `/align` | 澄清目标、用户、模式、质量标准和待确认项 |
+| `/align` | 澄清目标、用户、模式、质量标准和待确认项，并生成薄 Mission + baseline-log records |
 | `/design` | 锁定关键页面、IA、视觉方向和关键流程 |
 | `/plan` | 生成交互模式、契约基准、tasks、acceptance 和证据计划 |
 | `/build` | 按 wave、impact_tags 和角色分工实现 |
@@ -17,7 +17,7 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 
 | workflow | 用途 |
 |------|------|
-| `/change-request` | 任何需求补充、范围调整、验收变化前先更新需求基准 |
+| `/change-request` | 任何需求补充、范围调整、验收变化前先新增 baseline record，再按需更新需求基准 |
 | `/debug` | 单点 bug、样式 / 文案 / 配置微调先定界、再修复、再回归 |
 | `/review` | 对方案、实现或交付做多维度结构化审查 |
 | `/postmortem` | 对项目或里程碑做复盘，并把稳定经验同步进 `memory.md` |
@@ -35,6 +35,7 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 
 - 新项目、新模块、模糊需求先走 `/align`
 - brownfield / change 下，先锁当前这轮交付基准，不要把整个存量项目重新当成 mission
+- 多人协作时，`MISSION.md` 视为低频锁定章程；高频变更记录放到 `baseline-log/`
 - 关键设计未锁时停在 `/design`
 - 需求变化先走 `/change-request`，禁止直接按聊天指令改代码
 - 单点修复先走 `/debug`，禁止越界顺手改

@@ -11,6 +11,7 @@ const NODE = process.execPath;
 
 let passed = 0;
 let failed = 0;
+const BASELINE_RECORD_NAME_PATTERN = /^(BL|CR)-\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 
 function assert(condition, label) {
   if (condition) {
@@ -38,6 +39,21 @@ function tmpDir() {
 
 function cleanup(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
+}
+
+function listBaselineRecords(projectDir, prefix = "") {
+  const baselineDir = path.join(projectDir, ".ai-os", "baseline-log");
+  if (!fs.existsSync(baselineDir)) {
+    return [];
+  }
+  return fs.readdirSync(baselineDir)
+    .filter((name) => name.endsWith(".md") && (!prefix || name.startsWith(prefix)))
+    .sort();
+}
+
+function extractMissionBaselineId(content) {
+  const match = content.match(/^\- \*\*当前基线 ID\*\*[:：]\s*(.+)$/m);
+  return match ? match[1].trim() : "";
 }
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -146,6 +162,10 @@ assert(cliDoc.includes("create-ai-os plan . --profile core"), "cli doc documents
 assert(cliDoc.includes("create-ai-os my-project --profile project"), "cli doc uses project profile for initialization");
 assert(cliDoc.includes("`create-ai-os` 初始化和 `upgrade`"), "cli doc uses the current command names for team config");
 assert(cliDoc.includes("所有已承诺支持的环境承接"), "cli doc requires CLI features to be portable across supported environments");
+assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
+assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
+assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
+assert(gettingStartedDoc.includes("会自动重建"), "getting-started documents STATE auto rebuild");
 assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
 assert(maintainersDoc.includes("node ./bin/create-ai-os.js plan /tmp/test-project --profile project"), "maintainers doc includes plan preview in local examples");
 
@@ -178,6 +198,7 @@ assert(fs.existsSync(path.join(initDir, ".agents", "skills")), ".agents/skills/ 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows")), ".agents/workflows/ created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "MISSION.md")), "MISSION.md created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "baseline-log")), "baseline-log/ created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "DESIGN.md")), "DESIGN.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "CONVENTIONS.md")), "CONVENTIONS.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
@@ -210,19 +231,29 @@ const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "tasks.yaml")
 const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "acceptance.yaml"), "utf8");
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
 const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
+const baselineStarterFiles = listBaselineRecords(initDir, "BL-");
+assert(baselineStarterFiles.length === 1, "baseline-log starter record created");
+assert(BASELINE_RECORD_NAME_PATTERN.test(baselineStarterFiles[0]), "baseline-log starter record uses timestamp + slug naming");
+const initialBaselineFile = baselineStarterFiles[0];
+const initialBaselineId = initialBaselineFile.replace(/\.md$/, "");
+const baselineTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "baseline-log", initialBaselineFile), "utf8");
 
-assert(missionTemplate.includes("## 1. 宿主项目与当前交付定义"), "MISSION template has current delivery definition section");
+assert(missionTemplate.includes("## 1. 交付基线摘要"), "MISSION template has baseline summary section");
 assert(missionTemplate.includes("宿主项目 / 系统"), "MISSION template includes host project field");
 assert(missionTemplate.includes("当前交付主题"), "MISSION template includes current delivery subject");
 assert(missionTemplate.includes("brownfield` / `change"), "MISSION template clarifies brownfield/change semantics");
-assert(missionTemplate.includes("关键选型"), "MISSION template includes key decisions");
-assert(missionTemplate.includes("## 5. 阶段计划"), "MISSION template has phase plan");
+assert(missionTemplate.includes("已确认约束与关键决策"), "MISSION template includes confirmed decision section");
+assert(missionTemplate.includes("当前基线 ID"), "MISSION template includes current baseline id");
+assert(missionTemplate.includes("## 4. 范围边界与非目标"), "MISSION template has scope/non-goal section");
 assert(missionTemplate.includes("高风险触发因素"), "MISSION template includes high-risk triggers");
 assert(missionTemplate.includes("当前治理档位"), "MISSION template includes governance tier");
-assert(missionTemplate.includes("需求变更同步记录"), "MISSION template includes change sync log");
-assert(missionTemplate.includes("### 非功能性约束"), "MISSION template includes non-functional constraints");
-assert(missionTemplate.includes("### 验收标准基线"), "MISSION template includes acceptance baseline");
-assert(missionTemplate.includes("配置 / 设置 / 选项"), "MISSION template includes config closure guidance");
+assert(missionTemplate.includes("### 已确认非功能性约束"), "MISSION template includes confirmed non-functional constraints");
+assert(!missionTemplate.includes("需求变更同步记录"), "MISSION template no longer includes change sync log");
+assert(!missionTemplate.includes("## 5. 阶段计划"), "MISSION template no longer includes phase plan");
+assert(extractMissionBaselineId(missionTemplate) === initialBaselineId, "MISSION template baseline id matches starter record");
+assert(baselineTemplate.includes(`# ${initialBaselineId}`), "baseline template includes generated initial confirmed baseline");
+assert(baselineTemplate.includes("**Type**: align"), "baseline template includes Type field");
+assert(baselineTemplate.includes("CR-YYYYMMDD-HHMMSS-change-request.md"), "baseline template explains timestamp-based per-record file convention");
 assert(designTemplate.includes("## 2. 信息架构"), "DESIGN template has IA section");
 assert(designTemplate.includes("## 6. 设计确认记录"), "DESIGN template has confirmation record section");
 assert(designTemplate.includes("必须用户确认的核心设计决策"), "DESIGN template includes required confirmations");
@@ -244,7 +275,12 @@ assert(tasksTemplate.includes("priority:"), "tasks template includes task priori
 assert(tasksTemplate.includes("acceptance_criteria:"), "tasks template includes task acceptance criteria");
 assert(tasksTemplate.includes("measurable_outcome:"), "tasks template includes measurable_outcome");
 assert(tasksTemplate.includes("edge_cases:"), "tasks template includes edge_cases");
+assert(tasksTemplate.includes(`baseline_id: "${initialBaselineId}"`), "tasks template includes generated baseline_id");
+assert(!tasksTemplate.includes("\nmission:"), "tasks template omits deprecated top-level mission field");
+assert(tasksTemplate.includes("TASK-AI-001"), "tasks template uses collaboration-safe task ids");
+assert(tasksTemplate.includes("owner: AI"), "tasks template includes stable owner field");
 assert(acceptanceTemplate.includes("design-confirmation"), "acceptance template includes design gate");
+assert(acceptanceTemplate.includes(`baseline_id: "${initialBaselineId}"`), "acceptance template includes generated baseline_id");
 assert(acceptanceTemplate.includes("logic-confirmation"), "acceptance template includes logic gate");
 assert(acceptanceTemplate.includes("delivery-readiness"), "acceptance template includes delivery gate");
 assert(acceptanceTemplate.includes("quality_tier"), "acceptance template includes quality_tier");
@@ -261,7 +297,10 @@ assert(specTemplate.includes("**契约基准**"), "spec template includes contra
 assert(specTemplate.includes("**异常/空数据证据**"), "spec template includes degraded-path evidence");
 assert(stateTemplate.includes("## 已锁定内容"), "STATE template includes locked items section");
 assert(stateTemplate.includes("## 最小阅读集"), "STATE template includes minimum reading set");
+assert(stateTemplate.includes("项目模式"), "STATE template includes canonical 项目模式 field");
+assert(stateTemplate.includes("当前阶段"), "STATE template includes canonical 当前阶段 field");
 assert(stateTemplate.includes("当前确认停点"), "STATE template includes confirmation checkpoint");
+assert(stateTemplate.includes("baseline-log/"), "STATE template minimum read set includes baseline-log directory");
 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");
@@ -330,6 +369,7 @@ const futurePlanJson = JSON.parse(futurePlanResult.stdout);
 assert(futurePlanJson.profile.name === "project", "create-ai-os plan accepts project profile for a new target path");
 assert(futurePlanJson.summary.projectCreateCount > 0, "new-target plan reports starter project artifacts to create");
 assert(futurePlanJson.project.create.includes(".ai-os/CONVENTIONS.md"), "project plan includes CONVENTIONS starter file");
+assert(futurePlanJson.project.create.some((relPath) => /^\.ai-os\/baseline-log\/BL-\d{8}-\d{6}-[a-z0-9-]+\.md$/.test(relPath)), "project plan includes timestamped baseline starter record");
 assert(!futurePlanJson.project.create.includes(".ai-os/evals/eval-example.md"), "plan omits on-demand eval starter files");
 
 const litePlanResult = run("create-ai-os.js", ["plan", futureProjectDir, "--profile", "project", "--lite", "--json"]);
@@ -363,6 +403,8 @@ const customContent = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
 const reinitResult = run("create-ai-os.js", [initDir]);
 assert(reinitResult.status === 0, "re-init on existing project exits with code 0");
 assert(fs.existsSync(path.join(initDir, "AGENTS.md")), "AGENTS.md still exists after re-init");
+assert(listBaselineRecords(initDir, "BL-").length === 1, "re-init does not create a duplicate baseline starter record");
+assert(listBaselineRecords(initDir, "BL-")[0] === initialBaselineFile, "re-init preserves the original baseline starter record");
 
 const agentsMdAfter = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
 assert(agentsMdAfter === customContent, "re-init preserves user-modified AGENTS.md (overwrite: false)");
@@ -380,6 +422,8 @@ assert(doctorResult.status === 0, "doctor --strict passes on fresh project");
 const statusResult = run("ai-os-status.js", [initDir]);
 assert(statusResult.status === 0, "status exits with code 0");
 assert(statusResult.stdout.includes("当前方位"), "status prints current orientation");
+assert(statusResult.stdout.includes("基线概览"), "status prints baseline overview");
+assert(statusResult.stdout.includes("Mission 当前基线 ID"), "status prints mission baseline id");
 assert(statusResult.stdout.includes("已锁定内容"), "status prints locked items");
 
 const nextResult = run("ai-os-next.js", [initDir]);
@@ -389,11 +433,33 @@ assert(nextResult.stdout.includes("role="), "next includes execution role");
 const resumeResult = run("ai-os-resume.js", [initDir]);
 assert(resumeResult.status === 0, "resume exits with code 0");
 assert(resumeResult.stdout.includes(".ai-os/MISSION.md"), "resume includes MISSION in reading set");
+assert(resumeResult.stdout.includes(".ai-os/baseline-log"), "resume includes baseline-log in reading set");
 
 const resumeMarkdownResult = run("ai-os-resume.js", [initDir, "--markdown"]);
 assert(resumeMarkdownResult.status === 0, "resume --markdown exits with code 0");
+assert(resumeMarkdownResult.stdout.includes("## 基线概览"), "resume --markdown includes baseline overview");
 assert(resumeMarkdownResult.stdout.includes("## 已锁定内容"), "resume --markdown includes locked items");
 assert(resumeMarkdownResult.stdout.includes(".ai-os/DESIGN.md"), "resume --markdown references DESIGN");
+
+fs.unlinkSync(path.join(initDir, ".ai-os", "STATE.md"));
+const rebuiltStatusResult = run("ai-os-status.js", [initDir]);
+assert(rebuiltStatusResult.status === 0, "status rebuilds missing STATE.md");
+assert(rebuiltStatusResult.stdout.includes("重建"), "status reports STATE rebuild");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "status recreates STATE.md");
+assert(
+  fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8").includes("STATE 从项目工件重建"),
+  "rebuilt STATE records reconstruction note"
+);
+
+fs.unlinkSync(path.join(initDir, ".ai-os", "STATE.md"));
+const rebuiltNextResult = run("ai-os-next.js", [initDir]);
+assert(rebuiltNextResult.status === 0, "next rebuilds missing STATE.md");
+assert(rebuiltNextResult.stdout.includes("重建"), "next reports STATE rebuild");
+
+fs.unlinkSync(path.join(initDir, ".ai-os", "STATE.md"));
+const rebuiltResumeResult = run("ai-os-resume.js", [initDir]);
+assert(rebuiltResumeResult.status === 0, "resume rebuilds missing STATE.md");
+assert(rebuiltResumeResult.stdout.includes("重建"), "resume reports STATE rebuild");
 
 cleanup(initDir);
 cleanup(coreDir);
@@ -728,6 +794,14 @@ assert(upgradeDryRunResult.status === 0, "upgrade --dry-run exits with code 0");
 const upgradePreflightResult = run("ai-os-upgrade.js", [diffUpgradeDir, "--preflight"]);
 assert(upgradePreflightResult.status === 0, "upgrade --preflight exits with code 0 on clean project");
 
+fs.appendFileSync(path.join(diffUpgradeDir, ".gitattributes"), "\n.ai-os/tasks.yaml merge=union\n", "utf8");
+const upgradeObsoleteMergeResult = run("ai-os-upgrade.js", [diffUpgradeDir]);
+assert(upgradeObsoleteMergeResult.status === 0, "upgrade removes obsolete tasks.yaml merge strategy");
+assert(
+  !fs.readFileSync(path.join(diffUpgradeDir, ".gitattributes"), "utf8").includes("tasks.yaml merge=union"),
+  "upgrade strips obsolete tasks.yaml merge=union entry"
+);
+
 cleanup(diffUpgradeDir);
 
 // ---------------------------------------------------------------------------
@@ -852,6 +926,153 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
   cleanup(dir);
 }
 
+// Legacy MISSION.md + missing baseline-log directory → validate warns but stays valid
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  fs.writeFileSync(
+    path.join(dir, ".ai-os", "MISSION.md"),
+    `# Mission
+
+## 1. 宿主项目与当前交付定义
+
+- **宿主项目 / 系统**：legacy
+- **当前交付主题**：legacy mission
+
+## 2. 用户与场景
+
+- legacy user
+
+## 3. 项目模式、质量目标与关键选型
+
+- **项目模式**：greenfield
+
+## 4. 范围边界
+
+- legacy scope
+
+## 5. 阶段计划
+
+- legacy phase
+
+## 6. 已知输入与待确认项
+
+- legacy pending
+
+## 7. 风险与外部依赖
+
+- legacy risk
+`,
+    "utf8"
+  );
+  fs.rmSync(path.join(dir, ".ai-os", "baseline-log"), { recursive: true, force: true });
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 0, "legacy mission structure stays valid with warnings");
+  assert(result.stdout.includes("legacy hotspot-heavy structure"), "validate warns on legacy mission structure");
+  cleanup(dir);
+}
+
+// Legacy baseline-log.md → validate warns but stays valid
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const originalBaselineId = extractMissionBaselineId(
+    fs.readFileSync(path.join(dir, ".ai-os", "MISSION.md"), "utf8")
+  );
+  const legacyBaselineId = "BL-001";
+  fs.rmSync(path.join(dir, ".ai-os", "baseline-log"), { recursive: true, force: true });
+  fs.writeFileSync(
+    path.join(dir, ".ai-os", "baseline-log.md"),
+    `# Baseline Log
+
+| ID | Type | Status | Summary | Affects | Confirmed At |
+|----|------|--------|---------|---------|--------------|
+| ${legacyBaselineId} | align | confirmed | legacy baseline log | MISSION.md | 2026-04-02 |
+`,
+    "utf8"
+  );
+  const missionPath = path.join(dir, ".ai-os", "MISSION.md");
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
+  fs.writeFileSync(
+    missionPath,
+    fs.readFileSync(missionPath, "utf8").replace(originalBaselineId, legacyBaselineId),
+    "utf8"
+  );
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace(originalBaselineId, legacyBaselineId),
+    "utf8"
+  );
+  fs.writeFileSync(
+    acceptancePath,
+    fs.readFileSync(acceptancePath, "utf8").replace(originalBaselineId, legacyBaselineId),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 0, "legacy baseline-log.md stays valid with warnings");
+  assert(result.stdout.includes("legacy single-file log"), "validate warns on legacy baseline-log.md");
+  cleanup(dir);
+}
+
+// Legacy directory naming (BL-001) → validate warns but stays valid
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const originalBaselineFile = listBaselineRecords(dir, "BL-")[0];
+  const originalBaselineId = originalBaselineFile.replace(/\.md$/, "");
+  const legacyBaselineId = "BL-001";
+  const baselineDir = path.join(dir, ".ai-os", "baseline-log");
+  fs.renameSync(
+    path.join(baselineDir, originalBaselineFile),
+    path.join(baselineDir, `${legacyBaselineId}.md`)
+  );
+  const missionPath = path.join(dir, ".ai-os", "MISSION.md");
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
+  fs.writeFileSync(
+    missionPath,
+    fs.readFileSync(missionPath, "utf8").replace(originalBaselineId, legacyBaselineId),
+    "utf8"
+  );
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace(originalBaselineId, legacyBaselineId),
+    "utf8"
+  );
+  fs.writeFileSync(
+    acceptancePath,
+    fs.readFileSync(acceptancePath, "utf8").replace(originalBaselineId, legacyBaselineId),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 0, "legacy BL-001 directory naming stays valid with warnings");
+  assert(result.stdout.includes("timestamp + slug record filenames"), "validate warns on legacy BL-001 directory naming");
+  cleanup(dir);
+}
+
+// baseline_id mismatch → validate rejects
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const currentBaselineId = extractMissionBaselineId(
+    fs.readFileSync(path.join(dir, ".ai-os", "MISSION.md"), "utf8")
+  );
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace(
+      `baseline_id: "${currentBaselineId}"`,
+      'baseline_id: "BL-20990101-000000-mismatch"'
+    ),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "validate rejects baseline_id mismatch");
+  assert(result.stdout.includes("baseline_id matches Mission"), "validate reports baseline mismatch");
+  cleanup(dir);
+}
+
 // High-risk with partial artifacts (risk-register only) → validate still rejects
 {
   const dir = tmpDir();
@@ -875,6 +1096,155 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
   );
   const result = run("ai-os-validate.js", [dir]);
   assert(result.status === 1, "eval/sensitive-flow: validate rejects high-risk with only partial artifacts");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace('baseline_id:', 'mission: "MISSION.md"\nbaseline_id:'),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 0, "validate tolerates deprecated task mission field with warning");
+  assert(result.stdout.includes("deprecated top-level mission field"), "validate warns on deprecated task mission field");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const missionPath = path.join(dir, ".ai-os", "MISSION.md");
+  fs.writeFileSync(
+    missionPath,
+    fs.readFileSync(missionPath, "utf8").replace(
+      /(\- \*\*当前交付目标\*\*[:：]\s*).+/,
+      "$1先锁设计再开发"
+    ),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 0, "validate warns on process-style mission goal without failing");
+  assert(result.stdout.includes("focuses on delivery outcome"), "validate reports process-style mission goal");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const statePath = path.join(dir, ".ai-os", "STATE.md");
+  fs.writeFileSync(
+    statePath,
+    fs.readFileSync(statePath, "utf8").replace("**当前阶段**", "**阶段**"),
+    "utf8"
+  );
+  const validateResult = run("ai-os-validate.js", [dir]);
+  assert(validateResult.status === 0, "validate tolerates legacy STATE key with warning");
+  assert(validateResult.stdout.includes("deprecated current-position keys"), "validate warns on legacy STATE key");
+  const statusResult = run("ai-os-status.js", [dir]);
+  assert(statusResult.status === 0, "status still reads legacy STATE key");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace("TASK-AI-002", "TASK-AI-001"),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "validate rejects duplicate task ids");
+  assert(result.stdout.includes("duplicate task id"), "validate reports duplicate task ids");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace("- id: M2", "- id: M1"),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "validate rejects duplicate milestone ids");
+  assert(result.stdout.includes("duplicate milestone id"), "validate reports duplicate milestone ids");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace(
+      /depends_on:\n\s+- "TASK-AI-001"/,
+      'depends_on:\n      - "TASK-AI-999"'
+    ),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "validate rejects missing dependency refs");
+  assert(result.stdout.includes("depends_on missing task"), "validate reports missing dependency refs");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace('    owner: AI\n', '    owner: AI\n    owner: OPS\n'),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "validate rejects duplicate task fields");
+  assert(result.stdout.includes("repeats field: owner"), "validate reports duplicate task fields");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  fs.writeFileSync(
+    tasksPath,
+    fs.readFileSync(tasksPath, "utf8").replace(
+      '      - "entrypoint"\n      - "schema"',
+      '      - "entrypoint"\n      - "entrypoint"'
+    ),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 0, "validate warns on duplicate task list items without failing");
+  assert(result.stdout.includes("repeats impact_tags"), "validate reports duplicate task list items");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  const memoryPath = path.join(dir, ".ai-os", "memory.md");
+  fs.writeFileSync(
+    memoryPath,
+    fs.readFileSync(memoryPath, "utf8").replace(
+      "## 2. 逻辑与契约决策",
+      "### DD-001: 重复条目\n- **决策**：重复\n- **原因**：测试\n- **影响范围**：memory\n- **确认来源**：test\n- **活跃度**：active\n- **日期**：2026-04-02\n\n## 2. 逻辑与契约决策"
+    ),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(result.status === 1, "validate rejects duplicate memory ids");
+  assert(result.stdout.includes("duplicate memory entry id"), "validate reports duplicate memory ids");
   cleanup(dir);
 }
 
@@ -1104,19 +1474,45 @@ process.stdout.write("\n=== IDE integration ===\n");
 
 process.stdout.write("\n=== new example skeletons ===\n");
 
+const reverseSpecExampleRoot = path.join(repoRoot, "examples", "reverse-spec-admin-console");
+const highRiskExampleRoot = path.join(repoRoot, "examples", "high-risk-state-change");
+const debugExampleRoot = path.join(repoRoot, "examples", "debug-bounded-fix");
+const changeRequestExampleRoot = path.join(repoRoot, "examples", "change-request-baseline-sync");
+const degradedPathExampleRoot = path.join(repoRoot, "examples", "degraded-path-verification");
+const quickstartExampleRoot = path.join(repoRoot, "examples", "quickstart-todo-cli");
+
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "STATE.md")), "reverse-spec example skeleton includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "tasks.yaml")), "reverse-spec example skeleton includes tasks");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "CONVENTIONS.md")), "reverse-spec example skeleton includes CONVENTIONS");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "memory.md")), "reverse-spec example skeleton includes memory");
+assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "specs", "admin-list.spec.md")), "reverse-spec example skeleton includes spec");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "MISSION.md")), "high-risk example skeleton includes MISSION");
+assert(listBaselineRecords(highRiskExampleRoot, "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "high-risk example skeleton includes timestamped baseline-log record");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "STATE.md")), "high-risk example skeleton includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "DESIGN.md")), "high-risk example skeleton includes DESIGN");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "CONVENTIONS.md")), "high-risk example skeleton includes CONVENTIONS");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "tasks.yaml")), "high-risk example skeleton includes tasks");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "acceptance.yaml")), "high-risk example skeleton includes acceptance");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "risk-register.md")), "high-risk example skeleton includes risk-register");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "release-plan.md")), "high-risk example skeleton includes release-plan");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "verification-matrix.yaml")), "high-risk example skeleton includes verification-matrix");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "memory.md")), "high-risk example skeleton includes memory");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "specs", "state-transition.spec.md")), "high-risk example skeleton includes spec");
 assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix", ".ai-os", "MISSION.md")), "debug example skeleton includes MISSION");
+assert(listBaselineRecords(debugExampleRoot, "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "debug example skeleton includes timestamped baseline-log record");
 assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix", ".ai-os", "STATE.md")), "debug example skeleton includes STATE");
 assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync", ".ai-os", "MISSION.md")), "change-request example skeleton includes MISSION");
+assert(listBaselineRecords(changeRequestExampleRoot, "BL-").length >= 2, "change-request example skeleton includes multiple baseline records");
+assert(listBaselineRecords(changeRequestExampleRoot, "CR-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "change-request example skeleton includes timestamped change-request record");
 assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync", ".ai-os", "STATE.md")), "change-request example skeleton includes STATE");
 assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification", ".ai-os", "MISSION.md")), "degraded-path example skeleton includes MISSION");
+assert(listBaselineRecords(degradedPathExampleRoot, "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "degraded-path example skeleton includes timestamped baseline-log record");
 assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification", ".ai-os", "STATE.md")), "degraded-path example skeleton includes STATE");
 
 process.stdout.write("\n=== quickstart example ===\n");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", "README.md")), "quickstart includes README");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "MISSION.md")), "quickstart includes MISSION");
+assert(listBaselineRecords(quickstartExampleRoot, "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "quickstart includes timestamped baseline-log record");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "DESIGN.md")), "quickstart includes DESIGN");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "tasks.yaml")), "quickstart includes tasks");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "acceptance.yaml")), "quickstart includes acceptance");
@@ -1127,8 +1523,27 @@ const quickstartMission = fs.readFileSync(path.join(repoRoot, "examples", "quick
 assert(quickstartMission.includes("todo-cli"), "quickstart MISSION references todo-cli");
 const quickstartTasks = fs.readFileSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "tasks.yaml"), "utf8");
 assert(quickstartTasks.includes("status: done"), "quickstart tasks show completed status");
+assert(/baseline_id: "BL-\d{8}-\d{6}-[a-z0-9-]+"/.test(quickstartTasks), "quickstart tasks include timestamped baseline_id");
 assert(quickstartTasks.includes("measurable_outcome"), "quickstart tasks include measurable outcomes");
 assert(quickstartTasks.includes("edge_cases"), "quickstart tasks include edge cases");
+
+process.stdout.write("\n=== example artifact validation ===\n");
+for (const [label, root, allowWarnings] of [
+  ["greenfield example", path.join(repoRoot, "examples", "greenfield-guided-product"), true],
+  ["reverse-spec example", reverseSpecExampleRoot, true],
+  ["brownfield example", path.join(repoRoot, "examples", "brownfield-change-journey"), true],
+  ["high-risk example", highRiskExampleRoot, true],
+  ["debug example", debugExampleRoot, true],
+  ["change-request example", changeRequestExampleRoot, true],
+  ["degraded-path example", degradedPathExampleRoot, true],
+  ["quickstart example", quickstartExampleRoot, false],
+]) {
+  const result = run("ai-os-validate.js", [root]);
+  assert(result.status === 0, `${label}: validate passes`);
+  if (!allowWarnings) {
+    assert(!result.stdout.includes("WARNING"), `${label}: validate passes without warnings`);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Problem ledger new entries
@@ -1140,6 +1555,7 @@ const updatedLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledge
 assert(updatedLedger.includes("PG-002"), "problem ledger includes PG-002 token budget entry");
 assert(updatedLedger.includes("PG-003"), "problem ledger includes PG-003 advisory rules entry");
 assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE format entry");
+assert(updatedLedger.includes("PG-005"), "problem ledger includes PG-005 mission hotspot entry");
 assert(updatedLedger.includes("Codex CLI"), "problem ledger documents Codex CLI in IDE portability rule");
 assert(updatedLedger.includes("默认不纳入 CLI 主能力"), "problem ledger blocks single-IDE features from CLI mainline");
 assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");
@@ -1155,6 +1571,8 @@ assert(updatedReadme.includes("为什么需要 AI-OS"), "README includes why-AI-
 assert(updatedReadme.includes("1.7 倍"), "README cites AI bug rate data");
 assert(updatedReadme.includes("运行时护栏工具"), "README differentiates from runtime guardrail tools");
 assert(updatedReadme.includes("只定义本轮交付基准"), "README clarifies brownfield mission scope");
+assert(updatedReadme.includes("baseline-log/"), "README documents baseline-log");
+assert(updatedReadme.includes("baseline-sync"), "README documents baseline-sync workflow");
 assert(updatedReadme.includes("所有已承诺支持的环境都有等价承接"), "README states CLI features must work across supported IDE environments");
 
 // ---------------------------------------------------------------------------
@@ -1366,10 +1784,21 @@ process.stdout.write("\n=== team collaboration config ===\n");
   const ga = fs.readFileSync(path.join(dir, ".gitattributes"), "utf8");
   assert(ga.includes("AI-OS merge strategies"), "appendGitattributesEntries creates .gitattributes with marker");
   assert(ga.includes("memory.md merge=union"), "appendGitattributesEntries includes memory.md union merge");
-  assert(ga.includes("tasks.yaml merge=union"), "appendGitattributesEntries includes tasks.yaml union merge");
+  assert(!ga.includes("tasks.yaml merge=union"), "appendGitattributesEntries omits tasks.yaml union merge");
+  assert(!ga.includes("baseline-log"), "appendGitattributesEntries leaves baseline-log to per-record file strategy");
 
   const added2 = shared.appendGitattributesEntries(dir, { logger() {} });
   assert(added2 === false, "appendGitattributesEntries is idempotent");
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  fs.writeFileSync(path.join(dir, ".gitattributes"), ".ai-os/tasks.yaml merge=union\n", "utf8");
+  shared.appendGitattributesEntries(dir, { logger() {} });
+  const ga = fs.readFileSync(path.join(dir, ".gitattributes"), "utf8");
+  assert(!ga.includes("tasks.yaml merge=union"), "appendGitattributesEntries removes obsolete tasks.yaml union merge");
+  assert(ga.includes("memory.md merge=union"), "appendGitattributesEntries still adds memory.md union merge");
   cleanup(dir);
 }
 

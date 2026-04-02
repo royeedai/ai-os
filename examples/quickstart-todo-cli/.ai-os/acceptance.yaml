@@ -1,40 +1,85 @@
 version: 2
-scope: "todo-cli 全量交付"
-quality_tier: "standard"
-required_special_reviews: []
-baseline_source: "MISSION.md + specs/"
+baseline_id: "BL-20260316-083000-todo-cli-baseline"
+scope:
+  mode: "greenfield"
+  focus: "todo-cli"
+  baseline_source: "MISSION.md + specs/"
+  change_control: "all requirement changes must go through /change-request"
+  quality_tier: "standard"
+  primary_spec: "specs/todo-cli.spec.md"
+  confirmed_stack_decisions: "Node.js + JSON 文件存储 + 零依赖"
+  target_runtime: "本地命令行 + ~/.todo.json"
+  dev_fallback: "不适用"
 
-confirmed_stack_decisions:
-  - "Node.js + JSON 文件存储 + 零依赖"
+required_special_reviews: []
 
 gates:
   - id: "design-confirmation"
-    description: "命令结构、数据格式、存储路径已确认"
+    title: "设计确认门"
     status: passed
+    checks:
+      - "MISSION.md 已是本轮最新且已确认的需求基准"
+      - "acceptance.yaml / tasks.yaml / Mission 的 baseline_id 一致"
+      - "命令结构、数据格式、存储路径已确认"
+      - "关键视觉方向和不采用的风格已写清"
     evidence:
       - "DESIGN.md §6 设计确认记录"
+      - "ia-map"
 
   - id: "logic-confirmation"
-    description: "4 个命令的输入输出和异常路径已在 spec 中定义"
+    title: "逻辑确认门"
     status: passed
+    checks:
+      - "4 个命令的输入输出和异常路径已在 spec 中定义"
+      - "baseline-log/ 已留下本轮基线确认记录文件"
+      - "需求点、任务和验收标准已建立一一对应关系"
     evidence:
       - "specs/todo-cli.spec.md §4 关键流程"
       - "specs/todo-cli.spec.md §6 异常处理"
+      - "contract-note"
 
   - id: "implementation-quality"
-    description: "代码实现与 spec 一致，测试通过"
+    title: "实现质量门"
     status: passed
+    checks:
+      - "代码实现与 spec 一致，测试通过"
+      - "契约基准、字段映射和状态枚举与实现一致"
+      - "未实现、未验证或仅 demo 的能力未被标记为完成"
     evidence:
       - "npm test 全部通过"
       - "node bin/todo.js add/list/done/delete 手动验证"
       - "task-flow-check"
       - "static-validation-check"
+      - "review-report"
+      - "contract-baseline-check"
 
   - id: "delivery-readiness"
-    description: "可安装、可运行、有使用说明"
+    title: "交付质量门"
     status: passed
+    checks:
+      - "可安装、可运行、有使用说明"
+      - "关键任务至少有一条异常路径证据"
+      - "交付说明已区分 AI 已完成 与 需人工执行"
     evidence:
       - "README.md 包含安装和使用说明"
       - "contract-baseline-check"
       - "degraded-path-check"
       - "manual-action-note"
+      - "handoff-note"
+
+  - id: "parity-gate"
+    title: "对照一致性门"
+    status: not_applicable
+    checks:
+      - "quickstart 非 reverse-spec 项目，不需要对照参考对象"
+    evidence:
+      - "behavior-note"
+
+result:
+  design_locked: passed
+  logic_locked: passed
+  implementation_ready: passed
+  delivery_ready: passed
+  blockers: []
+  advisories: []
+  user_confirmation_blockers: []

@@ -1,5 +1,6 @@
 # 本模板所有内容必须严格基于用户确认的需求基准生成，禁止擅自超出范围、脑补内容，所有核心决策必须有用户确认依据。
 version: 2
+baseline_id: "{{INITIAL_BASELINE_ID}}"
 scope:
   mode: "greenfield"
   focus: "example-module"
@@ -19,6 +20,7 @@ gates:
     status: pending
     checks:
       - "MISSION.md 已是本轮最新且已确认的需求基准"
+      - "acceptance.yaml / tasks.yaml / Mission 的 baseline_id 一致"
       - "关键页面、信息架构和关键交互已确认"
       - "关键视觉方向和不采用的风格已写清"
       - "关键技术栈、目标运行态和不可逆关键选型已确认，未确认项已显式暴露"
@@ -34,6 +36,7 @@ gates:
     checks:
       - "核心接口、状态流转和业务规则已确认"
       - "关键异常路径和边界条件已确认"
+      - "baseline-log/ 已留下本轮基线确认记录文件"
       - "spec 与 Mission / Design 没有冲突"
       - "需求点、任务和验收标准已建立一一对应关系"
     evidence:

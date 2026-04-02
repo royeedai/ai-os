@@ -1,7 +1,7 @@
 ---
 name: project-planner
 description: >
-  当任务仍处于 align 阶段、目标或范围还不清楚时，使用本 Skill 把模糊目标收敛为 Mission，明确项目模式、质量标准、关键选型、范围和待确认项。
+  当任务仍处于 align 阶段、目标或范围还不清楚时，使用本 Skill 把模糊目标收敛为薄 Mission 基线章程，明确项目模式、质量标准、关键选型、范围和待确认项。
 ---
 
 # 项目规划器
@@ -23,8 +23,9 @@ description: >
 4. 明确关键技术栈、目标运行态和关键工程选型，区分已确认与待确认
 5. 明确范围内 / 范围外内容
 6. 记录已有输入、待确认项和高风险触发因素
-7. 生成或更新 `.ai-os/MISSION.md`
-8. 生成或更新 `.ai-os/STATE.md`
+7. 生成或更新 `.ai-os/MISSION.md`，只保留低频、已确认、共享的交付基线
+8. 新增或更新 `.ai-os/baseline-log/` 中的基线记录文件
+9. 生成或更新 `.ai-os/STATE.md`
 
 ## 输出要求
 
@@ -37,12 +38,13 @@ description: >
 ## 交付输出
 
 - `.ai-os/MISSION.md`
+- `.ai-os/baseline-log/`
 - `.ai-os/STATE.md`
 
 ### 示例：从模糊想法进入 Mission
 
 - 输入：一句话想法、部分截图、零散说明
-- 输出：可复述的 Mission 和待确认项列表
+- 输出：可复述的 Mission、最新 baseline 记录和待确认项列表
 
 ## 禁止事项
 

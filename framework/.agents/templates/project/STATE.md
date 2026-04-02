@@ -1,6 +1,6 @@
 # 项目状态
 
-> **Session-local 文件**：此文件记录当前开发者的会话状态，默认不入版本控制（已加入 .gitignore）。团队协作时每位开发者维护各自的 STATE.md；若文件不存在，`/resume` 会从 MISSION.md、DESIGN.md、tasks.yaml 自动重建。
+> **Session-local 文件**：此文件记录当前开发者的会话状态，默认不入版本控制（已加入 .gitignore）。团队协作时每位开发者维护各自的 STATE.md；若文件不存在，`/status`、`/next`、`/resume` 会从 MISSION.md、baseline-log/、DESIGN.md、tasks.yaml、acceptance.yaml 自动重建。
 >
 > 本文件是恢复上下文的第一入口。新 session 或长任务恢复时，先读它，再决定是否扩展阅读。任何阶段切换、用户确认、需求变更和验证失败，都必须先同步这里。
 > 本模板所有内容必须严格基于用户确认的需求基准生成，禁止擅自超出范围、脑补内容，所有核心决策必须有用户确认依据。
@@ -15,6 +15,7 @@
 - **当前交付档位**：exploratory / standard / high-risk
 - **当前质量焦点**：
 - **当前确认停点**：
+- **当前基线 ID**：
 - **最新需求基准状态**：draft / pending_confirmation / confirmed
 - **最近一次用户确认**：
 
@@ -56,6 +57,7 @@
 ## 最小阅读集
 
 - MISSION.md
+- baseline-log/
 - DESIGN.md
 - tasks.yaml
 - acceptance.yaml

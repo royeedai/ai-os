@@ -9,30 +9,34 @@ description: 在需求补充、范围调整和验收变化前先同步需求基�
 
 ## 目标
 
-先完成“变更分析 -> 基准更新 -> 影响说明 -> 用户确认”，再进入后续设计、计划、实现或验证。
+先完成“变更分析 -> baseline-log 记录 -> 基准更新 -> 影响说明 -> 用户确认”，再进入后续设计、计划、实现或验证。
 在已有项目里，这里更新的是“当前这轮交付基准”，不是把整个存量项目重新定义一遍。
 
 ## 必做步骤
 
-1. 读取 `.ai-os/MISSION.md`、`.ai-os/STATE.md`、相关 `specs/`、`DESIGN.md` 和当前任务状态
+1. 读取 `.ai-os/MISSION.md`、`.ai-os/baseline-log/`、`.ai-os/STATE.md`、相关 `specs/`、`DESIGN.md` 和当前任务状态
 2. 判断本次变更属于：
    - `P0`：新模块 / 大范围重构 / 核心方案变化
    - `P1`：已有模块的小功能新增或非核心变更
    - `P2`：其实是单点 bug 或轻量修复，应转 `/debug`
 3. 先完成变更影响分析，明确变更对现有需求范围、设计方案、任务清单、验收标准、已完成实现的影响
 4. 若变更文本出现“配置 / 设置 / 选项”，轻量追问一次操作闭环：它是静态预置、后台可配，还是需要用户 / 运营入口
-5. 在影响分析完成后，再更新 `MISSION.md`，必要时同步更新 `DESIGN.md`、相关 spec、`tasks.yaml`、`acceptance.yaml`、`STATE.md`；`brownfield` / `change` 下只补充理解本轮交付所需的宿主项目上下文，并把范围边界严格限定在本轮变更
-6. 向用户输出：
+5. 在影响分析完成后，先向 `.ai-os/baseline-log/` 新增一条 `CR-YYYYMMDD-HHMMSS-slug.md` 记录，使用 `change-request / pending_confirmation` 状态说明变更摘要、影响范围和待确认状态
+6. 用户确认前，只把待确认项和分析结论写入 `STATE.md` 与相关 spec 草案，不把未确认内容写进 `MISSION.md`
+7. 用户确认后，再新增一条 `BL-YYYYMMDD-HHMMSS-slug.md` 记录，使用 `baseline-promotion / confirmed` 状态；只有当交付目标 / 成功标准 / 范围边界 / 非目标真的变化时才更新 `MISSION.md`，其余细化只更新 spec / DESIGN / tasks / acceptance
+8. 必要时同步更新 `DESIGN.md`、相关 spec、`tasks.yaml`、`acceptance.yaml`、`STATE.md`；`brownfield` / `change` 下只补充理解本轮交付所需的宿主项目上下文，并把范围边界严格限定在本轮变更
+9. 向用户输出：
    - 本次变更内容
    - 整合后的最新核心需求摘要
    - 受影响的模块 / 文件 / 流程 / 验收项
    - 潜在风险、返工点和推荐路径
-7. 等待用户明确回复“确认变更，可执行”
-8. 根据影响范围路由到 `/design`、`/plan`、`/build` 或 `/verify`
+10. 等待用户明确回复“确认变更，可执行”
+11. 根据影响范围路由到 `/design`、`/plan`、`/build` 或 `/verify`
 
 ## 输出
 
 - 更新后的需求基准工件
+- `.ai-os/baseline-log/` 中新增的变更 / 升格记录
 - 变更影响说明
 - 推荐的下一步 workflow
 
@@ -40,6 +44,7 @@ description: 在需求补充、范围调整和验收变化前先同步需求基�
 
 - 禁止先改代码，后补需求基准
 - 禁止未完成影响分析就直接修改需求文档
+- 禁止把未确认内容提前写进 `MISSION.md`
 - 禁止只记录增量需求而不输出整合后的最新基准
 - 禁止未分析影响范围就直接进入 `/build`
 - 禁止把核心需求变化伪装成“实现细节”

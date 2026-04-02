@@ -1,0 +1,81 @@
+version: 2
+baseline_id: "BL-20260318-090000-rate-limit-change"
+scope:
+  mode: "change"
+  focus: "user-limit"
+  baseline_source: "MISSION.md + specs/"
+  change_control: "all requirement changes must go through /change-request"
+  quality_tier: "standard"
+  primary_spec: "specs/user-limit.spec.md"
+  confirmed_stack_decisions: "沿用现有 Web 系统与 API"
+  target_runtime: "现有生产环境"
+  dev_fallback: "不适用"
+
+required_special_reviews: []
+
+gates:
+  - id: design-confirmation
+    title: "设计确认门"
+    status: pending
+    checks:
+      - "MISSION.md 已是本轮最新且已确认的需求基准"
+      - "acceptance.yaml / tasks.yaml / Mission 的 baseline_id 一致"
+      - "提示与拦截方式已确认"
+    evidence:
+      - "design-decision-log"
+      - "screen-reference"
+
+  - id: logic-confirmation
+    title: "逻辑确认门"
+    status: pending
+    checks:
+      - "次数限制规则和边界已确认"
+      - "baseline-log/ 已留下本轮基线确认记录文件"
+      - "需求点、任务和验收标准已建立一一对应关系"
+    evidence:
+      - "spec-review"
+      - "boundary-check"
+
+  - id: implementation-quality
+    title: "实现质量门"
+    status: pending
+    checks:
+      - "局部变更实现完成"
+      - "没有越界修改"
+      - "项目原生静态校验已完成"
+    evidence:
+      - "build-log"
+      - "test-log"
+      - "task-flow-check"
+      - "static-validation-check"
+      - "contract-baseline-check"
+
+  - id: delivery-readiness
+    title: "交付质量门"
+    status: pending
+    checks:
+      - "运行态验证已完成"
+      - "关键异常路径已有验证结论"
+      - "交付说明已区分 AI 已完成 与 需人工执行"
+    evidence:
+      - "runtime-check"
+      - "degraded-path-check"
+      - "manual-action-note"
+      - "handoff-note"
+
+  - id: parity-gate
+    title: "对照一致性门"
+    status: not_applicable
+    checks:
+      - "非 reverse-spec 项目"
+    evidence:
+      - "behavior-note"
+
+result:
+  design_locked: blocked
+  logic_locked: blocked
+  implementation_ready: blocked
+  delivery_ready: blocked
+  blockers: []
+  advisories: []
+  user_confirmation_blockers: []

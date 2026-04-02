@@ -5,8 +5,8 @@
 - **项目模式**：greenfield
 - **当前阶段**：align
 - **当前治理档位**：P0
-- **当前目标**：锁定关键页面和流程
-- **当前任务**：TASK-ALIGN-001
+- **当前目标**：为首页与主流程形成可直接进入 /design 的确认基线
+- **当前任务**：TASK-AI-001
 - **当前交付档位**：standard
 - **当前质量焦点**：不要越过设计确认直接编码
 - **当前确认停点**：等待用户确认需求对齐
@@ -39,4 +39,9 @@
 ## 最小阅读集
 
 - MISSION.md
+- baseline-log
+- DESIGN.md
+- tasks.yaml
+- acceptance.yaml
+- specs/homepage.spec.md
 - STATE.md

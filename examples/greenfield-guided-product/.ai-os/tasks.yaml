@@ -1,5 +1,5 @@
 version: 3
-mission: "MISSION.md"
+baseline_id: "BL-20260316-090000-guided-product-baseline"
 scope:
   mode: "greenfield"
   focus: "homepage-and-main-flow"
@@ -12,12 +12,12 @@ milestones:
     goal: "关键设计与逻辑已确认"
 
 tasks:
-  - id: TASK-001
+  - id: TASK-AI-001
     title: "收敛首页结构与主流程到 spec"
     milestone: M1
     parent: null
     status: todo
-    owner: ai
+    owner: AI
     risk: medium
     wave: 1
     execution_role: "design_mapper"
@@ -34,6 +34,7 @@ tasks:
     inputs:
       - "MISSION.md"
       - "DESIGN.md"
+      - "specs/homepage.spec.md"
     outputs:
       - "specs/homepage.spec.md"
     affected_components:
@@ -49,6 +50,7 @@ tasks:
       - "主流程中断后的恢复路径"
     definition_of_ready:
       - "Mission 已明确目标和项目模式"
+      - "baseline_id 与 Mission 当前基线 ID 一致"
       - "关键输入素材已整理"
     definition_of_done:
       - "关键页面与流程已进入 spec"

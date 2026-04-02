@@ -6,7 +6,7 @@
 - **当前阶段**：align
 - **当前治理档位**：P1
 - **当前目标**：确认局部变更范围
-- **当前任务**：TASK-CHANGE-001
+- **当前任务**：TASK-AI-001
 - **当前交付档位**：standard
 - **当前质量焦点**：不要误扩散成全仓重构
 - **当前确认停点**：等待用户确认变更影响范围
@@ -39,4 +39,8 @@
 ## 最小阅读集
 
 - MISSION.md
+- baseline-log
+- DESIGN.md
 - tasks.yaml
+- acceptance.yaml
+- specs/user-limit.spec.md

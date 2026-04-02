@@ -6,6 +6,7 @@
 
 - **恢复入口**：`.ai-os/STATE.md`
 - **核心目标文件**：`.ai-os/MISSION.md`
+- **共享基线日志目录**：`.ai-os/baseline-log/`
 - **核心设计文件**：`.ai-os/DESIGN.md`
 - **需求真理源**：`.ai-os/MISSION.md` + `.ai-os/specs/`
 
@@ -33,6 +34,7 @@
 
 - `.ai-os/STATE.md`
 - `.ai-os/MISSION.md`
+- `.ai-os/baseline-log/`
 - `.ai-os/DESIGN.md`
 - `.ai-os/tasks.yaml`
 - `.ai-os/acceptance.yaml`

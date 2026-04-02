@@ -11,10 +11,12 @@ const {
 } = require("./shared");
 const {
   parseTasksFile,
-  readStateFile,
+  ensureStateFile,
   getCurrentTask,
   getReadyTasks,
   collectResumeFiles,
+  readMissionFile,
+  readBaselineLogFile,
 } = require("./project-state");
 
 function printHelp() {
@@ -57,11 +59,14 @@ if (!fs.existsSync(targetDir)) {
   fail(`target directory does not exist: ${targetDir}`);
 }
 
-const state = readStateFile(targetDir);
+const ensuredState = ensureStateFile(targetDir);
+const state = ensuredState.state;
 const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
+const mission = readMissionFile(targetDir);
+const baselineLog = readBaselineLogFile(targetDir);
 
 if (!state.exists) {
-  fail(`${getProjectRelativePath("STATE.md")} not found in ${targetDir}`);
+  fail(`${getProjectRelativePath("STATE.md")} missing and could not be rebuilt from project artifacts in ${targetDir}`);
 }
 
 const currentTask = tasks.exists ? getCurrentTask(tasks.tasks, state) : null;
@@ -85,6 +90,9 @@ function getNextStepLines() {
 
 function printPlainText() {
   process.stdout.write(`\nAI-OS Resume — ${targetDir}\n\n`);
+  if (ensuredState.rebuilt) {
+    process.stdout.write(`已从共享工件重建 ${getProjectRelativePath("STATE.md")}。\n\n`);
+  }
   process.stdout.write(`恢复方位:\n`);
   process.stdout.write(`- 项目模式: ${state.position["项目模式"] || "未记录"}\n`);
   process.stdout.write(`- 当前阶段: ${state.position["当前阶段"] || "未记录"}\n`);
@@ -96,6 +104,17 @@ function printPlainText() {
     if ((currentTask.context_files || []).length > 0) {
       process.stdout.write(`- context_files: ${currentTask.context_files.map((relPath) => formatProjectPath(relPath)).join(" / ")}\n`);
     }
+  }
+
+  process.stdout.write(`\n基线概览:\n`);
+  process.stdout.write(`- Mission 当前基线 ID: ${mission.currentBaselineId || "未记录"}\n`);
+  if (baselineLog.latestConfirmed) {
+    process.stdout.write(`- 最新 confirmed 基线: ${baselineLog.latestConfirmed.id}\n`);
+    process.stdout.write(`- 基线摘要: ${baselineLog.latestConfirmed.summary || "未记录"}\n`);
+  } else if (baselineLog.exists) {
+    process.stdout.write(`- 最新 confirmed 基线: 未记录\n`);
+  } else {
+    process.stdout.write(`- 基线日志目录: ${getProjectRelativePath("baseline-log")}/ 未创建\n`);
   }
 
   process.stdout.write(`\n优先读取文件:\n`);
@@ -144,12 +163,29 @@ function printMarkdownSnapshot() {
   process.stdout.write(`- **项目目录**：\`${targetDir}\`\n`);
   process.stdout.write(`- **恢复入口**：\`${getProjectRelativePath("STATE.md")}\`\n`);
   process.stdout.write(`- **导出方式**：\`create-ai-os resume ${targetDir} --markdown\`\n\n`);
+  if (ensuredState.rebuilt) {
+    process.stdout.write(`- **STATE 恢复方式**：从共享工件自动重建\n\n`);
+  }
 
   process.stdout.write(`## 恢复方位\n\n`);
   process.stdout.write(`- **项目模式**：${state.position["项目模式"] || "未记录"}\n`);
   process.stdout.write(`- **当前阶段**：${state.position["当前阶段"] || "未记录"}\n`);
   process.stdout.write(`- **当前目标**：${state.position["当前目标"] || "未记录"}\n`);
   process.stdout.write(`- **当前任务**：${state.position["当前任务"] || "未记录"}\n\n`);
+
+  process.stdout.write(`## 基线概览\n\n`);
+  process.stdout.write(`- **Mission 当前基线 ID**：${mission.currentBaselineId || "未记录"}\n`);
+  if (baselineLog.latestConfirmed) {
+    process.stdout.write(`- **最新 confirmed 基线**：${baselineLog.latestConfirmed.id}\n`);
+    process.stdout.write(`- **基线摘要**：${baselineLog.latestConfirmed.summary || "未记录"}\n`);
+    process.stdout.write(`- **影响范围**：${baselineLog.latestConfirmed.affects || "未记录"}\n`);
+    process.stdout.write(`- **确认时间**：${baselineLog.latestConfirmed.confirmedAt || "未记录"}\n`);
+  } else if (baselineLog.exists) {
+    process.stdout.write(`- **最新 confirmed 基线**：未记录\n`);
+  } else {
+    process.stdout.write(`- **基线日志目录**：${getProjectRelativePath("baseline-log")}/ 未创建\n`);
+  }
+  process.stdout.write(`\n`);
 
   process.stdout.write(`## 进度概览\n\n`);
   process.stdout.write(`${state.progressOverview || "暂无信息"}\n\n`);
@@ -219,7 +255,7 @@ function printMarkdownSnapshot() {
 
   process.stdout.write(`\n## 说明\n\n`);
   process.stdout.write(`- 这份快照可直接粘贴到新 session 作为恢复上下文\n`);
-  process.stdout.write(`- 真实项目状态仍以 \`${getProjectRelativePath("STATE.md")}\`、\`${getProjectRelativePath("MISSION.md")}\`、\`${getProjectRelativePath("tasks.yaml")}\` 等工件为准\n`);
+  process.stdout.write(`- 真实项目状态仍以 \`${getProjectRelativePath("STATE.md")}\`、\`${getProjectRelativePath("MISSION.md")}\`、\`${getProjectRelativePath("baseline-log")}/\`、\`${getProjectRelativePath("tasks.yaml")}\` 等工件为准\n`);
 }
 
 if (markdown) {

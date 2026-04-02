@@ -20,6 +20,11 @@ const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
 const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
+const BASELINE_LOG_TEMPLATE_FILE = path.posix.join("baseline-log", "BL-template.md");
+const INITIAL_BASELINE_SLUG = "initial-baseline";
+const TEMPLATE_TOKEN_INITIAL_BASELINE_ID = "{{INITIAL_BASELINE_ID}}";
+const TEMPLATE_TOKEN_INITIAL_BASELINE_FILE = "{{INITIAL_BASELINE_FILE}}";
+const TEMPLATE_TOKEN_INITIAL_BASELINE_DATE = "{{INITIAL_BASELINE_DATE}}";
 
 const PROJECT_CORE_ARTIFACT_FILES = [
   "MISSION.md",
@@ -35,7 +40,7 @@ const PROJECT_OPTIONAL_ARTIFACT_FILES = [
   "release-plan.md",
   "verification-matrix.yaml",
 ];
-const PROJECT_CORE_ARTIFACT_DIRS = ["specs"];
+const PROJECT_CORE_ARTIFACT_DIRS = ["baseline-log", "specs"];
 const PROJECT_OPTIONAL_ARTIFACT_DIRS = ["design-pack", "evals"];
 const PROJECT_ARTIFACT_FILES = [
   ...PROJECT_CORE_ARTIFACT_FILES,
@@ -103,6 +108,8 @@ const GITATTRIBUTES_MARKER = "# AI-OS merge strategies";
 const GITATTRIBUTES_ENTRIES = [
   `${GITATTRIBUTES_MARKER}`,
   `${PROJECT_STATE_ROOT}/memory.md merge=union`,
+];
+const OBSOLETE_GITATTRIBUTES_ENTRIES = [
   `${PROJECT_STATE_ROOT}/tasks.yaml merge=union`,
 ];
 
@@ -134,8 +141,9 @@ function appendGitignoreEntries(targetDir, options = {}) {
 }
 
 /**
- * Append AI-OS merge strategy entries to .gitattributes if not already present.
- * Idempotent — skips if the marker comment is found.
+ * Align AI-OS merge strategy entries in .gitattributes.
+ * Adds missing current entries, removes obsolete ones, and inserts the marker
+ * block when absent.  Idempotent — skips when all entries are already aligned.
  */
 function appendGitattributesEntries(targetDir, options = {}) {
   const { logger = defaultLogger } = options;
@@ -144,19 +152,45 @@ function appendGitattributesEntries(targetDir, options = {}) {
   let existing = "";
   if (fs.existsSync(gitattrsPath)) {
     existing = fs.readFileSync(gitattrsPath, "utf8");
-    if (existing.includes(GITATTRIBUTES_MARKER)) {
-      logger("skip .gitattributes (AI-OS entries already present)");
-      return false;
+  }
+
+  let nextContent = existing;
+  let changed = false;
+
+  for (const obsoleteEntry of OBSOLETE_GITATTRIBUTES_ENTRIES) {
+    const obsoletePattern = new RegExp(`^${escapeRegExp(obsoleteEntry)}\\r?\\n?`, "gm");
+    if (obsoletePattern.test(nextContent)) {
+      nextContent = nextContent.replace(obsoletePattern, "");
+      changed = true;
     }
   }
 
-  const separator = existing && !existing.endsWith("\n") ? "\n\n" : existing ? "\n" : "";
-  fs.writeFileSync(
-    gitattrsPath,
-    existing + separator + GITATTRIBUTES_ENTRIES.join("\n") + "\n",
-    "utf8"
-  );
-  logger("appended AI-OS merge strategies to .gitattributes");
+  if (nextContent.includes(GITATTRIBUTES_MARKER)) {
+    for (const entry of GITATTRIBUTES_ENTRIES.slice(1)) {
+      if (!nextContent.includes(entry)) {
+        nextContent = nextContent.replace(
+          GITATTRIBUTES_MARKER,
+          `${GITATTRIBUTES_MARKER}\n${entry}`
+        );
+        changed = true;
+      }
+    }
+  } else {
+    const separator = nextContent && !nextContent.endsWith("\n") ? "\n\n" : nextContent ? "\n" : "";
+    nextContent += separator + GITATTRIBUTES_ENTRIES.join("\n") + "\n";
+    changed = true;
+  }
+
+  if (!changed) {
+    logger("skip .gitattributes (AI-OS entries already aligned)");
+    return false;
+  }
+
+  if (nextContent && !nextContent.endsWith("\n")) {
+    nextContent += "\n";
+  }
+  fs.writeFileSync(gitattrsPath, nextContent, "utf8");
+  logger("aligned AI-OS merge strategies in .gitattributes");
   return true;
 }
 
@@ -329,6 +363,10 @@ function normalizeRelativePath(relPath = "") {
   return relPath.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function stripProjectRootPrefix(relPath = "") {
   const normalized = normalizeRelativePath(relPath);
   if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
@@ -416,6 +454,64 @@ function serializeSimpleToml(values) {
   }
   lines.push("");
   return lines.join("\n");
+}
+
+function padNumber(value) {
+  return String(value).padStart(2, "0");
+}
+
+function formatBaselineTimestamp(date = new Date()) {
+  return [
+    String(date.getUTCFullYear()),
+    padNumber(date.getUTCMonth() + 1),
+    padNumber(date.getUTCDate()),
+  ].join("") +
+    "-" +
+    [
+      padNumber(date.getUTCHours()),
+      padNumber(date.getUTCMinutes()),
+      padNumber(date.getUTCSeconds()),
+    ].join("");
+}
+
+function formatBaselineConfirmedDate(date = new Date()) {
+  return [
+    String(date.getUTCFullYear()),
+    padNumber(date.getUTCMonth() + 1),
+    padNumber(date.getUTCDate()),
+  ].join("-");
+}
+
+function sanitizeBaselineSlug(value, fallback = INITIAL_BASELINE_SLUG) {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+  return normalized || fallback;
+}
+
+function buildBaselineRecordId(prefix, slug, options = {}) {
+  const timestamp = options.timestamp || formatBaselineTimestamp(options.date || new Date());
+  return `${prefix}-${timestamp}-${sanitizeBaselineSlug(
+    slug,
+    prefix === "CR" ? "change-request" : INITIAL_BASELINE_SLUG
+  )}`;
+}
+
+function createInitialBaselineContext(options = {}) {
+  const date = options.date || new Date();
+  const baselineId = options.baselineId || buildBaselineRecordId(
+    "BL",
+    options.slug || INITIAL_BASELINE_SLUG,
+    { date, timestamp: options.timestamp }
+  );
+  return {
+    baselineId,
+    baselineFileName: `${baselineId}.md`,
+    baselineRecordRelPath: path.posix.join("baseline-log", `${baselineId}.md`),
+    confirmedDate: options.confirmedDate || formatBaselineConfirmedDate(date),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -530,8 +626,61 @@ function copyTemplateIfMissing(targetDir, src, dst, options = {}) {
   return true;
 }
 
+function applyProjectTemplateTokens(filePath, values) {
+  let content = fs.readFileSync(filePath, "utf8");
+  let changed = false;
+
+  for (const [token, value] of Object.entries(values)) {
+    if (!content.includes(token)) {
+      continue;
+    }
+    content = content.split(token).join(value);
+    changed = true;
+  }
+
+  if (changed) {
+    fs.writeFileSync(filePath, content, "utf8");
+  }
+}
+
+function listBaselineRecordRelativePaths(targetDir) {
+  const baselineDir = getProjectFilePath(targetDir, "baseline-log");
+  if (!fs.existsSync(baselineDir) || !fs.statSync(baselineDir).isDirectory()) {
+    return [];
+  }
+  return fs.readdirSync(baselineDir)
+    .filter((name) => name.endsWith(".md") && name !== ".DS_Store")
+    .sort()
+    .map((name) => path.posix.join("baseline-log", name));
+}
+
+function deriveBaselineContextFromExistingRecords(recordRelPaths, fallbackContext) {
+  const preferredRelPath = [...recordRelPaths]
+    .sort()
+    .filter((relPath) => path.posix.basename(relPath).startsWith("BL-"))
+    .pop() || [...recordRelPaths].sort().pop();
+
+  if (!preferredRelPath) {
+    return fallbackContext;
+  }
+
+  const baselineFileName = path.posix.basename(preferredRelPath);
+  return {
+    ...fallbackContext,
+    baselineId: baselineFileName.replace(/\.md$/, ""),
+    baselineFileName,
+    baselineRecordRelPath: preferredRelPath,
+  };
+}
+
 function createProjectFiles(targetDir, options = {}) {
   const { logger = defaultLogger } = options;
+  const requestedBaselineContext = options.baselineContext || createInitialBaselineContext();
+  const existingBaselineRecords = listBaselineRecordRelativePaths(targetDir);
+  const baselineContext = existingBaselineRecords.length > 0
+    ? deriveBaselineContextFromExistingRecords(existingBaselineRecords, requestedBaselineContext)
+    : requestedBaselineContext;
+  const createdPaths = [];
 
   ensureDir(getProjectRoot(targetDir));
   for (const dirName of PROJECT_CORE_ARTIFACT_DIRS) {
@@ -539,23 +688,52 @@ function createProjectFiles(targetDir, options = {}) {
   }
 
   for (const fileName of PROJECT_CORE_ARTIFACT_FILES) {
-    copyTemplateIfMissing(
+    const destinationPath = getProjectFilePath(targetDir, fileName);
+    if (copyTemplateIfMissing(
       targetDir,
       getProjectTemplatePath(fileName),
-      getProjectFilePath(targetDir, fileName),
+      destinationPath,
       { logger }
-    );
+    )) {
+      createdPaths.push(destinationPath);
+    }
   }
 
-  copyTemplateIfMissing(
+  const exampleSpecPath = getProjectFilePath(targetDir, path.join("specs", "example.spec.md"));
+  if (copyTemplateIfMissing(
     targetDir,
     getProjectTemplatePath(path.join("specs", "example.spec.md")),
-    getProjectFilePath(targetDir, path.join("specs", "example.spec.md")),
+    exampleSpecPath,
     { logger }
-  );
+  )) {
+    createdPaths.push(exampleSpecPath);
+  }
+
+  if (existingBaselineRecords.length === 0) {
+    const baselineRecordPath = getProjectFilePath(targetDir, baselineContext.baselineRecordRelPath);
+    if (copyTemplateIfMissing(
+      targetDir,
+      getProjectTemplatePath(BASELINE_LOG_TEMPLATE_FILE),
+      baselineRecordPath,
+      { logger }
+    )) {
+      createdPaths.push(baselineRecordPath);
+    }
+  }
+
+  const tokenValues = {
+    [TEMPLATE_TOKEN_INITIAL_BASELINE_ID]: baselineContext.baselineId,
+    [TEMPLATE_TOKEN_INITIAL_BASELINE_FILE]: baselineContext.baselineFileName,
+    [TEMPLATE_TOKEN_INITIAL_BASELINE_DATE]: baselineContext.confirmedDate,
+  };
+  for (const filePath of createdPaths) {
+    applyProjectTemplateTokens(filePath, tokenValues);
+  }
 }
 
-function getProjectArtifactEntries(targetDir) {
+function getProjectArtifactEntries(targetDir, options = {}) {
+  const baselineContext = options.baselineContext || createInitialBaselineContext();
+  const baselineRecordRelPaths = listBaselineRecordRelativePaths(targetDir);
   return [
     ...PROJECT_CORE_ARTIFACT_FILES.map((relPath) => ({
       kind: "file",
@@ -564,6 +742,11 @@ function getProjectArtifactEntries(targetDir) {
     })),
     ...PROJECT_CORE_ARTIFACT_DIRS.map((relPath) => ({
       kind: "dir",
+      relPath: getProjectRelativePath(relPath),
+      absolutePath: getProjectFilePath(targetDir, relPath),
+    })),
+    ...(baselineRecordRelPaths.length > 0 ? baselineRecordRelPaths : [baselineContext.baselineRecordRelPath]).map((relPath) => ({
+      kind: "file",
       relPath: getProjectRelativePath(relPath),
       absolutePath: getProjectFilePath(targetDir, relPath),
     })),
@@ -579,6 +762,7 @@ function buildInstallPlan(targetDir, options = {}) {
   const profile = getInstallProfile(options.installProfile);
   const overwriteFramework = Boolean(options.overwriteFramework);
   const lite = Boolean(options.lite);
+  const baselineContext = options.baselineContext || createInitialBaselineContext();
   const frameworkFiles = listManagedFiles(FRAMEWORK_ROOT)
     .filter((relPath) => !lite || isLiteIncluded(relPath))
     .map((relPath) => {
@@ -605,7 +789,7 @@ function buildInstallPlan(targetDir, options = {}) {
   }));
 
   const projectEntries = profile.includeProjectFiles
-    ? getProjectArtifactEntries(targetDir).map((entry) => {
+    ? getProjectArtifactEntries(targetDir, { baselineContext }).map((entry) => {
       const exists = fs.existsSync(entry.absolutePath);
       return {
         kind: entry.kind === "dir" ? "project-dir" : "project-file",
@@ -751,6 +935,13 @@ const C_DIM = "\x1b[2m";
 
 const VALIDATION_SCHEMAS = {
   mission: [
+    "1. 交付基线摘要",
+    "2. 用户与闭环场景",
+    "3. 已确认约束与关键决策",
+    "4. 范围边界与非目标",
+    "5. 稳定风险与外部依赖",
+  ],
+  missionLegacy: [
     ["1. 宿主项目与当前交付定义", "1. 当前交付定义", "1. 任务定义"],
     "2. 用户与场景",
     "3. 项目模式、质量目标与关键选型",
@@ -758,6 +949,22 @@ const VALIDATION_SCHEMAS = {
     "5. 阶段计划",
     "6. 已知输入与待确认项",
     "7. 风险与外部依赖",
+  ],
+  missionLegacyHotspots: [
+    "## 5. 阶段计划",
+    "### 待确认项",
+    "### 澄清问题清单",
+    "### 需求变更同步记录",
+    "**当前阶段**",
+    "**最新需求基准状态**",
+    "**最近一次用户确认**",
+  ],
+  baselineRecordFields: [
+    "Type",
+    "Status",
+    "Summary",
+    "Affects",
+    "Confirmed At",
   ],
   design: [
     "1. 设计目标",
@@ -793,6 +1000,19 @@ const VALIDATION_SCHEMAS = {
     "下一步",
     "最小阅读集",
   ],
+  statePositionFields: [
+    "项目模式",
+    "当前阶段",
+    "当前目标",
+    "当前任务",
+    "当前交付档位",
+    "当前质量焦点",
+    "当前确认停点",
+    "最新需求基准状态",
+  ],
+  stateDeprecatedPositionFields: [
+    "阶段",
+  ],
   spec: [
     "1. 模块概述",
     "2. 业务规则与目标",
@@ -814,7 +1034,7 @@ const VALIDATION_SCHEMAS = {
   riskRegisterTablePattern: /\| ID \| 风险 \| 类型 \|/,
   tasksMarkers: [
     "version:",
-    "mission:",
+    "baseline_id:",
     "milestones:",
     "tasks:",
     "wave:",
@@ -835,6 +1055,7 @@ const VALIDATION_SCHEMAS = {
   ],
   acceptanceMarkers: [
     "version:",
+    "baseline_id:",
     "scope:",
     "gates:",
     "design-confirmation",
@@ -1121,8 +1342,9 @@ function generateClaudeMd(targetDir) {
     "每次新 session 启动时，依次读取以下文件了解项目当前状态：",
     "",
     "1. `.ai-os/STATE.md` — 当前阶段、进度和待确认项",
-    "2. `.ai-os/MISSION.md` — 当前交付目标和范围",
-    "3. `.ai-os/memory.md` — 稳定决策和约束（优先读 active 条目）",
+    "2. `.ai-os/MISSION.md` — 已确认的当前交付基线章程",
+    "3. `.ai-os/baseline-log/` — 最近的共享基线记录目录（优先读最新 confirmed 记录）",
+    "4. `.ai-os/memory.md` — 稳定决策和约束（优先读 active 条目）",
     "",
     "如果上述文件不存在，说明项目尚未初始化，从 `/align` 开始。",
     "",
@@ -1189,8 +1411,9 @@ function generateGeminiMd(targetDir) {
     "每次新 session 启动时，依次读取：",
     "",
     "1. `.ai-os/STATE.md` — 当前阶段和进度",
-    "2. `.ai-os/MISSION.md` — 当前交付目标",
-    "3. `.ai-os/memory.md` — 稳定决策和约束",
+    "2. `.ai-os/MISSION.md` — 已确认的当前交付基线",
+    "3. `.ai-os/baseline-log/` — 最新基线确认记录目录",
+    "4. `.ai-os/memory.md` — 稳定决策和约束",
     "",
     "## Workflow 命令",
     "",

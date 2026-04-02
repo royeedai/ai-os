@@ -19,7 +19,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 
 | workflow | 用途 | 结果 |
 |------|------|------|
-| `/align` | 澄清目标、用户、模式、质量标准、输入素材和待确认项 | 产出或更新 `MISSION.md` 和 `STATE.md`，等待用户确认需求基准；brownfield / change 先锁本轮交付，不重写整个存量项目 |
+| `/align` | 澄清目标、用户、模式、质量标准、输入素材和待确认项 | 产出或更新 `MISSION.md`、`baseline-log/` 和 `STATE.md`，等待用户确认需求基准；brownfield / change 先锁本轮交付，不重写整个存量项目 |
 | `/design` | 锁定信息架构、关键页面、关键交互、视觉方向、关键流程和对照差异 | 产出或更新 `DESIGN.md`，必要时补 `design-pack/parity-map.md`，等待用户确认设计方案 |
 | `/plan` | 生成 spec、任务波次、门禁和证据计划 | 产出或更新 `specs/`、`tasks.yaml`、`acceptance.yaml`，等待用户确认任务与验收 |
 | `/build` | 按 wave 实现，执行角色分工和审批停点 | 更新代码、任务、状态和实现证据 |
@@ -30,7 +30,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 
 | workflow | 用途 | 结果 |
 |------|------|------|
-| `/change-request` | 在任何需求补充、范围调整、验收变化前，先完成影响分析和基准同步 | 更新 `MISSION.md` / `specs/` / `DESIGN.md` / `STATE.md`，形成最新需求基准并等待用户确认 |
+| `/change-request` | 在任何需求补充、范围调整、验收变化前，先完成影响分析和基准同步 | 先新增 `baseline-log/CR-YYYYMMDD-HHMMSS-slug.md`，再按需更新 `MISSION.md` / `specs/` / `DESIGN.md` / `STATE.md`，形成最新需求基准并等待用户确认 |
 | `/debug` | 对单一 bug、配置修复、文案或样式微调执行轻量闭环 | 输出修复方案、边界、验证结果；若超出边界则升级到 `/change-request` 或 `/design` |
 | `/review` | 对当前方案、实现或交付进行多维度结构化审查 | 输出带风险等级的问题清单、影响说明和优化建议 |
 | `/postmortem` | 对项目或里程碑做复盘并沉淀稳定经验 | 输出复盘结论、归档条目清单（如有）并同步更新 `memory.md` |

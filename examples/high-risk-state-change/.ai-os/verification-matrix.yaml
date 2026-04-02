@@ -1,0 +1,51 @@
+version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+  restart_api: "ops restart account-service"
+  cold-start-smoke_api: "ops smoke account-service --scenario deduction"
+  restart_worker: "ops restart audit-worker"
+
+rules:
+  - id: api-code
+    paths:
+      - "src/api/**"
+      - "src/account/**"
+    affected_components:
+      - "api"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_api"
+      - "cold-start-smoke_api"
+    notes: "扣减接口或状态流转变更后必须做冷启动 smoke 和静态校验"
+
+  - id: worker-code
+    paths:
+      - "src/audit/**"
+      - "src/jobs/**"
+    affected_components:
+      - "worker"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_worker"
+    notes: "审计异步链路变更后必须重启 worker 并验证补偿路径"
+
+impact_rules:
+  - id: deduction-state
+    impact_tags:
+      - "state-transition"
+      - "storage"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+      - "restart_api"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+      - "runtime-check"
+    notes: "高风险扣减链路必须补齐契约、异常路径和运行态证据"

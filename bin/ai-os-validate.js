@@ -23,8 +23,26 @@ const {
   splitMarkdownSections,
   parseAcceptanceFile,
   parseTasksFile,
+  collectDuplicateValues,
   isDeclaredHighRisk,
+  readStateFile,
+  readMissionFile,
+  readBaselineLogFile,
 } = require("./project-state");
+
+const BASELINE_LOG_TYPES = new Set(["align", "change-request", "baseline-promotion"]);
+const BASELINE_LOG_STATUSES = new Set(["pending_confirmation", "confirmed", "superseded"]);
+const BASELINE_RECORD_ID_PATTERN = /^(BL|CR)-[A-Za-z0-9._-]+$/;
+const PREFERRED_BASELINE_RECORD_ID_PATTERN = /^(BL|CR)-\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const TASK_COLLAB_ID_PATTERN = /^TASK-[A-Z0-9]+-\d{3}$/;
+const MEMORY_ENTRY_ID_PATTERN = /^###\s+([A-Z]{2}-\d{3})\s*:/gm;
+const PROCESS_STYLE_MISSION_GOAL_PATTERNS = [
+  { pattern: /先锁/i, label: "含有「先锁…」等流程指令" },
+  { pattern: /进入\s*\/?(align|design|plan|build|verify|ship)/i, label: "含有「进入 <阶段名>」" },
+  { pattern: /进入下一阶段/i, label: "含有「进入下一阶段」" },
+  { pattern: /再进入开发/i, label: "含有「再进入开发」" },
+  { pattern: /推进到\s*\/?(align|design|plan|build|verify|ship)/i, label: "含有「推进到 <阶段名>」" },
+];
 
 function fileExists(targetDir, relPath) {
   return fs.existsSync(getProjectFilePath(targetDir, relPath));
@@ -80,6 +98,14 @@ function collectTaskSpecInputs(tasks) {
   return [...specInputs].sort();
 }
 
+function collectMemoryEntryIds(content) {
+  const ids = [];
+  for (const match of content.matchAll(MEMORY_ENTRY_ID_PATTERN)) {
+    ids.push(match[1]);
+  }
+  return ids;
+}
+
 function listSpecFiles(targetDir) {
   const specsDir = getProjectFilePath(targetDir, "specs");
   if (!dirExists(targetDir, "specs")) {
@@ -129,22 +155,227 @@ const { report } = reporter;
 
 process.stdout.write(`\nAI-OS Validate — ${targetDir}\n\n`);
 
+const missionInfo = readMissionFile(targetDir);
+const baselineInfo = readBaselineLogFile(targetDir);
+const legacyMissionCompat = missionInfo.isLegacy || !missionInfo.currentBaselineId || !baselineInfo.exists;
+
 for (const relPath of PROJECT_CORE_ARTIFACT_FILES) {
   report(fileExists(targetDir, relPath), `${getProjectRelativePath(relPath)} exists`);
 }
 
 for (const relPath of PROJECT_CORE_ARTIFACT_DIRS) {
+  if (relPath === "baseline-log") {
+    const baselineDirExists = dirExists(targetDir, relPath);
+    report(
+      baselineDirExists,
+      `${getProjectRelativePath(relPath)}/ exists`,
+      baselineInfo.format === "legacy-file" || missionInfo.isLegacy
+        ? {
+            warnOnly: true,
+            details:
+              baselineInfo.format === "legacy-file"
+                ? [
+                    `legacy file still present: ${getProjectRelativePath("baseline-log.md")}`,
+                    "migrate to per-record files under .ai-os/baseline-log/",
+                  ]
+                : ["legacy project should migrate to per-record files under .ai-os/baseline-log/"],
+          }
+        : undefined
+    );
+    continue;
+  }
+
   report(dirExists(targetDir, relPath), `${getProjectRelativePath(relPath)}/ exists`);
 }
 
-const mission = readUtf8IfExists(getProjectFilePath(targetDir, "MISSION.md"));
-if (mission !== null) {
-  const missingSections = markdownHasSections(mission, VALIDATION_SCHEMAS.mission);
-  report(
-    missingSections.length === 0,
-    `${getProjectRelativePath("MISSION.md")} sections complete`,
-    { details: missingSections.map((section) => `missing section: ${section}`) }
+if (missionInfo.exists) {
+  const missingThinSections = markdownHasSections(missionInfo.content, VALIDATION_SCHEMAS.mission);
+  const missingLegacySections = markdownHasSections(missionInfo.content, VALIDATION_SCHEMAS.missionLegacy);
+  const thinMissionReady = missingThinSections.length === 0;
+  const legacyMissionReady = missingLegacySections.length === 0;
+
+  if (thinMissionReady) {
+    report(true, `${getProjectRelativePath("MISSION.md")} sections complete`);
+  } else if (legacyMissionReady) {
+    report(false, `${getProjectRelativePath("MISSION.md")} uses legacy hotspot-heavy structure`, {
+      warnOnly: true,
+      details: [
+        "migrate Mission to the thin baseline charter layout",
+        "move pending questions, phase status, and change log records into STATE.md / baseline-log/",
+      ],
+    });
+  } else {
+    report(
+      false,
+      `${getProjectRelativePath("MISSION.md")} sections complete`,
+      { details: missingThinSections.map((section) => `missing section: ${section}`) }
+    );
+  }
+
+  report(Boolean(missionInfo.currentBaselineId), `${getProjectRelativePath("MISSION.md")} declares 当前基线 ID`, {
+    warnOnly: legacyMissionCompat,
+  });
+
+  const legacyHotspots = VALIDATION_SCHEMAS.missionLegacyHotspots.filter((marker) =>
+    missionInfo.content.includes(marker)
   );
+  report(
+    legacyHotspots.length === 0,
+    `${getProjectRelativePath("MISSION.md")} avoids dynamic coordination fields`,
+    {
+      warnOnly: true,
+      details: legacyHotspots.map((marker) => `legacy hotspot still present: ${marker}`),
+    }
+  );
+
+  const currentDeliveryGoal = missionInfo.summaryFields["当前交付目标"] || "";
+  const processStyleGoalWarnings = PROCESS_STYLE_MISSION_GOAL_PATTERNS
+    .filter((entry) => entry.pattern.test(currentDeliveryGoal))
+    .map((entry) => `matched process-style wording: ${entry.label}`);
+  report(
+    processStyleGoalWarnings.length === 0,
+    `${getProjectRelativePath("MISSION.md")} 当前交付目标 focuses on delivery outcome, not workflow step`,
+    {
+      warnOnly: true,
+      details: processStyleGoalWarnings.length > 0
+        ? [
+            `current goal: ${currentDeliveryGoal || "[blank]"}`,
+            ...processStyleGoalWarnings,
+            "rewrite the goal to describe who receives what result, not which workflow comes next",
+          ]
+        : [],
+    }
+  );
+}
+
+if (baselineInfo.exists) {
+  if (baselineInfo.format === "directory") {
+    const expectedFields = VALIDATION_SCHEMAS.baselineRecordFields;
+    report(
+      baselineInfo.entries.length > 0,
+      `${getProjectRelativePath("baseline-log")}/ includes at least one baseline record`
+    );
+    report(
+      baselineInfo.entries.every((entry) => BASELINE_RECORD_ID_PATTERN.test(entry.id)),
+      `${getProjectRelativePath("baseline-log")}/ uses supported record filenames`,
+      {
+        details: baselineInfo.entries
+          .filter((entry) => !BASELINE_RECORD_ID_PATTERN.test(entry.id))
+          .map((entry) => `unsupported record filename: ${path.basename(entry.path)}`),
+      }
+    );
+    report(
+      baselineInfo.entries.every((entry) => PREFERRED_BASELINE_RECORD_ID_PATTERN.test(entry.id)),
+      `${getProjectRelativePath("baseline-log")}/ uses timestamp + slug record filenames`,
+      {
+        warnOnly: true,
+        details: baselineInfo.entries
+          .filter((entry) => !PREFERRED_BASELINE_RECORD_ID_PATTERN.test(entry.id))
+          .map((entry) => `${path.basename(entry.path)} should migrate to BL/CR-YYYYMMDD-HHMMSS-slug.md`),
+      }
+    );
+    report(
+      baselineInfo.entries.every((entry) =>
+        expectedFields.every((field) => entry.content.includes(`**${field}**`))
+      ),
+      `${getProjectRelativePath("baseline-log")}/ records include required fields`,
+      {
+        details: baselineInfo.entries.flatMap((entry) =>
+          expectedFields
+            .filter((field) => !entry.content.includes(`**${field}**`))
+            .map((field) => `${path.basename(entry.path)} missing field: ${field}`)
+        ),
+      }
+    );
+    report(
+      baselineInfo.entries.every((entry) => BASELINE_LOG_TYPES.has(entry.type)),
+      `${getProjectRelativePath("baseline-log")}/ uses supported Type values`,
+      {
+        details: baselineInfo.entries
+          .filter((entry) => !BASELINE_LOG_TYPES.has(entry.type))
+          .map((entry) => `unsupported type in ${entry.id || "[missing id]"}: ${entry.type || "[blank]"}`),
+      }
+    );
+    report(
+      baselineInfo.entries.every((entry) => BASELINE_LOG_STATUSES.has(entry.status)),
+      `${getProjectRelativePath("baseline-log")}/ uses supported Status values`,
+      {
+        details: baselineInfo.entries
+          .filter((entry) => !BASELINE_LOG_STATUSES.has(entry.status))
+          .map((entry) => `unsupported status in ${entry.id || "[missing id]"}: ${entry.status || "[blank]"}`),
+      }
+    );
+    report(
+      baselineInfo.entries.every((entry) => {
+        if (entry.id.startsWith("CR-")) {
+          return entry.type === "change-request";
+        }
+        if (entry.id.startsWith("BL-")) {
+          return entry.type === "align" || entry.type === "baseline-promotion";
+        }
+        return true;
+      }),
+      `${getProjectRelativePath("baseline-log")}/ filenames align with record types`,
+      {
+        details: baselineInfo.entries
+          .filter((entry) => {
+            if (entry.id.startsWith("CR-")) {
+              return entry.type !== "change-request";
+            }
+            if (entry.id.startsWith("BL-")) {
+              return entry.type !== "align" && entry.type !== "baseline-promotion";
+            }
+            return false;
+          })
+          .map((entry) => `${path.basename(entry.path)} has incompatible Type: ${entry.type || "[blank]"}`),
+      }
+    );
+  } else if (baselineInfo.format === "legacy-file") {
+    report(
+      false,
+      `${getProjectRelativePath("baseline-log.md")} still uses legacy single-file log`,
+      {
+        warnOnly: true,
+        details: ["migrate to per-record files under .ai-os/baseline-log/"],
+      }
+    );
+    report(
+      baselineInfo.entries.length > 0,
+      `${getProjectRelativePath("baseline-log.md")} includes at least one baseline entry`
+    );
+    report(
+      baselineInfo.entries.every((entry) => BASELINE_LOG_TYPES.has(entry.type)),
+      `${getProjectRelativePath("baseline-log.md")} uses supported Type values`,
+      {
+        details: baselineInfo.entries
+          .filter((entry) => !BASELINE_LOG_TYPES.has(entry.type))
+          .map((entry) => `unsupported type in ${entry.id || "[missing id]"}: ${entry.type || "[blank]"}`),
+      }
+    );
+    report(
+      baselineInfo.entries.every((entry) => BASELINE_LOG_STATUSES.has(entry.status)),
+      `${getProjectRelativePath("baseline-log.md")} uses supported Status values`,
+      {
+        details: baselineInfo.entries
+          .filter((entry) => !BASELINE_LOG_STATUSES.has(entry.status))
+          .map((entry) => `unsupported status in ${entry.id || "[missing id]"}: ${entry.status || "[blank]"}`),
+      }
+    );
+  }
+  if (missionInfo.currentBaselineId && baselineInfo.latestConfirmed) {
+    report(
+      baselineInfo.latestConfirmed.id === missionInfo.currentBaselineId,
+      `${getProjectRelativePath(
+        baselineInfo.format === "directory" ? "baseline-log" : "baseline-log.md"
+      )}${baselineInfo.format === "directory" ? "/" : ""} latest confirmed entry matches Mission 当前基线 ID`,
+      {
+        details: [
+          `Mission 当前基线 ID: ${missionInfo.currentBaselineId}`,
+          `baseline-log latest confirmed: ${baselineInfo.latestConfirmed.id}`,
+        ],
+      }
+    );
+  }
 }
 
 const design = readUtf8IfExists(getProjectFilePath(targetDir, "DESIGN.md"));
@@ -173,6 +404,14 @@ if (memory !== null) {
     `${getProjectRelativePath("memory.md")} sections complete`,
     { details: missingSections.map((section) => `missing section: ${section}`) }
   );
+  const duplicateMemoryIds = collectDuplicateValues(collectMemoryEntryIds(memory));
+  report(
+    duplicateMemoryIds.length === 0,
+    `${getProjectRelativePath("memory.md")} uses unique decision IDs`,
+    {
+      details: duplicateMemoryIds.map((id) => `duplicate memory entry id: ${id}`),
+    }
+  );
 }
 
 const tasksPath = getProjectFilePath(targetDir, "tasks.yaml");
@@ -196,6 +435,64 @@ if (tasksContent !== null) {
     { warnOnly: true, details: missingTaskTransitionMarkers.map((marker) => `missing marker: ${marker}`) }
   );
   report(parsedTasks.tasks.length > 0, `${getProjectRelativePath("tasks.yaml")} includes at least one task`);
+  report(Boolean(parsedTasks.baselineId), `${getProjectRelativePath("tasks.yaml")} declares baseline_id`, {
+    warnOnly: legacyMissionCompat,
+  });
+  report(
+    !parsedTasks.hasMissionField,
+    `${getProjectRelativePath("tasks.yaml")} omits deprecated top-level mission field`,
+    {
+      warnOnly: true,
+      details: parsedTasks.hasMissionField
+        ? [
+            `deprecated mission field value: ${parsedTasks.mission || "[blank]"}`,
+            "remove the top-level mission field; Mission linkage should be inferred from MISSION.md + baseline_id",
+          ]
+        : [],
+    }
+  );
+  report(
+    parsedTasks.duplicateMilestoneIds.length === 0,
+    `${getProjectRelativePath("tasks.yaml")} uses unique milestone ids`,
+    {
+      details: parsedTasks.duplicateMilestoneIds.map((id) => `duplicate milestone id: ${id}`),
+    }
+  );
+  report(
+    parsedTasks.duplicateTaskIds.length === 0,
+    `${getProjectRelativePath("tasks.yaml")} uses unique task ids`,
+    {
+      details: parsedTasks.duplicateTaskIds.map((id) => `duplicate task id: ${id}`),
+    }
+  );
+  report(
+    parsedTasks.duplicateTaskFields.length === 0,
+    `${getProjectRelativePath("tasks.yaml")} avoids duplicate keys inside a task`,
+    {
+      details: parsedTasks.duplicateTaskFields.map(
+        (entry) => `${entry.taskId} repeats field: ${entry.key}`
+      ),
+    }
+  );
+  report(
+    parsedTasks.duplicateTaskListItems.length === 0,
+    `${getProjectRelativePath("tasks.yaml")} avoids duplicate list items inside a task`,
+    {
+      warnOnly: true,
+      details: parsedTasks.duplicateTaskListItems.map(
+        (entry) => `${entry.taskId} repeats ${entry.key}: ${entry.value}`
+      ),
+    }
+  );
+  report(
+    parsedTasks.missingDependencyRefs.length === 0,
+    `${getProjectRelativePath("tasks.yaml")} dependency graph references existing tasks`,
+    {
+      details: parsedTasks.missingDependencyRefs.map(
+        (entry) => `${entry.taskId} depends_on missing task: ${entry.dependencyId}`
+      ),
+    }
+  );
   report(
     parsedTasks.tasks.some((task) => task.wave !== null),
     `${getProjectRelativePath("tasks.yaml")} includes wave metadata`
@@ -207,6 +504,26 @@ if (tasksContent !== null) {
   report(
     parsedTasks.tasks.some((task) => Boolean(task.approval_required)),
     `${getProjectRelativePath("tasks.yaml")} includes approval requirements`
+  );
+  report(
+    parsedTasks.tasks.every((task) => Boolean(task.owner)),
+    `${getProjectRelativePath("tasks.yaml")} declares owner for every task`,
+    {
+      warnOnly: true,
+      details: parsedTasks.tasks
+        .filter((task) => !task.owner)
+        .map((task) => `${task.id || "[missing-task-id]"} missing owner`),
+    }
+  );
+  report(
+    parsedTasks.tasks.every((task) => TASK_COLLAB_ID_PATTERN.test(task.id || "")),
+    `${getProjectRelativePath("tasks.yaml")} uses collaboration-safe task IDs`,
+    {
+      warnOnly: true,
+      details: parsedTasks.tasks
+        .filter((task) => !TASK_COLLAB_ID_PATTERN.test(task.id || ""))
+        .map((task) => `${task.id || "[missing-task-id]"} should use TASK-<OWNER>-NNN`),
+    }
   );
   report(
     parsedTasks.tasks.some((task) => (task.context_files || []).length > 0),
@@ -242,6 +559,19 @@ if (tasksContent !== null) {
       QUALITY_TIERS.includes(parsedTasks.qualityTier),
       `${getProjectRelativePath("tasks.yaml")} quality_tier is supported`,
       { details: [`current quality_tier: ${parsedTasks.qualityTier}`] }
+    );
+  }
+  if (missionInfo.currentBaselineId && parsedTasks.baselineId) {
+    report(
+      parsedTasks.baselineId === missionInfo.currentBaselineId,
+      `${getProjectRelativePath("tasks.yaml")} baseline_id matches Mission 当前基线 ID`,
+      {
+        warnOnly: legacyMissionCompat,
+        details: [
+          `tasks baseline_id: ${parsedTasks.baselineId}`,
+          `Mission 当前基线 ID: ${missionInfo.currentBaselineId}`,
+        ],
+      }
     );
   }
 }
@@ -282,6 +612,9 @@ if (acceptanceContent !== null) {
     `${getProjectRelativePath("acceptance.yaml")} structure complete`,
     { details: missingAcceptanceMarkers.map((marker) => `missing marker: ${marker}`) }
   );
+  report(Boolean(parsedAcceptance.baselineId), `${getProjectRelativePath("acceptance.yaml")} declares baseline_id`, {
+    warnOnly: legacyMissionCompat,
+  });
   report(
     missingAcceptanceTransitionMarkers.length === 0,
     `${getProjectRelativePath("acceptance.yaml")} includes contract/degraded-path markers`,
@@ -307,6 +640,19 @@ if (acceptanceContent !== null) {
       QUALITY_TIERS.includes(parsedAcceptance.qualityTier),
       `${getProjectRelativePath("acceptance.yaml")} quality_tier is supported`,
       { details: [`current quality_tier: ${parsedAcceptance.qualityTier}`] }
+    );
+  }
+  if (missionInfo.currentBaselineId && parsedAcceptance.baselineId) {
+    report(
+      parsedAcceptance.baselineId === missionInfo.currentBaselineId,
+      `${getProjectRelativePath("acceptance.yaml")} baseline_id matches Mission 当前基线 ID`,
+      {
+        warnOnly: legacyMissionCompat,
+        details: [
+          `acceptance baseline_id: ${parsedAcceptance.baselineId}`,
+          `Mission 当前基线 ID: ${missionInfo.currentBaselineId}`,
+        ],
+      }
     );
   }
   report(
@@ -358,13 +704,33 @@ for (const specInput of taskSpecInputs) {
   );
 }
 
-const stateContent = readUtf8IfExists(getProjectFilePath(targetDir, "STATE.md"));
+const stateInfo = readStateFile(targetDir);
+const stateContent = stateInfo.content;
 if (stateContent !== null) {
   const missingSections = markdownHasSections(stateContent, VALIDATION_SCHEMAS.state);
   report(
     missingSections.length === 0,
     `${getProjectRelativePath("STATE.md")} sections complete`,
     { details: missingSections.map((section) => `missing section: ${section}`) }
+  );
+  const missingStatePositionFields = VALIDATION_SCHEMAS.statePositionFields.filter(
+    (fieldName) => !stateInfo.position[fieldName]
+  );
+  report(
+    missingStatePositionFields.length === 0,
+    `${getProjectRelativePath("STATE.md")} declares canonical current-position fields`,
+    {
+      warnOnly: true,
+      details: missingStatePositionFields.map((fieldName) => `missing current-position field: ${fieldName}`),
+    }
+  );
+  report(
+    stateInfo.deprecatedPositionKeys.length === 0,
+    `${getProjectRelativePath("STATE.md")} avoids deprecated current-position keys`,
+    {
+      warnOnly: true,
+      details: stateInfo.deprecatedPositionKeys.map((fieldName) => `deprecated field still used: ${fieldName}`),
+    }
   );
 }
 

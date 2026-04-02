@@ -1,0 +1,82 @@
+version: 3
+baseline_id: "BL-20260320-114500-csv-bulk-import-baseline"
+scope:
+  mode: "change"
+  focus: "csv-bulk-import"
+  baseline_source: "MISSION.md + specs/"
+  quality_tier: "standard"
+
+milestones:
+  - id: M1
+    title: "Plan Locked"
+    goal: "CSV 批量导入的任务、spec 和验收基线已确认"
+    scope: "上传、校验、去重、结果报告"
+    acceptance_goal: "任务拆解与验收标准可直接进入 build"
+    target_window: "change-request baseline sync"
+
+tasks:
+  - id: TASK-AI-001
+    title: "把 CSV 批量导入链路收敛到 spec 与 acceptance"
+    milestone: M1
+    parent: null
+    status: todo
+    owner: AI
+    risk: medium
+    priority: P1
+    wave: 1
+    execution_role: "contract_mapper"
+    approval_required: "user_confirms_plan"
+    depends_on: []
+    requirement_refs:
+      - "REQ-001"
+    acceptance_refs:
+      - "AC-001"
+    context_files:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "STATE.md"
+      - "baseline-log"
+    inputs:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "specs/batch-import.spec.md"
+    outputs:
+      - "specs/batch-import.spec.md"
+      - "acceptance.yaml"
+    affected_components:
+      - "entrypoint"
+      - "mapping"
+    verification_required:
+      - "validate"
+    restart_required: false
+    cold_start_required: false
+    measurable_outcome:
+      - "CSV 上传、校验、去重和结果报告路径已写入 spec"
+      - "任务与验收标准可回指到 REQ-001"
+    edge_cases:
+      - "CSV 超过最大行数"
+      - "重复 SKU 合并策略"
+      - "部分行导入失败"
+    definition_of_ready:
+      - "最新基线已确认"
+      - "导入入口与主要约束已锁定"
+    definition_of_done:
+      - "spec、tasks、acceptance 已同步"
+      - "待确认项只保留在 STATE.md"
+      - "用户确认后可进入 build"
+    evidence_required:
+      - "spec-update"
+      - "flow-note"
+      - "boundary-check"
+    parity_evidence_required: []
+    impact_tags:
+      - "entrypoint"
+      - "mapping"
+    derived_checks:
+      - "compare change-request baseline against promoted baseline"
+      - "verify requirement-to-acceptance traceability"
+    risk_triggers: []
+    blockers: []
+    acceptance_criteria:
+      - "AC-001"
+    notes: ""

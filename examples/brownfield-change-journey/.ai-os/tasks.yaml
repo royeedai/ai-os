@@ -1,5 +1,5 @@
 version: 3
-mission: "MISSION.md"
+baseline_id: "BL-20260318-090000-rate-limit-change"
 scope:
   mode: "change"
   focus: "user-limit"
@@ -10,14 +10,17 @@ milestones:
   - id: M1
     title: "Change Delivered"
     goal: "局部变更正确交付"
+    scope: "用户次数限制规则、受影响接口和最小验证边界"
+    acceptance_goal: "规则变更与宿主项目上下文一致，且不引入越界改动"
+    target_window: "change-request"
 
 tasks:
-  - id: TASK-CHANGE-001
+  - id: TASK-AI-001
     title: "补齐次数限制规则并验证影响边界"
     milestone: M1
     parent: null
     status: todo
-    owner: ai
+    owner: AI
     risk: low
     wave: 1
     execution_role: "contract_mapper"
@@ -29,9 +32,12 @@ tasks:
       - "AC-CHANGE-001"
     context_files:
       - "MISSION.md"
+      - "DESIGN.md"
       - "STATE.md"
     inputs:
       - "MISSION.md"
+      - "DESIGN.md"
+      - "specs/user-limit.spec.md"
     outputs:
       - "specs/user-limit.spec.md"
     affected_components:
@@ -40,6 +46,13 @@ tasks:
       - "validate"
     restart_required: false
     cold_start_required: false
+    measurable_outcome:
+      - "用户次数限制规则在 spec 与实现入口的口径一致"
+      - "受影响接口范围被限制在本轮 change-request 边界内"
+    edge_cases:
+      - "用户已有历史次数记录时的增量计算"
+      - "配置缺失或上限为空时的兜底行为"
+      - "超限请求的错误返回"
     definition_of_ready:
       - "影响边界清晰"
       - "需求基准已更新"
@@ -58,4 +71,6 @@ tasks:
       - "verify impacted endpoints only"
     risk_triggers: []
     blockers: []
+    acceptance_criteria:
+      - "AC-CHANGE-001"
     notes: ""

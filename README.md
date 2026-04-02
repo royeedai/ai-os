@@ -19,7 +19,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 
 | 常见问题 | AI-OS 的做法 |
 |------|------|
-| 需求一模糊，AI 就直接开工 | 先走 `/align`，把当前交付 Mission 说清 |
+| 需求一模糊，AI 就直接开工 | 先走 `/align`，先锁当前交付基线章程 |
 | 需求补充后，AI 直接改代码，文档和代码脱节 | 先走 `/change-request`，更新 `MISSION.md` / spec 再执行 |
 | 技术栈或关键方案没对齐，AI 就自己拍板 | 在 `/align` 和 `/design` 里把关键选型、确认状态和待确认项写清 |
 | 页面做出来了，但逻辑经常错 | 先锁 Design 和关键逻辑，再进入 build |
@@ -30,6 +30,7 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 跨层字段或配置改动总是漏联动 | 用 `contract baseline`、`impact_tags`、`impact_rules` 补联动检查 |
 | brownfield 任务里藏着全局拆包 / DTO / 样式约定，AI 却只看局部文件就开改 | 在 `/design`、`/debug` 和 review 里先做共享基础设施审计，再锁局部契约 |
 | 老项目开始做新需求时，AI 把整个项目重新当成 mission | 在 brownfield / change 中，`MISSION.md` 只定义本轮交付基准，宿主项目只保留必要上下文 |
+| 多人并行时 Mission 总冲突，确认记录和变更日志互相覆盖 | 把 `MISSION.md` 变薄成低频章程，把高频变更挪到 `baseline-log/` 和 `STATE.md` |
 | 用户说“系统可设置”，AI 却没确认到底谁来操作、在哪里操作 | 在 `/align` 和 `/change-request` 里轻量追问配置闭环，避免把“可设置”直接等价成某一种实现方式 |
 | 资产 / 权限 / 状态流转类需求没被自动升级 | 用硬触发高风险档和专项审查拦截 |
 | happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
@@ -92,11 +93,12 @@ AI-OS 默认围绕这套 `.ai-os/` 工件工作：
 
 | 文件 | 作用 |
 |------|------|
-| `.ai-os/MISSION.md` | 宿主项目必要上下文 + 当前交付目标、范围、模式、质量标准和最新需求基准 |
+| `.ai-os/MISSION.md` | 低频、已确认、共享的交付基线章程：宿主项目必要上下文 + 当前目标、范围、模式、质量标准、当前基线 ID |
+| `.ai-os/baseline-log/` | 共享基线记录目录：每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录基线分析、确认和升格结果，供多人协作对齐和审计；不要再用全局递增的 `001/002` 编号 |
 | `.ai-os/DESIGN.md` | 信息架构、关键页面、关键交互、视觉方向、关键流程 |
 | `.ai-os/CONVENTIONS.md` | 项目级代码约定（命名、模式、分层、日志），防止跨 session 实现风格漂移 |
 | `.ai-os/specs/` | 业务规则、交互模式、契约基准、状态流转、边界条件 |
-| `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求 |
+| `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求；团队协作下每个任务必须有稳定 `owner`，任务 ID 推荐用 `TASK-<OWNER>-NNN` |
 | `.ai-os/acceptance.yaml` | 质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
 | `.ai-os/STATE.md` | 当前方位、已锁定内容、待确认项、确认停点和下一步 |
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
@@ -144,7 +146,7 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 
 - 从想法开始做项目：`/align`
 - 有截图 / API / 参考源码：`/align`，模式设为 `reverse-spec`
-- 已有仓库上的需求变更：`/change-request`（`MISSION.md` 写本轮交付，不重写整个项目）
+- 已有仓库上的需求变更：`/change-request`（先新增 `baseline-log/CR-YYYYMMDD-HHMMSS-slug.md`，`MISSION.md` 只在章程变化时更新）
 - 修一个单点 bug 或做微调：`/debug`
 - 需要审查当前方案或实现：`/review`
 - 项目 / 里程碑结束复盘：`/postmortem`
@@ -180,9 +182,16 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 
 多人使用 AI-OS 同时开发同一项目时，`create-ai-os` 会自动配置 `.gitignore` 和 `.gitattributes`：
 
-- **会话文件**（`STATE.md`、`context-snapshot.md` 等）不入版本控制，每位开发者本地维护；`/resume` 可从项目工件自动重建
-- **追加式知识**（`memory.md`、`tasks.yaml`）使用 `merge=union` 策略减少合并冲突
+- **会话文件**（`STATE.md`、`context-snapshot.md` 等）不入版本控制，每位开发者本地维护；`/status`、`/next`、`/resume` 会在缺失 `STATE.md` 时从 `MISSION.md`、最新 confirmed baseline、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml` 自动重建
+- **追加式知识** 中，`baseline-log/` 通过“一条记录一个文件”降低冲突；`memory.md` 使用 `merge=union` 降低追加式合并冲突；`tasks.yaml` 保持正常合并，避免把同一任务的并发编辑静默拼接
 - **项目共识**（`MISSION.md`、`DESIGN.md`、`CONVENTIONS.md`、`specs/`、`acceptance.yaml`）正常入版本控制，团队共享
+- `baseline-log/` 文件名默认使用“时间戳 + 语义 slug”，避免多人分支去抢 `BL-001` 这类连续编号
+
+推荐协作方式：
+
+- 会改变 `MISSION.md` 的需求基线调整，先走独立的 baseline-sync 提交落主干
+- 功能分支默认不修改 `MISSION.md`，只消费最新 baseline 并更新代码、spec、tasks、acceptance
+- `tasks.yaml` 里每个任务都要有稳定 `owner`；`/build` 阶段默认只更新自己任务的运行态字段（如 `status`、`blockers`、`notes`），不要顺手改 `baseline_id`、里程碑定义或他人任务
 
 如需跳过自动配置：
 

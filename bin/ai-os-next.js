@@ -10,7 +10,7 @@ const {
 } = require("./shared");
 const {
   parseTasksFile,
-  readStateFile,
+  ensureStateFile,
   getReadyTasks,
 } = require("./project-state");
 
@@ -29,11 +29,12 @@ Options:
 
 const targetDir = resolveTargetDir(parsed.positional);
 
-const state = readStateFile(targetDir);
+const ensuredState = ensureStateFile(targetDir);
+const state = ensuredState.state;
 const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
 
 if (!state.exists) {
-  fail(`${getProjectRelativePath("STATE.md")} not found in ${targetDir}`);
+  fail(`${getProjectRelativePath("STATE.md")} missing and could not be rebuilt from project artifacts in ${targetDir}`);
 }
 if (!tasks.exists) {
   fail(`${getProjectRelativePath("tasks.yaml")} not found in ${targetDir}`);
@@ -42,6 +43,9 @@ if (!tasks.exists) {
 const readyTasks = getReadyTasks(tasks.tasks);
 
 process.stdout.write(`\nAI-OS Next — ${targetDir}\n\n`);
+if (ensuredState.rebuilt) {
+  process.stdout.write(`已从共享工件重建 ${getProjectRelativePath("STATE.md")}。\n\n`);
+}
 process.stdout.write(`当前记录的下一步:\n`);
 if (state.nextSteps.length === 0) {
   process.stdout.write(`- 未记录\n`);

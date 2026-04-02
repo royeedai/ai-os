@@ -1,0 +1,80 @@
+version: 3
+baseline_id: "BL-20260322-101500-dropdown-empty-fix"
+scope:
+  mode: "brownfield"
+  focus: "aichat-model-dropdown"
+  baseline_source: "MISSION.md + specs/"
+  quality_tier: "standard"
+
+milestones:
+  - id: M1
+    title: "Bounded Fix"
+    goal: "下拉框空数据问题修复并完成最小回归"
+    scope: "AiChat 页面模型数据加载"
+    acceptance_goal: "列表可见且无越界修改"
+    target_window: "debug"
+
+tasks:
+  - id: TASK-AI-001
+    title: "修复 AiChat 页面模型列表消费逻辑"
+    milestone: M1
+    parent: null
+    status: todo
+    owner: AI
+    risk: low
+    priority: P1
+    wave: 1
+    execution_role: "implementer"
+    approval_required: "confirm_debug_fix"
+    depends_on: []
+    requirement_refs:
+      - "REQ-001"
+    acceptance_refs:
+      - "AC-001"
+    context_files:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "STATE.md"
+      - "specs/dropdown.spec.md"
+    inputs:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "specs/dropdown.spec.md"
+    outputs:
+      - "src/AiChat.vue"
+    affected_components:
+      - "entrypoint"
+      - "mapping"
+    verification_required:
+      - "validate"
+    restart_required: false
+    cold_start_required: false
+    measurable_outcome:
+      - "页面首次加载后下拉框可展示模型列表"
+      - "不再访问已被全局拆包后的 res.code"
+    edge_cases:
+      - "接口返回空数组"
+      - "请求失败时的错误提示"
+    definition_of_ready:
+      - "修复边界已确认"
+      - "根因已定位到局部消费逻辑"
+    definition_of_done:
+      - "下拉框可正常展示"
+      - "最小回归验证完成"
+      - "没有越界修改 request 层"
+    evidence_required:
+      - "root-cause-note"
+      - "fix-note"
+      - "test-log"
+    parity_evidence_required: []
+    impact_tags:
+      - "entrypoint"
+      - "mapping"
+    derived_checks:
+      - "verify interceptor contract before local patch"
+      - "confirm no out-of-scope edits were introduced"
+    risk_triggers: []
+    blockers: []
+    acceptance_criteria:
+      - "AC-001"
+    notes: ""
