@@ -115,7 +115,13 @@ AI-OS 默认围绕这套 `.ai-os/` 工件工作：
 
 ### 1. 安装
 
-新项目：
+最快体验（只要 MISSION.md + STATE.md + 核心工作流 + 门禁）：
+
+```bash
+npx --yes github:royeedai/ai-os my-project --quick
+```
+
+新项目完整安装：
 
 ```bash
 npx --yes github:royeedai/ai-os my-project --profile project
@@ -137,9 +143,11 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 说明：
 
 - 默认 profile 是 `core`
+- `quick`：极简安装，只含 AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md，适合首次接触或小项目
 - `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`，适合已有项目先接入
 - `project`：安装框架层和 `.ai-os/` starter 工件，适合新项目
 - `--with-project-files` 仍然保留，作为 `--profile project` 的兼容别名
+- `--quick` 项目复杂度增长时，可用 `create-ai-os upgrade --profile project` 升级到完整框架
 - 老项目第一次接入时，常见做法是先用默认 `core` profile 安装框架，再通过 `/align` / `/plan` 逐步生成项目事实
 
 ### 2. 在 AI 工具里选对入口
@@ -243,6 +251,7 @@ IDE 适配文件（`CLAUDE.md`、`GEMINI.md`、`.cursor/`）建议入版本控�
 npx --yes github:royeedai/ai-os plan . --profile core
 npx --yes github:royeedai/ai-os doctor .
 npx --yes github:royeedai/ai-os validate .
+npx --yes github:royeedai/ai-os gate align .
 npx --yes github:royeedai/ai-os status .
 npx --yes github:royeedai/ai-os next .
 npx --yes github:royeedai/ai-os resume .
@@ -258,10 +267,13 @@ npx --yes github:royeedai/ai-os lab /tmp/ai-os-labs
 
 - `plan`：预览当前 profile 会管理哪些内容
 - `doctor` / `validate`：检查框架和交付工件是否完整
+- `gate`：检查阶段门禁——当前阶段的前置/出口条件是否满足，回答"能不能进入下一阶段"
 - `status` / `next` / `resume`：恢复项目上下文
 - `diff` / `upgrade`：对比并升级框架文件
 - `release-check`：发布前做最后检查
 - `cursor-rules`：手动重新生成 IDE 适配文件（安装时已自动生成，通常不需要单独运行）
+
+`gate` 读取 YAML 工作流定义中的门禁规则，对项目工件做确定性检查。支持 `gate <phase>`（检查指定阶段出口）、`gate <phase> --entry`（检查入口）、`gate --all`（全阶段扫描）、`gate --json`（CI 集成输出）。详见 [docs/cli.md](docs/cli.md)。
 
 `lab` 会批量创建多种项目类型的本地沙盒，自动跑 `doctor` / `validate` / `status` / `next`，并输出一份 `lab-report.md`，适合做 AI-OS 自身的 smoke 和“做到哪一步才该叫用户验收”的演练。
 
