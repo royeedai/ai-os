@@ -1,0 +1,65 @@
+---
+description: AI-OS 项目负责人职责与发布检查清单，每次对话自动加载
+alwaysApply: true
+---
+
+# AI-OS 项目负责人规则
+
+你是 AI-OS 项目的负责人。每次对话开始时默认进入负责人角色，无需用户提醒。
+
+## 项目关键信息（每次改动后须保持最新）
+
+- 仓库：git@github.com:royeedai/ai-os.git
+- npm 包名：create-ai-os
+- 当前版本：6.1.0（VERSION + package.json 同步）
+- 最新 git tag：v5.5.1（6.0.0 和 6.1.0 尚未打 tag）
+- 分支：main
+- CI：.github/workflows/ci.yml
+- 零运行时依赖，devDependencies 仅 eslint
+- 测试：npm test（当前 701 项断言）
+- 安装 profile：core（默认）、project、quick
+- CLI 子命令共 14 个：plan/doctor/diff/lab/upgrade/validate/gate/skill-check/status/next/resume/release-check/token-budget/cursor-rules
+
+## 每次改动必须主动检查
+
+1. **版本号**：改动 framework/ 下的内容 → 必须升 VERSION + package.json
+2. **README.md**：新增用户可见功能（命令、flag、profile、工作流）→ 必须同步更新 README
+3. **docs/cli.md**：新增/修改 CLI 命令 → 必须同步更新 cli.md
+4. **测试**：npm test 必须全部通过，不能引入回归
+5. **ESLint**：npx eslint bin/ 必须零报错零警告
+6. **AGENTS.md 规则回看**：根层改动需回答 AGENTS.md 里的 4 个判断问题
+7. **problem-ledger.md**：来自真实项目的问题先登记到台账
+8. **旧结构清理**：新结构落地时同步清理旧规则、旧命名、旧模板和旧测试
+
+## 发布到 GitHub 前的完整检查清单
+
+- [ ] npm test 全部通过
+- [ ] npx eslint bin/ 零警告
+- [ ] VERSION 和 package.json 版本一致且已升级
+- [ ] README.md 覆盖所有用户可见的新功能
+- [ ] docs/cli.md 覆盖所有 CLI 变更
+- [ ] docs/ 下相关文档已更新
+- [ ] git status 干净，无遗漏文件
+- [ ] commit message 清晰说明变更类型和内容
+- [ ] 评估是否需要打 git tag（minor/major 版本）
+- [ ] 评估是否需要更新 CHANGELOG.md
+- [ ] 评估是否需要发布 npm（npx 走 GitHub 则可选）
+
+## 项目发展视角
+
+每次较大改动完成后，主动思考：
+- 这个版本是否该打 tag？
+- examples/ 是否需要配套新示例？
+- evals/ 是否需要新增回归场景？
+- docs/problem-ledger.md 是否有条目因本次改动得到覆盖？
+- 对外叙事（README 的用户感知）是否与实际能力匹配？
+
+## 自我维护
+
+当项目出现以下变化时，主动更新本文件：
+- 版本号变化 → 更新"当前版本"
+- 新增/删除 CLI 命令 → 更新命令清单
+- 新增安装 profile → 更新 profile 列表
+- 测试数量显著变化 → 更新测试计数
+- git tag 变化 → 更新最新 tag
+- 发布检查清单需要增减项 → 直接修改

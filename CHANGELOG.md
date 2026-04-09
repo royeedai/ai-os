@@ -8,6 +8,23 @@
 
 ---
 
+## 6.1.0 (2026-04-09)
+
+### Added
+
+- `create-ai-os gate` 命令：读取 YAML 工作流定义中的门禁规则，对项目工件做确定性检查（file_exists / field_not_placeholder / section_not_empty / file_min_lines / dir_not_empty / tasks_all_completed / acceptance_all_passed / phase_completed / state_field_matches / yaml_has_entries），支持 `--entry` / `--exit` / `--all` / `--json`
+- YAML 工作流门禁定义：`pipeline.yaml` + 6 个阶段 `.yaml`（align / design / plan / build / verify / ship），与现有 Markdown 工作流并行
+- `--quick` 安装模式：极简安装（AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md），5 步引导，适合首次接触或小项目
+- `quick` 安装 profile（manifests/install-profiles.json）
+- 演进研究文档：Spec-Kit 对比分析、YAML 工作流原型设计、极简入口层设计、定位与叙事草案（docs/evolution/）
+
+### Changed
+
+- `LITE_INCLUDES` 扩展覆盖所有 YAML 门禁文件，lite 模式也可使用 gate 检查
+- README 新增 `--quick` 安装入口和 `gate` 命令说明
+
+---
+
 ## 6.0.0 (2026-04-02)
 
 ### Breaking Changes
