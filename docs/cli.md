@@ -6,9 +6,11 @@
 create-ai-os .
 create-ai-os plan . --profile core
 create-ai-os my-project --profile project
+create-ai-os my-project --quick
 create-ai-os . --lite
 create-ai-os doctor .
 create-ai-os validate .
+create-ai-os gate align .
 create-ai-os status .
 create-ai-os next .
 create-ai-os resume .
@@ -21,14 +23,53 @@ create-ai-os upgrade .
 create-ai-os skill-check .agents/skills/my-skill
 ```
 
-## 最重要的 4 个命令
+## 最重要的 5 个命令
 
+- `gate`：检查当前阶段的门禁是否通过，回答"能不能进入下一阶段"
 - `doctor`：看框架和核心工件是否齐
 - `validate`：看 Mission / Design / Spec / Tasks / Acceptance / State 是否完整，并对新旧结构给出 fail / warning
 - `resume`：导出最小阅读集
 - `release-check`：看当前交付是否具备发布条件，并在 `high-risk` 档强查授权 / 并发 / degraded-path 证据
 
 CLI 新能力默认要求能被所有已承诺支持的环境承接。只在单一 IDE 生效的行为，不进入 CLI 主命令，最多作为该 IDE 的适配层扩展。
+
+## Phase Gate 命令
+
+`gate` 读取 YAML 工作流定义（`framework/.agents/workflows/*.yaml`）中的门禁规则，对项目工件做确定性检查，回答"当前阶段的前置/出口条件是否满足"。
+
+```bash
+create-ai-os gate align .          # 检查 align 出口门禁
+create-ai-os gate design --entry . # 检查 design 入口门禁
+create-ai-os gate build --exit .   # 检查 build 出口门禁
+create-ai-os gate --all .          # 检查所有阶段
+create-ai-os gate --json .         # JSON 输出（CI 集成）
+```
+
+门禁类型：
+- `file_exists`：文件是否存在
+- `dir_not_empty`：目录是否非空
+- `field_not_placeholder`：Markdown 字段是否已填写（非模板占位符）
+- `section_not_empty`：Markdown 章节是否有内容
+- `file_min_lines`：文件最小行数
+- `tasks_all_completed`：tasks.yaml 中所有任务是否完成
+- `acceptance_all_passed`：acceptance.yaml 中所有项是否通过
+- `phase_completed`：前置阶段出口门禁是否全部通过
+
+每条门禁有 `error`（阻塞）和 `warning`（提示）两种严重级别。只要有 error 级门禁未通过，退出码为 1。
+
+### 与其他命令的关系
+
+- `doctor`：检查框架安装健康度
+- `validate`：检查工件结构合规性
+- `gate`：检查工作流门禁（能不能进入下一阶段）
+
+## Quick 安装模式
+
+```bash
+create-ai-os my-project --quick
+```
+
+Quick 模式只安装最小必需文件：AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md。适合首次接触或小项目。项目复杂度增长时，用 `upgrade --profile project` 升级到完整框架。
 
 ## 框架维护命令
 

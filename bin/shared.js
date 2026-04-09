@@ -64,6 +64,14 @@ const LITE_INCLUDES = [
   ".agents/workflows/change-request.md",
   ".agents/workflows/resume.md",
   ".agents/workflows/status.md",
+  // YAML gate definitions
+  ".agents/workflows/pipeline.yaml",
+  ".agents/workflows/align.yaml",
+  ".agents/workflows/design.yaml",
+  ".agents/workflows/plan.yaml",
+  ".agents/workflows/build.yaml",
+  ".agents/workflows/verify.yaml",
+  ".agents/workflows/ship.yaml",
   // skills: only those referenced by workflows
   ".agents/skills/AGENTS.md",
   ".agents/skills/project-planner/SKILL.md",
@@ -84,6 +92,30 @@ const LITE_INCLUDES = [
 ];
 const LITE_DIR_PREFIXES = [
   ".agents/templates/",
+];
+
+const QUICK_INCLUDES = [
+  "AGENTS.md",
+  ".agents/workflows/AGENTS.md",
+  ".agents/workflows/align.md",
+  ".agents/workflows/design.md",
+  ".agents/workflows/plan.md",
+  ".agents/workflows/build.md",
+  ".agents/workflows/verify.md",
+  ".agents/workflows/pipeline.yaml",
+  ".agents/workflows/align.yaml",
+  ".agents/workflows/design.yaml",
+  ".agents/workflows/plan.yaml",
+  ".agents/workflows/build.yaml",
+  ".agents/workflows/verify.yaml",
+  ".agents/workflows/ship.yaml",
+];
+const QUICK_PROJECT_FILES = [
+  "MISSION.md",
+  "STATE.md",
+];
+const QUICK_PROJECT_DIRS = [
+  "baseline-log",
 ];
 
 const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
@@ -596,15 +628,21 @@ function isLiteIncluded(relativePath) {
   return LITE_DIR_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
+function isQuickIncluded(relativePath) {
+  const normalized = relativePath.replace(/\\/g, "/");
+  return QUICK_INCLUDES.includes(normalized);
+}
+
 function copyFramework(targetDir, options = {}) {
-  const { overwrite = false, lite = false, logger = defaultLogger } = options;
+  const { overwrite = false, lite = false, quick = false, logger = defaultLogger } = options;
 
   for (const rootRel of MANAGED_ROOTS) {
     const srcRoot = path.join(FRAMEWORK_ROOT, rootRel);
     const dstRoot = path.join(targetDir, rootRel);
 
     if (fs.statSync(srcRoot).isFile()) {
-      if (lite && !isLiteIncluded(rootRel)) continue;
+      if (quick && !isQuickIncluded(rootRel)) continue;
+      if (lite && !quick && !isLiteIncluded(rootRel)) continue;
       if (fs.existsSync(dstRoot) && !overwrite) {
         logger(`keep existing managed file: ${rootRel}`);
         continue;
@@ -617,7 +655,8 @@ function copyFramework(targetDir, options = {}) {
     const files = listFilesRecursively(srcRoot);
     for (const srcFile of files) {
       const relativePath = path.relative(FRAMEWORK_ROOT, srcFile);
-      if (lite && !isLiteIncluded(relativePath.replace(/\\/g, "/"))) continue;
+      if (quick && !isQuickIncluded(relativePath.replace(/\\/g, "/"))) continue;
+      if (lite && !quick && !isLiteIncluded(relativePath.replace(/\\/g, "/"))) continue;
       const dstFile = path.join(targetDir, relativePath);
       if (fs.existsSync(dstFile) && !overwrite) {
         logger(`keep existing managed file: ${relativePath}`);
@@ -691,7 +730,7 @@ function deriveBaselineContextFromExistingRecords(recordRelPaths, fallbackContex
 }
 
 function createProjectFiles(targetDir, options = {}) {
-  const { logger = defaultLogger } = options;
+  const { logger = defaultLogger, quick = false } = options;
   const requestedBaselineContext = options.baselineContext || createInitialBaselineContext();
   const existingBaselineRecords = listBaselineRecordRelativePaths(targetDir);
   const baselineContext = existingBaselineRecords.length > 0
@@ -700,11 +739,21 @@ function createProjectFiles(targetDir, options = {}) {
   const createdPaths = [];
 
   ensureDir(getProjectRoot(targetDir));
-  for (const dirName of PROJECT_CORE_ARTIFACT_DIRS) {
+
+  const quickFileSet = new Set(QUICK_PROJECT_FILES);
+  const quickDirSet = new Set(QUICK_PROJECT_DIRS);
+  const dirsToCreate = quick
+    ? PROJECT_CORE_ARTIFACT_DIRS.filter((d) => quickDirSet.has(d))
+    : PROJECT_CORE_ARTIFACT_DIRS;
+  const filesToCreate = quick
+    ? PROJECT_CORE_ARTIFACT_FILES.filter((f) => quickFileSet.has(f))
+    : PROJECT_CORE_ARTIFACT_FILES;
+
+  for (const dirName of dirsToCreate) {
     ensureDir(getProjectFilePath(targetDir, dirName));
   }
 
-  for (const fileName of PROJECT_CORE_ARTIFACT_FILES) {
+  for (const fileName of filesToCreate) {
     const destinationPath = getProjectFilePath(targetDir, fileName);
     if (copyTemplateIfMissing(
       targetDir,
@@ -716,14 +765,16 @@ function createProjectFiles(targetDir, options = {}) {
     }
   }
 
-  const exampleSpecPath = getProjectFilePath(targetDir, path.join("specs", "example.spec.md"));
-  if (copyTemplateIfMissing(
-    targetDir,
-    getProjectTemplatePath(path.join("specs", "example.spec.md")),
-    exampleSpecPath,
-    { logger }
-  )) {
-    createdPaths.push(exampleSpecPath);
+  if (!quick) {
+    const exampleSpecPath = getProjectFilePath(targetDir, path.join("specs", "example.spec.md"));
+    if (copyTemplateIfMissing(
+      targetDir,
+      getProjectTemplatePath(path.join("specs", "example.spec.md")),
+      exampleSpecPath,
+      { logger }
+    )) {
+      createdPaths.push(exampleSpecPath);
+    }
   }
 
   if (existingBaselineRecords.length === 0) {
@@ -1628,6 +1679,10 @@ module.exports = {
   LITE_INCLUDES,
   LITE_DIR_PREFIXES,
   isLiteIncluded,
+  QUICK_INCLUDES,
+  QUICK_PROJECT_FILES,
+  QUICK_PROJECT_DIRS,
+  isQuickIncluded,
   QUALITY_TIERS,
   IMPACT_TAGS,
   HIGH_RISK_SPECIAL_REVIEWS,

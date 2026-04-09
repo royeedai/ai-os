@@ -11,6 +11,7 @@ const SUBCOMMANDS = {
   lab:             "./ai-os-lab",
   upgrade:         "./ai-os-upgrade",
   validate:        "./ai-os-validate",
+  gate:            "./ai-os-gate",
   "skill-check":   "./ai-os-skill-check",
   status:          "./ai-os-status",
   next:            "./ai-os-next",
@@ -72,6 +73,7 @@ Check your setup:
   create-ai-os plan [target-dir]           Preview managed install scope
   create-ai-os doctor [target-dir]         Check framework health
   create-ai-os validate [target-dir]       Validate delivery artifacts
+  create-ai-os gate [phase] [target-dir]   Check phase transition gates
   create-ai-os skill-check [skill-dir]     Validate a custom Skill
   create-ai-os lab [target-dir]            Bootstrap multi-scenario lab sandboxes
 
@@ -105,6 +107,7 @@ Options:
   --with-project-files  Compatibility alias for --profile project.
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   --lite                Install minimal framework: AGENTS.md + core workflows (align/design/build/verify/debug) + essential skills; ~60% fewer files, ideal for small projects or first-time users
+  --quick               Quick start: minimal AGENTS.md + main workflows + gate checks + only MISSION.md and STATE.md; upgrade later with create-ai-os upgrade --profile project
   --no-team-config      Skip automatic .gitignore/.gitattributes setup for team collaboration
   --no-ide-files        Skip generating IDE integration files (CLAUDE.md, GEMINI.md, .cursor/)
   -h, --help            Show this help message
@@ -117,6 +120,7 @@ let withProjectFiles = false;
 let forceFramework = false;
 let profileArg = "";
 let liteMode = false;
+let quickMode = false;
 let noTeamConfig = false;
 let noIdeFiles = false;
 
@@ -144,6 +148,10 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--lite") {
     liteMode = true;
+    continue;
+  }
+  if (arg === "--quick") {
+    quickMode = true;
     continue;
   }
   if (arg === "--no-team-config") {
@@ -181,11 +189,12 @@ const installedMeta = readInstalledMeta(targetDir);
 
 let installProfile;
 try {
-  installProfile = getInstallProfile(
-    withProjectFiles
-      ? "project"
-      : (profileArg || detectInstallProfileName(targetDir, { meta: installedMeta }))
-  );
+  const resolvedProfile = quickMode
+    ? "quick"
+    : (withProjectFiles
+        ? "project"
+        : (profileArg || detectInstallProfileName(targetDir, { meta: installedMeta })));
+  installProfile = getInstallProfile(resolvedProfile);
 } catch (error) {
   fail(error.message);
 }
@@ -199,14 +208,14 @@ if (forceFramework) {
   removeManagedPaths(targetDir);
 }
 
-const modeLabel = liteMode ? " (lite)" : "";
+const modeLabel = quickMode ? " (quick)" : liteMode ? " (lite)" : "";
 process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION}${modeLabel} into ${targetDir} (profile: ${installProfile.name})\n`);
 
 const overwrite = forceFramework || !isExistingProject;
-copyFramework(targetDir, { overwrite, lite: liteMode });
+copyFramework(targetDir, { overwrite, lite: liteMode || quickMode, quick: quickMode });
 
 if (installProfile.includeProjectFiles) {
-  createProjectFiles(targetDir);
+  createProjectFiles(targetDir, { quick: quickMode });
 }
 
 writeMetadata(targetDir, { installProfile: installProfile.name });
@@ -221,7 +230,27 @@ if (!noTeamConfig) {
   appendGitattributesEntries(targetDir);
 }
 
-if (isExistingProject && !forceFramework) {
+if (quickMode) {
+  process.stdout.write(`
+Initialization complete (quick mode).
+
+Framework version: ${FRAMEWORK_VERSION}
+Target project: ${targetDir}
+
+AI-OS Quick Start — deliver in 5 steps:
+
+  1. /align    Tell the AI what you want to build (generates MISSION.md)
+  2. /design   Lock the key design decisions (generates DESIGN.md)
+  3. /build    Implement the code
+  4. /verify   Validate quality and correctness
+  5. gate      Check anytime: create-ai-os gate <phase>
+
+When your project grows, upgrade to the full framework:
+  create-ai-os ${targetDir} --profile project --force-framework
+
+Commit the generated files (AGENTS.md, .agents/, .ai-os/) into your repository.
+`);
+} else if (isExistingProject && !forceFramework) {
   process.stdout.write(`
 Initialization complete (existing project updated).
 
