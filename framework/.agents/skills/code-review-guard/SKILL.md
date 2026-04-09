@@ -87,6 +87,7 @@ description: >
 - [ ] 前后端、API / worker、DTO / entity、事件发布 / 消费之间的字段名、状态枚举、错误码、分页 / 过滤字段是否与 spec 一致？
 - [ ] 若实现中存在命名差异，spec 是否显式声明映射关系，代码中是否存在明确 adapter / translator？
 - [ ] 若命中 `impact_tags` 中的 `mapping` / `schema` / `state-transition`，是否补了兼容性和 degraded-path 证据？
+- [ ] MISSION / DESIGN 中确认的技术选型（依赖名、版本约束、运行时版本等）是否与实际构建配置（POM、package.json、go.mod 等）逐项一致？生成的代码是否兼容声明的语言/运行时版本？
 
 ### Step 2：按模块类型选择审查深度
 

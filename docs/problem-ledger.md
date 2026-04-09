@@ -224,3 +224,59 @@
 - **AI-OS 必须保证**：`MISSION.md` 只记录低频、已确认、共享的交付基线；高频协作信息拆到 `baseline-log/` 和 `STATE.md`；多人协作默认采用“串行基线、并行实现”。
 - **当前覆盖锚点**：`framework/.agents/templates/project/MISSION.md`、`framework/.agents/templates/project/baseline-log/BL-template.md`、`framework/.agents/workflows/align.md`、`framework/.agents/workflows/change-request.md`、`framework/AGENTS.md`、`bin/ai-os-validate.js`、`bin/ai-os-status.js`、`bin/ai-os-resume.js`、`README.md`、`docs/artifacts.md`
 - **每次迭代核对**：不能再把待确认项、阶段状态或需求变更同步记录塞回 `MISSION.md`；不能让 `baseline-log/` 退化成新的需求真理源；不能让多人协作默认再次回到“所有人都直接改 Mission”。
+
+### PL-021 跨切面架构关注点缺少受影响实体双清单
+
+- **来源**：2026-04 用户实战问题；多租户项目中遗漏 tenant_id 导致数据泄露
+- **真实问题**：当项目存在跨切面架构关注点（多租户、国际化、RBAC、审计日志等）时，/design 阶段没有产出"受影响实体/表清单"和"明确排除清单"双清单，导致实现阶段遗漏关键实体的隔离或审计字段。
+- **AI-OS 必须保证**：涉及跨切面架构关注点时，/design 阶段输出 DESIGN.md 需包含受影响实体清单和明确排除清单；后续 /verify 对照检查。
+- **当前覆盖锚点**：`/design`、`database-schema-design` skill（通用 Schema 指南，未提及跨切面分类）
+- **每次迭代核对**：不能让跨切面关注点只出现在口头描述中，必须落到设计工件；不能让 database-schema-design 的增强引入特定业务场景硬编码。
+
+### PL-022 构建配置排除规则与引用关系不自洽
+
+- **来源**：2026-04 用户实战问题；.dockerignore 排除了 Dockerfile COPY 需要的文件导致构建失败
+- **真实问题**：构建配置中的排除规则（.dockerignore、.gitignore、.npmignore 等）与引用关系（COPY、import、include 等）互相矛盾，排除了又引用的文件导致构建阶段静默失败或文件缺失。
+- **AI-OS 必须保证**：构建配置文件之间的排除规则与引用关系必须自洽；code-review-guard 或 fullstack-dev-checklist 应检查此类冲突。
+- **当前覆盖锚点**：`code-review-guard` Step 0 B（检查容器化构建文件存在性，但不检查排除/引用自洽性）
+- **每次迭代核对**：不能让容器化构建文件的检查退化为仅检查文件是否存在而不检查配置自洽性。
+
+### PL-023 构建或启动前环境前置检查缺失
+
+- **来源**：2026-04 用户实战问题；dev server 运行时执行 next build 导致端口/文件锁冲突
+- **真实问题**：AI agent 不像人类开发者那样天然感知终端里还跑着什么，在 dev server 运行时执行构建命令、在端口被占用时启动新服务，导致构建失败或启动失败。
+- **AI-OS 必须保证**：执行构建或启动命令前，确认无冲突的运行时进程占用构建资源（端口、文件锁、缓存目录等）；发现冲突时先停止冲突进程或使用独立目录。
+- **当前覆盖锚点**：`code-review-guard` Step 0 B（环境编排文件检查）、`fullstack-dev-checklist`（runtime-config 联动矩阵）
+- **每次迭代核对**：不能让环境前置检查只停留在文件是否存在层面，应关注运行时进程状态。
+
+### PL-024 多目标环境验证只覆盖主环境
+
+- **来源**：2026-04 用户实战问题；项目声明支持移动端但 /verify 只测了桌面端
+- **真实问题**：当 MISSION/DESIGN 声明支持多目标环境（桌面+移动、多浏览器、多 OS、多架构）时，AI 只在主环境（通常是桌面端）下验证就宣称全部通过，移动端、其他浏览器或其他 OS 的体验和功能未被验证。
+- **AI-OS 必须保证**：/verify 必须逐目标环境验证，不能只在一种环境下通过就宣称全部完成；至少应列出每个声明的目标环境的验证结论。
+- **当前覆盖锚点**：`/verify`（检查关键用户任务是否真实可达但未按目标环境分类）、`acceptance-gate`、`fullstack-dev-checklist`
+- **每次迭代核对**：不能让 /verify 默认只验证一种环境；不能让多端验证退化为可选项。
+
+### PL-025 大版本依赖升级缺少 Migration Guide 审查
+
+- **来源**：2026-04 用户实战问题；AI 直接改版本号导致配置项和 API 签名静默不兼容
+- **真实问题**：当 tasks 或 change-request 包含核心依赖的大版本升级（major version bump）时，AI 直接改版本号进入实现，不查阅官方 Migration Guide / Breaking Changes / Release Notes，遗漏配置项变更、API 签名变化和行为差异，导致编译通过但运行时行为不符预期。
+- **AI-OS 必须保证**：大版本依赖升级前必须先查阅官方 Migration Guide，识别配置项变更、API 签名变化和行为差异，再进入实现。
+- **当前覆盖锚点**：`/change-request`（要求影响分析但未显式要求查阅 Migration Guide）、`change-impact-analyzer`（检查维度不含上游破坏性变更）
+- **每次迭代核对**：不能让影响分析只关注内部工件，忽略上游依赖的破坏性变更。
+
+### PL-026 容器化构建验证未纳入 verify 证据
+
+- **来源**：2026-04 用户实战问题；源码编译通过但 Docker 镜像无法构建
+- **真实问题**：当项目的目标交付物包含容器镜像时，/verify 的项目原生静态校验只覆盖了源码级编译（tsc、mvn compile 等），不包含容器构建（docker build / docker compose build），导致代码编译通过但 Docker 镜像构建失败在 /ship 阶段才暴露。
+- **AI-OS 必须保证**：当项目的目标交付物包含容器镜像时，/verify 的校验证据必须包含容器构建结果，而非仅限于源码级编译。
+- **当前覆盖锚点**：`/verify`（项目原生静态校验示例仅列源码级工具）、`code-review-guard` Step 0 B（检查 Dockerfile 存在但不验证构建通过）
+- **每次迭代核对**：不能让项目原生静态校验的示例列表永远只包含编译命令；不能让容器构建验证退化为可选项。
+
+### PL-027 reverse-spec 对标粒度不足
+
+- **来源**：2026-04 用户实战问题；reverse-spec 项目对标停留在模块级别，未区分子类型
+- **真实问题**：reverse-spec 项目在 /align 和 /design 阶段做功能对标时，只停留在模块级描述（如支持查询控件），不深入到子功能/子类型/变体粒度（如查询控件有哪几种：文本输入、日期范围、下拉、多选），导致 parity-map 粒度不够，实现阶段遗漏关键变体。
+- **AI-OS 必须保证**：reverse-spec 项目对标时，功能枚举必须深入到子功能/子类型/变体粒度，parity-map 中必须保持一致的条目应逐变体列出。
+- **当前覆盖锚点**：`reverse-engineer` skill（第 2 步要求抓取信息架构、关键页面、关键交互但未要求子类型粒度）、`parity-map` 模板
+- **每次迭代核对**：不能让对标粒度退化为模块级描述；不能让 parity-map 的必须保持一致条目只列大类。
