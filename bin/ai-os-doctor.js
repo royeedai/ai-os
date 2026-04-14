@@ -23,11 +23,12 @@ const {
   listManagedFiles,
   listSourceManagedFiles,
   readInstalledMeta,
-  getProjectFilePath,
-  getProjectRelativePath,
   parseCliArgs,
   resolveTargetDir,
   createReporter,
+  resolveProjectLane,
+  resolveDeliveryPath,
+  formatDeliveryPath,
 } = require("./shared");
 const {
   readMissionFile,
@@ -38,22 +39,34 @@ const {
 // CLI
 // ---------------------------------------------------------------------------
 
-const parsed = parseCliArgs(process.argv, { booleanFlags: ["--strict"] });
+const parsed = parseCliArgs(process.argv, {
+  booleanFlags: ["--strict"],
+  valuedFlags: ["--lane"],
+});
 if (parsed.flags.help) {
   process.stdout.write(`Usage:
-  ai-os-doctor [target-dir] [--strict]
+  ai-os-doctor [target-dir] [--strict] [--lane <lane-id>]
 
 Check the health of an AI-OS enabled project.
 
 Options:
-  --strict     Also validate project-local delivery artifacts
-  -h, --help   Show this help message
+  --strict          Also validate project-local delivery artifacts
+  --lane <lane-id>  Check delivery artifacts for the specified lane
+  -h, --help        Show this help message
 `);
   process.exit(0);
 }
 
 const strict = parsed.flags.strict;
 const targetDir = resolveTargetDir(parsed.positional);
+const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
+  process.stderr.write(`Error: ${laneResolution.message}\n`);
+  process.exit(1);
+}
+const laneId = laneResolution.ok ? laneResolution.laneId : null;
+const getArtifactPath = (dir, relPath) => resolveDeliveryPath(dir, relPath, { laneId });
+const formatArtifactPath = (relPath) => formatDeliveryPath(relPath, { laneId });
 
 // ---------------------------------------------------------------------------
 // Checks
@@ -63,11 +76,16 @@ const reporter = createReporter();
 const { report } = reporter;
 
 const frameworkVersion = readFrameworkVersion();
-const mission = readMissionFile(targetDir);
-const baselineLog = readBaselineLogFile(targetDir);
+const mission = readMissionFile(targetDir, { artifactPathResolver: getArtifactPath });
+const baselineLog = readBaselineLogFile(targetDir, { artifactPathResolver: getArtifactPath });
 
 process.stdout.write(`\nAI-OS Doctor — ${targetDir}\n`);
 process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
+if (laneId) {
+  process.stdout.write(`Delivery model: ${laneResolution.model} (lane: ${laneId})\n\n`);
+} else if (laneResolution.ok && laneResolution.isLegacyFallback) {
+  process.stdout.write("Delivery model: legacy single-delivery\n\n");
+}
 
 // 1. Metadata
 const meta = readInstalledMeta(targetDir);
@@ -155,12 +173,12 @@ if (missingFiles.length === 0) {
 process.stdout.write(`\n  Core project state files:\n`);
 const coreProjectFiles = [
   ...PROJECT_CORE_ARTIFACT_FILES.map((relPath) => ({
-    path: getProjectFilePath(targetDir, relPath),
-    label: getProjectRelativePath(relPath),
+    path: getArtifactPath(targetDir, relPath),
+    label: formatArtifactPath(relPath),
   })),
   ...PROJECT_CORE_ARTIFACT_DIRS.map((relPath) => ({
-    path: getProjectFilePath(targetDir, relPath),
-    label: `${getProjectRelativePath(relPath)}/`,
+    path: getArtifactPath(targetDir, relPath),
+    label: `${formatArtifactPath(relPath)}/`,
     isDir: true,
   })),
 ];
@@ -186,12 +204,12 @@ for (const pf of coreProjectFiles) {
 
 const optionalProjectFiles = [
   ...PROJECT_OPTIONAL_ARTIFACT_FILES.map((relPath) => ({
-    path: getProjectFilePath(targetDir, relPath),
-    label: getProjectRelativePath(relPath),
+    path: getArtifactPath(targetDir, relPath),
+    label: formatArtifactPath(relPath),
   })),
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS.map((relPath) => ({
-    path: getProjectFilePath(targetDir, relPath),
-    label: `${getProjectRelativePath(relPath)}/`,
+    path: getArtifactPath(targetDir, relPath),
+    label: `${formatArtifactPath(relPath)}/`,
     isDir: true,
   })),
 ];
@@ -228,6 +246,8 @@ if (strict) {
 
   if (!shouldValidateProjectArtifacts) {
     process.stdout.write("  skipped: project artifacts were not installed by this profile\n");
+  } else if (laneId) {
+    process.stdout.write("  skipped: lane-aware strict validation is not wired yet; use lane-aware status/resume/next for now\n");
   } else {
     const validateResult = spawnSync(
       process.execPath,

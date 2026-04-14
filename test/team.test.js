@@ -5,6 +5,45 @@ const path = require("path");
 const shared = require("../bin/shared");
 const { assert, run, tmpDir, cleanup, section } = require("./helpers");
 
+function moveIntoLane(projectDir, laneId = "default") {
+  const laneDir = path.join(projectDir, ".ai-os", "lanes", laneId);
+  fs.mkdirSync(laneDir, { recursive: true });
+
+  for (const relPath of [
+    "MISSION.md",
+    "DESIGN.md",
+    "tasks.yaml",
+    "acceptance.yaml",
+    "STATE.md",
+  ]) {
+    fs.renameSync(
+      path.join(projectDir, ".ai-os", relPath),
+      path.join(laneDir, relPath)
+    );
+  }
+
+  for (const dirName of ["baseline-log", "specs"]) {
+    fs.renameSync(
+      path.join(projectDir, ".ai-os", dirName),
+      path.join(laneDir, dirName)
+    );
+  }
+
+  fs.writeFileSync(
+    path.join(laneDir, "lane.toml"),
+    [
+      `id = "${laneId}"`,
+      `title = "${laneId} lane"`,
+      'status = "active"',
+      'baseline_id = "BL-20260101-000000-initial-baseline"',
+      'quality_tier = "standard"',
+      'owner = "team-core"',
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+}
+
 section("team collaboration config");
 
 {
@@ -66,5 +105,64 @@ section("team collaboration config");
   run("create-ai-os.js", [dir, "--with-project-files", "--no-team-config"]);
   assert(!fs.existsSync(path.join(dir, ".gitignore")), "--no-team-config skips .gitignore");
   assert(!fs.existsSync(path.join(dir, ".gitattributes")), "--no-team-config skips .gitattributes");
+  cleanup(dir);
+}
+
+section("lane-aware recovery commands");
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  moveIntoLane(dir, "default");
+
+  const statusResult = run("ai-os-status.js", [dir]);
+  assert(statusResult.status === 0, "status works on a lane-based project");
+  assert(statusResult.stdout.includes("lane: default"), "status reports the selected lane");
+  assert(statusResult.stdout.includes(".ai-os/lanes/default/STATE.md") || statusResult.stdout.includes("Delivery model"), "status uses lane-scoped state context");
+
+  const nextResult = run("ai-os-next.js", [dir]);
+  assert(nextResult.status === 0, "next works on a lane-based project");
+  assert(nextResult.stdout.includes("lane: default"), "next reports the selected lane");
+
+  const resumeResult = run("ai-os-resume.js", [dir, "--markdown"]);
+  assert(resumeResult.status === 0, "resume works on a lane-based project");
+  assert(resumeResult.stdout.includes(".ai-os/lanes/default/MISSION.md"), "resume references lane-scoped mission");
+  assert(resumeResult.stdout.includes("当前 lane"), "resume markdown reports current lane");
+
+  const doctorResult = run("ai-os-doctor.js", [dir]);
+  assert(doctorResult.status === 0, "doctor works on a lane-based project");
+  assert(doctorResult.stdout.includes("lane: default"), "doctor reports the selected lane");
+
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  moveIntoLane(dir, "alpha");
+  fs.mkdirSync(path.join(dir, ".ai-os", "lanes", "beta"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"),
+    [
+      'id = "beta"',
+      'title = "beta lane"',
+      'status = "active"',
+      'baseline_id = "BL-20260101-000001-beta"',
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+
+  const ambiguousStatus = run("ai-os-status.js", [dir]);
+  assert(ambiguousStatus.status === 1, "status blocks when multiple active lanes exist");
+  assert(
+    ambiguousStatus.stderr.includes("Multiple active lanes found"),
+    "status explains lane selection is required"
+  );
+
+  const explicitStatus = run("ai-os-status.js", [dir, "--lane", "alpha"]);
+  assert(explicitStatus.status === 0, "status accepts explicit lane selection");
+  assert(explicitStatus.stdout.includes("lane: alpha"), "status reports the explicitly selected lane");
+
   cleanup(dir);
 }

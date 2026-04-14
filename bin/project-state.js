@@ -69,6 +69,10 @@ const DEFAULT_STATE_MINIMAL_READ_SET = [
 
 const PHASE_SEQUENCE = ["align", "design", "plan", "build", "verify", "ship"];
 
+function getArtifactPathResolver(options = {}) {
+  return options.artifactPathResolver || getProjectFilePath;
+}
+
 function readUtf8IfExists(filePath) {
   if (!fs.existsSync(filePath)) {
     return null;
@@ -754,8 +758,9 @@ function collectResumeFiles(state, currentTask) {
   return files;
 }
 
-function readStateFile(targetDir) {
-  const statePath = getProjectFilePath(targetDir, "STATE.md");
+function readStateFile(targetDir, options = {}) {
+  const getArtifactPath = getArtifactPathResolver(options);
+  const statePath = getArtifactPath(targetDir, "STATE.md");
   const content = readUtf8IfExists(statePath);
   if (content === null) {
     return {
@@ -807,8 +812,9 @@ function isDeclaredHighRisk(parsedAcceptance, parsedTasks) {
   );
 }
 
-function readMissionFile(targetDir) {
-  const missionPath = getProjectFilePath(targetDir, "MISSION.md");
+function readMissionFile(targetDir, options = {}) {
+  const getArtifactPath = getArtifactPathResolver(options);
+  const missionPath = getArtifactPath(targetDir, "MISSION.md");
   const content = readUtf8IfExists(missionPath);
   if (content === null) {
     return {
@@ -886,8 +892,9 @@ function readBaselineRecordFile(filePath) {
   };
 }
 
-function readBaselineLogFile(targetDir) {
-  const baselineDirPath = getProjectFilePath(targetDir, "baseline-log");
+function readBaselineLogFile(targetDir, options = {}) {
+  const getArtifactPath = getArtifactPathResolver(options);
+  const baselineDirPath = getArtifactPath(targetDir, "baseline-log");
   if (fs.existsSync(baselineDirPath) && fs.statSync(baselineDirPath).isDirectory()) {
     const entries = fs.readdirSync(baselineDirPath)
       .filter((name) => name.endsWith(".md") && name !== ".DS_Store")
@@ -905,11 +912,11 @@ function readBaselineLogFile(targetDir) {
       latestConfirmed: confirmedEntries.length > 0 ? confirmedEntries[confirmedEntries.length - 1] : null,
       legacyHeaders: [],
       legacyContent: "",
-      legacyFilePath: getProjectFilePath(targetDir, "baseline-log.md"),
+      legacyFilePath: getArtifactPath(targetDir, "baseline-log.md"),
     };
   }
 
-  const legacyPath = getProjectFilePath(targetDir, "baseline-log.md");
+  const legacyPath = getArtifactPath(targetDir, "baseline-log.md");
   const content = readUtf8IfExists(legacyPath);
   if (content === null) {
     return {
@@ -1172,12 +1179,13 @@ ${renderList(data.minimalReadSet)}
 `;
 }
 
-function buildStateFromArtifacts(targetDir) {
-  const missionInfo = readMissionFile(targetDir);
-  const parsedTasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
-  const parsedAcceptance = parseAcceptanceFile(getProjectFilePath(targetDir, "acceptance.yaml"));
-  const baselineInfo = readBaselineLogFile(targetDir);
-  const designExists = fs.existsSync(getProjectFilePath(targetDir, "DESIGN.md"));
+function buildStateFromArtifacts(targetDir, options = {}) {
+  const getArtifactPath = getArtifactPathResolver(options);
+  const missionInfo = readMissionFile(targetDir, options);
+  const parsedTasks = parseTasksFile(getArtifactPath(targetDir, "tasks.yaml"));
+  const parsedAcceptance = parseAcceptanceFile(getArtifactPath(targetDir, "acceptance.yaml"));
+  const baselineInfo = readBaselineLogFile(targetDir, options);
+  const designExists = fs.existsSync(getArtifactPath(targetDir, "DESIGN.md"));
 
   if (!missionInfo.exists && !parsedTasks.exists && !parsedAcceptance.exists && !designExists && !baselineInfo.exists) {
     return null;
@@ -1230,8 +1238,9 @@ function buildStateFromArtifacts(targetDir) {
   return state;
 }
 
-function ensureStateFile(targetDir) {
-  const existingState = readStateFile(targetDir);
+function ensureStateFile(targetDir, options = {}) {
+  const getArtifactPath = getArtifactPathResolver(options);
+  const existingState = readStateFile(targetDir, options);
   if (existingState.exists) {
     return {
       state: existingState,
@@ -1239,7 +1248,7 @@ function ensureStateFile(targetDir) {
     };
   }
 
-  const rebuiltState = buildStateFromArtifacts(targetDir);
+  const rebuiltState = buildStateFromArtifacts(targetDir, options);
   if (!rebuiltState) {
     return {
       state: existingState,
@@ -1247,7 +1256,7 @@ function ensureStateFile(targetDir) {
     };
   }
 
-  const statePath = getProjectFilePath(targetDir, "STATE.md");
+  const statePath = getArtifactPath(targetDir, "STATE.md");
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
   fs.writeFileSync(statePath, renderStateFile(rebuiltState), "utf8");
 

@@ -22,9 +22,17 @@ const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
 const BASELINE_LOG_TEMPLATE_FILE = path.posix.join("baseline-log", "BL-template.md");
 const INITIAL_BASELINE_SLUG = "initial-baseline";
+const LANES_DIR = "lanes";
+const LANE_METADATA_FILE = "lane.toml";
+const DEFAULT_LANE_ID = "default";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_ID = "{{INITIAL_BASELINE_ID}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_FILE = "{{INITIAL_BASELINE_FILE}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_DATE = "{{INITIAL_BASELINE_DATE}}";
+
+const DELIVERY_MODEL_NONE = "none";
+const DELIVERY_MODEL_LEGACY = "legacy";
+const DELIVERY_MODEL_LANES = "lanes";
+const DELIVERY_MODEL_MIXED = "mixed";
 
 const PROJECT_CORE_ARTIFACT_FILES = [
   "MISSION.md",
@@ -49,6 +57,45 @@ const PROJECT_ARTIFACT_FILES = [
 const PROJECT_ARTIFACT_DIRS = [
   ...PROJECT_CORE_ARTIFACT_DIRS,
   ...PROJECT_OPTIONAL_ARTIFACT_DIRS,
+];
+const LEGACY_DELIVERY_ARTIFACT_FILES = [
+  "MISSION.md",
+  "DESIGN.md",
+  "tasks.yaml",
+  "acceptance.yaml",
+  "STATE.md",
+  "baseline-log.md",
+  "risk-register.md",
+  "release-plan.md",
+  "verification-matrix.yaml",
+];
+const LEGACY_DELIVERY_ARTIFACT_DIRS = [
+  "baseline-log",
+  "specs",
+  "design-pack",
+  "evals",
+];
+const LANE_CORE_ARTIFACT_FILES = [
+  "MISSION.md",
+  "DESIGN.md",
+  "tasks.yaml",
+  "acceptance.yaml",
+  "STATE.md",
+];
+const LANE_OPTIONAL_ARTIFACT_FILES = [
+  "risk-register.md",
+  "release-plan.md",
+  "verification-matrix.yaml",
+];
+const LANE_CORE_ARTIFACT_DIRS = ["baseline-log", "specs"];
+const LANE_OPTIONAL_ARTIFACT_DIRS = ["design-pack", "evals"];
+const LANE_ARTIFACT_FILES = [
+  ...LANE_CORE_ARTIFACT_FILES,
+  ...LANE_OPTIONAL_ARTIFACT_FILES,
+];
+const LANE_ARTIFACT_DIRS = [
+  ...LANE_CORE_ARTIFACT_DIRS,
+  ...LANE_OPTIONAL_ARTIFACT_DIRS,
 ];
 const LITE_INCLUDES = [
   "AGENTS.md",
@@ -408,8 +455,21 @@ function getProjectRoot(targetDir) {
   return path.join(targetDir, PROJECT_STATE_ROOT);
 }
 
+function getProjectLanesRoot(targetDir) {
+  return getProjectFilePath(targetDir, LANES_DIR);
+}
+
 function normalizeRelativePath(relPath = "") {
   return relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function normalizeLaneId(laneId = "") {
+  return String(laneId || "").trim();
+}
+
+function normalizeLaneStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized || "active";
 }
 
 function escapeRegExp(value) {
@@ -437,6 +497,330 @@ function getProjectRelativePath(relPath = "") {
   return normalized
     ? path.posix.join(PROJECT_STATE_ROOT, normalized).replace(/\\/g, "/")
     : PROJECT_STATE_ROOT;
+}
+
+function stripLaneRootPrefix(laneId, relPath = "") {
+  const normalizedLaneId = normalizeLaneId(laneId);
+  if (!normalizedLaneId) {
+    fail("lane id is required");
+  }
+
+  const normalized = normalizeRelativePath(relPath);
+  const lanePrefix = path.posix.join(LANES_DIR, normalizedLaneId);
+  const projectLanePrefix = path.posix.join(PROJECT_STATE_ROOT, lanePrefix);
+
+  if (normalized.startsWith(`${projectLanePrefix}/`)) {
+    return normalized.slice(projectLanePrefix.length + 1);
+  }
+  if (normalized === projectLanePrefix) {
+    return "";
+  }
+  if (normalized.startsWith(`${lanePrefix}/`)) {
+    return normalized.slice(lanePrefix.length + 1);
+  }
+  if (normalized === lanePrefix) {
+    return "";
+  }
+  return normalized;
+}
+
+function getLaneRelativePath(laneId, relPath = "") {
+  const normalizedLaneId = normalizeLaneId(laneId);
+  if (!normalizedLaneId) {
+    fail("lane id is required");
+  }
+
+  const normalized = stripLaneRootPrefix(normalizedLaneId, relPath);
+  return normalized
+    ? path.posix.join(PROJECT_STATE_ROOT, LANES_DIR, normalizedLaneId, normalized).replace(/\\/g, "/")
+    : path.posix.join(PROJECT_STATE_ROOT, LANES_DIR, normalizedLaneId).replace(/\\/g, "/");
+}
+
+function getLaneFilePath(targetDir, laneId, relPath = "") {
+  const normalizedLaneId = normalizeLaneId(laneId);
+  if (!normalizedLaneId) {
+    fail("lane id is required");
+  }
+
+  const normalized = stripLaneRootPrefix(normalizedLaneId, relPath);
+  return normalized
+    ? path.join(getProjectLanesRoot(targetDir), normalizedLaneId, normalized)
+    : path.join(getProjectLanesRoot(targetDir), normalizedLaneId);
+}
+
+function getLaneMetadataPath(targetDir, laneId) {
+  return getLaneFilePath(targetDir, laneId, LANE_METADATA_FILE);
+}
+
+function listProjectLanes(targetDir) {
+  const lanesRoot = getProjectLanesRoot(targetDir);
+  if (!fs.existsSync(lanesRoot) || !fs.statSync(lanesRoot).isDirectory()) {
+    return [];
+  }
+
+  return fs.readdirSync(lanesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((laneId) => laneId && laneId !== ".DS_Store")
+    .sort()
+    .map((laneId) => {
+      const metadataPath = getLaneMetadataPath(targetDir, laneId);
+      const metadataExists = fs.existsSync(metadataPath) && fs.statSync(metadataPath).isFile();
+      const values = metadataExists
+        ? parseSimpleToml(fs.readFileSync(metadataPath, "utf8"))
+        : {};
+      const status = normalizeLaneStatus(values.status);
+      return {
+        id: laneId,
+        title: values.title || null,
+        status,
+        isActive: status === "active",
+        baselineId: values.baseline_id || null,
+        qualityTier: values.quality_tier || null,
+        owner: values.owner || null,
+        rootPath: getLaneFilePath(targetDir, laneId),
+        relativePath: getLaneRelativePath(laneId),
+        metadataPath,
+        metadataRelativePath: getLaneRelativePath(laneId, LANE_METADATA_FILE),
+        metadataExists,
+        configured: metadataExists,
+        values,
+      };
+    });
+}
+
+function listLegacyDeliveryArtifactEntries(targetDir) {
+  return [
+    ...LEGACY_DELIVERY_ARTIFACT_FILES.map((relPath) => ({ kind: "file", relPath })),
+    ...LEGACY_DELIVERY_ARTIFACT_DIRS.map((relPath) => ({ kind: "dir", relPath })),
+  ]
+    .map((entry) => ({
+      ...entry,
+      absolutePath: getProjectFilePath(targetDir, entry.relPath),
+    }))
+    .filter((entry) => fs.existsSync(entry.absolutePath))
+    .map((entry) => ({
+      ...entry,
+      relativePath: getProjectRelativePath(entry.relPath),
+    }))
+    .sort((left, right) => left.relPath.localeCompare(right.relPath));
+}
+
+function inspectProjectDeliveryLayout(targetDir) {
+  const projectRoot = getProjectRoot(targetDir);
+  const projectRootExists = fs.existsSync(projectRoot) && fs.statSync(projectRoot).isDirectory();
+  const lanesRoot = getProjectLanesRoot(targetDir);
+  const lanesRootExists = fs.existsSync(lanesRoot) && fs.statSync(lanesRoot).isDirectory();
+  const lanes = listProjectLanes(targetDir);
+  const legacyRootEntries = listLegacyDeliveryArtifactEntries(targetDir);
+  const activeLaneIds = lanes.filter((lane) => lane.isActive).map((lane) => lane.id);
+
+  let model = DELIVERY_MODEL_NONE;
+  if (lanesRootExists && legacyRootEntries.length > 0) {
+    model = DELIVERY_MODEL_MIXED;
+  } else if (lanesRootExists) {
+    model = DELIVERY_MODEL_LANES;
+  } else if (legacyRootEntries.length > 0) {
+    model = DELIVERY_MODEL_LEGACY;
+  }
+
+  return {
+    model,
+    projectRoot,
+    projectRootExists,
+    lanesRoot,
+    lanesRootExists,
+    lanes,
+    laneIds: lanes.map((lane) => lane.id),
+    activeLaneIds,
+    legacyRootEntries,
+    legacyRootRelPaths: legacyRootEntries.map((entry) => entry.relPath),
+    requiresMigration: model === DELIVERY_MODEL_MIXED,
+  };
+}
+
+function resolveProjectLane(targetDir, options = {}) {
+  const layout = options.layout || inspectProjectDeliveryLayout(targetDir);
+  const requestedLaneId = normalizeLaneId(options.laneId);
+
+  if (layout.model === DELIVERY_MODEL_NONE) {
+    return {
+      ok: false,
+      code: "no-delivery-model",
+      message: "No AI-OS delivery artifacts found.",
+      layout,
+      requestedLaneId,
+    };
+  }
+
+  if (layout.model === DELIVERY_MODEL_LEGACY) {
+    if (requestedLaneId) {
+      return {
+        ok: false,
+        code: "legacy-does-not-support-lane-selection",
+        message: `Legacy single-delivery project does not support lane selection: ${requestedLaneId}`,
+        layout,
+        requestedLaneId,
+      };
+    }
+    return {
+      ok: true,
+      code: "legacy-fallback",
+      model: layout.model,
+      laneId: null,
+      lane: null,
+      autoSelected: false,
+      isLegacyFallback: true,
+      layout,
+      requestedLaneId,
+    };
+  }
+
+  if (layout.lanes.length === 0) {
+    return {
+      ok: false,
+      code: "no-lanes-found",
+      message: "Lane-based project has no lanes configured.",
+      layout,
+      requestedLaneId,
+    };
+  }
+
+  if (requestedLaneId) {
+    const requestedLane = layout.lanes.find((lane) => lane.id === requestedLaneId);
+    if (!requestedLane) {
+      return {
+        ok: false,
+        code: "unknown-lane",
+        message: `Unknown lane: ${requestedLaneId}`,
+        layout,
+        requestedLaneId,
+      };
+    }
+    return {
+      ok: true,
+      code: "lane-selected",
+      model: layout.model,
+      laneId: requestedLane.id,
+      lane: requestedLane,
+      autoSelected: false,
+      isLegacyFallback: false,
+      layout,
+      requestedLaneId,
+    };
+  }
+
+  const activeLanes = layout.lanes.filter((lane) => lane.isActive);
+  if (activeLanes.length === 1) {
+    return {
+      ok: true,
+      code: "lane-auto-selected",
+      model: layout.model,
+      laneId: activeLanes[0].id,
+      lane: activeLanes[0],
+      autoSelected: true,
+      isLegacyFallback: false,
+      layout,
+      requestedLaneId,
+    };
+  }
+
+  return {
+    ok: false,
+    code: "lane-selection-required",
+    message: activeLanes.length > 1
+      ? `Multiple active lanes found: ${activeLanes.map((lane) => lane.id).join(", ")}`
+      : "No active lane found. Specify --lane.",
+    layout,
+    requestedLaneId,
+  };
+}
+
+function isLaneArtifactPath(relPath = "") {
+  const normalized = stripProjectRootPrefix(relPath);
+  if (!normalized) {
+    return false;
+  }
+  if (normalized === "baseline-log.md") {
+    return true;
+  }
+  if (normalized.startsWith(`${LANES_DIR}/`)) {
+    return true;
+  }
+  if (LANE_ARTIFACT_FILES.includes(normalized)) {
+    return true;
+  }
+  return LANE_ARTIFACT_DIRS.some(
+    (dirName) => normalized === dirName || normalized.startsWith(`${dirName}/`)
+  );
+}
+
+function resolveDeliveryPath(targetDir, relPath = "", options = {}) {
+  const laneId = normalizeLaneId(options.laneId);
+  const normalized = normalizeRelativePath(relPath);
+
+  if (!normalized) {
+    return laneId ? getLaneFilePath(targetDir, laneId) : getProjectRoot(targetDir);
+  }
+
+  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/${LANES_DIR}/`) || normalized.startsWith(`${LANES_DIR}/`)) {
+    return path.join(getProjectRoot(targetDir), stripProjectRootPrefix(normalized));
+  }
+
+  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
+    return path.join(targetDir, normalized);
+  }
+
+  if (normalized === "baseline-log.md") {
+    return laneId
+      ? getLaneFilePath(targetDir, laneId, normalized)
+      : getProjectFilePath(targetDir, normalized);
+  }
+
+  if (laneId && isLaneArtifactPath(normalized)) {
+    return getLaneFilePath(targetDir, laneId, normalized);
+  }
+
+  if (isProjectArtifactPath(normalized)) {
+    return getProjectFilePath(targetDir, normalized);
+  }
+
+  return path.join(targetDir, normalized);
+}
+
+function formatDeliveryPath(relPath = "", options = {}) {
+  const laneId = normalizeLaneId(options.laneId);
+  const normalized = normalizeRelativePath(relPath);
+
+  if (!normalized) {
+    return laneId ? getLaneRelativePath(laneId) : PROJECT_STATE_ROOT;
+  }
+
+  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/${LANES_DIR}/`) || normalized.startsWith(`${LANES_DIR}/`)) {
+    return normalized.startsWith(`${PROJECT_STATE_ROOT}/`)
+      ? normalized
+      : path.posix.join(PROJECT_STATE_ROOT, normalized).replace(/\\/g, "/");
+  }
+
+  if (normalized.startsWith(`${PROJECT_STATE_ROOT}/`)) {
+    return normalized;
+  }
+
+  if (normalized === "baseline-log.md") {
+    return laneId
+      ? getLaneRelativePath(laneId, normalized)
+      : getProjectRelativePath(normalized);
+  }
+
+  if (laneId && isLaneArtifactPath(normalized)) {
+    return getLaneRelativePath(laneId, normalized);
+  }
+
+  if (isProjectArtifactPath(normalized)) {
+    return getProjectRelativePath(normalized);
+  }
+
+  return normalized;
 }
 
 function listProjectEvalFiles(targetDir) {
@@ -1875,12 +2259,27 @@ module.exports = {
   PROJECT_METADATA_FILE,
   PROJECT_MANAGED_FILES_MANIFEST,
   PROJECT_TEMPLATE_ROOT,
+  LANES_DIR,
+  LANE_METADATA_FILE,
+  DEFAULT_LANE_ID,
+  DELIVERY_MODEL_NONE,
+  DELIVERY_MODEL_LEGACY,
+  DELIVERY_MODEL_LANES,
+  DELIVERY_MODEL_MIXED,
   PROJECT_CORE_ARTIFACT_FILES,
   PROJECT_OPTIONAL_ARTIFACT_FILES,
   PROJECT_ARTIFACT_FILES,
   PROJECT_CORE_ARTIFACT_DIRS,
   PROJECT_OPTIONAL_ARTIFACT_DIRS,
   PROJECT_ARTIFACT_DIRS,
+  LEGACY_DELIVERY_ARTIFACT_FILES,
+  LEGACY_DELIVERY_ARTIFACT_DIRS,
+  LANE_CORE_ARTIFACT_FILES,
+  LANE_OPTIONAL_ARTIFACT_FILES,
+  LANE_CORE_ARTIFACT_DIRS,
+  LANE_OPTIONAL_ARTIFACT_DIRS,
+  LANE_ARTIFACT_FILES,
+  LANE_ARTIFACT_DIRS,
   LITE_INCLUDES,
   LITE_DIR_PREFIXES,
   isLiteIncluded,
@@ -1905,11 +2304,23 @@ module.exports = {
   listFilesRecursively,
   listManagedFiles,
   getProjectRoot,
+  getProjectLanesRoot,
   getProjectFilePath,
   getProjectRelativePath,
+  getLaneRelativePath,
+  getLaneFilePath,
+  getLaneMetadataPath,
+  listProjectLanes,
+  listLegacyDeliveryArtifactEntries,
+  inspectProjectDeliveryLayout,
+  resolveProjectLane,
+  isLaneArtifactPath,
+  resolveDeliveryPath,
+  formatDeliveryPath,
   listProjectEvalFiles,
   getProjectMetadataPath,
   normalizeRelativePath,
+  normalizeLaneId,
   isProjectArtifactPath,
   resolveProjectPath,
   formatProjectPath,

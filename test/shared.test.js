@@ -8,11 +8,23 @@ assert(typeof shared.cleanYamlScalar === "function", "cleanYamlScalar exported")
 assert(typeof shared.parseInlineArray === "function", "parseInlineArray exported");
 assert(typeof shared.listProjectEvalFiles === "function", "listProjectEvalFiles exported");
 assert(typeof shared.validateFailureModeGuards === "function", "validateFailureModeGuards exported");
+assert(typeof shared.getProjectLanesRoot === "function", "getProjectLanesRoot exported");
+assert(typeof shared.getLaneRelativePath === "function", "getLaneRelativePath exported");
+assert(typeof shared.getLaneFilePath === "function", "getLaneFilePath exported");
+assert(typeof shared.getLaneMetadataPath === "function", "getLaneMetadataPath exported");
+assert(typeof shared.listProjectLanes === "function", "listProjectLanes exported");
+assert(typeof shared.inspectProjectDeliveryLayout === "function", "inspectProjectDeliveryLayout exported");
+assert(typeof shared.resolveProjectLane === "function", "resolveProjectLane exported");
+assert(typeof shared.isLaneArtifactPath === "function", "isLaneArtifactPath exported");
+assert(typeof shared.resolveDeliveryPath === "function", "resolveDeliveryPath exported");
+assert(typeof shared.formatDeliveryPath === "function", "formatDeliveryPath exported");
 assert(typeof shared.SYM_OK === "string", "SYM_OK exported");
 assert(typeof shared.VALIDATION_SCHEMAS === "object", "VALIDATION_SCHEMAS exported");
 assert(Array.isArray(shared.QUALITY_TIERS), "QUALITY_TIERS exported");
 assert(Array.isArray(shared.IMPACT_TAGS), "IMPACT_TAGS exported");
 assert(Array.isArray(shared.HIGH_RISK_SPECIAL_REVIEWS), "HIGH_RISK_SPECIAL_REVIEWS exported");
+assert(shared.LANES_DIR === "lanes", "LANES_DIR exported");
+assert(shared.DEFAULT_LANE_ID === "default", "DEFAULT_LANE_ID exported");
 
 section("shared.js new exports");
 assert(Array.isArray(shared.LITE_INCLUDES), "LITE_INCLUDES exported");

@@ -31,6 +31,43 @@ create-ai-os skill-check .agents/skills/my-skill
 - `resume`：导出最小阅读集
 - `release-check`：看当前交付是否具备发布条件，并在 `high-risk` 档强查授权 / 并发 / degraded-path 证据
 
+## 多交付 Lane 支持（6.3.0+）
+
+`status`、`next`、`resume`、`doctor` 支持 `--lane` 参数，可在 lane 级工件目录下读取交付状态：
+
+```bash
+create-ai-os status . --lane default
+create-ai-os next . --lane lane-account-deduction
+create-ai-os resume . --lane default --markdown
+create-ai-os doctor . --lane default
+```
+
+Lane 选择规则：
+
+1. 若项目只有一个 active lane，自动选择
+2. 若存在多个 active lane 但未传 `--lane`，CLI 报错并列出候选
+3. 若项目仍是旧版单交付结构（无 `.ai-os/lanes/`），自动退化到 legacy 模式
+
+Lane 目录结构：
+
+```text
+.ai-os/
+  memory.md          # 共享（不随 lane 移动）
+  CONVENTIONS.md     # 共享
+  lanes/
+    default/
+      lane.toml      # lane 元数据（id、status、baseline_id 等）
+      MISSION.md
+      DESIGN.md
+      tasks.yaml
+      acceptance.yaml
+      STATE.md
+      baseline-log/
+      specs/
+```
+
+详细演进规划见 `docs/evolution/multi-delivery-lanes-proposal.md`。
+
 CLI 新能力默认要求能被所有已承诺支持的环境承接。只在单一 IDE 生效的行为，不进入 CLI 主命令，最多作为该 IDE 的适配层扩展。
 
 ## Phase Gate 命令

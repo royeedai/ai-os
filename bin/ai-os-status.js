@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 const {
-  getProjectFilePath,
-  getProjectRelativePath,
   parseCliArgs,
   resolveTargetDir,
+  resolveProjectLane,
+  resolveDeliveryPath,
+  formatDeliveryPath,
   fail,
 } = require("./shared");
 const {
@@ -16,34 +17,48 @@ const {
   readBaselineLogFile,
 } = require("./project-state");
 
-const parsed = parseCliArgs(process.argv);
+const parsed = parseCliArgs(process.argv, { valuedFlags: ["--lane"] });
 if (parsed.flags.help) {
   process.stdout.write(`Usage:
-  ai-os-status [target-dir]
+  ai-os-status [target-dir] [--lane <lane-id>]
 
 Show the current AI-OS delivery position for a project.
 
 Options:
+  --lane <lane-id>  Read status from the specified delivery lane
   -h, --help  Show this help message
 `);
   process.exit(0);
 }
 
 const targetDir = resolveTargetDir(parsed.positional);
+const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+if (!laneResolution.ok) {
+  fail(laneResolution.message);
+}
 
-const ensuredState = ensureStateFile(targetDir);
+const laneId = laneResolution.laneId;
+const getArtifactPath = (dir, relPath) => resolveDeliveryPath(dir, relPath, { laneId });
+const formatArtifactPath = (relPath) => formatDeliveryPath(relPath, { laneId });
+
+const ensuredState = ensureStateFile(targetDir, { artifactPathResolver: getArtifactPath });
 const state = ensuredState.state;
-const tasks = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
-const mission = readMissionFile(targetDir);
-const baselineLog = readBaselineLogFile(targetDir);
+const tasks = parseTasksFile(getArtifactPath(targetDir, "tasks.yaml"));
+const mission = readMissionFile(targetDir, { artifactPathResolver: getArtifactPath });
+const baselineLog = readBaselineLogFile(targetDir, { artifactPathResolver: getArtifactPath });
 
 if (!state.exists) {
-  fail(`${getProjectRelativePath("STATE.md")} missing and could not be rebuilt from project artifacts in ${targetDir}`);
+  fail(`${formatArtifactPath("STATE.md")} missing and could not be rebuilt from project artifacts in ${targetDir}`);
 }
 
 process.stdout.write(`\nAI-OS Status — ${targetDir}\n\n`);
+if (laneId) {
+  process.stdout.write(`Delivery model: ${laneResolution.model} (lane: ${laneId})\n\n`);
+} else if (laneResolution.isLegacyFallback) {
+  process.stdout.write(`Delivery model: legacy single-delivery\n\n`);
+}
 if (ensuredState.rebuilt) {
-  process.stdout.write(`已从共享工件重建 ${getProjectRelativePath("STATE.md")}。\n\n`);
+  process.stdout.write(`已从共享工件重建 ${formatArtifactPath("STATE.md")}。\n\n`);
 }
 process.stdout.write(`当前方位:\n`);
 for (const label of ["项目模式", "当前阶段", "当前目标", "当前任务", "当前交付档位", "当前质量焦点"]) {
@@ -80,7 +95,7 @@ if (baselineLog.latestConfirmed) {
 } else if (baselineLog.exists) {
   process.stdout.write(`- 最新 confirmed 基线: 未记录\n`);
 } else {
-  process.stdout.write(`- 基线日志目录: ${getProjectRelativePath("baseline-log")}/ 未创建\n`);
+  process.stdout.write(`- 基线日志目录: ${formatArtifactPath("baseline-log")}/ 未创建\n`);
 }
 
 process.stdout.write(`\n已锁定内容:\n`);

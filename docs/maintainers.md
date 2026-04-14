@@ -63,6 +63,7 @@
 - PG-002: 框架 token 成本占用过高 → `--lite` / `token-budget`
 - PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
 - PG-004: CLI / 框架能力只在单一 IDE 可用 → 必须写清 Codex / Cursor / Claude Code 等承接路径，否则不纳入 CLI 主能力
+- PG-006: 单工作区单当前基线模型无法承载多人多迭代并行 → 进入 `7.x lanes` 演进规划，见 `docs/evolution/multi-delivery-lanes-proposal.md`
 
 ## 版本纪律
 

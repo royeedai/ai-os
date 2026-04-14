@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 
+const fs = require("fs");
+const path = require("path");
 const { assert, section } = require("./helpers");
 const shared = require("../bin/shared");
+const { tmpDir, cleanup } = require("./helpers");
+
+function writeFile(filePath, content = "") {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content, "utf8");
+}
 
 section("cleanYamlScalar unit tests");
 assert(shared.cleanYamlScalar('  "hello"  ') === "hello", "strips double quotes and whitespace");
@@ -188,3 +196,170 @@ assert(shared.isProjectArtifactPath("DESIGN.md") === true, "DESIGN.md is a proje
 assert(shared.isProjectArtifactPath("tasks.yaml") === true, "tasks.yaml is a project artifact");
 assert(shared.isProjectArtifactPath("AGENTS.md") === false, "AGENTS.md is NOT a project artifact");
 assert(shared.isProjectArtifactPath("random-file.txt") === false, "random file is not a project artifact");
+
+section("lane path helper unit tests");
+{
+  const root = shared.getProjectLanesRoot("/tmp/example");
+  assert(root.endsWith(path.join(".ai-os", "lanes")), "getProjectLanesRoot points to .ai-os/lanes");
+  assert(
+    shared.getLaneRelativePath("default", "MISSION.md") === ".ai-os/lanes/default/MISSION.md",
+    "getLaneRelativePath formats lane artifact path"
+  );
+  assert(
+    shared.getLaneRelativePath("default", ".ai-os/lanes/default/tasks.yaml") === ".ai-os/lanes/default/tasks.yaml",
+    "getLaneRelativePath accepts already-prefixed lane paths"
+  );
+  assert(
+    shared.getLaneFilePath("/tmp/example", "default", "tasks.yaml").endsWith(path.join(".ai-os", "lanes", "default", "tasks.yaml")),
+    "getLaneFilePath resolves lane file path"
+  );
+  assert(
+    shared.getLaneMetadataPath("/tmp/example", "default").endsWith(path.join(".ai-os", "lanes", "default", "lane.toml")),
+    "getLaneMetadataPath resolves lane metadata path"
+  );
+  assert(shared.isLaneArtifactPath("MISSION.md") === true, "MISSION.md is lane-scoped");
+  assert(shared.isLaneArtifactPath("memory.md") === false, "memory.md remains shared at project root");
+  assert(
+    shared.formatDeliveryPath("MISSION.md", { laneId: "default" }) === ".ai-os/lanes/default/MISSION.md",
+    "formatDeliveryPath maps lane-scoped artifact into lane root"
+  );
+  assert(
+    shared.formatDeliveryPath("memory.md", { laneId: "default" }) === ".ai-os/memory.md",
+    "formatDeliveryPath keeps shared artifact at root"
+  );
+  assert(
+    shared.resolveDeliveryPath("/tmp/example", "MISSION.md", { laneId: "default" }).endsWith(path.join(".ai-os", "lanes", "default", "MISSION.md")),
+    "resolveDeliveryPath maps lane-scoped artifact into lane root"
+  );
+  assert(
+    shared.resolveDeliveryPath("/tmp/example", "memory.md", { laneId: "default" }).endsWith(path.join(".ai-os", "memory.md")),
+    "resolveDeliveryPath keeps shared artifact at root"
+  );
+  assert(
+    shared.resolveDeliveryPath("/tmp/example", ".ai-os/lanes/default/MISSION.md").endsWith(path.join(".ai-os", "lanes", "default", "MISSION.md")),
+    "resolveDeliveryPath preserves .ai-os prefix for already-prefixed lane paths"
+  );
+  assert(
+    shared.resolveDeliveryPath("/tmp/example", "lanes/default/tasks.yaml").endsWith(path.join(".ai-os", "lanes", "default", "tasks.yaml")),
+    "resolveDeliveryPath adds .ai-os prefix for bare lane paths"
+  );
+}
+
+section("lane delivery layout unit tests");
+{
+  const dir = tmpDir();
+  try {
+    const layout = shared.inspectProjectDeliveryLayout(dir);
+    assert(layout.model === shared.DELIVERY_MODEL_NONE, "detects missing AI-OS project as none");
+
+    const resolution = shared.resolveProjectLane(dir);
+    assert(resolution.ok === false, "lane resolution fails when no delivery model exists");
+    assert(resolution.code === "no-delivery-model", "uses no-delivery-model code");
+  } finally {
+    cleanup(dir);
+  }
+}
+{
+  const dir = tmpDir();
+  try {
+    writeFile(path.join(dir, ".ai-os", "MISSION.md"), "# mission\n");
+    writeFile(path.join(dir, ".ai-os", "tasks.yaml"), "baseline_id: BL-1\n");
+    writeFile(path.join(dir, ".ai-os", "memory.md"), "# shared\n");
+
+    const layout = shared.inspectProjectDeliveryLayout(dir);
+    assert(layout.model === shared.DELIVERY_MODEL_LEGACY, "detects legacy single-delivery layout");
+    assert(layout.legacyRootRelPaths.includes("MISSION.md"), "tracks legacy mission artifact");
+    assert(layout.legacyRootRelPaths.includes("tasks.yaml"), "tracks legacy task artifact");
+
+    const resolution = shared.resolveProjectLane(dir);
+    assert(resolution.ok === true, "legacy projects resolve without lane");
+    assert(resolution.isLegacyFallback === true, "legacy projects resolve through fallback");
+
+    const laneResolution = shared.resolveProjectLane(dir, { laneId: "default" });
+    assert(laneResolution.ok === false, "legacy projects reject explicit lane selection");
+    assert(
+      laneResolution.code === "legacy-does-not-support-lane-selection",
+      "legacy lane selection returns explicit error code"
+    );
+  } finally {
+    cleanup(dir);
+  }
+}
+{
+  const dir = tmpDir();
+  try {
+    writeFile(
+      path.join(dir, ".ai-os", "lanes", "default", "lane.toml"),
+      [
+        'id = "default"',
+        'title = "Default lane"',
+        'status = "active"',
+        'baseline_id = "BL-default"',
+        'quality_tier = "high-risk"',
+        'owner = "team-core"',
+        "",
+      ].join("\n")
+    );
+
+    const lanes = shared.listProjectLanes(dir);
+    assert(lanes.length === 1, "lists configured lane directories");
+    assert(lanes[0].id === "default", "uses directory name as lane id");
+    assert(lanes[0].isActive === true, "marks active lane from metadata");
+    assert(lanes[0].baselineId === "BL-default", "reads lane baseline id");
+
+    const layout = shared.inspectProjectDeliveryLayout(dir);
+    assert(layout.model === shared.DELIVERY_MODEL_LANES, "detects lanes layout");
+    assert(layout.activeLaneIds.length === 1 && layout.activeLaneIds[0] === "default", "tracks active lane ids");
+
+    const resolution = shared.resolveProjectLane(dir);
+    assert(resolution.ok === true, "single active lane auto-selects");
+    assert(resolution.autoSelected === true, "marks single active lane as auto-selected");
+    assert(resolution.laneId === "default", "returns selected lane id");
+  } finally {
+    cleanup(dir);
+  }
+}
+{
+  const dir = tmpDir();
+  try {
+    writeFile(
+      path.join(dir, ".ai-os", "lanes", "alpha", "lane.toml"),
+      ['status = "active"', ""].join("\n")
+    );
+    writeFile(
+      path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"),
+      ['status = "active"', ""].join("\n")
+    );
+
+    const layout = shared.inspectProjectDeliveryLayout(dir);
+    assert(layout.model === shared.DELIVERY_MODEL_LANES, "detects lanes layout with multiple lanes");
+    assert(layout.activeLaneIds.length === 2, "tracks multiple active lanes");
+
+    const unresolved = shared.resolveProjectLane(dir);
+    assert(unresolved.ok === false, "multiple active lanes require explicit selection");
+    assert(unresolved.code === "lane-selection-required", "uses lane-selection-required code");
+
+    const selected = shared.resolveProjectLane(dir, { laneId: "beta" });
+    assert(selected.ok === true, "explicit lane selection succeeds");
+    assert(selected.laneId === "beta", "returns requested lane");
+  } finally {
+    cleanup(dir);
+  }
+}
+{
+  const dir = tmpDir();
+  try {
+    writeFile(path.join(dir, ".ai-os", "MISSION.md"), "# mission\n");
+    writeFile(path.join(dir, ".ai-os", "lanes", "default", "lane.toml"), 'status = "active"\n');
+
+    const layout = shared.inspectProjectDeliveryLayout(dir);
+    assert(layout.model === shared.DELIVERY_MODEL_MIXED, "detects mixed legacy + lanes layout");
+    assert(layout.requiresMigration === true, "mixed layout flags migration requirement");
+
+    const resolution = shared.resolveProjectLane(dir);
+    assert(resolution.ok === true, "mixed layout can still resolve explicit lane model");
+    assert(resolution.laneId === "default", "mixed layout auto-selects sole active lane");
+  } finally {
+    cleanup(dir);
+  }
+}

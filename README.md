@@ -207,6 +207,10 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 npx --yes github:royeedai/ai-os my-project --profile project --no-team-config
 ```
 
+### 多交付 Lane（6.3.0+）
+
+当团队需要在同一工作区并行推进多条交付线时，可以手动创建 `.ai-os/lanes/<lane-id>/` 目录，将 lane 级工件（MISSION / tasks / acceptance / baseline-log 等）放到对应 lane 下。`status`、`next`、`resume`、`doctor` 支持 `--lane <lane-id>` 读取指定 lane 的交付状态。详见 `docs/cli.md` 和 `docs/evolution/multi-delivery-lanes-proposal.md`。
+
 ## IDE 兼容性
 
 安装时自动生成所有 IDE 适配文件，无需额外步骤：
