@@ -20,9 +20,9 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 
 - `.ai-os/release-plan.md`
 - `.ai-os/risk-register.md`
-- `.ai-os/verification-matrix.yaml`
+- `.ai-os/verification-matrix.yaml`：记录联动验证命令、impact_rules 和稳定 failure mode guard；high-risk 场景至少保留一条真实 `failure_modes` 条目，且 `guards` 应引用 `acceptance.yaml` evidence 或现有 `evals/*.md`
 - `.ai-os/design-pack/parity-map.md`
-- `.ai-os/evals/`
+- `.ai-os/evals/`：把稳定失败模式、关键回归样例和 tricky path 验证沉淀成项目级评估样例
 
 ## 使用原则
 
@@ -32,6 +32,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 - 待确认项、阶段状态和协作过程记录优先写入 `STATE.md` / `baseline-log/`，不要把 `MISSION.md` 写回热点文件
 - 团队协作下 `tasks.yaml` 使用唯一任务 ID 和稳定 `owner` 协作；`/build` 默认只更新自己任务的运行态字段
 - 任何需求变化先更新工件，再改代码
+- `debug` / `verify` 暴露出的稳定 failure mode，优先沉淀到 `evals/` 或 `verification-matrix.yaml`，不要只留在聊天记录里
 - 轻量流程也必须同步 `STATE.md` 和验证证据
 
 补充说明：

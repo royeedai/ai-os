@@ -439,6 +439,22 @@ function getProjectRelativePath(relPath = "") {
     : PROJECT_STATE_ROOT;
 }
 
+function listProjectEvalFiles(targetDir) {
+  const evalsDir = getProjectFilePath(targetDir, "evals");
+  if (!fs.existsSync(evalsDir) || !fs.statSync(evalsDir).isDirectory()) {
+    return [];
+  }
+
+  return listFilesRecursively(evalsDir)
+    .map((absolutePath) => path.relative(evalsDir, absolutePath).replace(/\\/g, "/"))
+    .filter((relPath) => {
+      const baseName = path.basename(relPath);
+      return !relPath.endsWith(".DS_Store") && baseName !== "README.md";
+    })
+    .map((relPath) => path.posix.join("evals", relPath))
+    .sort();
+}
+
 function getProjectMetadataPath(targetDir) {
   return getProjectFilePath(targetDir, PROJECT_METADATA_FILE);
 }
@@ -976,6 +992,187 @@ function parseInlineArray(value) {
     .filter(Boolean);
 }
 
+function countTopLevelYamlListEntries(content, key) {
+  const keyName = String(key || "").trim();
+  if (!content || !keyName) {
+    return 0;
+  }
+
+  const lines = content.split(/\r?\n/);
+  const sectionPattern = new RegExp(`^${escapeRegExp(keyName)}:\\s*(.*)$`);
+  let foundSection = false;
+  let itemIndent = null;
+  let count = 0;
+
+  for (const line of lines) {
+    if (!foundSection) {
+      const match = line.match(sectionPattern);
+      if (!match) {
+        continue;
+      }
+
+      foundSection = true;
+      const inlineValue = match[1].trim();
+      if (inlineValue) {
+        return parseInlineArray(inlineValue).length;
+      }
+      continue;
+    }
+
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    if (!/^\s/.test(line)) {
+      break;
+    }
+
+    const itemMatch = line.match(/^(\s*)-\s+/);
+    if (!itemMatch) {
+      continue;
+    }
+
+    const indent = itemMatch[1].length;
+    if (itemIndent === null) {
+      itemIndent = indent;
+    }
+    if (indent === itemIndent) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function normalizeFailureModeGuardReference(value) {
+  return stripProjectRootPrefix(normalizeRelativePath(String(value || "").trim()));
+}
+
+function parseVerificationMatrixFailureModes(content) {
+  const result = {
+    hasSection: false,
+    entries: [],
+  };
+
+  if (!content) {
+    return result;
+  }
+
+  const lines = content.split(/\r?\n/);
+  let inSection = false;
+  let currentEntry = null;
+  let currentListKey = "";
+
+  for (const line of lines) {
+    if (!inSection) {
+      const sectionMatch = line.match(/^failure_modes:\s*(.*)$/);
+      if (!sectionMatch) {
+        continue;
+      }
+
+      result.hasSection = true;
+      const inlineValue = sectionMatch[1].trim();
+      if (inlineValue) {
+        return result;
+      }
+
+      inSection = true;
+      continue;
+    }
+
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    if (!/^\s/.test(line)) {
+      break;
+    }
+
+    const entryStartMatch = line.match(/^\s*-\s+id:\s*(.+)$/);
+    if (entryStartMatch) {
+      currentEntry = {
+        id: cleanYamlScalar(entryStartMatch[1]),
+        guards: [],
+      };
+      result.entries.push(currentEntry);
+      currentListKey = "";
+      continue;
+    }
+
+    if (!currentEntry) {
+      continue;
+    }
+
+    const fieldMatch = line.match(/^\s+([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if (fieldMatch) {
+      const fieldName = fieldMatch[1];
+      currentListKey = fieldName === "guards" ? "guards" : "";
+      if (fieldName === "guards") {
+        currentEntry.guards = fieldMatch[2]
+          ? parseInlineArray(fieldMatch[2])
+          : [];
+      }
+      continue;
+    }
+
+    const listItemMatch = line.match(/^\s*-\s+(.+)$/);
+    if (currentListKey === "guards" && listItemMatch) {
+      currentEntry.guards.push(cleanYamlScalar(listItemMatch[1]));
+    }
+  }
+
+  return result;
+}
+
+function validateFailureModeGuards(content, options = {}) {
+  const parsed = parseVerificationMatrixFailureModes(content);
+  const knownEvidenceNames = new Set(
+    (options.knownEvidenceNames || [])
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+  );
+  const existingEvalFiles = new Set(
+    (options.existingEvalFiles || [])
+      .map((relPath) => normalizeFailureModeGuardReference(relPath))
+      .filter(Boolean)
+  );
+  const issues = [];
+
+  parsed.entries.forEach((entry, index) => {
+    const entryLabel = entry.id || `failure_modes[${index + 1}]`;
+    const guards = [...new Set((entry.guards || []).map((item) => String(item || "").trim()).filter(Boolean))];
+
+    if (guards.length === 0) {
+      issues.push(`${entryLabel}: guards is empty`);
+      return;
+    }
+
+    for (const guard of guards) {
+      if (knownEvidenceNames.has(guard)) {
+        continue;
+      }
+
+      const normalizedGuard = normalizeFailureModeGuardReference(guard);
+      if (normalizedGuard.startsWith("evals/")) {
+        if (!existingEvalFiles.has(normalizedGuard)) {
+          issues.push(`${entryLabel}: missing eval file: ${normalizedGuard}`);
+        }
+        continue;
+      }
+
+      issues.push(`${entryLabel}: unknown guard reference: ${guard}`);
+    }
+  });
+
+  return {
+    hasSection: parsed.hasSection,
+    entries: parsed.entries,
+    issues,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // ANSI output symbols and colors
 // ---------------------------------------------------------------------------
@@ -1075,6 +1272,13 @@ const VALIDATION_SCHEMAS = {
   stateDeprecatedPositionFields: [
     "阶段",
   ],
+  eval: [
+    "场景",
+    "错误交付",
+    "AI-OS 预期行为",
+    "最低证据",
+    "若需改 framework，优先检查",
+  ],
   spec: [
     "1. 模块概述",
     "2. 业务规则与目标",
@@ -1138,6 +1342,7 @@ const VALIDATION_SCHEMAS = {
     "commands:",
     "rules:",
     "impact_rules:",
+    "failure_modes:",
   ],
   releasePlanMarkersTransitional: [
     "AI 已完成",
@@ -1702,6 +1907,7 @@ module.exports = {
   getProjectRoot,
   getProjectFilePath,
   getProjectRelativePath,
+  listProjectEvalFiles,
   getProjectMetadataPath,
   normalizeRelativePath,
   isProjectArtifactPath,
@@ -1726,6 +1932,8 @@ module.exports = {
   GITATTRIBUTES_ENTRIES,
   cleanYamlScalar,
   parseInlineArray,
+  countTopLevelYamlListEntries,
+  validateFailureModeGuards,
   SYM_OK,
   SYM_FAIL,
   SYM_WARN,

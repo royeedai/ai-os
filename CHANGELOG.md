@@ -8,6 +8,76 @@
 
 ---
 
+## 6.2.6 (2026-04-14)
+
+### Added
+
+- `ai-os-gate` 的 verify 阶段现在会对 `failure_modes[].guards` 的坏引用给出 warning
+
+### Changed
+
+- `/verify` 的 YAML gate 从“只看 `failure_modes` 是否存在”扩展到“同时检查 guard 引用是否对齐 acceptance evidence / 现有 eval”
+
+## 6.2.5 (2026-04-14)
+
+### Added
+
+- `ai-os-validate` 现在会检查 `failure_modes[].guards` 是否引用 `acceptance.yaml` 已声明 evidence 或现有 `.ai-os/evals/*.md`
+- 高风险示例补充了被 `verification-matrix.yaml` 引用的 failure-mode eval 样例
+
+### Changed
+
+- `ai-os-release-check` 在 high-risk 交付里会拦截 `failure_modes[].guards` 的坏引用和空 guard
+- `verification-matrix.yaml` 模板与文档同步明确：`guards` 应指向 acceptance evidence 或现有 eval
+
+## 6.2.4 (2026-04-14)
+
+### Added
+
+- `ai-os-validate` 现在会区分 `failure_modes:` 缺失和空列表，并对空列表给出确定性 warning
+- `ai-os-gate` 新增顶级 YAML 列表条目检查，用于 verify 阶段识别空 `failure_modes`
+
+### Changed
+
+- `ai-os-release-check` 对 high-risk 交付不再接受空 `failure_modes:`，必须保留至少一条真实 guard
+- `verification-matrix.yaml` 模板和文档同步明确：high-risk 交付不能只保留空 `failure_modes`
+
+## 6.2.3 (2026-04-14)
+
+### Added
+
+- `ai-os-gate` 现在会对已有 `verification-matrix.yaml` 缺少 `failure_modes:` 给出 verify 阶段 warning
+
+### Fixed
+
+- 修复 `ai-os-gate` 读取 `tasks.yaml` / `acceptance.yaml` 的路径错误，避免 build / verify 门禁误判
+- `ai-os-release-check` 在 high-risk 交付里正式要求 `verification-matrix.yaml` 记录 `failure_modes:` guard
+
+## 6.2.2 (2026-04-14)
+
+### Added
+
+- `ai-os-validate` 现在会检查项目级 `.ai-os/evals/*.md` 是否具备标准 eval 结构
+- `verification-matrix.yaml` 模板新增 `failure_modes:` 槽位，用于沉淀稳定 failure mode 的最小复现和 guard
+
+### Changed
+
+- `ai-os-validate` 对缺少 `failure_modes:` 的 `verification-matrix.yaml` 给出确定性 warning，而不是只检查 `impact_rules`
+- 高风险示例的 `verification-matrix.yaml` 同步补上 failure mode guard 样例
+
+## 6.2.1 (2026-04-14)
+
+### Added
+
+- PL-028（复杂任务先只读分析再编辑）和 PL-029（稳定 failure mode 要沉淀成回归证据）登记到问题台账
+- 新增 `evals/read-only-analysis-before-edit.md`
+- 新增 `examples/failure-mode-eval-closure.md`
+
+### Changed
+
+- `framework/AGENTS.md`、`/build`、`/debug`、`/verify` 明确要求复杂任务先做只读分析，并要求把稳定 failure mode 同步到 `evals/` / `verification-matrix.yaml`
+- 维护与工件文档补充“trace -> eval”闭环要求，避免只修当前一次、不沉淀回归证据
+
 ## 6.1.0 (2026-04-09)
 
 ### Added

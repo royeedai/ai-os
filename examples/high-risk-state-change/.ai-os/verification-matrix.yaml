@@ -49,3 +49,12 @@ impact_rules:
       - "degraded-path-check"
       - "runtime-check"
     notes: "高风险扣减链路必须补齐契约、异常路径和运行态证据"
+
+failure_modes:
+  - id: deduction-duplicate-submit
+    trigger: "同一扣减请求在超时重试下重复提交"
+    guards:
+      - "degraded-path-check"
+      - "runtime-check"
+      - "evals/deduction-duplicate-submit.md"
+    notes: "扣减链路历史上出现过重复提交流程，后续验证必须保留该最小复现入口"

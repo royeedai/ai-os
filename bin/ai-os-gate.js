@@ -30,6 +30,9 @@ const {
   parseCliArgs,
   resolveTargetDir,
   getProjectFilePath,
+  countTopLevelYamlListEntries,
+  listProjectEvalFiles,
+  validateFailureModeGuards,
 } = require("./shared");
 const {
   parseTasksFile,
@@ -156,15 +159,56 @@ function runGateCheck(gate, targetDir) {
     }
 
     case "tasks_all_completed": {
-      const tasks = parseTasksFile(targetDir);
-      if (!tasks || tasks.length === 0) return false;
-      return tasks.every(t => t.status === "done" || t.status === "cancelled");
+      const parsedTasks = parseTasksFile(projPath("tasks.yaml"));
+      if (!parsedTasks.exists || parsedTasks.tasks.length === 0) return false;
+      return parsedTasks.tasks.every(t => t.status === "done" || t.status === "cancelled");
     }
 
     case "acceptance_all_passed": {
-      const items = parseAcceptanceFile(targetDir);
-      if (!items || items.length === 0) return false;
-      return items.every(a => a.status === "passed" || a.status === "waived");
+      const parsedAcceptance = parseAcceptanceFile(projPath("acceptance.yaml"));
+      const gateStatuses = Object.values(parsedAcceptance.gateStatuses || {});
+      if (!parsedAcceptance.exists || gateStatuses.length === 0) return false;
+      return gateStatuses.every(status => status === "passed" || status === "waived" || status === "approved" || status === "not_applicable");
+    }
+
+    case "file_contains": {
+      const fp = projPath(gate.path);
+      if (!fs.existsSync(fp)) {
+        return gate.if_exists_only ? true : false;
+      }
+      const content = fs.readFileSync(fp, "utf8");
+      return content.includes(String(gate.contains || ""));
+    }
+
+    case "yaml_top_level_list_has_entries": {
+      const fp = projPath(gate.path);
+      if (!fs.existsSync(fp)) {
+        return gate.if_exists_only ? true : false;
+      }
+      const content = fs.readFileSync(fp, "utf8");
+      return countTopLevelYamlListEntries(content, gate.key || gate.field) > 0;
+    }
+
+    case "failure_mode_guards_valid": {
+      const fp = projPath(gate.path);
+      if (!fs.existsSync(fp)) {
+        return gate.if_exists_only ? true : false;
+      }
+      const content = fs.readFileSync(fp, "utf8");
+      if (countTopLevelYamlListEntries(content, "failure_modes") === 0) {
+        return true;
+      }
+      const acceptancePath = projPath(gate.acceptance_path || "acceptance.yaml");
+      const parsedAcceptance = parseAcceptanceFile(acceptancePath);
+      if (!parsedAcceptance.exists) {
+        return false;
+      }
+      const knownEvidenceNames = [...new Set(Object.values(parsedAcceptance.gateEvidence || {}).flat().filter(Boolean))];
+      const validation = validateFailureModeGuards(content, {
+        knownEvidenceNames,
+        existingEvalFiles: listProjectEvalFiles(targetDir),
+      });
+      return validation.issues.length === 0;
     }
 
     case "yaml_has_entries": {

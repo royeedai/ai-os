@@ -16,10 +16,12 @@
 3. 它更适合落在根层原则、workflow、skill、模板、CLI、示例还是 eval
 4. 它是在减少错误交付，还是只是在增加概念
 
-除此之外，每次维护都补做两件事：
+除此之外，每次维护都补做四件事：
 
 1. 新出现的真实问题先登记到 `docs/problem-ledger.md`
 2. 每次重构、学习进步或规则替换，都在变更评估里写清本次回看了哪些问题条目、覆盖是否变弱
+3. 边界不清、跨多文件或影响面不明的改动，先做只读覆盖审计，再进入 framework / CLI / docs 的改写
+4. trace / debug / verify / postmortem 暴露出的稳定 failure mode，不要只停在聊天记录里，要固化到 eval / example / CLI check 或项目工件
 
 ## 当前基线 eval
 
@@ -38,6 +40,7 @@
 - `evals/brownfield-infrastructure-audit-missed.md`
 - `evals/configurable-meant-operable-gap.md`
 - `evals/problem-ledger-coverage-regression.md`
+- `evals/read-only-analysis-before-edit.md`
 
 ## 当前主示例
 
@@ -52,6 +55,7 @@
 - `examples/debug-bounded-fix.md`（含 `.ai-os/` 骨架）
 - `examples/brownfield-infrastructure-audit.md`
 - `examples/config-closure-clarification.md`
+- `examples/failure-mode-eval-closure.md`
 
 ## 治理问题台账
 

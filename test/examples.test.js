@@ -32,6 +32,7 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", "
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "risk-register.md")), "high-risk example skeleton includes risk-register");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "release-plan.md")), "high-risk example skeleton includes release-plan");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "verification-matrix.yaml")), "high-risk example skeleton includes verification-matrix");
+assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "evals", "deduction-duplicate-submit.md")), "high-risk example skeleton includes referenced failure-mode eval");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "memory.md")), "high-risk example skeleton includes memory");
 assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change", ".ai-os", "specs", "state-transition.spec.md")), "high-risk example skeleton includes spec");
 assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix", ".ai-os", "MISSION.md")), "debug example skeleton includes MISSION");

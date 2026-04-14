@@ -21,6 +21,7 @@ AI-OS 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `brownfield-infrastructure-audit-missed.md`
 - `configurable-meant-operable-gap.md`
 - `problem-ledger-coverage-regression.md`
+- `read-only-analysis-before-edit.md`
 
 ## 使用原则
 

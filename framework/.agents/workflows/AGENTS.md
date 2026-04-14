@@ -49,8 +49,10 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 - 没有已确认的 `MISSION.md`，不要默认进入 `/build`
 - 需求变化先走 `/change-request`，bug 修复先走 `/debug`；二者都不是绕过阶段式治理的捷径
 - 没有锁定关键设计和关键逻辑，不要大规模编码
+- 复杂多文件或边界不清的 `/build` / `/debug` 任务，在首次写入前先做只读分析，先锁目标文件、共享约定和验证入口
 - 没有用户确认，不要静默跨阶段推进
 - `reverse-spec` 项目默认要补 `parity-map`
 - `change` / `debug` 允许更轻，但仍需更新 `STATE.md`、同步基准并保留验证证据
+- `debug` / `/verify` 暴露新的稳定 failure mode 时，补 `evals/` 或 `verification-matrix.yaml`，不要只留在当前会话
 - `/auto-advance` 只能在不存在待确认项、审批点和高风险阻塞时进入大规模推进
 - 存在测试套件的项目，`/build` 和 `/verify` 必须执行回归基线对比；原本通过的测试变为失败时，必须先修复回归再继续

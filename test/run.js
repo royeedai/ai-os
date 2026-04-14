@@ -9,6 +9,7 @@ require("./unit-project-state.test");
 require("./install.test");
 require("./lab.test");
 require("./validate.test");
+require("./gate.test");
 require("./upgrade.test");
 require("./e2e.test");
 require("./lite.test");

@@ -19,6 +19,82 @@ assert(JSON.stringify(shared.parseInlineArray('[  "x" ,  "y"  ]')) === '["x","y"
 assert(JSON.stringify(shared.parseInlineArray('["only"]')) === '["only"]', "handles single-element array");
 assert(JSON.stringify(shared.parseInlineArray('["", "a"]')) === '["a"]', "filters empty items");
 
+section("countTopLevelYamlListEntries unit tests");
+assert(shared.countTopLevelYamlListEntries("", "failure_modes") === 0, "returns 0 for empty content");
+assert(shared.countTopLevelYamlListEntries("failure_modes: []\n", "failure_modes") === 0, "treats empty inline list as zero entries");
+assert(shared.countTopLevelYamlListEntries("impact_rules:\n  - id: foo\n", "failure_modes") === 0, "returns 0 for missing top-level key");
+assert(
+  shared.countTopLevelYamlListEntries(
+    [
+      "failure_modes:",
+      "  - id: missing-auth-context",
+      "    trigger: token missing",
+      "    guards:",
+      "      - degraded-path-check",
+      "      - evals/auth-context-missing.md",
+      "  - id: duplicate-submit",
+      "    trigger: same request sent twice",
+      "commands:",
+      '  verify: "npm test"',
+      "",
+    ].join("\n"),
+    "failure_modes"
+  ) === 2,
+  "counts only top-level list entries and ignores nested guards"
+);
+
+section("validateFailureModeGuards unit tests");
+{
+  const result = shared.validateFailureModeGuards(
+    [
+      "failure_modes:",
+      "  - id: duplicate-submit",
+      "    guards:",
+      "      - degraded-path-check",
+      "      - .ai-os/evals/duplicate-submit.md",
+      "",
+    ].join("\n"),
+    {
+      knownEvidenceNames: ["degraded-path-check", "runtime-check"],
+      existingEvalFiles: ["evals/duplicate-submit.md"],
+    }
+  );
+  assert(result.issues.length === 0, "accepts known evidence names and existing eval refs");
+}
+{
+  const result = shared.validateFailureModeGuards(
+    [
+      "failure_modes:",
+      "  - id: duplicate-submit",
+      "    guards:",
+      "      - made-up-check",
+      "      - evals/missing.md",
+      "",
+    ].join("\n"),
+    {
+      knownEvidenceNames: ["degraded-path-check", "runtime-check"],
+      existingEvalFiles: ["evals/duplicate-submit.md"],
+    }
+  );
+  assert(result.issues.includes("duplicate-submit: unknown guard reference: made-up-check"), "reports unknown evidence guard");
+  assert(result.issues.includes("duplicate-submit: missing eval file: evals/missing.md"), "reports missing eval guard");
+}
+{
+  const result = shared.validateFailureModeGuards(
+    [
+      "failure_modes:",
+      "  - id: duplicate-submit",
+      "    guards: []",
+      "",
+    ].join("\n"),
+    {
+      knownEvidenceNames: ["degraded-path-check"],
+      existingEvalFiles: [],
+    }
+  );
+  assert(result.issues.includes("duplicate-submit: guards is empty"), "reports empty guard lists");
+}
+
 section("parseSimpleToml unit tests");
 {
   const result = shared.parseSimpleToml('key = "value"\nanother = "test"');

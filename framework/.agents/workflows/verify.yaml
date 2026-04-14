@@ -28,6 +28,22 @@ exit_gates:
     severity: error
     message: "STATE.md 不存在"
 
+  - id: failure-modes-documented
+    check: yaml_top_level_list_has_entries
+    path: verification-matrix.yaml
+    key: failure_modes
+    if_exists_only: true
+    severity: warning
+    message: "verification-matrix.yaml 已存在但 failure_modes 缺失或为空（建议补充稳定 guard）"
+
+  - id: failure-mode-guards-traceable
+    check: failure_mode_guards_valid
+    path: verification-matrix.yaml
+    acceptance_path: acceptance.yaml
+    if_exists_only: true
+    severity: warning
+    message: "verification-matrix.yaml 的 failure_modes guards 未对齐 acceptance evidence 或现有 eval"
+
 artifacts:
   required:
     - acceptance.yaml

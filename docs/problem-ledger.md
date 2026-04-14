@@ -280,3 +280,19 @@
 - **AI-OS 必须保证**：reverse-spec 项目对标时，功能枚举必须深入到子功能/子类型/变体粒度，parity-map 中必须保持一致的条目应逐变体列出。
 - **当前覆盖锚点**：`reverse-engineer` skill（第 2 步要求抓取信息架构、关键页面、关键交互但未要求子类型粒度）、`parity-map` 模板
 - **每次迭代核对**：不能让对标粒度退化为模块级描述；不能让 parity-map 的必须保持一致条目只列大类。
+
+### PL-028 复杂任务把探索和编辑混在一起，边查边写
+
+- **来源**：2026-04 agentic development 主流实践（只读分析 / plan-first）与项目负责人评估
+- **真实问题**：跨多文件、影响边界不清或共享基础设施尚未确认的任务里，AI 直接从第一眼看到的文件开始改，靠代码编辑来“探索”问题，导致目标文件、共享约定和验证入口在实现过程中才逐步暴露，最终出现返工、越界改动或后置升级。
+- **AI-OS 必须保证**：复杂或高不确定任务在首次写入前先做一轮只读分析，锁定目标文件、共享约定、验证入口、暂停点和预期影响范围；分析未收敛前不得边查边写。
+- **当前覆盖锚点**：`framework/AGENTS.md`、`framework/.agents/workflows/AGENTS.md`、`framework/.agents/workflows/build.md`、`framework/.agents/workflows/debug.md`、`evals/read-only-analysis-before-edit.md`
+- **每次迭代核对**：不能把“局部改动不默认全仓扫描”误解成“看到局部文件就能直接开改”；也不能让复杂任务重新退化成用代码编辑替代分析。
+
+### PL-029 稳定失败模式只修当前一次，没有沉淀成回归证据
+
+- **来源**：2026-04 agentic development 主流实践（trace 先定位、eval 固化回归）与项目负责人评估
+- **真实问题**：debug / verify 虽然定位到了可复现的失败路径或高频回归入口，但修复只停留在当前会话和当前改动，没有把最小复现、放行条件和验证方法沉淀成项目级工件，后续 session 或新成员又重复踩到同类问题。
+- **AI-OS 必须保证**：当 debug / verify / postmortem 暴露出稳定 failure mode、关键 tricky path 或高频回归入口时，必须把最小复现和放行条件同步到 `.ai-os/evals/`、`.ai-os/verification-matrix.yaml` 或等价工件，而不是只记在聊天记录或 memory 里。
+- **当前覆盖锚点**：`framework/AGENTS.md`、`framework/.agents/workflows/AGENTS.md`、`framework/.agents/workflows/debug.md`、`framework/.agents/workflows/verify.md`、`framework/.agents/templates/project/verification-matrix.yaml`、`bin/ai-os-validate.js`、`bin/ai-os-release-check.js`、`docs/artifacts.md`、`README.md`、`examples/failure-mode-eval-closure.md`
+- **每次迭代核对**：不能把稳定 failure mode 的沉淀退化成“记到 memory 就算完”；也不能把一次性偶发噪音误升格成长期回归工件。

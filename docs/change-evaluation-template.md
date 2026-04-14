@@ -8,9 +8,11 @@
 ## 2. 关联问题台账与覆盖核对
 
 - **关联条目**：
+- **是否已先做只读覆盖审计**：
 - **本次覆盖动作**：
 - **覆盖是否变弱**：
 - **需补或更新的 eval / example / CLI / test**：
+- **若来源是 trace / debug / verify / postmortem**：它是一次性偶发问题，还是值得固化的稳定 failure mode？
 
 ## 3. 解决的核心问题
 
@@ -49,4 +51,5 @@
 - **对应问题台账条目**：
 - **真实问题 / 失败案例**：
 - **将新增或更新哪些 eval / example / CLI check / test**：
+- **若结论来自单次 trace / 调试**：准备如何把它固化成可复现的 eval / example / CLI check / test：
 - **跨 IDE 承接证据或 fallback 说明**：

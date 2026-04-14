@@ -21,6 +21,7 @@
 - `debug-bounded-fix.md`
 - `brownfield-infrastructure-audit.md`
 - `config-closure-clarification.md`
+- `failure-mode-eval-closure.md`
 
 每个示例都配一套最小 `.ai-os/` 骨架，帮助维护者判断：
 

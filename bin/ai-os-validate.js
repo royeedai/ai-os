@@ -10,6 +10,7 @@ const {
   PROJECT_OPTIONAL_ARTIFACT_FILES,
   QUALITY_TIERS,
   listFilesRecursively,
+  listProjectEvalFiles,
   getProjectFilePath,
   getProjectRelativePath,
   formatProjectPath,
@@ -17,6 +18,8 @@ const {
   resolveTargetDir,
   createReporter,
   VALIDATION_SCHEMAS,
+  countTopLevelYamlListEntries,
+  validateFailureModeGuards,
 } = require("./shared");
 const {
   readUtf8IfExists,
@@ -117,22 +120,6 @@ function listSpecFiles(targetDir) {
     .filter((relPath) => relPath.endsWith(".spec.md"))
     .sort()
     .map((fileName) => path.posix.join("specs", fileName));
-}
-
-function listEvalFiles(targetDir) {
-  const evalsDir = getProjectFilePath(targetDir, "evals");
-  if (!dirExists(targetDir, "evals")) {
-    return [];
-  }
-
-  return listFilesRecursively(evalsDir)
-    .map((absolutePath) => path.relative(evalsDir, absolutePath).replace(/\\/g, "/"))
-    .filter((relPath) => {
-      const baseName = path.basename(relPath);
-      return !relPath.endsWith(".DS_Store") && baseName !== "README.md";
-    })
-    .map((relPath) => path.posix.join("evals", relPath))
-    .sort();
 }
 
 const parsed = parseCliArgs(process.argv);
@@ -757,15 +744,46 @@ if (stateContent !== null && stateContent.includes("测试基线") && !stateCont
 
 const verificationMatrixContent = readUtf8IfExists(getProjectFilePath(targetDir, "verification-matrix.yaml"));
 if (verificationMatrixContent !== null) {
+  const verificationMatrixCoreMarkers = VALIDATION_SCHEMAS.verificationMatrixMarkers
+    .filter((marker) => marker !== "failure_modes:");
   const missingVerificationMarkers = missingMarkers(
     verificationMatrixContent,
-    VALIDATION_SCHEMAS.verificationMatrixMarkers
+    verificationMatrixCoreMarkers
   );
   report(
     missingVerificationMarkers.length === 0,
-    `${getProjectRelativePath("verification-matrix.yaml")} includes impact_rules`,
+    `${getProjectRelativePath("verification-matrix.yaml")} includes commands/rules/impact_rules`,
     { warnOnly: true, details: missingVerificationMarkers.map((marker) => `missing marker: ${marker}`) }
   );
+
+  const failureModeGuardCount = countTopLevelYamlListEntries(verificationMatrixContent, "failure_modes");
+  const hasFailureModeSection = verificationMatrixContent.includes("failure_modes:");
+  report(
+    hasFailureModeSection && failureModeGuardCount > 0,
+    `${getProjectRelativePath("verification-matrix.yaml")} records concrete failure_modes guards`,
+    {
+      warnOnly: true,
+      details: hasFailureModeSection
+        ? ["failure_modes exists but has no concrete entries"]
+        : ["missing marker: failure_modes:"],
+    }
+  );
+
+  if (hasFailureModeSection && failureModeGuardCount > 0 && parsedAcceptance.exists) {
+    const knownEvidenceNames = [...new Set(Object.values(parsedAcceptance.gateEvidence || {}).flat().filter(Boolean))];
+    const failureModeGuardValidation = validateFailureModeGuards(verificationMatrixContent, {
+      knownEvidenceNames,
+      existingEvalFiles: listProjectEvalFiles(targetDir),
+    });
+    report(
+      failureModeGuardValidation.issues.length === 0,
+      `${getProjectRelativePath("verification-matrix.yaml")} failure_modes guards reference acceptance evidence or existing evals`,
+      {
+        warnOnly: true,
+        details: failureModeGuardValidation.issues,
+      }
+    );
+  }
 }
 
 const releasePlanContent = readUtf8IfExists(getProjectFilePath(targetDir, "release-plan.md"));
@@ -791,9 +809,23 @@ if (fs.existsSync(designPackDir) && fs.statSync(designPackDir).isDirectory()) {
   );
 }
 
-const evalFiles = listEvalFiles(targetDir);
+const evalFiles = listProjectEvalFiles(targetDir);
 if (evalFiles.length > 0) {
   report(true, `${getProjectRelativePath("evals")}/ includes ${evalFiles.length} file(s)`);
+
+  for (const relPath of evalFiles) {
+    if (!relPath.endsWith(".md")) {
+      continue;
+    }
+
+    const evalContent = readUtf8IfExists(getProjectFilePath(targetDir, relPath)) || "";
+    const missingEvalSections = markdownHasSections(evalContent, VALIDATION_SCHEMAS.eval);
+    report(
+      missingEvalSections.length === 0,
+      `${getProjectRelativePath(relPath)} sections complete`,
+      { warnOnly: true, details: missingEvalSections.map((section) => `missing section: ${section}`) }
+    );
+  }
 }
 
 for (const relPath of PROJECT_OPTIONAL_ARTIFACT_FILES) {

@@ -178,6 +178,14 @@ impact_rules:
       - "contract-baseline-check"
       - "degraded-path-check"
     notes: "高风险状态流转必须补齐契约和异常路径证据"
+
+failure_modes:
+  - id: duplicate-deduction-submit
+    trigger: "重复提交同一扣减请求"
+    guards:
+      - "degraded-path-check"
+      - "runtime-check"
+    notes: "扣减链路的历史高频回归入口"
 `,
   "utf8"
 );
@@ -295,6 +303,491 @@ impact_rules:
 const releaseMissingMarkersResult = run("ai-os-release-check.js", [highRiskMissingMarkersDir]);
 assert(releaseMissingMarkersResult.status === 1, "release-check blocks high-risk release plan missing manual-action/static-validation markers");
 cleanup(highRiskMissingMarkersDir);
+
+const verificationMatrixFailureModeWarnDir = tmpDir();
+run("create-ai-os.js", [verificationMatrixFailureModeWarnDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(verificationMatrixFailureModeWarnDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: linkage-runtime
+    impact_tags:
+      - "runtime-config"
+    actions:
+      - "build"
+    evidence:
+      - "runtime-check"
+    notes: "运行时配置变更后必须补运行态证据"
+`,
+  "utf8"
+);
+const verificationMatrixFailureModeWarnResult = run("ai-os-validate.js", [verificationMatrixFailureModeWarnDir]);
+assert(verificationMatrixFailureModeWarnResult.status === 0, "validate warns but does not block when verification-matrix misses failure_modes");
+assert(verificationMatrixFailureModeWarnResult.stdout.includes("missing marker: failure_modes:"), "validate reports missing verification-matrix failure_modes marker");
+cleanup(verificationMatrixFailureModeWarnDir);
+
+const verificationMatrixEmptyFailureModeWarnDir = tmpDir();
+run("create-ai-os.js", [verificationMatrixEmptyFailureModeWarnDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(verificationMatrixEmptyFailureModeWarnDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: linkage-runtime
+    impact_tags:
+      - "runtime-config"
+    actions:
+      - "build"
+    evidence:
+      - "runtime-check"
+    notes: "运行时配置变更后必须补运行态证据"
+
+failure_modes: []
+`,
+  "utf8"
+);
+const verificationMatrixEmptyFailureModeWarnResult = run("ai-os-validate.js", [verificationMatrixEmptyFailureModeWarnDir]);
+assert(verificationMatrixEmptyFailureModeWarnResult.status === 0, "validate warns but does not block when failure_modes is empty");
+assert(verificationMatrixEmptyFailureModeWarnResult.stdout.includes("failure_modes exists but has no concrete entries"), "validate reports empty failure_modes guard list");
+cleanup(verificationMatrixEmptyFailureModeWarnDir);
+
+const verificationMatrixInvalidFailureModeGuardWarnDir = tmpDir();
+run("create-ai-os.js", [verificationMatrixInvalidFailureModeGuardWarnDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(verificationMatrixInvalidFailureModeGuardWarnDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: linkage-runtime
+    impact_tags:
+      - "runtime-config"
+    actions:
+      - "build"
+    evidence:
+      - "runtime-check"
+    notes: "运行时配置变更后必须补运行态证据"
+
+failure_modes:
+  - id: runtime-config-regression
+    trigger: "配置切换后启动失败"
+    guards:
+      - "runtime-check"
+      - "unknown-check"
+      - "evals/missing-runtime-regression.md"
+`,
+  "utf8"
+);
+const verificationMatrixInvalidFailureModeGuardWarnResult = run("ai-os-validate.js", [verificationMatrixInvalidFailureModeGuardWarnDir]);
+assert(verificationMatrixInvalidFailureModeGuardWarnResult.status === 0, "validate warns but does not block when failure_modes guards reference unknown evidence");
+assert(verificationMatrixInvalidFailureModeGuardWarnResult.stdout.includes("failure_modes guards reference acceptance evidence or existing evals"), "validate checks failure_modes guard references");
+assert(verificationMatrixInvalidFailureModeGuardWarnResult.stdout.includes("unknown guard reference: unknown-check"), "validate reports unknown failure_modes evidence guard");
+assert(verificationMatrixInvalidFailureModeGuardWarnResult.stdout.includes("missing eval file: evals/missing-runtime-regression.md"), "validate reports missing failure_modes eval guard");
+cleanup(verificationMatrixInvalidFailureModeGuardWarnDir);
+
+const highRiskMissingFailureModesDir = tmpDir();
+run("create-ai-os.js", [highRiskMissingFailureModesDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(highRiskMissingFailureModesDir, ".ai-os", "tasks.yaml"),
+  fs.readFileSync(path.join(highRiskMissingFailureModesDir, ".ai-os", "tasks.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace(/status: todo/g, "status: done")
+    .replace('risk: medium', 'risk: high')
+    .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"\n      - "state-transition"'),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingFailureModesDir, ".ai-os", "acceptance.yaml"),
+  fs.readFileSync(path.join(highRiskMissingFailureModesDir, ".ai-os", "acceptance.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace('required_special_reviews: []', 'required_special_reviews: ["security-guard", "authorization-boundary-check", "concurrency-safety-check"]')
+    .replace(/status: pending/g, "status: passed"),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingFailureModesDir, ".ai-os", "release-plan.md"),
+  `# Test Release
+
+## 1. 交付前检查
+
+- Mission、Design、Spec、Acceptance 已同步
+- 高风险审批点已完成确认
+- 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
+- 静态校验证据已记录（npm run build）
+
+## 2. 变更范围与依赖
+
+- 覆盖高风险扣减接口
+
+## 3. 发布步骤
+
+1. [AI 已完成] 完成代码和验证证据整理
+2. [需人工执行] 发布并重启 API
+
+## 4. 运行态验证
+
+- authorization-boundary-check：权限 / 越权边界验证完成
+- concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
+- degraded-path-check：空值 / 超时 / 部分失败场景验证完成
+- 静态校验证据已记录（npm run build）
+
+## 5. 回滚触发条件
+
+- 出现重复扣减或越权访问
+
+## 6. 交付说明与移交
+
+- AI 已完成：代码实现、测试与证据整理
+- 需人工执行：发布并重启 API
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingFailureModesDir, ".ai-os", "risk-register.md"),
+  `# 风险登记表
+
+| ID | 风险 | 类型 | 影响 | 触发条件 | 缓解措施 | 状态 |
+|----|------|------|------|----------|----------|------|
+| R-001 | 权益扣减并发覆盖 | 逻辑 / 发布 | 高 | 高并发重复提交 | 幂等键 + 审计日志 + 专项审查 | open |
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskMissingFailureModesDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+  restart_api: "npm run restart:api"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+      - "restart_api"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: sensitive-flow
+    impact_tags:
+      - "state-transition"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+    notes: "高风险状态流转必须补齐契约和异常路径证据"
+`,
+  "utf8"
+);
+const highRiskMissingFailureModesResult = run("ai-os-release-check.js", [highRiskMissingFailureModesDir]);
+assert(highRiskMissingFailureModesResult.status === 1, "release-check blocks high-risk delivery when verification-matrix lacks failure_modes");
+assert(highRiskMissingFailureModesResult.stdout.includes("records concrete failure_modes guards"), "release-check reports missing high-risk failure_modes guard");
+cleanup(highRiskMissingFailureModesDir);
+
+const highRiskEmptyFailureModesDir = tmpDir();
+run("create-ai-os.js", [highRiskEmptyFailureModesDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(highRiskEmptyFailureModesDir, ".ai-os", "tasks.yaml"),
+  fs.readFileSync(path.join(highRiskEmptyFailureModesDir, ".ai-os", "tasks.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace(/status: todo/g, "status: done")
+    .replace('risk: medium', 'risk: high')
+    .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"\n      - "state-transition"'),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskEmptyFailureModesDir, ".ai-os", "acceptance.yaml"),
+  fs.readFileSync(path.join(highRiskEmptyFailureModesDir, ".ai-os", "acceptance.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace('required_special_reviews: []', 'required_special_reviews: ["security-guard", "authorization-boundary-check", "concurrency-safety-check"]')
+    .replace(/status: pending/g, "status: passed"),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskEmptyFailureModesDir, ".ai-os", "release-plan.md"),
+  `# Test Release
+
+## 1. 交付前检查
+
+- Mission、Design、Spec、Acceptance 已同步
+- 高风险审批点已完成确认
+- 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
+- 静态校验证据已记录（npm run build）
+
+## 2. 变更范围与依赖
+
+- 覆盖高风险扣减接口
+
+## 3. 发布步骤
+
+1. [AI 已完成] 完成代码和验证证据整理
+2. [需人工执行] 发布并重启 API
+
+## 4. 运行态验证
+
+- authorization-boundary-check：权限 / 越权边界验证完成
+- concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
+- degraded-path-check：空值 / 超时 / 部分失败场景验证完成
+- 静态校验证据已记录（npm run build）
+
+## 5. 回滚触发条件
+
+- 出现重复扣减或越权访问
+
+## 6. 交付说明与移交
+
+- AI 已完成：代码实现、测试与证据整理
+- 需人工执行：发布并重启 API
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskEmptyFailureModesDir, ".ai-os", "risk-register.md"),
+  `# 风险登记表
+
+| ID | 风险 | 类型 | 影响 | 触发条件 | 缓解措施 | 状态 |
+|----|------|------|------|----------|----------|------|
+| R-001 | 权益扣减并发覆盖 | 逻辑 / 发布 | 高 | 高并发重复提交 | 幂等键 + 审计日志 + 专项审查 | open |
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskEmptyFailureModesDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+  restart_api: "npm run restart:api"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+      - "restart_api"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: sensitive-flow
+    impact_tags:
+      - "state-transition"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+    notes: "高风险状态流转必须补齐契约和异常路径证据"
+
+failure_modes: []
+`,
+  "utf8"
+);
+const highRiskEmptyFailureModesResult = run("ai-os-release-check.js", [highRiskEmptyFailureModesDir]);
+assert(highRiskEmptyFailureModesResult.status === 1, "release-check blocks high-risk delivery when failure_modes is empty");
+assert(highRiskEmptyFailureModesResult.stdout.includes("failure_modes exists but has no concrete entries"), "release-check reports empty high-risk failure_modes guard list");
+cleanup(highRiskEmptyFailureModesDir);
+
+const highRiskInvalidFailureModeGuardsDir = tmpDir();
+run("create-ai-os.js", [highRiskInvalidFailureModeGuardsDir, "--with-project-files"]);
+fs.writeFileSync(
+  path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "tasks.yaml"),
+  fs.readFileSync(path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "tasks.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace(/status: todo/g, "status: done")
+    .replace('risk: medium', 'risk: high')
+    .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"\n      - "state-transition"'),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "acceptance.yaml"),
+  fs.readFileSync(path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "acceptance.yaml"), "utf8")
+    .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
+    .replace('required_special_reviews: []', 'required_special_reviews: ["security-guard", "authorization-boundary-check", "concurrency-safety-check"]')
+    .replace(/status: pending/g, "status: passed"),
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "release-plan.md"),
+  `# Test Release
+
+## 1. 交付前检查
+
+- Mission、Design、Spec、Acceptance 已同步
+- 高风险审批点已完成确认
+- 高风险专项审查（权限 / 并发 / 不可逆状态流转）已记录
+- 静态校验证据已记录（npm run build）
+
+## 2. 变更范围与依赖
+
+- 覆盖高风险扣减接口
+
+## 3. 发布步骤
+
+1. [AI 已完成] 完成代码和验证证据整理
+2. [需人工执行] 发布并重启 API
+
+## 4. 运行态验证
+
+- authorization-boundary-check：权限 / 越权边界验证完成
+- concurrency-safety-check：并发 / 幂等 / 状态竞争验证完成
+- degraded-path-check：空值 / 超时 / 部分失败场景验证完成
+- 静态校验证据已记录（npm run build）
+
+## 5. 回滚触发条件
+
+- 出现重复扣减或越权访问
+
+## 6. 交付说明与移交
+
+- AI 已完成：代码实现、测试与证据整理
+- 需人工执行：发布并重启 API
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "risk-register.md"),
+  `# 风险登记表
+
+| ID | 风险 | 类型 | 影响 | 触发条件 | 缓解措施 | 状态 |
+|----|------|------|------|----------|----------|------|
+| R-001 | 权益扣减并发覆盖 | 逻辑 / 发布 | 高 | 高并发重复提交 | 幂等键 + 审计日志 + 专项审查 | open |
+`,
+  "utf8"
+);
+fs.writeFileSync(
+  path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "verification-matrix.yaml"),
+  `version: 1
+
+commands:
+  validate: "create-ai-os doctor . --strict"
+  verify: "npm test"
+  build: "npm run build"
+  restart_api: "npm run restart:api"
+
+rules:
+  - id: runtime-config
+    paths:
+      - ".env"
+    affected_components:
+      - "runtime"
+    actions:
+      - "build"
+      - "restart_api"
+    notes: "配置变更后必须重新验证运行态"
+
+impact_rules:
+  - id: sensitive-flow
+    impact_tags:
+      - "state-transition"
+      - "auth"
+    actions:
+      - "verify"
+      - "build"
+    evidence:
+      - "contract-baseline-check"
+      - "degraded-path-check"
+    notes: "高风险状态流转必须补齐契约和异常路径证据"
+
+failure_modes:
+  - id: duplicate-deduction-submit
+    trigger: "重复提交同一扣减请求"
+    guards:
+      - "degraded-path-check"
+      - "unknown-check"
+      - "evals/missing-deduction.md"
+`,
+  "utf8"
+);
+const highRiskInvalidFailureModeGuardsResult = run("ai-os-release-check.js", [highRiskInvalidFailureModeGuardsDir]);
+assert(highRiskInvalidFailureModeGuardsResult.status === 1, "release-check blocks high-risk delivery when failure_modes guards reference unknown evidence");
+assert(highRiskInvalidFailureModeGuardsResult.stdout.includes("failure_modes guards reference acceptance evidence or existing evals for high-risk delivery"), "release-check checks failure_modes guard references");
+assert(highRiskInvalidFailureModeGuardsResult.stdout.includes("unknown guard reference: unknown-check"), "release-check reports unknown failure_modes evidence guard");
+assert(highRiskInvalidFailureModeGuardsResult.stdout.includes("missing eval file: evals/missing-deduction.md"), "release-check reports missing failure_modes eval guard");
+cleanup(highRiskInvalidFailureModeGuardsDir);
+
+const projectEvalStructureWarnDir = tmpDir();
+run("create-ai-os.js", [projectEvalStructureWarnDir, "--with-project-files"]);
+fs.mkdirSync(path.join(projectEvalStructureWarnDir, ".ai-os", "evals"), { recursive: true });
+fs.writeFileSync(
+  path.join(projectEvalStructureWarnDir, ".ai-os", "evals", "runtime-regression.md"),
+  `# Eval: Runtime Regression
+
+## 场景
+
+一个运行态回归被重新引入。
+
+## 错误交付
+
+- 只在当前 session 里修复，没有沉淀回归证据
+`,
+  "utf8"
+);
+const projectEvalStructureWarnResult = run("ai-os-validate.js", [projectEvalStructureWarnDir]);
+assert(projectEvalStructureWarnResult.status === 0, "validate warns but does not block when project eval sections are incomplete");
+assert(projectEvalStructureWarnResult.stdout.includes(".ai-os/evals/runtime-regression.md sections complete"), "validate checks project eval section completeness");
+assert(projectEvalStructureWarnResult.stdout.includes("missing section: 最低证据"), "validate reports missing project eval sections");
+cleanup(projectEvalStructureWarnDir);
 
 // ---------------------------------------------------------------------------
 // Eval-driven guardrail tests

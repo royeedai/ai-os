@@ -10,6 +10,9 @@ const {
   resolveTargetDir,
   createReporter,
   VALIDATION_SCHEMAS,
+  countTopLevelYamlListEntries,
+  listProjectEvalFiles,
+  validateFailureModeGuards,
 } = require("./shared");
 const {
   readUtf8IfExists,
@@ -94,6 +97,8 @@ process.stdout.write(`\nAI-OS Release Check — ${targetDir}\n\n`);
 const installedMeta = readInstalledMeta(targetDir);
 const enforceEnhancedDeliveryMarkers =
   !installedMeta.exists || versionAtLeast(installedMeta.version, "5.1.1");
+const enforceFailureModeGuards =
+  !installedMeta.exists || versionAtLeast(installedMeta.version, "6.2.2");
 
 const missingSections = requiredSections.filter((section) => !sections.has(section));
 report(
@@ -213,6 +218,31 @@ if (parsedTasks.exists) {
       verificationMatrix !== null,
       `${getProjectRelativePath("verification-matrix.yaml")} exists for high-risk delivery`
     );
+    if (verificationMatrix !== null && enforceFailureModeGuards) {
+      const failureModeGuardCount = countTopLevelYamlListEntries(verificationMatrix, "failure_modes");
+      const hasFailureModeSection = verificationMatrix.includes("failure_modes:");
+      report(
+        hasFailureModeSection && failureModeGuardCount > 0,
+        `${getProjectRelativePath("verification-matrix.yaml")} records concrete failure_modes guards for high-risk delivery`,
+        {
+          details: hasFailureModeSection
+            ? ["failure_modes exists but has no concrete entries"]
+            : ["missing marker: failure_modes:"],
+        }
+      );
+      if (hasFailureModeSection && failureModeGuardCount > 0 && acceptance.exists) {
+        const knownEvidenceNames = [...new Set(Object.values(acceptance.gateEvidence || {}).flat().filter(Boolean))];
+        const failureModeGuardValidation = validateFailureModeGuards(verificationMatrix, {
+          knownEvidenceNames,
+          existingEvalFiles: listProjectEvalFiles(targetDir),
+        });
+        report(
+          failureModeGuardValidation.issues.length === 0,
+          `${getProjectRelativePath("verification-matrix.yaml")} failure_modes guards reference acceptance evidence or existing evals for high-risk delivery`,
+          { details: failureModeGuardValidation.issues }
+        );
+      }
+    }
     if (acceptance.exists) {
       report(
         acceptance.requiredSpecialReviews.length > 0,

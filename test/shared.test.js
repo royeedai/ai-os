@@ -6,6 +6,8 @@ section("shared.js exports");
 const shared = require("../bin/shared");
 assert(typeof shared.cleanYamlScalar === "function", "cleanYamlScalar exported");
 assert(typeof shared.parseInlineArray === "function", "parseInlineArray exported");
+assert(typeof shared.listProjectEvalFiles === "function", "listProjectEvalFiles exported");
+assert(typeof shared.validateFailureModeGuards === "function", "validateFailureModeGuards exported");
 assert(typeof shared.SYM_OK === "string", "SYM_OK exported");
 assert(typeof shared.VALIDATION_SCHEMAS === "object", "VALIDATION_SCHEMAS exported");
 assert(Array.isArray(shared.QUALITY_TIERS), "QUALITY_TIERS exported");

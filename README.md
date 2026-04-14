@@ -107,9 +107,9 @@ AI-OS 默认围绕这套 `.ai-os/` 工件工作：
 
 - `.ai-os/release-plan.md`
 - `.ai-os/risk-register.md`
-- `.ai-os/verification-matrix.yaml`
+- `.ai-os/verification-matrix.yaml`：联动验证命令、impact_rules 和稳定 failure mode guard；high-risk 交付至少保留一条真实 `failure_modes` guard，且 `guards` 应指向 `acceptance.yaml` 已声明 evidence 或现有 `.ai-os/evals/*.md`
 - `.ai-os/design-pack/parity-map.md`
-- `.ai-os/evals/`
+- `.ai-os/evals/`：把稳定失败模式、关键回归样例和 tricky path 验证沉淀成项目级评估样例
 
 ## 5 分钟上手
 
