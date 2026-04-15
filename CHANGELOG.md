@@ -8,6 +8,14 @@
 
 ---
 
+## 7.0.2 (2026-04-15)
+
+### Changed
+
+- 多 active lane 或 lane 选择错误时，lane-aware CLI 现在会统一列出候选 lane、推荐 `--lane` 示例，并提示如何恢复自动选择
+- `docs/cli.md` 与 README 同步补充了多 lane 歧义时的修复指引
+- 回归测试补齐了 multiple-active / unknown-lane / no-active-lane 三类 lane 选择引导场景
+
 ## 7.0.1 (2026-04-15)
 
 ### Changed

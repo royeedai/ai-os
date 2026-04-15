@@ -48,7 +48,7 @@ create-ai-os release-check . --lane default
 Lane 选择规则：
 
 1. 若项目只有一个 active lane，自动选择
-2. 若存在多个 active lane 但未传 `--lane`，CLI 报错并列出候选
+2. 若存在多个 active lane 但未传 `--lane`，CLI 报错并列出候选、推荐 `--lane` 示例，并提示如何恢复自动选择
 3. 若项目仍是旧版单交付结构（无 `.ai-os/lanes/`），自动退化到 legacy 模式
 
 Lane 目录结构：

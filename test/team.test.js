@@ -120,10 +120,18 @@ section("lane-aware recovery commands");
     ambiguousStatus.stderr.includes("Multiple active lanes found"),
     "status explains lane selection is required"
   );
+  assert(ambiguousStatus.stderr.includes("--lane default"), "status ambiguity error suggests explicit lane selection");
+  assert(ambiguousStatus.stderr.includes("--lane beta"), "status ambiguity error lists alternate active lanes");
+  assert(ambiguousStatus.stderr.includes("restore auto-selection"), "status ambiguity error explains how to restore auto-selection");
 
   const explicitStatus = run("ai-os-status.js", [dir, "--lane", "default"]);
   assert(explicitStatus.status === 0, "status accepts explicit lane selection");
   assert(explicitStatus.stdout.includes("lane: default"), "status reports the explicitly selected lane");
+
+  const unknownLaneStatus = run("ai-os-status.js", [dir, "--lane", "gamma"]);
+  assert(unknownLaneStatus.status === 1, "status blocks unknown lane selection");
+  assert(unknownLaneStatus.stderr.includes("Known lanes:"), "status unknown-lane error lists known lanes");
+  assert(unknownLaneStatus.stderr.includes("--lane beta"), "status unknown-lane error suggests valid lane flags");
 
   cleanup(dir);
 }

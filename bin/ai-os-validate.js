@@ -17,6 +17,7 @@ const {
   parseCliArgs,
   resolveTargetDir,
   resolveProjectLane,
+  fail,
   setDeliveryLaneContext,
   createReporter,
   VALIDATION_SCHEMAS,

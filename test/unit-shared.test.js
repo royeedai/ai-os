@@ -338,10 +338,40 @@ section("lane delivery layout unit tests");
     const unresolved = shared.resolveProjectLane(dir);
     assert(unresolved.ok === false, "multiple active lanes require explicit selection");
     assert(unresolved.code === "lane-selection-required", "uses lane-selection-required code");
+    assert(unresolved.message.includes("Active lanes:"), "multiple active lanes message lists active lanes");
+    assert(unresolved.message.includes("--lane alpha"), "multiple active lanes message suggests explicit lane flags");
+    assert(unresolved.message.includes("restore auto-selection"), "multiple active lanes message explains how to restore auto-selection");
 
     const selected = shared.resolveProjectLane(dir, { laneId: "beta" });
     assert(selected.ok === true, "explicit lane selection succeeds");
     assert(selected.laneId === "beta", "returns requested lane");
+
+    const unknownLane = shared.resolveProjectLane(dir, { laneId: "gamma" });
+    assert(unknownLane.ok === false, "unknown lane selection fails");
+    assert(unknownLane.code === "unknown-lane", "unknown lane uses explicit code");
+    assert(unknownLane.message.includes("Known lanes:"), "unknown lane message lists known lanes");
+    assert(unknownLane.message.includes("--lane beta"), "unknown lane message suggests a valid lane flag");
+  } finally {
+    cleanup(dir);
+  }
+}
+{
+  const dir = tmpDir();
+  try {
+    writeFile(
+      path.join(dir, ".ai-os", "lanes", "alpha", "lane.toml"),
+      ['status = "archived"', ""].join("\n")
+    );
+    writeFile(
+      path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"),
+      ['status = "paused"', ""].join("\n")
+    );
+
+    const unresolved = shared.resolveProjectLane(dir);
+    assert(unresolved.ok === false, "lane layout without active lanes requires explicit selection");
+    assert(unresolved.code === "lane-selection-required", "no-active-lane uses lane-selection-required code");
+    assert(unresolved.message.includes("Configured lanes:"), "no-active-lane message lists configured lanes");
+    assert(unresolved.message.includes("status = \"active\""), "no-active-lane message explains how to restore auto-selection");
   } finally {
     cleanup(dir);
   }

@@ -675,6 +675,80 @@ function inspectProjectDeliveryLayout(targetDir) {
   };
 }
 
+function formatLaneDescriptor(lane) {
+  const label = lane.title ? `${lane.id} (${lane.title})` : lane.id;
+  const meta = [`status=${lane.status || "unknown"}`];
+  if (lane.baselineId) {
+    meta.push(`baseline=${lane.baselineId}`);
+  }
+  return `- ${label} [${meta.join(", ")}]`;
+}
+
+function formatLaneFlagExamples(lanes) {
+  return lanes
+    .slice(0, 5)
+    .map((lane) => `- --lane ${lane.id}`)
+    .join("\n");
+}
+
+function buildLaneResolutionMessage(code, layout, options = {}) {
+  const requestedLaneId = normalizeLaneId(options.requestedLaneId);
+  const lanes = layout && Array.isArray(layout.lanes) ? layout.lanes : [];
+  const activeLanes = lanes.filter((lane) => lane.isActive);
+
+  if (code === "legacy-does-not-support-lane-selection") {
+    return [
+      `Legacy single-delivery project does not support lane selection: ${requestedLaneId}`,
+      "This project still reads delivery artifacts from .ai-os/.",
+      "If you need lane-scoped delivery artifacts, run `create-ai-os upgrade . --to-lanes` first.",
+    ].join("\n");
+  }
+
+  if (code === "no-lanes-found") {
+    return [
+      "Lane-based project has no lanes configured.",
+      "Expected at least one `.ai-os/lanes/<lane-id>/lane.toml` file.",
+      "If this is still a legacy single-delivery project, run `create-ai-os upgrade . --to-lanes` first.",
+    ].join("\n");
+  }
+
+  if (code === "unknown-lane") {
+    const lines = [`Unknown lane: ${requestedLaneId}`];
+    if (lanes.length > 0) {
+      lines.push("Known lanes:");
+      lines.push(...lanes.map((lane) => formatLaneDescriptor(lane)));
+      lines.push("Re-run with one of:");
+      lines.push(formatLaneFlagExamples(lanes));
+    }
+    return lines.join("\n");
+  }
+
+  if (code === "lane-selection-required") {
+    if (activeLanes.length > 1) {
+      return [
+        `Multiple active lanes found: ${activeLanes.map((lane) => lane.id).join(", ")}`,
+        "Active lanes:",
+        ...activeLanes.map((lane) => formatLaneDescriptor(lane)),
+        "Re-run with one of:",
+        formatLaneFlagExamples(activeLanes),
+        "Or keep only one lane with `status = \"active\"` in `.ai-os/lanes/<lane-id>/lane.toml` to restore auto-selection.",
+      ].join("\n");
+    }
+
+    const lines = ["No active lane found. Specify --lane."];
+    if (lanes.length > 0) {
+      lines.push("Configured lanes:");
+      lines.push(...lanes.map((lane) => formatLaneDescriptor(lane)));
+      lines.push("Re-run with one of:");
+      lines.push(formatLaneFlagExamples(lanes));
+      lines.push("Or mark one lane as `status = \"active\"` in `.ai-os/lanes/<lane-id>/lane.toml` to restore auto-selection.");
+    }
+    return lines.join("\n");
+  }
+
+  return "";
+}
+
 function resolveProjectLane(targetDir, options = {}) {
   const layout = options.layout || inspectProjectDeliveryLayout(targetDir);
   const requestedLaneId = normalizeLaneId(options.laneId);
@@ -694,7 +768,7 @@ function resolveProjectLane(targetDir, options = {}) {
       return {
         ok: false,
         code: "legacy-does-not-support-lane-selection",
-        message: `Legacy single-delivery project does not support lane selection: ${requestedLaneId}`,
+        message: buildLaneResolutionMessage("legacy-does-not-support-lane-selection", layout, { requestedLaneId }),
         layout,
         requestedLaneId,
       };
@@ -716,7 +790,7 @@ function resolveProjectLane(targetDir, options = {}) {
     return {
       ok: false,
       code: "no-lanes-found",
-      message: "Lane-based project has no lanes configured.",
+      message: buildLaneResolutionMessage("no-lanes-found", layout, { requestedLaneId }),
       layout,
       requestedLaneId,
     };
@@ -728,7 +802,7 @@ function resolveProjectLane(targetDir, options = {}) {
       return {
         ok: false,
         code: "unknown-lane",
-        message: `Unknown lane: ${requestedLaneId}`,
+        message: buildLaneResolutionMessage("unknown-lane", layout, { requestedLaneId }),
         layout,
         requestedLaneId,
       };
@@ -764,9 +838,7 @@ function resolveProjectLane(targetDir, options = {}) {
   return {
     ok: false,
     code: "lane-selection-required",
-    message: activeLanes.length > 1
-      ? `Multiple active lanes found: ${activeLanes.map((lane) => lane.id).join(", ")}`
-      : "No active lane found. Specify --lane.",
+    message: buildLaneResolutionMessage("lane-selection-required", layout, { requestedLaneId }),
     layout,
     requestedLaneId,
   };

@@ -212,7 +212,7 @@ npx --yes github:royeedai/ai-os my-project --profile project --no-team-config
 
 `project` profile 新安装默认会创建 `.ai-os/lanes/default/`。如果是旧版单交付项目，可运行 `create-ai-os upgrade . --to-lanes` 把根层 Mission / Design / Tasks / Acceptance / State / baseline-log / specs 机械迁到 `lanes/default/`。
 
-`status`、`next`、`resume`、`doctor`、`validate`、`gate`、`release-check` 都支持 `--lane <lane-id>` 读取指定 lane；若项目仍是 legacy 单交付结构，则自动退化到根层 `.ai-os/`。详见 `docs/cli.md` 和 `docs/evolution/multi-delivery-lanes-proposal.md`。
+`status`、`next`、`resume`、`doctor`、`validate`、`gate`、`release-check` 都支持 `--lane <lane-id>` 读取指定 lane；若项目仍是 legacy 单交付结构，则自动退化到根层 `.ai-os/`。当存在多个 active lane 而未传 `--lane` 时，CLI 会列出候选 lane、推荐命令示例，并提示如何恢复自动选择。详见 `docs/cli.md` 和 `docs/evolution/multi-delivery-lanes-proposal.md`。
 
 ## IDE 兼容性
 
