@@ -27,6 +27,7 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "configurable-meant-operable-g
 assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regression.md")), "problem-ledger eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "fallback-evidence-used-as-delivery.md")), "fallback-evidence eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "missing-user-confirmation.md")), "missing-user-confirmation eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "legacy-to-lanes-migration-skipped.md")), "legacy-to-lanes migration eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
@@ -38,6 +39,7 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sy
 assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix.md")), "debug example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-infrastructure-audit.md")), "brownfield infrastructure example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "config-closure-clarification.md")), "config closure example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "legacy-to-lanes-migration.md")), "legacy-to-lanes migration example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "DESIGN.md")), "greenfield skeleton includes DESIGN");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "tasks.yaml")), "greenfield skeleton includes tasks");
@@ -59,6 +61,7 @@ const problemLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledge
 const agentsDoc = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
 const readmeDoc = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
 const examplesDoc = fs.readFileSync(path.join(repoRoot, "examples", "README.md"), "utf8");
+const evalsDoc = fs.readFileSync(path.join(repoRoot, "evals", "README.md"), "utf8");
 const changeEvaluationTemplate = fs.readFileSync(
   path.join(repoRoot, "docs", "change-evaluation-template.md"),
   "utf8"
@@ -87,14 +90,18 @@ assert(maintainersDoc.includes("brownfield-infrastructure-audit-missed.md"), "ma
 assert(maintainersDoc.includes("configurable-meant-operable-gap.md"), "maintainers doc references config closure eval");
 assert(maintainersDoc.includes("docs/problem-ledger.md"), "maintainers doc references problem ledger");
 assert(maintainersDoc.includes("problem-ledger-coverage-regression.md"), "maintainers doc references problem ledger eval");
+assert(maintainersDoc.includes("legacy-to-lanes-migration-skipped.md"), "maintainers doc references migration eval");
 assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
 assert(maintainersDoc.includes("quickstart-todo-cli"), "maintainers doc references canonical quickstart example");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
 assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers doc references change-request example");
 assert(maintainersDoc.includes("brownfield-infrastructure-audit.md"), "maintainers doc references infrastructure example");
 assert(maintainersDoc.includes("config-closure-clarification.md"), "maintainers doc references config closure example");
+assert(maintainersDoc.includes("legacy-to-lanes-migration.md"), "maintainers doc references migration example");
 assert(examplesDoc.includes("canonical lane"), "examples README marks the canonical lane example");
 assert(examplesDoc.includes("lanes/default"), "examples README documents the lane-default example layout");
+assert(examplesDoc.includes("legacy-to-lanes-migration.md"), "examples README lists the migration example");
+assert(evalsDoc.includes("legacy-to-lanes-migration-skipped.md"), "evals README lists the migration eval");
 assert(agentsDoc.includes("node bin/create-ai-os.js plan /tmp/test-project --profile project"), "AGENTS documents plan preview with project profile");
 assert(agentsDoc.includes("node bin/create-ai-os.js /tmp/test-project --profile project"), "AGENTS uses project profile as the canonical install example");
 assert(!agentsDoc.includes("node bin/release.js --check"), "AGENTS avoids stale release.js guidance");
@@ -136,6 +143,7 @@ assert(updatedLedger.includes("PG-003"), "problem ledger includes PG-003 advisor
 assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE format entry");
 assert(updatedLedger.includes("PG-005"), "problem ledger includes PG-005 mission hotspot entry");
 assert(updatedLedger.includes("quickstart-todo-cli"), "problem ledger records the canonical lane example coverage");
+assert(updatedLedger.includes("legacy-to-lanes-migration-skipped"), "problem ledger records migration eval coverage");
 assert(updatedLedger.includes("Codex CLI"), "problem ledger documents Codex CLI in IDE portability rule");
 assert(updatedLedger.includes("默认不纳入 CLI 主能力"), "problem ledger blocks single-IDE features from CLI mainline");
 assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");

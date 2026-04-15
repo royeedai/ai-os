@@ -22,6 +22,7 @@ AI-OS 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `configurable-meant-operable-gap.md`
 - `problem-ledger-coverage-regression.md`
 - `read-only-analysis-before-edit.md`
+- `legacy-to-lanes-migration-skipped.md`
 
 ## 使用原则
 

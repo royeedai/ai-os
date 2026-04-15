@@ -75,6 +75,13 @@ assert(/baseline_id: "BL-\d{8}-\d{6}-[a-z0-9-]+"/.test(quickstartTasks), "quicks
 assert(quickstartTasks.includes("measurable_outcome"), "quickstart tasks include measurable outcomes");
 assert(quickstartTasks.includes("edge_cases"), "quickstart tasks include edge cases");
 
+section("migration example guidance");
+const migrationExamplePath = path.join(repoRoot, "examples", "legacy-to-lanes-migration.md");
+assert(fs.existsSync(migrationExamplePath), "migration example exists");
+const migrationExample = fs.readFileSync(migrationExamplePath, "utf8");
+assert(migrationExample.includes("upgrade . --to-lanes --preflight"), "migration example documents preflight review");
+assert(migrationExample.includes("status --lane default"), "migration example documents lane-scoped verification");
+
 section("example artifact validation");
 for (const [label, root, allowWarnings] of [
   ["greenfield example", path.join(repoRoot, "examples", "greenfield-guided-product"), true],
