@@ -6,7 +6,7 @@
 
 **首次了解 AI-OS？从这里开始：**
 
-- `quickstart-todo-cli/` — 一个完整走通 `/align` → `/ship` 的迷你项目演示，展示每个阶段产出的真实工件
+- `quickstart-todo-cli/` — 当前 canonical lane 示例，完整展示 `shared root + .ai-os/lanes/default/`，并走通 `/align` → `/ship`
 
 ## 场景示例
 
@@ -29,3 +29,8 @@
 - 关键设计和逻辑应该在什么阶段被锁定
 - 什么时候可以进入 build / verify
 - 哪些场景必须先做变更同步、边界确认和回归验证
+
+说明：
+
+- `quickstart-todo-cli/` 是 `7.x` 默认 lane 模型示例
+- 其余目录示例当前仍保留 legacy 单交付骨架，用于兼容和对比

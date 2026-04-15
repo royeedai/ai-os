@@ -1,0 +1,5 @@
+id = "default"
+title = "Todo CLI 首次交付"
+status = "active"
+baseline_id = "BL-20260316-083000-todo-cli-baseline"
+quality_tier = "standard"

@@ -2,7 +2,15 @@
 
 const fs = require("fs");
 const path = require("path");
-const { assert, run, listBaselineRecords, section, repoRoot, BASELINE_RECORD_NAME_PATTERN } = require("./helpers");
+const {
+  assert,
+  run,
+  listBaselineRecords,
+  listLaneBaselineRecords,
+  section,
+  repoRoot,
+  BASELINE_RECORD_NAME_PATTERN,
+} = require("./helpers");
 
 // ---------------------------------------------------------------------------
 // New example skeletons
@@ -16,6 +24,7 @@ const debugExampleRoot = path.join(repoRoot, "examples", "debug-bounded-fix");
 const changeRequestExampleRoot = path.join(repoRoot, "examples", "change-request-baseline-sync");
 const degradedPathExampleRoot = path.join(repoRoot, "examples", "degraded-path-verification");
 const quickstartExampleRoot = path.join(repoRoot, "examples", "quickstart-todo-cli");
+const quickstartLaneRoot = path.join(quickstartExampleRoot, ".ai-os", "lanes", "default");
 
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "STATE.md")), "reverse-spec example skeleton includes STATE");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "tasks.yaml")), "reverse-spec example skeleton includes tasks");
@@ -48,17 +57,19 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification
 
 section("quickstart example");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", "README.md")), "quickstart includes README");
-assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "MISSION.md")), "quickstart includes MISSION");
-assert(listBaselineRecords(quickstartExampleRoot, "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "quickstart includes timestamped baseline-log record");
-assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "DESIGN.md")), "quickstart includes DESIGN");
-assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "tasks.yaml")), "quickstart includes tasks");
-assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "acceptance.yaml")), "quickstart includes acceptance");
-assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "STATE.md")), "quickstart includes STATE");
+assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "project.md")), "quickstart includes shared project charter");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "lane.toml")), "quickstart includes lane metadata");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "MISSION.md")), "quickstart includes lane MISSION");
+assert(listLaneBaselineRecords(quickstartExampleRoot, "default", "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "quickstart includes timestamped lane baseline-log record");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "DESIGN.md")), "quickstart includes lane DESIGN");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "tasks.yaml")), "quickstart includes lane tasks");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "acceptance.yaml")), "quickstart includes lane acceptance");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "STATE.md")), "quickstart includes lane STATE");
 assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "memory.md")), "quickstart includes memory");
-assert(fs.existsSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "specs", "todo-cli.spec.md")), "quickstart includes spec");
-const quickstartMission = fs.readFileSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "MISSION.md"), "utf8");
+assert(fs.existsSync(path.join(quickstartLaneRoot, "specs", "todo-cli.spec.md")), "quickstart includes lane spec");
+const quickstartMission = fs.readFileSync(path.join(quickstartLaneRoot, "MISSION.md"), "utf8");
 assert(quickstartMission.includes("todo-cli"), "quickstart MISSION references todo-cli");
-const quickstartTasks = fs.readFileSync(path.join(repoRoot, "examples", "quickstart-todo-cli", ".ai-os", "tasks.yaml"), "utf8");
+const quickstartTasks = fs.readFileSync(path.join(quickstartLaneRoot, "tasks.yaml"), "utf8");
 assert(quickstartTasks.includes("status: done"), "quickstart tasks show completed status");
 assert(/baseline_id: "BL-\d{8}-\d{6}-[a-z0-9-]+"/.test(quickstartTasks), "quickstart tasks include timestamped baseline_id");
 assert(quickstartTasks.includes("measurable_outcome"), "quickstart tasks include measurable outcomes");

@@ -44,6 +44,7 @@
 
 ## 当前主示例
 
+- `examples/quickstart-todo-cli/`（canonical lane 示例，展示 `shared root + lanes/default`）
 - `examples/greenfield-guided-product.md`（含 `.ai-os/` 骨架）
 - `examples/reverse-spec-admin-console.md`（含 `.ai-os/` 骨架）
 - `examples/brownfield-change-journey.md`（含 `.ai-os/` 骨架）
