@@ -5,45 +5,6 @@ const path = require("path");
 const shared = require("../bin/shared");
 const { assert, run, tmpDir, cleanup, section } = require("./helpers");
 
-function moveIntoLane(projectDir, laneId = "default") {
-  const laneDir = path.join(projectDir, ".ai-os", "lanes", laneId);
-  fs.mkdirSync(laneDir, { recursive: true });
-
-  for (const relPath of [
-    "MISSION.md",
-    "DESIGN.md",
-    "tasks.yaml",
-    "acceptance.yaml",
-    "STATE.md",
-  ]) {
-    fs.renameSync(
-      path.join(projectDir, ".ai-os", relPath),
-      path.join(laneDir, relPath)
-    );
-  }
-
-  for (const dirName of ["baseline-log", "specs"]) {
-    fs.renameSync(
-      path.join(projectDir, ".ai-os", dirName),
-      path.join(laneDir, dirName)
-    );
-  }
-
-  fs.writeFileSync(
-    path.join(laneDir, "lane.toml"),
-    [
-      `id = "${laneId}"`,
-      `title = "${laneId} lane"`,
-      'status = "active"',
-      'baseline_id = "BL-20260101-000000-initial-baseline"',
-      'quality_tier = "standard"',
-      'owner = "team-core"',
-      "",
-    ].join("\n"),
-    "utf8"
-  );
-}
-
 section("team collaboration config");
 
 {
@@ -52,6 +13,7 @@ section("team collaboration config");
   const gi = fs.readFileSync(path.join(dir, ".gitignore"), "utf8");
   assert(gi.includes("AI-OS session"), "appendGitignoreEntries creates .gitignore with marker");
   assert(gi.includes(".ai-os/STATE.md"), "appendGitignoreEntries includes STATE.md");
+  assert(gi.includes(".ai-os/lanes/*/STATE.md"), "appendGitignoreEntries includes lane-scoped STATE.md");
 
   const added2 = shared.appendGitignoreEntries(dir, { logger() {} });
   assert(added2 === false, "appendGitignoreEntries is idempotent");
@@ -89,6 +51,7 @@ section("team collaboration config");
   const gi = fs.readFileSync(path.join(dir, ".gitignore"), "utf8");
   assert(gi.startsWith("node_modules/"), "appendGitignoreEntries preserves existing content");
   assert(gi.includes(".ai-os/STATE.md"), "appendGitignoreEntries appends to existing file");
+  assert(gi.includes(".ai-os/lanes/*/STATE.md"), "appendGitignoreEntries appends lane-scoped state ignore");
   cleanup(dir);
 }
 
@@ -113,7 +76,6 @@ section("lane-aware recovery commands");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  moveIntoLane(dir, "default");
 
   const statusResult = run("ai-os-status.js", [dir]);
   assert(statusResult.status === 0, "status works on a lane-based project");
@@ -139,7 +101,6 @@ section("lane-aware recovery commands");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  moveIntoLane(dir, "alpha");
   fs.mkdirSync(path.join(dir, ".ai-os", "lanes", "beta"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"),
@@ -160,9 +121,9 @@ section("lane-aware recovery commands");
     "status explains lane selection is required"
   );
 
-  const explicitStatus = run("ai-os-status.js", [dir, "--lane", "alpha"]);
+  const explicitStatus = run("ai-os-status.js", [dir, "--lane", "default"]);
   assert(explicitStatus.status === 0, "status accepts explicit lane selection");
-  assert(explicitStatus.stdout.includes("lane: alpha"), "status reports the explicitly selected lane");
+  assert(explicitStatus.stdout.includes("lane: default"), "status reports the explicitly selected lane");
 
   cleanup(dir);
 }

@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { assert, run, tmpDir, cleanup, section } = require("./helpers");
+const { getLaneFilePath } = require("../bin/shared");
 
 section("e2e delivery failure scenarios");
 
@@ -11,7 +12,7 @@ section("e2e delivery failure scenarios");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
+  const acceptancePath = getLaneFilePath(dir, "default", "acceptance.yaml");
   fs.writeFileSync(
     acceptancePath,
     fs.readFileSync(acceptancePath, "utf8")
@@ -31,8 +32,8 @@ section("e2e delivery failure scenarios");
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "tasks.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "tasks.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "tasks.yaml"), "utf8")
       .replace('quality_tier: "standard"', 'quality_tier: "high-risk"')
       .replace('risk: medium', 'risk: high')
       .replace('risk_triggers: []', 'risk_triggers:\n      - "asset-deduction"'),
@@ -48,7 +49,7 @@ section("e2e delivery failure scenarios");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const tasksPath = getLaneFilePath(dir, "default", "tasks.yaml");
   const tasksContent = fs.readFileSync(tasksPath, "utf8");
   const patchedTasks = tasksContent.includes("inputs:")
     ? tasksContent.replace(
@@ -73,7 +74,7 @@ section("e2e delivery failure scenarios");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  fs.writeFileSync(path.join(dir, ".ai-os", "STATE.md"), "# State\n\nEmpty.\n", "utf8");
+  fs.writeFileSync(getLaneFilePath(dir, "default", "STATE.md"), "# State\n\nEmpty.\n", "utf8");
   const result = run("ai-os-validate.js", [dir]);
   assert(result.status === 1, "scenario/gutted-state: validate rejects STATE.md with missing sections");
   cleanup(dir);
@@ -95,19 +96,19 @@ section("e2e delivery failure scenarios");
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "tasks.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "tasks.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "tasks.yaml"), "utf8")
       .replace(/status: todo/g, "status: done"),
     "utf8"
   );
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "acceptance.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "acceptance.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "acceptance.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "acceptance.yaml"), "utf8")
       .replace(/status: pending/g, "status: passed"),
     "utf8"
   );
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "release-plan.md"),
+    getLaneFilePath(dir, "default", "release-plan.md"),
     `# Release Plan\n\n## 1. 交付前检查\n\n- 完成\n\n## 2. 变更范围与依赖\n\n- API 变更\n\n## 3. 发布步骤\n\n1. 部署\n2. 验证\n\n## 4. 运行态验证\n\n- 通过\n\n## 5. 回滚触发条件\n\n- 错误率上升\n\n## 6. 交付说明与移交\n\n- 已完成\n`,
     "utf8"
   );
@@ -125,14 +126,14 @@ section("e2e delivery failure scenarios");
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "tasks.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "tasks.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "tasks.yaml"), "utf8")
       .replace(/status: todo/g, "status: done"),
     "utf8"
   );
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "acceptance.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "acceptance.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "acceptance.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "acceptance.yaml"), "utf8")
       .replace(/status: pending/g, "status: passed"),
     "utf8"
   );
@@ -148,19 +149,19 @@ section("e2e delivery failure scenarios");
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "tasks.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "tasks.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "tasks.yaml"), "utf8")
       .replace(/status: todo/g, "status: done"),
     "utf8"
   );
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "acceptance.yaml"),
-    fs.readFileSync(path.join(dir, ".ai-os", "acceptance.yaml"), "utf8")
+    getLaneFilePath(dir, "default", "acceptance.yaml"),
+    fs.readFileSync(getLaneFilePath(dir, "default", "acceptance.yaml"), "utf8")
       .replace(/status: pending/g, "status: passed"),
     "utf8"
   );
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "release-plan.md"),
+    getLaneFilePath(dir, "default", "release-plan.md"),
     `# Release Plan\n\n## 1. 交付前检查\n\n- Mission、Design、Spec、Acceptance 已同步\n- 静态校验证据已记录（npm run build）\n\n## 2. 变更范围与依赖\n\n- 覆盖示例接口\n\n## 3. 发布步骤\n\n1. [AI 已完成] 代码实现和测试\n2. [需人工执行] 部署到生产环境\n\n## 4. 运行态验证\n\n- 静态校验证据已记录\n- 目标运行态证据已记录\n\n## 5. 回滚触发条件\n\n- 错误率上升\n\n## 6. 交付说明与移交\n\n- AI 已完成：代码实现和测试\n- 需人工执行：生产部署\n`,
     "utf8"
   );

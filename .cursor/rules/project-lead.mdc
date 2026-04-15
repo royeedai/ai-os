@@ -11,8 +11,8 @@ alwaysApply: true
 
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
-- 当前版本：6.3.0（VERSION + package.json 同步）
-- 最新 git tag：v5.5.1（6.0.0 和 6.1.0 尚未打 tag）
+- 当前版本：7.0.0（VERSION + package.json 同步）
+- 最新 git tag：v6.3.0
 - 分支：main
 - CI：.github/workflows/ci.yml
 - 零运行时依赖，devDependencies 仅 eslint

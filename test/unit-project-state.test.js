@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { assert, section, tmpDir, cleanup, run } = require("./helpers");
 const ps = require("../bin/project-state");
+const { getLaneFilePath } = require("../bin/shared");
 
 section("splitMarkdownSections unit tests");
 {
@@ -174,7 +175,7 @@ section("parseTasksFile edge cases");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const tasksPath = getLaneFilePath(dir, "default", "tasks.yaml");
   const parsed = ps.parseTasksFile(tasksPath);
   assert(parsed.exists === true, "parsed tasks exist flag is true");
   assert(parsed.tasks.length >= 2, "parses at least 2 tasks from template");
@@ -199,7 +200,7 @@ section("parseAcceptanceFile edge cases");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
+  const acceptancePath = getLaneFilePath(dir, "default", "acceptance.yaml");
   const parsed = ps.parseAcceptanceFile(acceptancePath);
   assert(parsed.exists === true, "parsed acceptance exists flag is true");
   assert(parsed.qualityTier === "standard", "parses qualityTier from template");
@@ -213,7 +214,8 @@ section("readMissionFile unit tests");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  const missionInfo = ps.readMissionFile(dir);
+  const laneResolver = (d, relPath) => getLaneFilePath(d, "default", relPath);
+  const missionInfo = ps.readMissionFile(dir, { artifactPathResolver: laneResolver });
   assert(missionInfo.exists === true, "mission exists on fresh project");
   assert(missionInfo.content.length > 0, "mission content not empty");
   assert(typeof missionInfo.summaryFields === "object", "mission has summaryFields");
@@ -234,7 +236,8 @@ section("readBaselineLogFile unit tests");
 {
   const dir = tmpDir();
   run("create-ai-os.js", [dir, "--with-project-files"]);
-  const baselineInfo = ps.readBaselineLogFile(dir);
+  const laneResolver = (d, relPath) => getLaneFilePath(d, "default", relPath);
+  const baselineInfo = ps.readBaselineLogFile(dir, { artifactPathResolver: laneResolver });
   assert(baselineInfo.exists === true, "baseline log exists on fresh project");
   assert(baselineInfo.format === "directory", "fresh project uses directory format");
   assert(baselineInfo.entries.length >= 1, "has at least one baseline entry");

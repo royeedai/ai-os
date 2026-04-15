@@ -27,7 +27,7 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 其中：
 
 - `core` 只安装框架层和 `.ai-os/` 元数据
-- `project` 会额外创建 starter 项目工件
+- `project` 会额外创建共享根层工件 + `.ai-os/lanes/default/` starter 项目工件
 - `--with-project-files` 仍保留，作为 `--profile project` 的兼容别名
 
 **轻量安装**（核心 workflow + 必要 skill，~32K tokens，适合小项目或首次体验）：
@@ -65,17 +65,18 @@ npx --yes github:royeedai/ai-os my-project --profile project --no-ide-files
 - `AGENTS.md`
 - `.agents/skills/`（lite 模式只含 acceptance-gate 和 memory-manager）
 - `.agents/workflows/`（lite 模式只含 align/design/build/verify/debug）
-- `.ai-os/MISSION.md`
-- `.ai-os/baseline-log/`
-- `.ai-os/DESIGN.md`
+- `.ai-os/project.md`
 - `.ai-os/CONVENTIONS.md`
-- `.ai-os/tasks.yaml`
-- `.ai-os/acceptance.yaml`
-- `.ai-os/STATE.md`
 - `.ai-os/memory.md`
-- `.ai-os/specs/`
+- `.ai-os/lanes/default/MISSION.md`
+- `.ai-os/lanes/default/baseline-log/`
+- `.ai-os/lanes/default/DESIGN.md`
+- `.ai-os/lanes/default/tasks.yaml`
+- `.ai-os/lanes/default/acceptance.yaml`
+- `.ai-os/lanes/default/STATE.md`
+- `.ai-os/lanes/default/specs/`
 
-只有使用 `project` profile（或兼容别名 `--with-project-files`）时，这些 starter 文件才会在初始化阶段直接创建。`core` profile 只会先写入框架和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`。
+只有使用 `project` profile（或兼容别名 `--with-project-files`）时，这些 starter 文件才会在初始化阶段直接创建。`core` profile 只会先写入框架和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`。如果你是从旧版单交付结构升级，可运行 `create-ai-os upgrade . --to-lanes` 迁到默认 lane 布局。
 
 ## 什么时候用专项入口
 

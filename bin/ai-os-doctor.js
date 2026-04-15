@@ -246,12 +246,14 @@ if (strict) {
 
   if (!shouldValidateProjectArtifacts) {
     process.stdout.write("  skipped: project artifacts were not installed by this profile\n");
-  } else if (laneId) {
-    process.stdout.write("  skipped: lane-aware strict validation is not wired yet; use lane-aware status/resume/next for now\n");
   } else {
+    const validateArgs = [path.join(__dirname, "ai-os-validate.js"), targetDir];
+    if (laneId) {
+      validateArgs.push("--lane", laneId);
+    }
     const validateResult = spawnSync(
       process.execPath,
-      [path.join(__dirname, "ai-os-validate.js"), targetDir],
+      validateArgs,
       { stdio: "inherit" }
     );
     if (validateResult.status !== 0) {

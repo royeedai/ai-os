@@ -89,27 +89,28 @@ AI-OS 默认按交付阶段进入：
 
 ## 新版核心工件
 
-AI-OS 默认围绕这套 `.ai-os/` 工件工作：
+AI-OS 默认采用“共享根层 + `lanes/default`”的工件拓扑。共享项目事实留在 `.ai-os/` 根层，当前交付线的 Mission / Design / Tasks / Acceptance / State 下沉到 `.ai-os/lanes/default/`。legacy 单交付项目仍可继续使用 `.ai-os/` 根层结构，并可通过 `create-ai-os upgrade . --to-lanes` 机械迁移。
 
-| 文件 | 作用 |
+| 路径 | 作用 |
 |------|------|
-| `.ai-os/MISSION.md` | 低频、已确认、共享的交付基线章程：宿主项目必要上下文 + 当前目标、范围、模式、质量标准、当前基线 ID |
-| `.ai-os/baseline-log/` | 共享基线记录目录：每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录基线分析、确认和升格结果，供多人协作对齐和审计；不要再用全局递增的 `001/002` 编号 |
-| `.ai-os/DESIGN.md` | 信息架构、关键页面、关键交互、视觉方向、关键流程 |
+| `.ai-os/project.md` | 跨 lane 共享的宿主项目章程：项目身份、共享技术约束、共享质量基线和跨 lane 协调规则 |
 | `.ai-os/CONVENTIONS.md` | 项目级代码约定（命名、模式、分层、日志），防止跨 session 实现风格漂移 |
-| `.ai-os/specs/` | 业务规则、交互模式、契约基准、状态流转、边界条件 |
-| `.ai-os/tasks.yaml` | 任务波次、角色分工、审批点、impact_tags 和证据要求；团队协作下每个任务必须有稳定 `owner`，任务 ID 推荐用 `TASK-<OWNER>-NNN` |
-| `.ai-os/acceptance.yaml` | 质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
-| `.ai-os/STATE.md` | 当前方位、已锁定内容、待确认项、确认停点和下一步 |
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
+| `.ai-os/lanes/default/MISSION.md` | 当前交付线的低频、已确认、共享的交付基线章程：当前目标、范围、模式、质量标准、当前基线 ID |
+| `.ai-os/lanes/default/baseline-log/` | 当前交付线的共享基线记录目录：每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录基线分析、确认和升格结果，供多人协作对齐和审计；不要再用全局递增的 `001/002` 编号 |
+| `.ai-os/lanes/default/DESIGN.md` | 当前交付线的信息架构、关键页面、关键交互、视觉方向、关键流程 |
+| `.ai-os/lanes/default/specs/` | 当前交付线的业务规则、交互模式、契约基准、状态流转、边界条件 |
+| `.ai-os/lanes/default/tasks.yaml` | 当前交付线的任务波次、角色分工、审批点、impact_tags 和证据要求；团队协作下每个任务必须有稳定 `owner`，任务 ID 推荐用 `TASK-<OWNER>-NNN` |
+| `.ai-os/lanes/default/acceptance.yaml` | 当前交付线的质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
+| `.ai-os/lanes/default/STATE.md` | 当前交付线的当前方位、已锁定内容、待确认项、确认停点和下一步 |
 
 按风险或场景补充：
 
-- `.ai-os/release-plan.md`
-- `.ai-os/risk-register.md`
-- `.ai-os/verification-matrix.yaml`：联动验证命令、impact_rules 和稳定 failure mode guard；high-risk 交付至少保留一条真实 `failure_modes` guard，且 `guards` 应指向 `acceptance.yaml` 已声明 evidence 或现有 `.ai-os/evals/*.md`
-- `.ai-os/design-pack/parity-map.md`
-- `.ai-os/evals/`：把稳定失败模式、关键回归样例和 tricky path 验证沉淀成项目级评估样例
+- `.ai-os/lanes/default/release-plan.md`
+- `.ai-os/lanes/default/risk-register.md`
+- `.ai-os/lanes/default/verification-matrix.yaml`：联动验证命令、impact_rules 和稳定 failure mode guard；high-risk 交付至少保留一条真实 `failure_modes` guard，且 `guards` 应指向 `acceptance.yaml` 已声明 evidence 或现有 `.ai-os/lanes/<lane-id>/evals/*.md`
+- `.ai-os/lanes/default/design-pack/parity-map.md`
+- `.ai-os/lanes/default/evals/`：把稳定失败模式、关键回归样例和 tricky path 验证沉淀成项目级评估样例
 
 ## 5 分钟上手
 
@@ -145,9 +146,9 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 - 默认 profile 是 `core`
 - `quick`：极简安装，只含 AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md，适合首次接触或小项目
 - `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`，适合已有项目先接入
-- `project`：安装框架层和 `.ai-os/` starter 工件，适合新项目
+- `project`：安装框架层，并创建共享根层工件 + `.ai-os/lanes/default/` starter 工件，适合新项目
 - `--with-project-files` 仍然保留，作为 `--profile project` 的兼容别名
-- `--quick` 项目复杂度增长时，可用 `create-ai-os upgrade --profile project` 升级到完整框架
+- `--quick` 项目复杂度增长时，可直接重新运行 `create-ai-os <target> --profile project` 补齐完整 starter 工件
 - 老项目第一次接入时，常见做法是先用默认 `core` profile 安装框架，再通过 `/align` / `/plan` 逐步生成项目事实
 
 ### 2. 在 AI 工具里选对入口
@@ -190,9 +191,9 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 
 多人使用 AI-OS 同时开发同一项目时，`create-ai-os` 会自动配置 `.gitignore` 和 `.gitattributes`：
 
-- **会话文件**（`STATE.md`、`context-snapshot.md` 等）不入版本控制，每位开发者本地维护；`/status`、`/next`、`/resume` 会在缺失 `STATE.md` 时从 `MISSION.md`、最新 confirmed baseline、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml` 自动重建
+- **会话文件**（根层 legacy `STATE.md`，以及 lane 结构下的 `.ai-os/lanes/*/STATE.md`、`context-snapshot.md` 等）不入版本控制，每位开发者本地维护；`/status`、`/next`、`/resume` 会在缺失 `STATE.md` 时从 `MISSION.md`、最新 confirmed baseline、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml` 自动重建
 - **追加式知识** 中，`baseline-log/` 通过“一条记录一个文件”降低冲突；`memory.md` 使用 `merge=union` 降低追加式合并冲突；`tasks.yaml` 保持正常合并，避免把同一任务的并发编辑静默拼接
-- **项目共识**（`MISSION.md`、`DESIGN.md`、`CONVENTIONS.md`、`specs/`、`acceptance.yaml`）正常入版本控制，团队共享
+- **项目共识**（`MISSION.md`、`DESIGN.md`、`CONVENTIONS.md`、`specs/`、`acceptance.yaml` 等；lane 模型下其中前四类默认分布在共享根层和 `.ai-os/lanes/<lane-id>/`）正常入版本控制，团队共享
 - `baseline-log/` 文件名默认使用“时间戳 + 语义 slug”，避免多人分支去抢 `BL-001` 这类连续编号
 
 推荐协作方式：
@@ -207,9 +208,11 @@ npx --yes github:royeedai/ai-os plan my-project --profile project
 npx --yes github:royeedai/ai-os my-project --profile project --no-team-config
 ```
 
-### 多交付 Lane（6.3.0+）
+### 多交付 Lane
 
-当团队需要在同一工作区并行推进多条交付线时，可以手动创建 `.ai-os/lanes/<lane-id>/` 目录，将 lane 级工件（MISSION / tasks / acceptance / baseline-log 等）放到对应 lane 下。`status`、`next`、`resume`、`doctor` 支持 `--lane <lane-id>` 读取指定 lane 的交付状态。详见 `docs/cli.md` 和 `docs/evolution/multi-delivery-lanes-proposal.md`。
+`project` profile 新安装默认会创建 `.ai-os/lanes/default/`。如果是旧版单交付项目，可运行 `create-ai-os upgrade . --to-lanes` 把根层 Mission / Design / Tasks / Acceptance / State / baseline-log / specs 机械迁到 `lanes/default/`。
+
+`status`、`next`、`resume`、`doctor`、`validate`、`gate`、`release-check` 都支持 `--lane <lane-id>` 读取指定 lane；若项目仍是 legacy 单交付结构，则自动退化到根层 `.ai-os/`。详见 `docs/cli.md` 和 `docs/evolution/multi-delivery-lanes-proposal.md`。
 
 ## IDE 兼容性
 

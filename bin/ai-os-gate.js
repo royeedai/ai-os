@@ -30,6 +30,8 @@ const {
   parseCliArgs,
   resolveTargetDir,
   getProjectFilePath,
+  resolveProjectLane,
+  setDeliveryLaneContext,
   countTopLevelYamlListEntries,
   listProjectEvalFiles,
   validateFailureModeGuards,
@@ -366,6 +368,7 @@ for (const arg of rawArgs) {
 
 const parsed = parseCliArgs(filteredArgv, {
   booleanFlags: ["--entry", "--exit", "--all", "--json"],
+  valuedFlags: ["--lane"],
 });
 
 if (parsed.flags.help) {
@@ -374,6 +377,7 @@ if (parsed.flags.help) {
   create-ai-os gate <phase> [target-dir]      Check exit gates for <phase>
   create-ai-os gate <phase> --entry           Check entry gates for <phase>
   create-ai-os gate --all [target-dir]        Check all phases
+  create-ai-os gate [target-dir] --lane <lane-id>
   create-ai-os gate --json                    JSON output
 
 Phases: ${PHASES.join(", ")}
@@ -385,6 +389,14 @@ const flags = parsed.flags;
 let targetArg = parsed.positional || "";
 
 const targetDir = resolveTargetDir(targetArg || ".");
+const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
+  process.stderr.write(`Error: ${laneResolution.message}\n`);
+  process.exit(1);
+}
+if (laneResolution.ok) {
+  setDeliveryLaneContext(laneResolution.laneId);
+}
 const jsonMode = !!flags.json;
 const allResults = [];
 

@@ -8,7 +8,7 @@ section("gate command");
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(
     path.join(dir, ".ai-os", "tasks.yaml"),
     fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8").replace(/status: todo/g, "status: done"),
@@ -23,7 +23,7 @@ section("gate command");
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(
     path.join(dir, ".ai-os", "tasks.yaml"),
     fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8").replace(/status: todo/g, "status: done"),
@@ -77,7 +77,7 @@ failure_modes: []
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(
     path.join(dir, ".ai-os", "tasks.yaml"),
     fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8").replace(/status: todo/g, "status: done"),

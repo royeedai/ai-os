@@ -6,8 +6,8 @@ const { spawnSync } = require("child_process");
 const {
   ensureDir,
   fail,
-  getProjectFilePath,
   getProjectTemplatePath,
+  getLaneFilePath,
   copyFramework,
   copyTemplateIfMissing,
   createProjectFiles,
@@ -210,7 +210,7 @@ function bootstrapScenario(targetDir, scenarioId, scenario) {
     copyTemplateIfMissing(
       targetDir,
       getProjectTemplatePath(artifact.template),
-      getProjectFilePath(targetDir, artifact.destination),
+      getLaneFilePath(targetDir, "default", artifact.destination),
       { logger: () => {} }
     );
   }

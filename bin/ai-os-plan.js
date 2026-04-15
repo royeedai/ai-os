@@ -141,9 +141,20 @@ process.stdout.write("Managed scope:\n");
 process.stdout.write(`  - framework: ${plan.frameworkFiles.length} file(s) under AGENTS.md and .agents/${plan.lite ? " (lite)" : ""}\n`);
 process.stdout.write(`  - metadata: ${plan.metadataFiles.length} file(s) under .ai-os/\n`);
 if (plan.profile.includeProjectFiles) {
-  process.stdout.write(
-    `  - project artifacts: ${plan.projectEntries.length} starter path(s) under .ai-os/\n`
-  );
+  const sharedEntries = plan.projectEntries.filter((e) => e.scope === "shared");
+  const laneEntries = plan.projectEntries.filter((e) => e.scope === "lane");
+  if (sharedEntries.length > 0 && laneEntries.length > 0) {
+    process.stdout.write(
+      `  - shared project artifacts: ${sharedEntries.length} path(s) under .ai-os/\n`
+    );
+    process.stdout.write(
+      `  - lane delivery artifacts: ${laneEntries.length} path(s) under .ai-os/lanes/default/\n`
+    );
+  } else {
+    process.stdout.write(
+      `  - project artifacts: ${plan.projectEntries.length} starter path(s) under .ai-os/\n`
+    );
+  }
 } else {
   process.stdout.write("  - project artifacts: not included in this profile\n");
 }

@@ -37,6 +37,58 @@ assert(
 
 cleanup(diffUpgradeDir);
 
+section("upgrade --to-lanes migration");
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+
+  assert(fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "legacy project starts with root MISSION.md");
+  assert(!fs.existsSync(path.join(dir, ".ai-os", "lanes", "default", "MISSION.md")), "legacy project has no lane-scoped mission before migration");
+
+  const preflightResult = run("ai-os-upgrade.js", [dir, "--to-lanes", "--preflight"]);
+  assert(preflightResult.status === 0, "upgrade --to-lanes --preflight passes on legacy project");
+  assert(preflightResult.stdout.includes("SAFE_TO_UPGRADE_AND_MIGRATE"), "preflight reports lane migration is safe");
+
+  const migrateResult = run("ai-os-upgrade.js", [dir, "--to-lanes"]);
+  assert(migrateResult.status === 0, "upgrade --to-lanes succeeds on legacy project");
+  assert(migrateResult.stdout.includes("Lane migration"), "upgrade reports lane migration summary");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "lanes", "default", "MISSION.md")), "MISSION.md moved into default lane");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "lanes", "default", "baseline-log")), "baseline-log moved into default lane");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "lanes", "default", "lane.toml")), "lane metadata created during migration");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "project.md")), "shared project.md created during migration");
+  assert(!fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "root MISSION.md removed after migration");
+
+  const validateResult = run("ai-os-validate.js", [dir]);
+  assert(validateResult.status === 0, "validate passes after legacy-to-lanes migration");
+
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+
+  const result = run("ai-os-upgrade.js", [dir, "--to-lanes"]);
+  assert(result.status === 0, "upgrade --to-lanes is a no-op on lane-based project");
+  assert(result.stdout.includes("already uses lane-based"), "upgrade explains lane migration is already satisfied");
+
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  fs.mkdirSync(path.join(dir, ".ai-os", "lanes", "default"), { recursive: true });
+  fs.writeFileSync(path.join(dir, ".ai-os", "lanes", "default", "lane.toml"), 'id = "default"\nstatus = "active"\n', "utf8");
+
+  const result = run("ai-os-upgrade.js", [dir, "--to-lanes", "--preflight"]);
+  assert(result.status === 1, "upgrade --to-lanes --preflight blocks mixed layout");
+  assert(result.stdout.includes("BLOCKED"), "preflight reports mixed layout as blocked");
+
+  cleanup(dir);
+}
+
 // ---------------------------------------------------------------------------
 // upgrade / diff error paths
 // ---------------------------------------------------------------------------

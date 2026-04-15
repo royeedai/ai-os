@@ -12,10 +12,10 @@ assert(labResult.stdout.includes("Acceptance report:"), "lab prints report path"
 assert(fs.existsSync(path.join(labRoot, "lab-report.md")), "lab writes root report");
 assert(fs.existsSync(path.join(labRoot, "greenfield", "LAB.md")), "lab writes greenfield scenario brief");
 assert(fs.existsSync(path.join(labRoot, "high-risk", "LAB.md")), "lab writes high-risk scenario brief");
-assert(fs.existsSync(path.join(labRoot, "high-risk", ".ai-os", "risk-register.md")), "lab creates high-risk risk register");
-assert(fs.existsSync(path.join(labRoot, "high-risk", ".ai-os", "release-plan.md")), "lab creates high-risk release plan");
-assert(fs.existsSync(path.join(labRoot, "high-risk", ".ai-os", "verification-matrix.yaml")), "lab creates high-risk verification matrix");
-assert(fs.existsSync(path.join(labRoot, "greenfield", ".ai-os", "MISSION.md")), "lab creates scenario project files");
+assert(fs.existsSync(path.join(labRoot, "high-risk", ".ai-os", "lanes", "default", "risk-register.md")), "lab creates high-risk risk register");
+assert(fs.existsSync(path.join(labRoot, "high-risk", ".ai-os", "lanes", "default", "release-plan.md")), "lab creates high-risk release plan");
+assert(fs.existsSync(path.join(labRoot, "high-risk", ".ai-os", "lanes", "default", "verification-matrix.yaml")), "lab creates high-risk verification matrix");
+assert(fs.existsSync(path.join(labRoot, "greenfield", ".ai-os", "lanes", "default", "MISSION.md")), "lab creates scenario project files");
 const labReport = fs.readFileSync(path.join(labRoot, "lab-report.md"), "utf8");
 assert(labReport.includes("## 场景汇总"), "lab report includes scenario summary");
 assert(labReport.includes("greenfield"), "lab report includes selected scenario");

@@ -31,15 +31,18 @@ create-ai-os skill-check .agents/skills/my-skill
 - `resume`：导出最小阅读集
 - `release-check`：看当前交付是否具备发布条件，并在 `high-risk` 档强查授权 / 并发 / degraded-path 证据
 
-## 多交付 Lane 支持（6.3.0+）
+## 多交付 Lane 支持
 
-`status`、`next`、`resume`、`doctor` 支持 `--lane` 参数，可在 lane 级工件目录下读取交付状态：
+`project` profile 新安装默认采用“共享根层 + `.ai-os/lanes/default/`”布局。`status`、`next`、`resume`、`doctor`、`validate`、`gate`、`release-check` 都支持 `--lane` 参数，可在 lane 级工件目录下读取交付状态：
 
 ```bash
 create-ai-os status . --lane default
 create-ai-os next . --lane lane-account-deduction
 create-ai-os resume . --lane default --markdown
 create-ai-os doctor . --lane default
+create-ai-os validate . --lane default
+create-ai-os gate verify . --lane default
+create-ai-os release-check . --lane default
 ```
 
 Lane 选择规则：
@@ -52,6 +55,7 @@ Lane 目录结构：
 
 ```text
 .ai-os/
+  project.md         # 共享项目章程
   memory.md          # 共享（不随 lane 移动）
   CONVENTIONS.md     # 共享
   lanes/
@@ -64,6 +68,13 @@ Lane 目录结构：
       STATE.md
       baseline-log/
       specs/
+```
+
+legacy 单交付项目可以通过下面的命令机械迁移到默认 lane 布局：
+
+```bash
+create-ai-os upgrade . --to-lanes
+create-ai-os upgrade . --to-lanes --preflight
 ```
 
 详细演进规划见 `docs/evolution/multi-delivery-lanes-proposal.md`。
@@ -106,12 +117,12 @@ create-ai-os gate --json .         # JSON 输出（CI 集成）
 create-ai-os my-project --quick
 ```
 
-Quick 模式只安装最小必需文件：AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md。适合首次接触或小项目。项目复杂度增长时，用 `upgrade --profile project` 升级到完整框架。
+Quick 模式只安装最小必需文件：AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md。适合首次接触或小项目。项目复杂度增长时，直接重新运行 `create-ai-os <target> --profile project` 补齐完整 starter 工件。
 
 ## 框架维护命令
 
 - `diff`：对比项目中已安装的框架文件与最新源文件的差异，标记 modified / outdated / missing / extra
-- `upgrade`：将项目中的框架文件升级到最新版本
+- `upgrade`：将项目中的框架文件升级到最新版本；legacy 项目可配合 `--to-lanes` 迁到默认 lane 布局
 - `skill-check`：校验自定义 Skill 目录中的 SKILL.md，检查 frontmatter、章节结构、references 导航等；`--strict` 启用生产级检查
 
 ### Upgrade 冲突处理
@@ -129,6 +140,7 @@ Quick 模式只安装最小必需文件：AGENTS.md + 主路径工作流 + YAML 
 create-ai-os upgrade . --preflight   # 只检查是否能安全升级，不做任何修改
 create-ai-os upgrade . --dry-run     # 显示将要执行的操作，不做任何修改
 create-ai-os upgrade . --force       # 强制覆盖所有冲突文件（慎用）
+create-ai-os upgrade . --to-lanes    # 把 legacy 单交付工件迁到 .ai-os/lanes/default/
 ```
 
 推荐流程：
@@ -138,7 +150,7 @@ create-ai-os upgrade . --force       # 强制覆盖所有冲突文件（慎用�
 3. 如果有冲突，手动检查 modified 文件，决定是否保留本地修改
 4. 确认可以覆盖后，用 `--force` 执行
 
-注意：`.ai-os/` 下的项目工件（MISSION.md、baseline-log/、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。
+注意：默认情况下，`.ai-os/` 下的项目工件（MISSION.md、baseline-log/、DESIGN.md、tasks.yaml 等）不是框架托管文件，upgrade 不会触碰它们。只有显式传入 `--to-lanes` 时，legacy 单交付项目的这些工件才会被机械迁到 `.ai-os/lanes/default/`。
 
 ## Lite 模式
 
@@ -155,7 +167,7 @@ create-ai-os my-project --profile project --lite
 ## 安装 profile 与计划预览
 
 - `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`
-- `project`：安装框架层，并补齐 starter 项目工件
+- `project`：安装框架层，并补齐共享根层工件 + `lanes/default` starter 项目工件
 - `--with-project-files`：兼容别名，等价于 `--profile project`
 
 在真正写文件前，可以先预览：
@@ -172,7 +184,7 @@ create-ai-os plan my-project --profile project --lite --json
 
 `create-ai-os` 初始化和 `upgrade` 完成后会自动（幂等）追加：
 
-- `.gitignore`：忽略会话态与 CLI 元数据（如 `.ai-os/STATE.md`、`framework.toml`、`managed-files.tsv` 等）
+- `.gitignore`：忽略会话态与 CLI 元数据（如 legacy `.ai-os/STATE.md`、lane `.ai-os/lanes/*/STATE.md`、`framework.toml`、`managed-files.tsv` 等）
 - `.gitattributes`：仅为 `memory.md` 设置 `merge=union`；`tasks.yaml` 保持正常合并，避免把同一任务的并发编辑静默拼接；`baseline-log/` 通过一条记录一个文件降低多人并行合并冲突
 
 此外，`status` / `next` / `resume` 在 `STATE.md` 缺失时，会从 `MISSION.md`、最新 confirmed baseline、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml` 自动重建最小状态。

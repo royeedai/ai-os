@@ -20,6 +20,7 @@ const PROJECT_STATE_ROOT = ".ai-os";
 const PROJECT_METADATA_FILE = "framework.toml";
 const PROJECT_MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
+const LANE_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "lane");
 const BASELINE_LOG_TEMPLATE_FILE = path.posix.join("baseline-log", "BL-template.md");
 const INITIAL_BASELINE_SLUG = "initial-baseline";
 const LANES_DIR = "lanes";
@@ -28,6 +29,7 @@ const DEFAULT_LANE_ID = "default";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_ID = "{{INITIAL_BASELINE_ID}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_FILE = "{{INITIAL_BASELINE_FILE}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_DATE = "{{INITIAL_BASELINE_DATE}}";
+let CURRENT_DELIVERY_LANE_ID = "";
 
 const DELIVERY_MODEL_NONE = "none";
 const DELIVERY_MODEL_LEGACY = "legacy";
@@ -165,6 +167,21 @@ const QUICK_PROJECT_DIRS = [
   "baseline-log",
 ];
 
+// ---------------------------------------------------------------------------
+// Lane-based project layout: shared root vs lane-scoped files
+// ---------------------------------------------------------------------------
+
+// Files installed to .ai-os/ root (shared across all lanes)
+const PROJECT_SHARED_FILES = [
+  "project.md",
+  "CONVENTIONS.md",
+  "memory.md",
+];
+
+// Files installed into .ai-os/lanes/<id>/ (per-lane delivery artifacts)
+const LANE_DELIVERY_FILES = [...LANE_CORE_ARTIFACT_FILES];
+const LANE_DELIVERY_DIRS = [...LANE_CORE_ARTIFACT_DIRS];
+
 const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
 const IMPACT_TAGS = [
   "entrypoint",
@@ -195,6 +212,9 @@ const GITIGNORE_ENTRIES = [
   `${PROJECT_STATE_ROOT}/STATE.md`,
   `${PROJECT_STATE_ROOT}/context-snapshot.md`,
   `${PROJECT_STATE_ROOT}/codebase-map.md`,
+  `${PROJECT_STATE_ROOT}/${LANES_DIR}/*/STATE.md`,
+  `${PROJECT_STATE_ROOT}/${LANES_DIR}/*/context-snapshot.md`,
+  `${PROJECT_STATE_ROOT}/${LANES_DIR}/*/codebase-map.md`,
   `${PROJECT_STATE_ROOT}/${PROJECT_METADATA_FILE}`,
   `${PROJECT_STATE_ROOT}/${PROJECT_MANAGED_FILES_MANIFEST}`,
   "# IDE integration files (CLAUDE.md, GEMINI.md, .cursor/) are team-shareable — do NOT gitignore them",
@@ -472,6 +492,14 @@ function normalizeLaneStatus(value) {
   return normalized || "active";
 }
 
+function setDeliveryLaneContext(laneId = "") {
+  CURRENT_DELIVERY_LANE_ID = normalizeLaneId(laneId);
+}
+
+function getDeliveryLaneContext() {
+  return CURRENT_DELIVERY_LANE_ID || null;
+}
+
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -489,11 +517,19 @@ function stripProjectRootPrefix(relPath = "") {
 
 function getProjectFilePath(targetDir, relPath = "") {
   const normalized = stripProjectRootPrefix(relPath);
+  const laneId = getDeliveryLaneContext();
+  if (laneId && normalized && isLaneArtifactPath(normalized)) {
+    return getLaneFilePath(targetDir, laneId, normalized);
+  }
   return path.join(getProjectRoot(targetDir), normalized);
 }
 
 function getProjectRelativePath(relPath = "") {
   const normalized = stripProjectRootPrefix(relPath);
+  const laneId = getDeliveryLaneContext();
+  if (laneId && normalized && isLaneArtifactPath(normalized)) {
+    return getLaneRelativePath(laneId, normalized);
+  }
   return normalized
     ? path.posix.join(PROJECT_STATE_ROOT, normalized).replace(/\\/g, "/")
     : PROJECT_STATE_ROOT;
@@ -823,8 +859,9 @@ function formatDeliveryPath(relPath = "", options = {}) {
   return normalized;
 }
 
-function listProjectEvalFiles(targetDir) {
-  const evalsDir = getProjectFilePath(targetDir, "evals");
+function listProjectEvalFiles(targetDir, options = {}) {
+  const laneId = options.laneId !== undefined ? options.laneId : getDeliveryLaneContext();
+  const evalsDir = resolveDeliveryPath(targetDir, "evals", { laneId });
   if (!fs.existsSync(evalsDir) || !fs.statSync(evalsDir).isDirectory()) {
     return [];
   }
@@ -1129,8 +1166,105 @@ function deriveBaselineContextFromExistingRecords(recordRelPaths, fallbackContex
   };
 }
 
+function createLaneProjectFiles(targetDir, options = {}) {
+  const { logger = defaultLogger } = options;
+  const requestedBaselineContext = options.baselineContext || createInitialBaselineContext();
+  const laneId = options.laneId || DEFAULT_LANE_ID;
+  const createdPaths = [];
+
+  ensureDir(getProjectRoot(targetDir));
+
+  // --- Shared root files ---
+  for (const fileName of PROJECT_SHARED_FILES) {
+    const templatePath = path.join(PROJECT_TEMPLATE_ROOT, fileName);
+    if (!fs.existsSync(templatePath)) {
+      continue;
+    }
+    const destinationPath = getProjectFilePath(targetDir, fileName);
+    if (copyTemplateIfMissing(targetDir, templatePath, destinationPath, { logger })) {
+      createdPaths.push(destinationPath);
+    }
+  }
+
+  // --- Lane directory and metadata ---
+  const laneDir = getLaneFilePath(targetDir, laneId);
+  ensureDir(laneDir);
+
+  const laneTomlSrc = path.join(LANE_TEMPLATE_ROOT, LANE_METADATA_FILE);
+  const laneTomlDst = getLaneMetadataPath(targetDir, laneId);
+  if (copyTemplateIfMissing(targetDir, laneTomlSrc, laneTomlDst, { logger })) {
+    createdPaths.push(laneTomlDst);
+  }
+
+  // --- Lane delivery files ---
+  for (const fileName of LANE_DELIVERY_FILES) {
+    const templatePath = getProjectTemplatePath(fileName);
+    const destinationPath = getLaneFilePath(targetDir, laneId, fileName);
+    if (copyTemplateIfMissing(targetDir, templatePath, destinationPath, { logger })) {
+      createdPaths.push(destinationPath);
+    }
+  }
+
+  // --- Lane delivery directories ---
+  for (const dirName of LANE_DELIVERY_DIRS) {
+    ensureDir(getLaneFilePath(targetDir, laneId, dirName));
+  }
+
+  // --- Specs example ---
+  const exampleSpecPath = getLaneFilePath(targetDir, laneId, path.join("specs", "example.spec.md"));
+  if (copyTemplateIfMissing(
+    targetDir,
+    getProjectTemplatePath(path.join("specs", "example.spec.md")),
+    exampleSpecPath,
+    { logger }
+  )) {
+    createdPaths.push(exampleSpecPath);
+  }
+
+  // --- Baseline record ---
+  const laneBaselineDir = getLaneFilePath(targetDir, laneId, "baseline-log");
+  const existingLaneBaselines = fs.existsSync(laneBaselineDir) && fs.statSync(laneBaselineDir).isDirectory()
+    ? fs.readdirSync(laneBaselineDir).filter((n) => n.endsWith(".md") && n !== ".DS_Store")
+    : [];
+  const baselineContext = existingLaneBaselines.length > 0
+    ? deriveBaselineContextFromExistingRecords(
+        existingLaneBaselines.map((n) => path.posix.join("baseline-log", n)),
+        requestedBaselineContext
+      )
+    : requestedBaselineContext;
+
+  if (existingLaneBaselines.length === 0) {
+    const baselineRecordPath = getLaneFilePath(targetDir, laneId, baselineContext.baselineRecordRelPath);
+    if (copyTemplateIfMissing(
+      targetDir,
+      getProjectTemplatePath(BASELINE_LOG_TEMPLATE_FILE),
+      baselineRecordPath,
+      { logger }
+    )) {
+      createdPaths.push(baselineRecordPath);
+    }
+  }
+
+  // --- Token replacement ---
+  const tokenValues = {
+    [TEMPLATE_TOKEN_INITIAL_BASELINE_ID]: baselineContext.baselineId,
+    [TEMPLATE_TOKEN_INITIAL_BASELINE_FILE]: baselineContext.baselineFileName,
+    [TEMPLATE_TOKEN_INITIAL_BASELINE_DATE]: baselineContext.confirmedDate,
+  };
+  for (const filePath of createdPaths) {
+    applyProjectTemplateTokens(filePath, tokenValues);
+  }
+}
+
 function createProjectFiles(targetDir, options = {}) {
-  const { logger = defaultLogger, quick = false } = options;
+  const { logger = defaultLogger, quick = false, legacyLayout = false } = options;
+
+  // Lane-based layout is the default for non-quick, non-legacy installs
+  if (!quick && !legacyLayout) {
+    return createLaneProjectFiles(targetDir, options);
+  }
+
+  // --- Legacy / quick layout (root-level single-delivery) ---
   const requestedBaselineContext = options.baselineContext || createInitialBaselineContext();
   const existingBaselineRecords = listBaselineRecordRelativePaths(targetDir);
   const baselineContext = existingBaselineRecords.length > 0
@@ -1226,10 +1360,76 @@ function getProjectArtifactEntries(targetDir, options = {}) {
   ];
 }
 
+function getLaneProjectArtifactEntries(targetDir, options = {}) {
+  const baselineContext = options.baselineContext || createInitialBaselineContext();
+  const laneId = options.laneId || DEFAULT_LANE_ID;
+  const entries = [];
+
+  // Shared root files
+  for (const fileName of PROJECT_SHARED_FILES) {
+    const templatePath = path.join(PROJECT_TEMPLATE_ROOT, fileName);
+    if (fs.existsSync(templatePath)) {
+      entries.push({
+        kind: "file",
+        relPath: getProjectRelativePath(fileName),
+        absolutePath: getProjectFilePath(targetDir, fileName),
+        scope: "shared",
+      });
+    }
+  }
+
+  // Lane metadata
+  entries.push({
+    kind: "file",
+    relPath: getLaneRelativePath(laneId, LANE_METADATA_FILE),
+    absolutePath: getLaneMetadataPath(targetDir, laneId),
+    scope: "lane",
+  });
+
+  // Lane delivery files
+  for (const fileName of LANE_DELIVERY_FILES) {
+    entries.push({
+      kind: "file",
+      relPath: getLaneRelativePath(laneId, fileName),
+      absolutePath: getLaneFilePath(targetDir, laneId, fileName),
+      scope: "lane",
+    });
+  }
+
+  // Lane delivery dirs
+  for (const dirName of LANE_DELIVERY_DIRS) {
+    entries.push({
+      kind: "dir",
+      relPath: getLaneRelativePath(laneId, dirName),
+      absolutePath: getLaneFilePath(targetDir, laneId, dirName),
+      scope: "lane",
+    });
+  }
+
+  // Specs example
+  entries.push({
+    kind: "file",
+    relPath: getLaneRelativePath(laneId, path.join("specs", "example.spec.md")),
+    absolutePath: getLaneFilePath(targetDir, laneId, path.join("specs", "example.spec.md")),
+    scope: "lane",
+  });
+
+  // Baseline record
+  entries.push({
+    kind: "file",
+    relPath: getLaneRelativePath(laneId, baselineContext.baselineRecordRelPath),
+    absolutePath: getLaneFilePath(targetDir, laneId, baselineContext.baselineRecordRelPath),
+    scope: "lane",
+  });
+
+  return entries;
+}
+
 function buildInstallPlan(targetDir, options = {}) {
   const profile = getInstallProfile(options.installProfile);
   const overwriteFramework = Boolean(options.overwriteFramework);
   const lite = Boolean(options.lite);
+  const quick = Boolean(options.quick);
   const baselineContext = options.baselineContext || createInitialBaselineContext();
   const frameworkFiles = listManagedFiles(FRAMEWORK_ROOT)
     .filter((relPath) => !lite || isLiteIncluded(relPath))
@@ -1256,8 +1456,13 @@ function buildInstallPlan(targetDir, options = {}) {
     action: "write",
   }));
 
-  const projectEntries = profile.includeProjectFiles
-    ? getProjectArtifactEntries(targetDir, { baselineContext }).map((entry) => {
+  let projectEntries = [];
+  if (profile.includeProjectFiles) {
+    const useLaneLayout = !quick;
+    const rawEntries = useLaneLayout
+      ? getLaneProjectArtifactEntries(targetDir, { baselineContext })
+      : getProjectArtifactEntries(targetDir, { baselineContext });
+    projectEntries = rawEntries.map((entry) => {
       const exists = fs.existsSync(entry.absolutePath);
       return {
         kind: entry.kind === "dir" ? "project-dir" : "project-file",
@@ -1265,9 +1470,10 @@ function buildInstallPlan(targetDir, options = {}) {
         absolutePath: entry.absolutePath,
         exists,
         action: exists ? "keep" : "create",
+        scope: entry.scope || null,
       };
-    })
-    : [];
+    });
+  }
 
   const allEntries = [...frameworkFiles, ...metadataFiles, ...projectEntries];
   const summary = {
@@ -2259,6 +2465,10 @@ module.exports = {
   PROJECT_METADATA_FILE,
   PROJECT_MANAGED_FILES_MANIFEST,
   PROJECT_TEMPLATE_ROOT,
+  LANE_TEMPLATE_ROOT,
+  PROJECT_SHARED_FILES,
+  LANE_DELIVERY_FILES,
+  LANE_DELIVERY_DIRS,
   LANES_DIR,
   LANE_METADATA_FILE,
   DEFAULT_LANE_ID,
@@ -2321,6 +2531,8 @@ module.exports = {
   getProjectMetadataPath,
   normalizeRelativePath,
   normalizeLaneId,
+  setDeliveryLaneContext,
+  getDeliveryLaneContext,
   isProjectArtifactPath,
   resolveProjectPath,
   formatProjectPath,
@@ -2331,8 +2543,10 @@ module.exports = {
   getProjectTemplatePath,
   copyFramework,
   copyTemplateIfMissing,
+  createLaneProjectFiles,
   createProjectFiles,
   getProjectArtifactEntries,
+  getLaneProjectArtifactEntries,
   buildInstallPlan,
   writeMetadata,
   writeManagedFilesManifest,

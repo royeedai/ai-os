@@ -4,7 +4,7 @@
  * ai-os-upgrade — Upgrade a project's framework files to the latest AI-OS source.
  *
  * Usage:
- *   ai-os-upgrade [target-dir] [--force] [--dry-run]
+ *   ai-os-upgrade [target-dir] [--force] [--dry-run] [--preflight] [--to-lanes]
  *   ai-os-upgrade --help
  */
 
@@ -13,22 +13,40 @@ const path = require("path");
 const {
   FRAMEWORK_ROOT,
   PROJECT_MANAGED_FILES_MANIFEST,
+  DEFAULT_LANE_ID,
+  DELIVERY_MODEL_LEGACY,
+  DELIVERY_MODEL_LANES,
+  DELIVERY_MODEL_MIXED,
   detectInstallProfileName,
   detectFrameworkFootprint,
   readFrameworkVersion,
   readInstalledMeta,
   copyFileWithMode,
+  getProjectTemplatePath,
   listManagedFiles,
+  inspectProjectDeliveryLayout,
+  listLegacyDeliveryArtifactEntries,
+  getLaneFilePath,
+  getLaneRelativePath,
+  getLaneMetadataPath,
   getProjectFilePath,
   getProjectRelativePath,
+  serializeSimpleToml,
   writeMetadata,
   writeManagedFilesManifest,
   appendGitignoreEntries,
   appendGitattributesEntries,
   generateIdeFiles,
+  ensureDir,
   fail,
 } = require("./shared");
 const { computeDiff } = require("./ai-os-diff");
+const {
+  readMissionFile,
+  readBaselineLogFile,
+  parseTasksFile,
+  parseAcceptanceFile,
+} = require("./project-state");
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -36,15 +54,16 @@ const { computeDiff } = require("./ai-os-diff");
 
 function printHelp() {
   process.stdout.write(`Usage:
-  ai-os-upgrade [target-dir] [--force] [--dry-run] [--preflight]
+  ai-os-upgrade [target-dir] [--force] [--dry-run] [--preflight] [--to-lanes]
 
 Upgrade a project's framework files to the latest AI-OS source.
 
 Options:
-  --force     Skip conflict check and overwrite all framework files
-  --dry-run   Show what would be done without making changes
-  --preflight Check whether upgrade can proceed safely
-  -h, --help  Show this help message
+  --force      Skip conflict check and overwrite all framework files
+  --dry-run    Show what would be done without making changes
+  --preflight  Check whether upgrade can proceed safely
+  --to-lanes   Migrate legacy single-delivery project artifacts into .ai-os/lanes/default/
+  -h, --help   Show this help message
 `);
 }
 
@@ -53,6 +72,7 @@ let targetArg = "";
 let force = false;
 let dryRun = false;
 let preflight = false;
+let toLanes = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -70,6 +90,10 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--preflight") {
     preflight = true;
+    continue;
+  }
+  if (arg === "--to-lanes") {
+    toLanes = true;
     continue;
   }
   if (arg.startsWith("-")) {
@@ -127,8 +151,11 @@ const needsLocalMetadataRefresh =
 // ---------------------------------------------------------------------------
 
 const diff = computeDiff(targetDir);
+const lanePlan = toLanes ? buildLegacyToLanesPlan(targetDir) : null;
 
-const totalChanges = diff.modified.length + diff.outdated.length + diff.missing.length;
+const frameworkChangeCount = diff.modified.length + diff.outdated.length + diff.missing.length;
+const laneChangeCount = lanePlan && !lanePlan.noop ? lanePlan.createdCount + lanePlan.moveCount : 0;
+const totalChanges = frameworkChangeCount + laneChangeCount;
 
 function printTeamConfigSummary(gitignoreAdded, gitattrsAdded) {
   if (!gitignoreAdded && !gitattrsAdded) {
@@ -144,7 +171,239 @@ function printTeamConfigSummary(gitignoreAdded, gitattrsAdded) {
   process.stdout.write("  Use --no-team-config on next init to opt out.\n\n");
 }
 
+function deriveLaneMetadataFromLegacy(targetDir) {
+  const missionInfo = readMissionFile(targetDir);
+  const baselineInfo = readBaselineLogFile(targetDir);
+  const tasksInfo = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
+  const acceptanceInfo = parseAcceptanceFile(getProjectFilePath(targetDir, "acceptance.yaml"));
+
+  const baselineId =
+    missionInfo.currentBaselineId ||
+    tasksInfo.baselineId ||
+    acceptanceInfo.baselineId ||
+    (baselineInfo.latestConfirmed && baselineInfo.latestConfirmed.id) ||
+    "";
+  const title = missionInfo.summaryFields["当前交付主题"] || "默认交付线";
+  const qualityTier = acceptanceInfo.qualityTier || tasksInfo.qualityTier || "standard";
+
+  return {
+    id: DEFAULT_LANE_ID,
+    title,
+    status: "active",
+    baseline_id: baselineId,
+    quality_tier: qualityTier,
+  };
+}
+
+function buildLegacyToLanesPlan(targetDir) {
+  const layout = inspectProjectDeliveryLayout(targetDir);
+  const laneId = DEFAULT_LANE_ID;
+
+  if (layout.model === DELIVERY_MODEL_LANES) {
+    return {
+      requested: true,
+      ok: true,
+      noop: true,
+      code: "already-lane-based",
+      message: "Project already uses lane-based delivery artifacts.",
+      layout,
+      laneId,
+      creates: [],
+      moves: [],
+      conflicts: [],
+      laneMetadata: null,
+      createdCount: 0,
+      moveCount: 0,
+    };
+  }
+
+  if (layout.model === DELIVERY_MODEL_MIXED) {
+    return {
+      requested: true,
+      ok: false,
+      noop: false,
+      code: "mixed-layout",
+      message: "Project contains both legacy root delivery artifacts and .ai-os/lanes/. Clean up the mixed layout before migrating.",
+      layout,
+      laneId,
+      creates: [],
+      moves: [],
+      conflicts: [],
+      laneMetadata: null,
+      createdCount: 0,
+      moveCount: 0,
+    };
+  }
+
+  if (layout.model !== DELIVERY_MODEL_LEGACY) {
+    return {
+      requested: true,
+      ok: false,
+      noop: false,
+      code: "no-legacy-delivery",
+      message: "No legacy single-delivery project artifacts found to migrate. Use create-ai-os --profile project to initialize lane-based starter files.",
+      layout,
+      laneId,
+      creates: [],
+      moves: [],
+      conflicts: [],
+      laneMetadata: null,
+      createdCount: 0,
+      moveCount: 0,
+    };
+  }
+
+  const creates = [];
+  const conflicts = [];
+  const moves = listLegacyDeliveryArtifactEntries(targetDir).map((entry) => {
+    const toAbsolutePath = getLaneFilePath(targetDir, laneId, entry.relPath);
+    const move = {
+      kind: entry.kind,
+      fromRelPath: entry.relativePath,
+      fromAbsolutePath: entry.absolutePath,
+      toRelPath: getLaneRelativePath(laneId, entry.relPath),
+      toAbsolutePath,
+    };
+    if (fs.existsSync(toAbsolutePath)) {
+      conflicts.push({
+        relPath: move.toRelPath,
+        absolutePath: toAbsolutePath,
+        reason: "target already exists",
+      });
+    }
+    return move;
+  });
+
+  const projectMdPath = getProjectFilePath(targetDir, "project.md");
+  if (!fs.existsSync(projectMdPath)) {
+    creates.push({
+      kind: "file",
+      relPath: getProjectRelativePath("project.md"),
+      absolutePath: projectMdPath,
+      templateRelPath: "project.md",
+    });
+  }
+
+  const laneMetadataPath = getLaneMetadataPath(targetDir, laneId);
+  if (fs.existsSync(laneMetadataPath)) {
+    conflicts.push({
+      relPath: getLaneRelativePath(laneId, "lane.toml"),
+      absolutePath: laneMetadataPath,
+      reason: "target already exists",
+    });
+  } else {
+    creates.push({
+      kind: "file",
+      relPath: getLaneRelativePath(laneId, "lane.toml"),
+      absolutePath: laneMetadataPath,
+      templateRelPath: "lane.toml",
+    });
+  }
+
+  return {
+    requested: true,
+    ok: conflicts.length === 0,
+    noop: false,
+    code: conflicts.length === 0 ? "migration-planned" : "migration-conflicts",
+    message: conflicts.length === 0
+      ? `Legacy delivery artifacts will be migrated into ${getLaneRelativePath(laneId)}.`
+      : "Lane migration is blocked by existing target files.",
+    layout,
+    laneId,
+    creates,
+    moves,
+    conflicts,
+    laneMetadata: deriveLaneMetadataFromLegacy(targetDir),
+    createdCount: creates.length,
+    moveCount: moves.length,
+  };
+}
+
+function printLegacyToLanesPlan(plan) {
+  process.stdout.write("Legacy-to-lanes migration:\n");
+  if (!plan) {
+    process.stdout.write("  - not requested\n");
+    return;
+  }
+
+  process.stdout.write(`  - status: ${plan.code}\n`);
+  process.stdout.write(`  - ${plan.message}\n`);
+
+  if (plan.moves.length > 0) {
+    process.stdout.write(`  - move ${plan.moves.length} path(s):\n`);
+    for (const move of plan.moves) {
+      process.stdout.write(`    > ${move.fromRelPath} -> ${move.toRelPath}\n`);
+    }
+  }
+
+  if (plan.creates.length > 0) {
+    process.stdout.write(`  - create ${plan.creates.length} file(s):\n`);
+    for (const entry of plan.creates) {
+      process.stdout.write(`    + ${entry.relPath}\n`);
+    }
+  }
+
+  if (plan.conflicts.length > 0) {
+    process.stdout.write(`  - conflicts (${plan.conflicts.length}):\n`);
+    for (const conflict of plan.conflicts) {
+      process.stdout.write(`    ! ${conflict.relPath} (${conflict.reason})\n`);
+    }
+  }
+
+  if (plan.laneMetadata) {
+    process.stdout.write(
+      `  - lane metadata: baseline_id=${plan.laneMetadata.baseline_id || "[missing]"}, quality_tier=${plan.laneMetadata.quality_tier}\n`
+    );
+  }
+}
+
+function executeLegacyToLanesMigration(plan) {
+  if (!plan || plan.noop || !plan.ok) {
+    return;
+  }
+
+  ensureDir(getLaneFilePath(targetDir, plan.laneId));
+
+  for (const entry of plan.creates) {
+    ensureDir(path.dirname(entry.absolutePath));
+    if (entry.templateRelPath === "project.md") {
+      copyFileWithMode(getProjectTemplatePath("project.md"), entry.absolutePath);
+      continue;
+    }
+    if (entry.templateRelPath === "lane.toml") {
+      fs.writeFileSync(entry.absolutePath, serializeSimpleToml(plan.laneMetadata), "utf8");
+    }
+  }
+
+  const sortedMoves = [...plan.moves].sort((left, right) => {
+    if (left.kind === right.kind) {
+      return left.fromRelPath.localeCompare(right.fromRelPath);
+    }
+    return left.kind === "dir" ? -1 : 1;
+  });
+
+  for (const move of sortedMoves) {
+    ensureDir(path.dirname(move.toAbsolutePath));
+    fs.renameSync(move.fromAbsolutePath, move.toAbsolutePath);
+  }
+}
+
 if (totalChanges === 0) {
+  if (lanePlan && !lanePlan.ok) {
+    process.stdout.write(`\nAlready up to date (v${frameworkVersion}).\n\n`);
+    printLegacyToLanesPlan(lanePlan);
+    process.stdout.write("\n");
+    if (preflight) {
+      process.stdout.write(`Preflight result: BLOCKED — ${lanePlan.message}.\n\n`);
+      process.exit(1);
+    }
+    if (dryRun) {
+      process.stdout.write(`\n--dry-run: no changes were made.\n\n`);
+      process.exit(0);
+    }
+    fail(lanePlan.message);
+  }
+
   let metadataRefreshed = false;
   if (!preflight && !dryRun && needsLocalMetadataRefresh) {
     writeMetadata(targetDir, {
@@ -167,6 +426,9 @@ if (totalChanges === 0) {
       ? `\nAlready up to date (v${frameworkVersion}). Refreshed local install metadata.\n\n`
       : `\nAlready up to date (v${frameworkVersion}).\n\n`
   );
+  if (lanePlan && lanePlan.noop) {
+    process.stdout.write("Lane migration: project already uses lane-based delivery artifacts.\n\n");
+  }
   printTeamConfigSummary(gitignoreAdded, gitattrsAdded);
   process.exit(0);
 }
@@ -206,13 +468,29 @@ if (diff.extra.length > 0) {
   }
 }
 
+if (lanePlan) {
+  process.stdout.write("\n");
+  printLegacyToLanesPlan(lanePlan);
+}
+
 if (preflight) {
   process.stdout.write("\n");
-  if (diff.modified.length > 0) {
-    process.stdout.write("Preflight result: BLOCKED — rerun with --force only if overwriting conflicts is intended.\n\n");
+  if (diff.modified.length > 0 || (lanePlan && !lanePlan.ok)) {
+    const reasons = [];
+    if (diff.modified.length > 0) {
+      reasons.push("framework-managed conflicts require --force");
+    }
+    if (lanePlan && !lanePlan.ok) {
+      reasons.push(lanePlan.message);
+    }
+    process.stdout.write(`Preflight result: BLOCKED — ${reasons.join("; ")}.\n\n`);
     process.exit(1);
   }
-  process.stdout.write("Preflight result: SAFE_TO_UPGRADE\n\n");
+  process.stdout.write(
+    lanePlan && !lanePlan.noop
+      ? "Preflight result: SAFE_TO_UPGRADE_AND_MIGRATE\n\n"
+      : "Preflight result: SAFE_TO_UPGRADE\n\n"
+  );
   process.exit(0);
 }
 
@@ -223,6 +501,10 @@ if (preflight) {
 if (dryRun) {
   process.stdout.write(`\n--dry-run: no changes were made.\n\n`);
   process.exit(0);
+}
+
+if (lanePlan && !lanePlan.ok) {
+  fail(lanePlan.message);
 }
 
 if (diff.modified.length > 0 && !force) {
@@ -249,6 +531,10 @@ for (const rel of filesToWrite) {
   copyFileWithMode(src, dst);
 }
 
+if (lanePlan && !lanePlan.noop) {
+  executeLegacyToLanesMigration(lanePlan);
+}
+
 writeMetadata(targetDir, {
   installProfile: installProfileName,
   frameworkFootprint,
@@ -271,11 +557,22 @@ Upgrade complete.
   Created files:    ${diff.missing.length}
 `);
 
+if (lanePlan && !lanePlan.noop) {
+  process.stdout.write(`  Lane migration:  moved ${lanePlan.moveCount}, created ${lanePlan.createdCount}\n`);
+}
+
 if (diff.extra.length > 0) {
   process.stdout.write(`  Extra files:     ${diff.extra.length} (kept)\n`);
 }
 
 process.stdout.write("\n");
+
+if (lanePlan && !lanePlan.noop) {
+  process.stdout.write(
+    `Legacy delivery artifacts now live under ${getLaneRelativePath(lanePlan.laneId)}/.\n` +
+    `Review ${getProjectRelativePath("project.md")} and fill shared cross-lane project context if needed.\n\n`
+  );
+}
 
 const gitignoreAdded = appendGitignoreEntries(targetDir, { logger() {} });
 const gitattrsAdded = appendGitattributesEntries(targetDir, { logger() {} });

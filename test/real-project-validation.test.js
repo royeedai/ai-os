@@ -3,9 +3,10 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  assert, run, tmpDir, cleanup, listBaselineRecords,
+  assert, run, tmpDir, cleanup, listLaneBaselineRecords,
   extractMissionBaselineId, section,
 } = require("./helpers");
+const { getLaneFilePath } = require("../bin/shared");
 
 section("real-project: greenfield full lifecycle");
 {
@@ -14,14 +15,14 @@ section("real-project: greenfield full lifecycle");
   // 1. Install with project profile (simulating: npx create-ai-os my-app --profile project)
   const installResult = run("create-ai-os.js", [dir, "--profile", "project"]);
   assert(installResult.status === 0, "greenfield: install succeeds");
-  assert(fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "greenfield: MISSION created");
-  assert(fs.existsSync(path.join(dir, ".ai-os", "DESIGN.md")), "greenfield: DESIGN created");
+  assert(fs.existsSync(getLaneFilePath(dir, "default", "MISSION.md")), "greenfield: MISSION created");
+  assert(fs.existsSync(getLaneFilePath(dir, "default", "DESIGN.md")), "greenfield: DESIGN created");
 
   // 2. Fill in MISSION (simulating: user fills after /align)
   extractMissionBaselineId(
-    fs.readFileSync(path.join(dir, ".ai-os", "MISSION.md"), "utf8")
+    fs.readFileSync(getLaneFilePath(dir, "default", "MISSION.md"), "utf8")
   );
-  const missionPath = path.join(dir, ".ai-os", "MISSION.md");
+  const missionPath = getLaneFilePath(dir, "default", "MISSION.md");
   fs.writeFileSync(
     missionPath,
     fs.readFileSync(missionPath, "utf8")
@@ -41,7 +42,7 @@ section("real-project: greenfield full lifecycle");
   assert(validateResult.status === 0, "greenfield: validate passes on fresh project");
 
   // 5. Fill tasks as done
-  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const tasksPath = getLaneFilePath(dir, "default", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
     fs.readFileSync(tasksPath, "utf8").replace(/status: todo/g, "status: done"),
@@ -49,7 +50,7 @@ section("real-project: greenfield full lifecycle");
   );
 
   // 6. Pass acceptance gates
-  const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
+  const acceptancePath = getLaneFilePath(dir, "default", "acceptance.yaml");
   fs.writeFileSync(
     acceptancePath,
     fs.readFileSync(acceptancePath, "utf8").replace(/status: pending/g, "status: passed"),
@@ -67,7 +68,7 @@ section("real-project: greenfield full lifecycle");
 
   // 9. Release check (needs release plan)
   fs.writeFileSync(
-    path.join(dir, ".ai-os", "release-plan.md"),
+    getLaneFilePath(dir, "default", "release-plan.md"),
     `# Release Plan\n\n## 1. 交付前检查\n\n- Mission、Design、Spec、Acceptance 已同步\n- 静态校验证据已记录（npm run build）\n\n## 2. 变更范围与依赖\n\n- 新建 CLI 工具\n\n## 3. 发布步骤\n\n1. [AI 已完成] 代码实现和测试\n2. [需人工执行] npm publish\n\n## 4. 运行态验证\n\n- 静态校验证据已记录\n- 目标运行态证据已记录\n\n## 5. 回滚触发条件\n\n- CLI 无法启动\n\n## 6. 交付说明与移交\n\n- AI 已完成：全部代码和测试\n- 需人工执行：发布到 npm\n`,
     "utf8"
   );
@@ -92,10 +93,10 @@ section("real-project: brownfield change request lifecycle");
   // 2. Upgrade to project profile (simulating: user decides to use full project tracking)
   const upgradeToProject = run("create-ai-os.js", [dir, "--profile", "project"]);
   assert(upgradeToProject.status === 0, "brownfield: upgrade to project profile succeeds");
-  assert(fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "brownfield: MISSION now exists");
+  assert(fs.existsSync(getLaneFilePath(dir, "default", "MISSION.md")), "brownfield: MISSION now exists");
 
   // 3. Fill in MISSION as brownfield/change
-  const missionPath = path.join(dir, ".ai-os", "MISSION.md");
+  const missionPath = getLaneFilePath(dir, "default", "MISSION.md");
   fs.writeFileSync(
     missionPath,
     fs.readFileSync(missionPath, "utf8")
@@ -112,7 +113,7 @@ section("real-project: brownfield change request lifecycle");
   assert(validateResult.status === 0, "brownfield: validate passes");
 
   // 5. Simulate a change request by adding a new baseline record
-  const baselineDir = path.join(dir, ".ai-os", "baseline-log");
+  const baselineDir = getLaneFilePath(dir, "default", "baseline-log");
   const crFileName = "CR-20260402-120000-add-filter.md";
   fs.writeFileSync(
     path.join(baselineDir, crFileName),
@@ -121,7 +122,7 @@ section("real-project: brownfield change request lifecycle");
   );
 
   // 6. Baseline records should now include the CR
-  const records = listBaselineRecords(dir);
+  const records = listLaneBaselineRecords(dir, "default");
   assert(records.length >= 2, "brownfield: has initial + change-request baselines");
   assert(records.some((r) => r.startsWith("CR-")), "brownfield: has a change-request record");
 
@@ -139,7 +140,7 @@ section("real-project: lite mode full lifecycle");
   // 1. Install with lite mode
   const installResult = run("create-ai-os.js", [dir, "--profile", "project", "--lite"]);
   assert(installResult.status === 0, "lite-project: install succeeds");
-  assert(fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "lite-project: MISSION created");
+  assert(fs.existsSync(getLaneFilePath(dir, "default", "MISSION.md")), "lite-project: MISSION created");
   assert(fs.existsSync(path.join(dir, ".agents", "workflows", "align.md")), "lite-project: align workflow present");
   assert(fs.existsSync(path.join(dir, ".agents", "skills", "project-planner", "SKILL.md")), "lite-project: project-planner present");
 
@@ -182,7 +183,7 @@ section("real-project: lab multi-scenario validation");
   // Validate each scenario project
   for (const scenario of ["greenfield", "brownfield", "high-risk"]) {
     const scenarioDir = path.join(labRoot, scenario);
-    assert(fs.existsSync(path.join(scenarioDir, ".ai-os", "MISSION.md")), `lab/${scenario}: MISSION exists`);
+    assert(fs.existsSync(getLaneFilePath(scenarioDir, "default", "MISSION.md")), `lab/${scenario}: MISSION exists`);
     const validateResult = run("ai-os-validate.js", [scenarioDir]);
     assert(validateResult.status === 0, `lab/${scenario}: validate passes`);
   }

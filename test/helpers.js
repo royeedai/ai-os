@@ -52,6 +52,16 @@ function listBaselineRecords(projectDir, prefix = "") {
     .sort();
 }
 
+function listLaneBaselineRecords(projectDir, laneId, prefix = "") {
+  const baselineDir = path.join(projectDir, ".ai-os", "lanes", laneId, "baseline-log");
+  if (!fs.existsSync(baselineDir)) {
+    return [];
+  }
+  return fs.readdirSync(baselineDir)
+    .filter((name) => name.endsWith(".md") && (!prefix || name.startsWith(prefix)))
+    .sort();
+}
+
 function extractMissionBaselineId(content) {
   const match = content.match(/^- \*\*当前基线 ID\*\*[:：]\s*(.+)$/m);
   return match ? match[1].trim() : "";
@@ -80,6 +90,7 @@ module.exports = {
   tmpDir,
   cleanup,
   listBaselineRecords,
+  listLaneBaselineRecords,
   extractMissionBaselineId,
   section,
   getSummary,

@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { assert, run, tmpDir, cleanup, section } = require("./helpers");
+const { getLaneFilePath } = require("../bin/shared");
 
 // ---------------------------------------------------------------------------
 // Token budget command
@@ -48,7 +49,7 @@ section("--lite install mode");
   assert(fs.existsSync(path.join(dir, ".agents", "workflows", "debug.md")), "lite: debug workflow installed");
   assert(fs.existsSync(path.join(dir, ".agents", "skills", "acceptance-gate", "SKILL.md")), "lite: acceptance-gate skill installed");
   assert(fs.existsSync(path.join(dir, ".agents", "skills", "memory-manager", "SKILL.md")), "lite: memory-manager skill installed");
-  assert(fs.existsSync(path.join(dir, ".ai-os", "MISSION.md")), "lite: project files created");
+  assert(fs.existsSync(getLaneFilePath(dir, "default", "MISSION.md")), "lite: project files created");
   assert(fs.existsSync(path.join(dir, ".agents", "workflows", "ship.md")), "lite: ship workflow now included");
   assert(fs.existsSync(path.join(dir, ".agents", "workflows", "plan.md")), "lite: plan workflow now included");
   assert(fs.existsSync(path.join(dir, ".agents", "workflows", "change-request.md")), "lite: change-request workflow included");

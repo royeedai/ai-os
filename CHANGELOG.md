@@ -8,6 +8,27 @@
 
 ---
 
+## 7.0.0 (2026-04-15)
+
+### Breaking Changes
+
+- `project` profile 新安装默认采用“共享根层 + .ai-os/lanes/default/”布局，不再把 Mission / Design / Tasks / Acceptance / State 直接创建在 `.ai-os/` 根层
+- `.ai-os/project.md` 与 `.ai-os/lanes/<lane-id>/lane.toml` 成为 lane 模型下的新基础工件；共享项目上下文与当前交付线工件正式分离
+- `quick` 模式升级到完整 starter 工件的推荐方式改为重新运行 `create-ai-os <target> --profile project`，不再写成 `upgrade --profile project`
+
+### Added
+
+- `ai-os-upgrade --to-lanes`：支持把 legacy 单交付项目的根层 Mission / Design / Tasks / Acceptance / State / baseline-log / specs 机械迁移到 `.ai-os/lanes/default/`
+- `project` starter 模板新增共享项目章程 `[project.md]` 与 lane 元数据模板 `lane.toml`
+- `validate`、`gate`、`release-check`、`doctor` 全部支持 `--lane`，lane 项目和 legacy 项目都能按同一语义工作
+- `lab` 的 high-risk 场景现在会在 lane 路径下补齐 `risk-register.md`、`release-plan.md`、`verification-matrix.yaml`
+
+### Changed
+
+- 默认安装、plan 输出、团队协作忽略规则和 STATE 恢复逻辑全面对齐 lane 布局
+- README、CLI、Artifacts、Getting Started 和 framework 说明改为以 lane 默认布局为主叙事，同时保留 legacy 兼容说明
+- 回归包补齐 legacy->lane 迁移、mixed layout preflight、lite / lab / real-project lane 路径等场景
+
 ## 6.2.6 (2026-04-14)
 
 ### Added

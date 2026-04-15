@@ -9,7 +9,7 @@ const {
 
 section("validate compatibility / high-risk release-check");
 const legacyDir = tmpDir();
-run("create-ai-os.js", [legacyDir, "--with-project-files"]);
+run("create-ai-os.js", [legacyDir, "--with-project-files", "--legacy-layout"]);
 const legacySpecPath = path.join(legacyDir, ".ai-os", "specs", "example.spec.md");
 const legacyTasksPath = path.join(legacyDir, ".ai-os", "tasks.yaml");
 const legacyAcceptancePath = path.join(legacyDir, ".ai-os", "acceptance.yaml");
@@ -50,7 +50,7 @@ assert(legacyValidateResult.stdout.includes("VALID WITH"), "legacy validate repo
 cleanup(legacyDir);
 
 const highRiskBlockedDir = tmpDir();
-run("create-ai-os.js", [highRiskBlockedDir, "--with-project-files"]);
+run("create-ai-os.js", [highRiskBlockedDir, "--with-project-files", "--legacy-layout"]);
 const blockedTasksPath = path.join(highRiskBlockedDir, ".ai-os", "tasks.yaml");
 const blockedAcceptancePath = path.join(highRiskBlockedDir, ".ai-os", "acceptance.yaml");
 fs.writeFileSync(
@@ -72,7 +72,7 @@ assert(highRiskValidateResult.status === 1, "validate blocks explicit high-risk 
 cleanup(highRiskBlockedDir);
 
 const highRiskReadyDir = tmpDir();
-run("create-ai-os.js", [highRiskReadyDir, "--with-project-files"]);
+run("create-ai-os.js", [highRiskReadyDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(highRiskReadyDir, ".ai-os", "tasks.yaml"),
   fs.readFileSync(path.join(highRiskReadyDir, ".ai-os", "tasks.yaml"), "utf8")
@@ -194,7 +194,7 @@ assert(releaseReadyResult.status === 0, "release-check passes for explicit high-
 cleanup(highRiskReadyDir);
 
 const highRiskMissingMarkersDir = tmpDir();
-run("create-ai-os.js", [highRiskMissingMarkersDir, "--with-project-files"]);
+run("create-ai-os.js", [highRiskMissingMarkersDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(highRiskMissingMarkersDir, ".ai-os", "tasks.yaml"),
   fs.readFileSync(path.join(highRiskMissingMarkersDir, ".ai-os", "tasks.yaml"), "utf8")
@@ -305,7 +305,7 @@ assert(releaseMissingMarkersResult.status === 1, "release-check blocks high-risk
 cleanup(highRiskMissingMarkersDir);
 
 const verificationMatrixFailureModeWarnDir = tmpDir();
-run("create-ai-os.js", [verificationMatrixFailureModeWarnDir, "--with-project-files"]);
+run("create-ai-os.js", [verificationMatrixFailureModeWarnDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(verificationMatrixFailureModeWarnDir, ".ai-os", "verification-matrix.yaml"),
   `version: 1
@@ -343,7 +343,7 @@ assert(verificationMatrixFailureModeWarnResult.stdout.includes("missing marker: 
 cleanup(verificationMatrixFailureModeWarnDir);
 
 const verificationMatrixEmptyFailureModeWarnDir = tmpDir();
-run("create-ai-os.js", [verificationMatrixEmptyFailureModeWarnDir, "--with-project-files"]);
+run("create-ai-os.js", [verificationMatrixEmptyFailureModeWarnDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(verificationMatrixEmptyFailureModeWarnDir, ".ai-os", "verification-matrix.yaml"),
   `version: 1
@@ -383,7 +383,7 @@ assert(verificationMatrixEmptyFailureModeWarnResult.stdout.includes("failure_mod
 cleanup(verificationMatrixEmptyFailureModeWarnDir);
 
 const verificationMatrixInvalidFailureModeGuardWarnDir = tmpDir();
-run("create-ai-os.js", [verificationMatrixInvalidFailureModeGuardWarnDir, "--with-project-files"]);
+run("create-ai-os.js", [verificationMatrixInvalidFailureModeGuardWarnDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(verificationMatrixInvalidFailureModeGuardWarnDir, ".ai-os", "verification-matrix.yaml"),
   `version: 1
@@ -431,7 +431,7 @@ assert(verificationMatrixInvalidFailureModeGuardWarnResult.stdout.includes("miss
 cleanup(verificationMatrixInvalidFailureModeGuardWarnDir);
 
 const highRiskMissingFailureModesDir = tmpDir();
-run("create-ai-os.js", [highRiskMissingFailureModesDir, "--with-project-files"]);
+run("create-ai-os.js", [highRiskMissingFailureModesDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(highRiskMissingFailureModesDir, ".ai-os", "tasks.yaml"),
   fs.readFileSync(path.join(highRiskMissingFailureModesDir, ".ai-os", "tasks.yaml"), "utf8")
@@ -539,7 +539,7 @@ assert(highRiskMissingFailureModesResult.stdout.includes("records concrete failu
 cleanup(highRiskMissingFailureModesDir);
 
 const highRiskEmptyFailureModesDir = tmpDir();
-run("create-ai-os.js", [highRiskEmptyFailureModesDir, "--with-project-files"]);
+run("create-ai-os.js", [highRiskEmptyFailureModesDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(highRiskEmptyFailureModesDir, ".ai-os", "tasks.yaml"),
   fs.readFileSync(path.join(highRiskEmptyFailureModesDir, ".ai-os", "tasks.yaml"), "utf8")
@@ -649,7 +649,7 @@ assert(highRiskEmptyFailureModesResult.stdout.includes("failure_modes exists but
 cleanup(highRiskEmptyFailureModesDir);
 
 const highRiskInvalidFailureModeGuardsDir = tmpDir();
-run("create-ai-os.js", [highRiskInvalidFailureModeGuardsDir, "--with-project-files"]);
+run("create-ai-os.js", [highRiskInvalidFailureModeGuardsDir, "--with-project-files", "--legacy-layout"]);
 fs.writeFileSync(
   path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "tasks.yaml"),
   fs.readFileSync(path.join(highRiskInvalidFailureModeGuardsDir, ".ai-os", "tasks.yaml"), "utf8")
@@ -767,7 +767,7 @@ assert(highRiskInvalidFailureModeGuardsResult.stdout.includes("missing eval file
 cleanup(highRiskInvalidFailureModeGuardsDir);
 
 const projectEvalStructureWarnDir = tmpDir();
-run("create-ai-os.js", [projectEvalStructureWarnDir, "--with-project-files"]);
+run("create-ai-os.js", [projectEvalStructureWarnDir, "--with-project-files", "--legacy-layout"]);
 fs.mkdirSync(path.join(projectEvalStructureWarnDir, ".ai-os", "evals"), { recursive: true });
 fs.writeFileSync(
   path.join(projectEvalStructureWarnDir, ".ai-os", "evals", "runtime-regression.md"),
@@ -806,7 +806,7 @@ const coreArtifactEvalMap = [
 
 for (const [artifact, evalName] of coreArtifactEvalMap) {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.unlinkSync(path.join(dir, ".ai-os", artifact));
   const result = run("ai-os-validate.js", [dir]);
   assert(result.status === 1, `eval/${evalName}: validate rejects missing ${artifact}`);
@@ -816,7 +816,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Missing specs directory → validate rejects
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.rmSync(path.join(dir, ".ai-os", "specs"), { recursive: true, force: true });
   const result = run("ai-os-validate.js", [dir]);
   assert(result.status === 1, "eval/spec-coverage: validate rejects missing specs directory");
@@ -826,7 +826,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Default acceptance has gates as pending → validate warns about design and logic gates
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const result = run("ai-os-validate.js", [dir]);
   assert(result.stdout.includes("design confirmation gate"), "eval/product-shape: validate reports design gate status");
   assert(result.stdout.includes("logic confirmation gate"), "eval/ui-vs-logic: validate reports logic gate status");
@@ -836,7 +836,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Spec stripped of interaction mode markers → validate warns (interaction-mode-misclassified)
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const specPath = path.join(dir, ".ai-os", "specs", "example.spec.md");
   fs.writeFileSync(
     specPath,
@@ -854,7 +854,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Acceptance stripped of transitional markers → validate warns (happy-path / cross-layer)
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const acceptancePath = path.join(dir, ".ai-os", "acceptance.yaml");
   fs.writeFileSync(
     acceptancePath,
@@ -876,7 +876,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Tasks stripped of impact_tags → validate warns (cross-layer-change-missed-linkage)
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -892,7 +892,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // DESIGN.md with missing sections → validate rejects (brownfield-infrastructure-audit)
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(path.join(dir, ".ai-os", "DESIGN.md"), "# Design\n\nMinimal.\n", "utf8");
   const result = run("ai-os-validate.js", [dir]);
   assert(result.status === 1, "eval/brownfield-audit: validate rejects DESIGN.md with missing sections");
@@ -902,7 +902,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // MISSION.md with missing sections → validate rejects
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(path.join(dir, ".ai-os", "MISSION.md"), "# Mission\n\nMinimal.\n", "utf8");
   const result = run("ai-os-validate.js", [dir]);
   assert(result.status === 1, "eval/mission-integrity: validate rejects MISSION.md with missing sections");
@@ -912,7 +912,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Legacy MISSION.md + missing baseline-log directory → validate warns but stays valid
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(
     path.join(dir, ".ai-os", "MISSION.md"),
     `# Mission
@@ -958,7 +958,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Legacy baseline-log.md → validate warns but stays valid
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const originalBaselineId = extractMissionBaselineId(
     fs.readFileSync(path.join(dir, ".ai-os", "MISSION.md"), "utf8")
   );
@@ -1001,7 +1001,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // Legacy directory naming (BL-001) → validate warns but stays valid
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const originalBaselineFile = listBaselineRecords(dir, "BL-")[0];
   const originalBaselineId = originalBaselineFile.replace(/\.md$/, "");
   const legacyBaselineId = "BL-001";
@@ -1037,7 +1037,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // baseline_id mismatch → validate rejects
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   const currentBaselineId = extractMissionBaselineId(
     fs.readFileSync(path.join(dir, ".ai-os", "MISSION.md"), "utf8")
@@ -1059,7 +1059,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 // High-risk with partial artifacts (risk-register only) → validate still rejects
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   fs.writeFileSync(
     path.join(dir, ".ai-os", "tasks.yaml"),
     fs.readFileSync(path.join(dir, ".ai-os", "tasks.yaml"), "utf8")
@@ -1084,7 +1084,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -1099,7 +1099,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const missionPath = path.join(dir, ".ai-os", "MISSION.md");
   fs.writeFileSync(
     missionPath,
@@ -1117,7 +1117,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const statePath = path.join(dir, ".ai-os", "STATE.md");
   fs.writeFileSync(
     statePath,
@@ -1134,7 +1134,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -1149,7 +1149,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -1164,7 +1164,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -1182,7 +1182,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -1197,7 +1197,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
   fs.writeFileSync(
     tasksPath,
@@ -1215,7 +1215,7 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
 
 {
   const dir = tmpDir();
-  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
   const memoryPath = path.join(dir, ".ai-os", "memory.md");
   fs.writeFileSync(
     memoryPath,

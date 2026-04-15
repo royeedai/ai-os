@@ -12,6 +12,8 @@
 - 默认采用非破坏性兼容策略：优先补充约束、确认门和工件同步要求，禁止绕开或破坏原生工件体系、CLI 命令和阶段式 workflow
 - 所有动作必须先判断任务级别：`P0` 新项目 / 新模块 / 大范围变更，`P1` 小功能新增或非核心变更，`P2` 单一 bug、文案、样式或配置微调
 
+> 路径说明：lane 布局下，下文提到的 `MISSION.md`、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml`、`STATE.md`、`baseline-log/`、`specs/` 默认位于 `.ai-os/lanes/<lane-id>/`；共享根层只保留 `.ai-os/project.md`、`.ai-os/CONVENTIONS.md`、`.ai-os/memory.md`。legacy 单交付项目则仍位于 `.ai-os/` 根层。
+
 ### 1. 需求基准与全生命周期管理
 
 - `.ai-os/MISSION.md` 与 `.ai-os/specs/` 是当前交付的唯一需求真理源；开发、变更、修复、验收都必须以它们为准，禁止以零散聊天记录或临时一句话指令直接替代基准

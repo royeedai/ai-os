@@ -8,6 +8,8 @@ const {
   readInstalledMeta,
   parseCliArgs,
   resolveTargetDir,
+  resolveProjectLane,
+  setDeliveryLaneContext,
   createReporter,
   VALIDATION_SCHEMAS,
   countTopLevelYamlListEntries,
@@ -22,20 +24,28 @@ const {
   isDeclaredHighRisk,
 } = require("./project-state");
 
-const parsed = parseCliArgs(process.argv);
+const parsed = parseCliArgs(process.argv, { valuedFlags: ["--lane"] });
 if (parsed.flags.help) {
   process.stdout.write(`Usage:
-  ai-os-release-check [target-dir]
+  ai-os-release-check [target-dir] [--lane <lane-id>]
 
 Run delivery readiness checks against release-plan.md and related artifacts.
 
 Options:
-  -h, --help  Show this help message
+  --lane <lane-id>  Check release readiness for the specified delivery lane
+  -h, --help        Show this help message
 `);
   process.exit(0);
 }
 
 const targetDir = resolveTargetDir(parsed.positional);
+const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
+  fail(laneResolution.message);
+}
+if (laneResolution.ok) {
+  setDeliveryLaneContext(laneResolution.laneId);
+}
 
 const releasePlanPath = getProjectFilePath(targetDir, "release-plan.md");
 const releasePlan = readUtf8IfExists(releasePlanPath);
@@ -93,6 +103,11 @@ function versionAtLeast(currentVersion, minimumVersion) {
 }
 
 process.stdout.write(`\nAI-OS Release Check — ${targetDir}\n\n`);
+if (laneResolution.ok && laneResolution.laneId) {
+  process.stdout.write(`Delivery model: ${laneResolution.model} (lane: ${laneResolution.laneId})\n\n`);
+} else if (laneResolution.ok && laneResolution.isLegacyFallback) {
+  process.stdout.write("Delivery model: legacy single-delivery\n\n");
+}
 
 const installedMeta = readInstalledMeta(targetDir);
 const enforceEnhancedDeliveryMarkers =

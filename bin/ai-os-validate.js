@@ -16,6 +16,8 @@ const {
   formatProjectPath,
   parseCliArgs,
   resolveTargetDir,
+  resolveProjectLane,
+  setDeliveryLaneContext,
   createReporter,
   VALIDATION_SCHEMAS,
   countTopLevelYamlListEntries,
@@ -122,25 +124,38 @@ function listSpecFiles(targetDir) {
     .map((fileName) => path.posix.join("specs", fileName));
 }
 
-const parsed = parseCliArgs(process.argv);
+const parsed = parseCliArgs(process.argv, { valuedFlags: ["--lane"] });
 if (parsed.flags.help) {
   process.stdout.write(`Usage:
-  ai-os-validate [target-dir]
+  ai-os-validate [target-dir] [--lane <lane-id>]
 
 Validate the project-local delivery artifacts used by AI-OS.
 
 Options:
-  -h, --help  Show this help message
+  --lane <lane-id>  Validate the specified delivery lane
+  -h, --help        Show this help message
 `);
   process.exit(0);
 }
 
 const targetDir = resolveTargetDir(parsed.positional);
+const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
+  fail(laneResolution.message);
+}
+if (laneResolution.ok) {
+  setDeliveryLaneContext(laneResolution.laneId);
+}
 
 const reporter = createReporter();
 const { report } = reporter;
 
 process.stdout.write(`\nAI-OS Validate — ${targetDir}\n\n`);
+if (laneResolution.ok && laneResolution.laneId) {
+  process.stdout.write(`Delivery model: ${laneResolution.model} (lane: ${laneResolution.laneId})\n\n`);
+} else if (laneResolution.ok && laneResolution.isLegacyFallback) {
+  process.stdout.write("Delivery model: legacy single-delivery\n\n");
+}
 
 const missionInfo = readMissionFile(targetDir);
 const baselineInfo = readBaselineLogFile(targetDir);

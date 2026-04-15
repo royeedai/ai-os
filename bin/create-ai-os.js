@@ -107,7 +107,7 @@ Options:
   --with-project-files  Compatibility alias for --profile project.
   --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
   --lite                Install minimal framework: AGENTS.md + core workflows (align/design/build/verify/debug) + essential skills; ~60% fewer files, ideal for small projects or first-time users
-  --quick               Quick start: minimal AGENTS.md + main workflows + gate checks + only MISSION.md and STATE.md; upgrade later with create-ai-os upgrade --profile project
+  --quick               Quick start: minimal AGENTS.md + main workflows + gate checks + only MISSION.md and STATE.md; later rerun create-ai-os <target> --profile project for full starter artifacts
   --no-team-config      Skip automatic .gitignore/.gitattributes setup for team collaboration
   --no-ide-files        Skip generating IDE integration files (CLAUDE.md, GEMINI.md, .cursor/)
   -h, --help            Show this help message
@@ -123,6 +123,7 @@ let liteMode = false;
 let quickMode = false;
 let noTeamConfig = false;
 let noIdeFiles = false;
+let legacyLayout = false;
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
@@ -160,6 +161,10 @@ for (let i = 0; i < args.length; i += 1) {
   }
   if (arg === "--no-ide-files") {
     noIdeFiles = true;
+    continue;
+  }
+  if (arg === "--legacy-layout") {
+    legacyLayout = true;
     continue;
   }
   if (arg === "--target") {
@@ -215,7 +220,10 @@ const overwrite = forceFramework || !isExistingProject;
 copyFramework(targetDir, { overwrite, lite: liteMode || quickMode, quick: quickMode });
 
 if (installProfile.includeProjectFiles) {
-  createProjectFiles(targetDir, { quick: quickMode });
+  createProjectFiles(targetDir, {
+    quick: quickMode,
+    legacyLayout,
+  });
 }
 
 writeMetadata(targetDir, { installProfile: installProfile.name });
@@ -246,7 +254,7 @@ AI-OS Quick Start — deliver in 5 steps:
   5. gate      Check anytime: create-ai-os gate <phase>
 
 When your project grows, upgrade to the full framework:
-  create-ai-os ${targetDir} --profile project --force-framework
+  create-ai-os ${targetDir} --profile project
 
 Commit the generated files (AGENTS.md, .agents/, .ai-os/) into your repository.
 `);

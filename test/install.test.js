@@ -5,7 +5,7 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const {
-  assert, run, tmpDir, cleanup, listBaselineRecords,
+  assert, run, tmpDir, cleanup, listLaneBaselineRecords,
   extractMissionBaselineId, section, BASELINE_RECORD_NAME_PATTERN,
 } = require("./helpers");
 
@@ -17,12 +17,13 @@ assert(fs.existsSync(path.join(initDir, "AGENTS.md")), "AGENTS.md created");
 assert(fs.existsSync(path.join(initDir, ".agents", "skills")), ".agents/skills/ created");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows")), ".agents/workflows/ created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework.toml created");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "MISSION.md")), "MISSION.md created");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "baseline-log")), "baseline-log/ created");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "DESIGN.md")), "DESIGN.md created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "MISSION.md")), "MISSION.md created in lane");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "baseline-log")), "baseline-log/ created in lane");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "DESIGN.md")), "DESIGN.md created in lane");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "project.md")), "shared project.md created");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "CONVENTIONS.md")), "CONVENTIONS.md created");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "STATE.md created");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "tasks.yaml")), "tasks.yaml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md")), "STATE.md created in lane");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "tasks.yaml")), "tasks.yaml created in lane");
 assert(
   fs.readFileSync(path.join(initDir, ".ai-os", "framework.toml"), "utf8").includes('install_profile = "project"'),
   "framework metadata records project profile"
@@ -31,7 +32,7 @@ assert(
   fs.readFileSync(path.join(initDir, ".ai-os", "framework.toml"), "utf8").includes('framework_footprint = "full"'),
   "framework metadata records full footprint"
 );
-assert(fs.existsSync(path.join(initDir, ".ai-os", "acceptance.yaml")), "acceptance.yaml created");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "acceptance.yaml")), "acceptance.yaml created in lane");
 assert(fs.existsSync(path.join(initDir, ".ai-os", "memory.md")), "memory.md created");
 const memoryTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "memory.md"), "utf8");
 assert(memoryTemplate.includes("活跃条目数"), "memory template includes active count metadata");
@@ -39,24 +40,24 @@ assert(memoryTemplate.includes("归档条目数"), "memory template includes arc
 assert(memoryTemplate.includes("分层策略"), "memory template includes layered strategy");
 assert(memoryTemplate.includes("归档区"), "memory template includes archive section");
 assert(memoryTemplate.includes("active"), "memory template uses active status");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "specs", "example.spec.md")), "example spec created");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "release-plan.md")), "release-plan.md is not created by default");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "risk-register.md")), "risk-register.md is not created by default");
-assert(!fs.existsSync(path.join(initDir, ".ai-os", "verification-matrix.yaml")), "verification-matrix.yaml is not created by default");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "specs", "example.spec.md")), "example spec created in lane");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "release-plan.md")), "release-plan.md is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "risk-register.md")), "risk-register.md is not created by default");
+assert(!fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "verification-matrix.yaml")), "verification-matrix.yaml is not created by default");
 
-const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "MISSION.md"), "utf8");
-const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "DESIGN.md"), "utf8");
+const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "MISSION.md"), "utf8");
+const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "DESIGN.md"), "utf8");
 const conventionsTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "CONVENTIONS.md"), "utf8");
-const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "tasks.yaml"), "utf8");
-const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "acceptance.yaml"), "utf8");
-const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8");
-const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "specs", "example.spec.md"), "utf8");
-const baselineStarterFiles = listBaselineRecords(initDir, "BL-");
+const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "tasks.yaml"), "utf8");
+const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "acceptance.yaml"), "utf8");
+const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"), "utf8");
+const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "specs", "example.spec.md"), "utf8");
+const baselineStarterFiles = listLaneBaselineRecords(initDir, "default", "BL-");
 assert(baselineStarterFiles.length === 1, "baseline-log starter record created");
 assert(BASELINE_RECORD_NAME_PATTERN.test(baselineStarterFiles[0]), "baseline-log starter record uses timestamp + slug naming");
 const initialBaselineFile = baselineStarterFiles[0];
 const initialBaselineId = initialBaselineFile.replace(/\.md$/, "");
-const baselineTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "baseline-log", initialBaselineFile), "utf8");
+const baselineTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "baseline-log", initialBaselineFile), "utf8");
 
 assert(missionTemplate.includes("## 1. 交付基线摘要"), "MISSION template has baseline summary section");
 assert(missionTemplate.includes("宿主项目 / 系统"), "MISSION template includes host project field");
@@ -161,7 +162,7 @@ const coreDir = tmpDir();
 const coreInitResult = run("create-ai-os.js", [coreDir]);
 assert(coreInitResult.status === 0, "core profile init exits with code 0");
 assert(fs.existsSync(path.join(coreDir, "AGENTS.md")), "core profile still installs framework files");
-assert(!fs.existsSync(path.join(coreDir, ".ai-os", "STATE.md")), "core profile does not create starter project artifacts");
+assert(!fs.existsSync(path.join(coreDir, ".ai-os", "lanes", "default", "STATE.md")), "core profile does not create starter project artifacts");
 
 const coreMetadata = fs.readFileSync(path.join(coreDir, ".ai-os", "framework.toml"), "utf8");
 assert(coreMetadata.includes('install_profile = "core"'), "framework metadata records core profile");
@@ -184,8 +185,8 @@ assert(futurePlanResult.status === 0, "create-ai-os plan works on a new target p
 const futurePlanJson = JSON.parse(futurePlanResult.stdout);
 assert(futurePlanJson.profile.name === "project", "create-ai-os plan accepts project profile for a new target path");
 assert(futurePlanJson.summary.projectCreateCount > 0, "new-target plan reports starter project artifacts to create");
-assert(futurePlanJson.project.create.includes(".ai-os/CONVENTIONS.md"), "project plan includes CONVENTIONS starter file");
-assert(futurePlanJson.project.create.some((relPath) => /^\.ai-os\/baseline-log\/BL-\d{8}-\d{6}-[a-z0-9-]+\.md$/.test(relPath)), "project plan includes timestamped baseline starter record");
+assert(futurePlanJson.project.create.includes(".ai-os/CONVENTIONS.md"), "project plan includes CONVENTIONS shared starter file");
+assert(futurePlanJson.project.create.some((relPath) => /^\.ai-os\/lanes\/default\/baseline-log\/BL-\d{8}-\d{6}-[a-z0-9-]+\.md$/.test(relPath)), "project plan includes timestamped baseline starter record in lane");
 assert(!futurePlanJson.project.create.includes(".ai-os/evals/eval-example.md"), "plan omits on-demand eval starter files");
 
 const litePlanResult = run("create-ai-os.js", ["plan", futureProjectDir, "--profile", "project", "--lite", "--json"]);
@@ -215,8 +216,8 @@ const customContent = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
 const reinitResult = run("create-ai-os.js", [initDir]);
 assert(reinitResult.status === 0, "re-init on existing project exits with code 0");
 assert(fs.existsSync(path.join(initDir, "AGENTS.md")), "AGENTS.md still exists after re-init");
-assert(listBaselineRecords(initDir, "BL-").length === 1, "re-init does not create a duplicate baseline starter record");
-assert(listBaselineRecords(initDir, "BL-")[0] === initialBaselineFile, "re-init preserves the original baseline starter record");
+assert(listLaneBaselineRecords(initDir, "default", "BL-").length === 1, "re-init does not create a duplicate baseline starter record");
+assert(listLaneBaselineRecords(initDir, "default", "BL-")[0] === initialBaselineFile, "re-init preserves the original baseline starter record");
 
 const agentsMdAfter = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
 assert(agentsMdAfter === customContent, "re-init preserves user-modified AGENTS.md (overwrite: false)");
@@ -225,7 +226,10 @@ assert(fs.existsSync(path.join(initDir, ".ai-os", "framework.toml")), "framework
 fs.writeFileSync(path.join(initDir, "AGENTS.md"), agentsMdBefore);
 
 section("validate / doctor / status / next / resume");
-const validateResult = run("ai-os-validate.js", [initDir]);
+const legacyInitDir = tmpDir();
+run("create-ai-os.js", [legacyInitDir, "--with-project-files", "--legacy-layout"]);
+const validateResult = run("ai-os-validate.js", [legacyInitDir]);
+cleanup(legacyInitDir);
 assert(validateResult.status === 0, "validate passes on fresh project");
 
 const doctorResult = run("ai-os-doctor.js", [initDir, "--strict"]);
@@ -244,31 +248,31 @@ assert(nextResult.stdout.includes("role="), "next includes execution role");
 
 const resumeResult = run("ai-os-resume.js", [initDir]);
 assert(resumeResult.status === 0, "resume exits with code 0");
-assert(resumeResult.stdout.includes(".ai-os/MISSION.md"), "resume includes MISSION in reading set");
-assert(resumeResult.stdout.includes(".ai-os/baseline-log"), "resume includes baseline-log in reading set");
+assert(resumeResult.stdout.includes(".ai-os/lanes/default/MISSION.md") || resumeResult.stdout.includes("MISSION.md"), "resume includes MISSION in reading set");
+assert(resumeResult.stdout.includes("baseline-log"), "resume includes baseline-log in reading set");
 
 const resumeMarkdownResult = run("ai-os-resume.js", [initDir, "--markdown"]);
 assert(resumeMarkdownResult.status === 0, "resume --markdown exits with code 0");
 assert(resumeMarkdownResult.stdout.includes("## 基线概览"), "resume --markdown includes baseline overview");
 assert(resumeMarkdownResult.stdout.includes("## 已锁定内容"), "resume --markdown includes locked items");
-assert(resumeMarkdownResult.stdout.includes(".ai-os/DESIGN.md"), "resume --markdown references DESIGN");
+assert(resumeMarkdownResult.stdout.includes("DESIGN.md"), "resume --markdown references DESIGN");
 
-fs.unlinkSync(path.join(initDir, ".ai-os", "STATE.md"));
+fs.unlinkSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"));
 const rebuiltStatusResult = run("ai-os-status.js", [initDir]);
 assert(rebuiltStatusResult.status === 0, "status rebuilds missing STATE.md");
 assert(rebuiltStatusResult.stdout.includes("重建"), "status reports STATE rebuild");
-assert(fs.existsSync(path.join(initDir, ".ai-os", "STATE.md")), "status recreates STATE.md");
+assert(fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md")), "status recreates STATE.md in lane");
 assert(
-  fs.readFileSync(path.join(initDir, ".ai-os", "STATE.md"), "utf8").includes("STATE 从项目工件重建"),
+  fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"), "utf8").includes("STATE 从项目工件重建"),
   "rebuilt STATE records reconstruction note"
 );
 
-fs.unlinkSync(path.join(initDir, ".ai-os", "STATE.md"));
+fs.unlinkSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"));
 const rebuiltNextResult = run("ai-os-next.js", [initDir]);
 assert(rebuiltNextResult.status === 0, "next rebuilds missing STATE.md");
 assert(rebuiltNextResult.stdout.includes("重建"), "next reports STATE rebuild");
 
-fs.unlinkSync(path.join(initDir, ".ai-os", "STATE.md"));
+fs.unlinkSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"));
 const rebuiltResumeResult = run("ai-os-resume.js", [initDir]);
 assert(rebuiltResumeResult.status === 0, "resume rebuilds missing STATE.md");
 assert(rebuiltResumeResult.stdout.includes("重建"), "resume reports STATE rebuild");

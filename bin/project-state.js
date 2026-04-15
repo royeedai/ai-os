@@ -1261,7 +1261,7 @@ function ensureStateFile(targetDir, options = {}) {
   fs.writeFileSync(statePath, renderStateFile(rebuiltState), "utf8");
 
   return {
-    state: readStateFile(targetDir),
+    state: readStateFile(targetDir, options),
     rebuilt: true,
   };
 }
