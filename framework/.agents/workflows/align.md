@@ -7,9 +7,11 @@ description: 澄清目标、用户、范围、项目模式、质量标准、关�
 
 当用户提出一个新项目、模糊想法、复刻目标、老项目需求变更，或任何"先把方向说清"的任务时触发。
 
+> 路径说明：lane 布局下，下文提到的 `MISSION.md`、`baseline-log/`、`STATE.md` 默认位于当前 lane 的 `.ai-os/lanes/<lane-id>/`；legacy 单交付项目仍位于 `.ai-os/` 根层。
+
 ## 目标
 
-在开始设计和编码前，把以下内容说清并锁进 `MISSION.md` / `baseline-log/`：
+在开始设计和编码前，把以下内容说清并锁进当前 lane 的 `MISSION.md` / `baseline-log/`：
 
 - 宿主项目必要上下文（仅 brownfield / change 需要）
 - 当前交付目标
@@ -52,16 +54,16 @@ description: 澄清目标、用户、范围、项目模式、质量标准、关�
 10. 对已确认的关键依赖（框架、运行时、中间件、SDK、基础镜像等）执行实际可用性验证，禁止仅凭 AI 训练数据或搜索结果认定版本存在；验证方式因生态而异（包管理器查询、registry API、manifest 检查等），但结论必须有证据；若生成了构建配置草稿，应执行依赖解析预检（dry-run）确认无冲突
 11. 主动识别素材中的模糊点、歧义点、默认假设和待确认边界，整理成问题清单，禁止脑补填空
 12. 对出现"配置 / 设置 / 选项"的需求，轻量追问一次操作闭环：它是静态预置、后台可配，还是需要用户 / 运营入口
-13. 生成或更新 `.ai-os/MISSION.md`，只保留低频、已确认、共享的交付基线；若是 `brownfield` / `change`，明确区分“宿主项目上下文”和“当前这轮交付基准”，避免把整个存量项目重新写成当前 mission
-14. 生成或更新 `.ai-os/baseline-log/`，至少新增一条 `BL-YYYYMMDD-HHMMSS-slug.md` 记录，标明本轮基线摘要、影响工件和确认时间
-15. 生成或更新 `.ai-os/STATE.md`，记录当前阶段、当前目标、待确认项、确认停点和最小阅读集；待确认项只放在 `STATE.md`，不要写回 `MISSION.md`
+13. 生成或更新 `MISSION.md`，只保留低频、已确认、共享的当前 lane 交付基线；若是 `brownfield` / `change`，明确区分“宿主项目上下文”和“当前 lane 的交付基准”，避免把整个存量项目重新写成当前 mission
+14. 生成或更新 `baseline-log/`，至少新增一条 `BL-YYYYMMDD-HHMMSS-slug.md` 记录，标明当前 lane 基线摘要、影响工件和确认时间
+15. 生成或更新 `STATE.md`，记录当前阶段、当前目标、待确认项、确认停点和最小阅读集；待确认项只放在 `STATE.md`，不要写回 `MISSION.md`
 16. 向用户输出 `MISSION.md` 核心摘要、`baseline-log/` 最新记录、当前治理档位、待确认项和下一步建议，等待用户明确确认后再离开 `/align`
 
 ## 输出
 
-- `.ai-os/MISSION.md`
-- `.ai-os/baseline-log/`
-- `.ai-os/STATE.md`
+- `MISSION.md`
+- `baseline-log/`
+- `STATE.md`
 - 向用户同步的需求摘要、问题清单和推荐路径：继续 `/design`、进入 `/change-request`，还是先补素材 / 先做 brownfield 结构梳理
 
 ## 反模式：这个太简单不需要对齐

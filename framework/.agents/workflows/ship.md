@@ -5,12 +5,14 @@ description: 做交付、发布、回滚和移交
 
 # /ship
 
+> 路径说明：lane 布局下，下文提到的 `release-plan.md` 默认位于当前 lane 的 `.ai-os/lanes/<lane-id>/`；legacy 单交付项目仍位于 `.ai-os/` 根层。
+
 ## 前置条件
 
 - `delivery-readiness` 已通过
 - 关键运行态证据已齐
 - 高风险审批点已完成
-- 用户已看过本轮交付范围和已知风险
+- 用户已看过当前 lane 的交付范围和已知风险
 
 ## 必做步骤
 

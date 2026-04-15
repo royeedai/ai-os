@@ -5,6 +5,8 @@ description: 从 STATE.md 恢复当前方位和最小阅读集
 
 # /resume
 
+> 路径说明：lane 布局下，下文提到的 `MISSION.md`、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml`、`STATE.md`、`baseline-log/`、`specs/` 默认位于当前 lane 的 `.ai-os/lanes/<lane-id>/`；legacy 单交付项目仍位于 `.ai-os/` 根层。
+
 ## 读取顺序
 
 1. `.ai-os/STATE.md`

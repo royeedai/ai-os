@@ -7,6 +7,8 @@ description: 验证设计一致性、逻辑正确性、工程质量和运行态�
 
 当实现已完成一轮，准备判断“是不是做对了、是不是真的能用”时触发。
 
+> 路径说明：lane 布局下，下文提到的 `MISSION.md`、`DESIGN.md`、`acceptance.yaml`、`STATE.md`、`verification-matrix.yaml`、`evals/`、`specs/` 默认位于当前 lane 的 `.ai-os/lanes/<lane-id>/`；legacy 单交付项目仍位于 `.ai-os/` 根层。
+
 ## 目标
 
 把质量拆成 4 个必须过门：

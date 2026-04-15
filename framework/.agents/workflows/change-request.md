@@ -7,10 +7,12 @@ description: 在需求补充、范围调整和验收变化前先同步需求基�
 
 当用户提出新需求、补充要求、删减范围、改变验收标准，或任何可能让既有 `MISSION.md` / `specs` 失效的内容时触发。
 
+> 路径说明：lane 布局下，下文提到的 `MISSION.md`、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml`、`STATE.md`、`baseline-log/`、`specs/` 默认位于当前 lane 的 `.ai-os/lanes/<lane-id>/`；legacy 单交付项目仍位于 `.ai-os/` 根层。
+
 ## 目标
 
 先完成“变更分析 -> baseline-log 记录 -> 基准更新 -> 影响说明 -> 用户确认”，再进入后续设计、计划、实现或验证。
-在已有项目里，这里更新的是“当前这轮交付基准”，不是把整个存量项目重新定义一遍。
+在已有项目里，这里更新的是“当前 lane 的交付基准”，不是把整个存量项目重新定义一遍。
 
 ## 必做步骤
 
@@ -23,8 +25,8 @@ description: 在需求补充、范围调整和验收变化前先同步需求基�
 4. 若变更文本出现“配置 / 设置 / 选项”，轻量追问一次操作闭环：它是静态预置、后台可配，还是需要用户 / 运营入口
 5. 在影响分析完成后，先向 `.ai-os/baseline-log/` 新增一条 `CR-YYYYMMDD-HHMMSS-slug.md` 记录，使用 `change-request / pending_confirmation` 状态说明变更摘要、影响范围和待确认状态
 6. 用户确认前，只把待确认项和分析结论写入 `STATE.md` 与相关 spec 草案，不把未确认内容写进 `MISSION.md`
-7. 用户确认后，再新增一条 `BL-YYYYMMDD-HHMMSS-slug.md` 记录，使用 `baseline-promotion / confirmed` 状态；只有当交付目标 / 成功标准 / 范围边界 / 非目标真的变化时才更新 `MISSION.md`，其余细化只更新 spec / DESIGN / tasks / acceptance
-8. 必要时同步更新 `DESIGN.md`、相关 spec、`tasks.yaml`、`acceptance.yaml`、`STATE.md`；`brownfield` / `change` 下只补充理解本轮交付所需的宿主项目上下文，并把范围边界严格限定在本轮变更
+7. 用户确认后，再新增一条 `BL-YYYYMMDD-HHMMSS-slug.md` 记录，使用 `baseline-promotion / confirmed` 状态；只有当当前 lane 的交付目标 / 成功标准 / 范围边界 / 非目标真的变化时才更新 `MISSION.md`，其余细化只更新 spec / DESIGN / tasks / acceptance
+8. 必要时同步更新 `DESIGN.md`、相关 spec、`tasks.yaml`、`acceptance.yaml`、`STATE.md`；`brownfield` / `change` 下只补充理解当前 lane 变更所需的宿主项目上下文，并把范围边界严格限定在本轮变更
 9. 向用户输出：
    - 本次变更内容
    - 整合后的最新核心需求摘要

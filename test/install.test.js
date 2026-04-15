@@ -52,6 +52,9 @@ const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "def
 const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "acceptance.yaml"), "utf8");
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"), "utf8");
 const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "specs", "example.spec.md"), "utf8");
+const installedAgents = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
+const alignWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "align.md"), "utf8");
+const shipWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "ship.md"), "utf8");
 const baselineStarterFiles = listLaneBaselineRecords(initDir, "default", "BL-");
 assert(baselineStarterFiles.length === 1, "baseline-log starter record created");
 assert(BASELINE_RECORD_NAME_PATTERN.test(baselineStarterFiles[0]), "baseline-log starter record uses timestamp + slug naming");
@@ -122,6 +125,10 @@ assert(stateTemplate.includes("项目模式"), "STATE template includes canonica
 assert(stateTemplate.includes("当前阶段"), "STATE template includes canonical 当前阶段 field");
 assert(stateTemplate.includes("当前确认停点"), "STATE template includes confirmation checkpoint");
 assert(stateTemplate.includes("baseline-log/"), "STATE template minimum read set includes baseline-log directory");
+assert(installedAgents.includes("当前 lane（legacy 单交付项目则是当前单交付）"), "installed AGENTS explains lane-scoped truth source");
+assert(installedAgents.includes("当前 lane 的交付目标"), "installed AGENTS frames mission semantics around the current lane");
+assert(alignWorkflow.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "align workflow explains lane-scoped artifact paths");
+assert(shipWorkflow.includes("当前 lane 的交付范围"), "ship workflow frames release scope around the current lane");
 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");
@@ -146,6 +153,8 @@ assert(workflowsIndex.includes("/change-request"), "workflow index documents /ch
 assert(workflowsIndex.includes("/debug"), "workflow index documents /debug");
 assert(workflowsIndex.includes("/review"), "workflow index documents /review");
 assert(workflowsIndex.includes("/postmortem"), "workflow index documents /postmortem");
+assert(workflowsIndex.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "workflow index explains lane-scoped artifact paths");
+assert(workflowsIndex.includes("先锁当前 lane"), "workflow index frames brownfield alignment around the current lane");
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");

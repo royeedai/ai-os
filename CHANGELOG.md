@@ -2,9 +2,19 @@
 
 版本号遵守 [Semantic Versioning](https://semver.org/)：
 
-- **patch** (6.0.x)：bugfix、文案修正、文档补全
-- **minor** (6.x.0)：新增 skill / workflow / CLI 命令、非破坏性增强
+- **patch** (x.y.z)：bugfix、文案修正、文档补全、测试与治理收口
+- **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
+
+---
+
+## 7.0.1 (2026-04-15)
+
+### Changed
+
+- framework 分发工作流与宪法文案补齐 lane 语义：`/align`、`/change-request`、`/resume`、`/verify`、`/ship` 与 workflow index 现在明确说明 lane 项目默认操作当前 lane，而不是根层单当前交付
+- 新安装项目的回归测试新增对 lane 语义文案的断言，防止用户侧工作流重新退回根层单例叙事
+- 维护与变更日志文档中的版本纪律改为通用 semver 表述，不再停留在 `6.x` 文案
 
 ---
 

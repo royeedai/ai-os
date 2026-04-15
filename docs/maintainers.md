@@ -70,8 +70,8 @@
 
 ## 版本纪律
 
-- **patch** (6.0.x)：bugfix、文案修正、文档补全
-- **minor** (6.x.0)：新增 skill / workflow / CLI 命令、非破坏性增强
+- **patch** (x.y.z)：bugfix、文案修正、文档补全、测试与治理收口
+- **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
 发版前：

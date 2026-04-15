@@ -18,7 +18,7 @@ exit_gates:
     section: "交付基线摘要"
     field: "当前交付目标"
     severity: error
-    message: "当前交付目标未填写"
+    message: "当前 lane 的交付目标未填写"
 
   - id: mission-has-success-criteria
     check: field_not_placeholder
