@@ -343,6 +343,20 @@ section("lane worktree impact unit tests");
   }
 }
 {
+  const reopenedLane = shared.buildLaneMetadata("beta", {
+    status: "active",
+    archiveOutcome: "shipped",
+    archiveReason: "Already merged",
+    archivedAt: "2026-04-16",
+    memorySync: "done",
+    conventionsSync: "done",
+    problemLedgerSync: "done",
+  });
+
+  assert(!Object.prototype.hasOwnProperty.call(reopenedLane, "archive_outcome"), "non-archived lane metadata omits archive outcome");
+  assert(!Object.prototype.hasOwnProperty.call(reopenedLane, "memory_sync"), "non-archived lane metadata omits archive sync");
+}
+{
   const dir = tmpDir();
   try {
     writeFile(

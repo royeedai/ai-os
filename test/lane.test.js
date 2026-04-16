@@ -97,6 +97,15 @@ section("lane lifecycle command");
   assert(archivedDoctorResult.stdout.includes("archive outcome: superseded"), "doctor reports archived lane outcome");
   assert(archivedDoctorResult.stdout.includes("Archived lane memory sync is valid: done"), "doctor validates archived lane memory sync");
 
+  const reopenResult = run("create-ai-os.js", ["lane", "activate", "beta", dir, "--only"]);
+  assert(reopenResult.status === 0, "lane activate can reopen an archived lane");
+  assert(reopenResult.stdout.includes("Archived closure metadata was cleared"), "lane activate explains archive metadata reset when reopening");
+
+  const reopenedBetaMetadata = fs.readFileSync(path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"), "utf8");
+  assert(reopenedBetaMetadata.includes('status = "active"'), "reopened lane becomes active again");
+  assert(!reopenedBetaMetadata.includes("archive_outcome"), "reopened lane clears archived outcome metadata");
+  assert(!reopenedBetaMetadata.includes("memory_sync"), "reopened lane clears archived sync metadata");
+
   cleanup(dir);
 }
 

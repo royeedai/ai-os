@@ -21,10 +21,10 @@
 ### 1. 需求基准与全生命周期管理
 
 - `MISSION.md` 与 `specs/` 是当前 lane（legacy 单交付项目则是当前单交付）的唯一需求真理源；开发、变更、修复、验收都必须以它们为准，禁止以零散聊天记录或临时一句话指令直接替代基准
-- `.ai-os/MISSION.md` 是低频、已确认、共享的交付基线章程；待确认项、阶段状态和协作过程记录不要塞回 Mission，应进入 `.ai-os/STATE.md` 或 `.ai-os/baseline-log/`
+- `MISSION.md` 是低频、已确认的交付基线章程；待确认项、阶段状态和协作过程记录不要塞回 Mission，应进入 `STATE.md` 或 `baseline-log/`
 - `greenfield` / `reverse-spec` 场景下，`MISSION.md` 通常接近整个项目目标；`brownfield` / `change` 场景下，`MISSION.md` 记录的是“当前 lane 的交付基准”，不是整个存量项目本身，只需保留理解本轮工作所必需的宿主项目上下文
 - 无已确认的需求基准，不得编写业务代码；新项目、新模块、新需求必须先完成 `/align`
-- 任何需求补充、范围调整、验收标准变化，都必须先走 `/change-request`：先分析影响并新增 `.ai-os/baseline-log/CR-YYYYMMDD-HHMMSS-slug.md`，再按需更新 `MISSION.md` / 对应 spec，再向用户同步整合后的最新基准，最后等待用户明确确认
+- 任何需求补充、范围调整、验收标准变化，都必须先走 `/change-request`：先分析影响并新增当前交付线的 `baseline-log/CR-YYYYMMDD-HHMMSS-slug.md`，再按需更新 `MISSION.md` / 对应 spec，再向用户同步整合后的最新基准，最后等待用户明确确认
 - 所有已确认需求、设计决策、范围变化、风险和例外处理，都必须同步回写 `.ai-os/` 工件，确保中断恢复、多人接手和跨 session 仍能准确继续
 
 ### 2. 需求对齐与模糊需求处理
@@ -160,10 +160,10 @@
 
 ## 五、可恢复的项目记忆
 
-- `.ai-os/STATE.md` 是恢复上下文的第一入口
+- `STATE.md` 是恢复上下文的第一入口
 - `MISSION.md` 负责记录宿主项目必要上下文、当前 lane 的交付目标、范围、模式、质量标准和当前确认基线 ID；它是低频锁定章程，不是协作日志
-- `.ai-os/baseline-log/` 负责记录共享的基线分析、确认和升格记录，供多人协作时对齐和审计；它不是新的需求真理源
-- `.ai-os/DESIGN.md` 负责记录已锁定的设计与关键流程
+- `baseline-log/` 负责记录当前交付线的基线分析、确认和升格记录，供多人协作时对齐和审计；它不是新的需求真理源
+- `DESIGN.md` 负责记录已锁定的设计与关键流程
 - `.ai-os/CONVENTIONS.md` 负责记录项目级代码约定（命名、模式、分层、日志），防止跨 session 代码模式漂移
 - `.ai-os/memory.md` 只记录稳定决策、约束、偏好、坑点和技术债；通过分层归档（active / archived）防止记忆膨胀，不再有效的条目归档而非删除
 - 新 session 或上下文切换时，必须先读 `STATE.md`，再按最小阅读集扩展；`memory.md` 优先加载 `active` 条目，`archived` 条目按需查阅

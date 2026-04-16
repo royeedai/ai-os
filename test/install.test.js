@@ -60,6 +60,8 @@ const buildWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows",
 const verifyWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "verify.md"), "utf8");
 const shipWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "ship.md"), "utf8");
 const postmortemWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "postmortem.md"), "utf8");
+const claudeMd = fs.readFileSync(path.join(initDir, "CLAUDE.md"), "utf8");
+const geminiMd = fs.readFileSync(path.join(initDir, "GEMINI.md"), "utf8");
 const baselineStarterFiles = listLaneBaselineRecords(initDir, "default", "BL-");
 assert(baselineStarterFiles.length === 1, "baseline-log starter record created");
 assert(BASELINE_RECORD_NAME_PATTERN.test(baselineStarterFiles[0]), "baseline-log starter record uses timestamp + slug naming");
@@ -149,6 +151,7 @@ assert(stateTemplate.includes("baseline-log/"), "STATE template minimum read set
 assert(installedAgents.includes("当前 lane（legacy 单交付项目则是当前单交付）"), "installed AGENTS explains lane-scoped truth source");
 assert(installedAgents.includes("当前 lane 的交付目标"), "installed AGENTS frames mission semantics around the current lane");
 assert(installedAgents.includes("create-ai-os lane add <lane-id> ."), "installed AGENTS documents creating a new lane before parallel delivery work");
+assert(!installedAgents.includes("`.ai-os/MISSION.md` 是低频"), "installed AGENTS avoids stale root-only mission path guidance");
 assert(alignWorkflow.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "align workflow explains lane-scoped artifact paths");
 assert(alignWorkflow.includes("create-ai-os lane add <lane-id> ."), "align workflow documents creating a lane for parallel delivery");
 assert(changeRequestWorkflow.includes("create-ai-os lane add <lane-id> ."), "change-request workflow documents switching to a new lane for parallel delivery");
@@ -163,6 +166,10 @@ assert(shipWorkflow.includes("lane archive <lane-id>"), "ship workflow documents
 assert(shipWorkflow.includes("memory.md"), "ship workflow requires shared memory reflux before archive");
 assert(postmortemWorkflow.includes("CONVENTIONS.md"), "postmortem workflow syncs stable code patterns back to CONVENTIONS");
 assert(postmortemWorkflow.includes("lane 准备关闭"), "postmortem workflow checks closure reflux before archiving");
+assert(claudeMd.includes("create-ai-os lane list ."), "CLAUDE.md explains resolving lane topology before session init");
+assert(claudeMd.includes(".ai-os/lanes/<lane-id>/STATE.md"), "CLAUDE.md documents lane-scoped session-init paths");
+assert(geminiMd.includes("create-ai-os lane list ."), "GEMINI.md explains resolving lane topology before session init");
+assert(geminiMd.includes(".ai-os/lanes/<lane-id>/MISSION.md"), "GEMINI.md documents lane-scoped mission path");
 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");

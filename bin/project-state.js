@@ -1102,7 +1102,7 @@ function deriveNextSteps(currentPhase, currentTask, readyTasks) {
   if (currentPhase === "ship") {
     return ["如需新变更，先走 /change-request"];
   }
-  return ["先检查 .ai-os/tasks.yaml、.ai-os/DESIGN.md 和相关 spec / 验收工件是否需要更新"];
+  return ["先检查当前交付线的 tasks.yaml、DESIGN.md 和相关 spec / 验收工件是否需要更新"];
 }
 
 function collectTaskBlockers(tasks) {

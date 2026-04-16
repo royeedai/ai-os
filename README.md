@@ -230,7 +230,7 @@ create-ai-os lane archive payments . --outcome shipped --reason "Merged in 2026-
 ```
 
 - `lane add` 默认会在已有 active lane 的项目里把新 lane 建成 `draft`，避免刚创建就打破自动选择；如果这是项目里的第一条 lane，或你显式传了 `--activate`，则会直接成为 active
-- `lane activate ... --only` 会把其他 active lane 回退为 `draft`，适合在多人并行后恢复“单 active lane 自动选择”
+- `lane activate ... --only` 会把其他 active lane 回退为 `draft`，适合在多人并行后恢复“单 active lane 自动选择”；如果激活的是已归档 lane，AI-OS 会把它视为重新打开本轮交付，并清掉旧的 archive outcome / sync 元数据
 - `lane list` 会列出 `active / draft / archived` lane、topology、baseline、quality tier、risk tier、owner，并提示缺失 owner 或仍在使用推导 risk tier 的 lane，方便团队确认当前并行拓扑
 - `status` 和 `doctor` 现在会输出当前 lane 元数据摘要，至少包括 status、quality tier、risk tier、owner 和 lane 路径；多人并行时还能直接看到 active / draft / archived 拓扑
 - `lane archive` 不再只是把 lane 标成 `archived`。现在必须显式给出 `--outcome`、`--reason`，并对共享 `.ai-os/memory.md` / `.ai-os/CONVENTIONS.md` 的回流给出 `done` / `not-needed` / `pending` 判断；维护 AI-OS 本身时，再额外通过 `--problem-ledger-sync` 标记根层治理台账是否已同步

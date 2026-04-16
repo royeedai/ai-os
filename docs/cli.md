@@ -66,7 +66,7 @@ create-ai-os lane archive payments . --outcome shipped --reason "Merged in 2026-
 
 - `lane list`：列出 `active / draft / archived` lane、topology、baseline、quality tier、risk tier 和 owner，并提示缺失 owner / 仍在使用推导 risk tier 的 lane
 - `lane add`：创建新 lane。可选写入 `--owner`、`--quality-tier`、`--risk-tier`；若项目里已存在 active lane，则新 lane 默认以 `draft` 创建，避免刚创建就打破自动选择；传 `--activate` 可直接创建为 active
-- `lane activate`：把指定 lane 标记为 active；配合 `--only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择
+- `lane activate`：把指定 lane 标记为 active；配合 `--only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择。若激活的是已归档 lane，则会清掉旧的 archive outcome / sync 元数据，视为重新打开这条 lane
 - `lane archive`：用于本轮交付结束后的正式收口。必须显式给出 `--outcome`、`--reason`，并对共享 `memory.md` / `CONVENTIONS.md` 的回流写出 `--memory-sync`、`--conventions-sync`；维护 AI-OS 母仓库或存在等价治理台账时，再通过 `--problem-ledger-sync` 标记治理回流结果
 - `status` / `doctor`：在 lane 项目里会额外输出当前 lane 的 status、quality tier、risk tier、owner 和拓扑摘要，帮助团队确认当前真正操作的是哪条 lane
 - 进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 这类 lane 敏感 workflow 前，先判断这次工作是否继续当前 lane；若是新的并行交付线，先 `lane add`

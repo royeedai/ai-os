@@ -507,6 +507,7 @@ const lane = getLane(layout, parsed.laneId);
 
 if (parsed.action === "activate") {
   let changed = false;
+  const reopeningArchivedLane = lane.status === LANE_STATUS_ARCHIVED;
 
   if (!lane.isActive) {
     saveLane(targetDir, lane, { status: LANE_STATUS_ACTIVE });
@@ -530,6 +531,9 @@ if (parsed.action === "activate") {
   process.stdout.write(`Status: active\n`);
   if (parsed.flags.only) {
     process.stdout.write("Other active lanes were moved back to draft.\n");
+  }
+  if (reopeningArchivedLane) {
+    process.stdout.write("Archived closure metadata was cleared while reopening the lane.\n");
   }
   if (activeLanes.length === 1) {
     process.stdout.write(`Auto-selection now resolves to: ${activeLanes[0].id}\n`);

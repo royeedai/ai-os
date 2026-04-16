@@ -8,6 +8,14 @@
 
 ---
 
+## 7.2.2 (2026-04-17)
+
+### Changed
+
+- `lane activate` 现在会把已归档 lane 视为重新打开的交付线，并清掉旧的 archive outcome / sync 元数据，避免 lane 被重新激活后仍携带过期的归档状态
+- framework 宪法、CLAUDE.md / GEMINI.md 生成逻辑与 `project-state` 的恢复提示已清理旧的根层单交付路径，统一改成 lane-aware 叙事，并保留 legacy 项目的退化说明
+- README、CLI 文档和安装回归测试同步补齐了“重新打开 archived lane”与“session init 先判定当前 lane”的说明
+
 ## 7.2.1 (2026-04-16)
 
 ### Added

@@ -1536,36 +1536,38 @@ function buildLaneMetadata(laneId, options = {}) {
   }
 
   const archiveStatus = metadata.status === LANE_STATUS_ARCHIVED;
-  const archiveOutcome = normalizeArchiveOutcome(options.archiveOutcome, {
-    defaultValue: archiveStatus ? "" : "",
-  });
-  if (archiveOutcome) {
-    metadata.archive_outcome = archiveOutcome;
-  }
-  if (options.archiveReason) {
-    metadata.archive_reason = String(options.archiveReason).trim();
-  }
-  if (options.archivedAt) {
-    metadata.archived_at = String(options.archivedAt).trim();
-  }
+  if (archiveStatus) {
+    const archiveOutcome = normalizeArchiveOutcome(options.archiveOutcome, {
+      defaultValue: "",
+    });
+    if (archiveOutcome) {
+      metadata.archive_outcome = archiveOutcome;
+    }
+    if (options.archiveReason) {
+      metadata.archive_reason = String(options.archiveReason).trim();
+    }
+    if (options.archivedAt) {
+      metadata.archived_at = String(options.archivedAt).trim();
+    }
 
-  const memorySync = normalizeLaneSyncStatus(options.memorySync, {
-    defaultValue: archiveStatus ? "pending" : "",
-  });
-  if (memorySync) {
-    metadata.memory_sync = memorySync;
-  }
-  const conventionsSync = normalizeLaneSyncStatus(options.conventionsSync, {
-    defaultValue: archiveStatus ? "pending" : "",
-  });
-  if (conventionsSync) {
-    metadata.conventions_sync = conventionsSync;
-  }
-  const problemLedgerSync = normalizeLaneSyncStatus(options.problemLedgerSync, {
-    defaultValue: archiveStatus ? "pending" : "",
-  });
-  if (problemLedgerSync) {
-    metadata.problem_ledger_sync = problemLedgerSync;
+    const memorySync = normalizeLaneSyncStatus(options.memorySync, {
+      defaultValue: "pending",
+    });
+    if (memorySync) {
+      metadata.memory_sync = memorySync;
+    }
+    const conventionsSync = normalizeLaneSyncStatus(options.conventionsSync, {
+      defaultValue: "pending",
+    });
+    if (conventionsSync) {
+      metadata.conventions_sync = conventionsSync;
+    }
+    const problemLedgerSync = normalizeLaneSyncStatus(options.problemLedgerSync, {
+      defaultValue: "pending",
+    });
+    if (problemLedgerSync) {
+      metadata.problem_ledger_sync = problemLedgerSync;
+    }
   }
 
   return metadata;
@@ -2804,11 +2806,11 @@ function generateClaudeMd(targetDir) {
     "",
     "## 会话初始化",
     "",
-    "每次新 session 启动时，依次读取以下文件了解项目当前状态：",
+    "每次新 session 启动时，先确认当前 lane；若存在多个 active lane，先执行 `create-ai-os lane list .` 明确拓扑。确认当前 lane 后，依次读取以下文件了解项目状态：",
     "",
-    "1. `.ai-os/STATE.md` — 当前阶段、进度和待确认项",
-    "2. `.ai-os/MISSION.md` — 已确认的当前交付基线章程",
-    "3. `.ai-os/baseline-log/` — 最近的共享基线记录目录（优先读最新 confirmed 记录）",
+    "1. 当前 lane 的 `.ai-os/lanes/<lane-id>/STATE.md`（legacy 单交付项目则是 `.ai-os/STATE.md`） — 当前阶段、进度和待确认项",
+    "2. 当前 lane 的 `.ai-os/lanes/<lane-id>/MISSION.md`（legacy 单交付项目则是 `.ai-os/MISSION.md`） — 已确认的当前交付基线章程",
+    "3. 当前 lane 的 `.ai-os/lanes/<lane-id>/baseline-log/`（legacy 单交付项目则是 `.ai-os/baseline-log/`） — 最近的基线记录目录（优先读最新 confirmed 记录）",
     "4. `.ai-os/memory.md` — 稳定决策和约束（优先读 active 条目）",
     "",
     "如果上述文件不存在，说明项目尚未初始化，从 `/align` 开始。",
@@ -2873,11 +2875,11 @@ function generateGeminiMd(targetDir) {
     "",
     "## 会话初始化",
     "",
-    "每次新 session 启动时，依次读取：",
+    "每次新 session 启动时，先确认当前 lane；若存在多个 active lane，先执行 `create-ai-os lane list .`。确认当前 lane 后，依次读取：",
     "",
-    "1. `.ai-os/STATE.md` — 当前阶段和进度",
-    "2. `.ai-os/MISSION.md` — 已确认的当前交付基线",
-    "3. `.ai-os/baseline-log/` — 最新基线确认记录目录",
+    "1. 当前 lane 的 `.ai-os/lanes/<lane-id>/STATE.md`（legacy 单交付项目则是 `.ai-os/STATE.md`） — 当前阶段和进度",
+    "2. 当前 lane 的 `.ai-os/lanes/<lane-id>/MISSION.md`（legacy 单交付项目则是 `.ai-os/MISSION.md`） — 已确认的当前交付基线",
+    "3. 当前 lane 的 `.ai-os/lanes/<lane-id>/baseline-log/`（legacy 单交付项目则是 `.ai-os/baseline-log/`） — 最新基线确认记录目录",
     "4. `.ai-os/memory.md` — 稳定决策和约束",
     "",
     "## Workflow 命令",
