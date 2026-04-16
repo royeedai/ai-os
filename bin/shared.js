@@ -7,6 +7,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { spawnSync } = require("child_process");
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -729,12 +730,148 @@ function formatLaneCommandExamples(commandPrefix, lanes) {
     .join("\n");
 }
 
+function summarizePathList(paths, maxItems = 3) {
+  const uniquePaths = [...new Set((paths || []).filter(Boolean))];
+  if (uniquePaths.length === 0) {
+    return "";
+  }
+  const sample = uniquePaths.slice(0, maxItems);
+  if (uniquePaths.length > maxItems) {
+    sample.push(`... (+${uniquePaths.length - maxItems} more)`);
+  }
+  return sample.join(", ");
+}
+
+function listTrackedGitChangedPaths(targetDir) {
+  const result = spawnSync(
+    "git",
+    ["diff", "--name-only", "--relative", "HEAD", "--"],
+    {
+      cwd: targetDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }
+  );
+
+  if (result.error || result.status !== 0) {
+    return {
+      available: false,
+      changedPaths: [],
+    };
+  }
+
+  return {
+    available: true,
+    changedPaths: result.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+  };
+}
+
+function inspectLaneWorktreeImpact(targetDir, options = {}) {
+  const layout = options.layout || inspectProjectDeliveryLayout(targetDir);
+  const selectedLaneId = normalizeLaneId(options.selectedLaneId);
+  const changeSource = Array.isArray(options.changedPaths)
+    ? {
+        available: true,
+        changedPaths: options.changedPaths,
+      }
+    : listTrackedGitChangedPaths(targetDir);
+
+  const changedPaths = [...new Set(
+    (changeSource.changedPaths || [])
+      .map((value) => String(value || "").trim().replace(/\\/g, "/").replace(/^\.\//, ""))
+      .filter(Boolean)
+  )];
+  const lanes = layout && Array.isArray(layout.lanes) ? layout.lanes : [];
+  const sharedArtifactPaths = [];
+  const repoPaths = [];
+  const selectedLanePaths = [];
+  const otherLanePathsById = new Map();
+  const touchedLaneIds = new Set();
+
+  for (const changedPath of changedPaths) {
+    const laneMatch = changedPath.match(/^\.ai-os\/lanes\/([^/]+)\/(.+)$/);
+    if (laneMatch) {
+      const laneId = laneMatch[1];
+      touchedLaneIds.add(laneId);
+      if (laneId === selectedLaneId) {
+        selectedLanePaths.push(changedPath);
+      } else {
+        if (!otherLanePathsById.has(laneId)) {
+          otherLanePathsById.set(laneId, []);
+        }
+        otherLanePathsById.get(laneId).push(changedPath);
+      }
+      continue;
+    }
+
+    if (
+      changedPath === ".ai-os/project.md" ||
+      changedPath === ".ai-os/CONVENTIONS.md" ||
+      changedPath === ".ai-os/memory.md" ||
+      changedPath.startsWith(".ai-os/shared/")
+    ) {
+      sharedArtifactPaths.push(changedPath);
+      continue;
+    }
+
+    if (!changedPath.startsWith(".ai-os/")) {
+      repoPaths.push(changedPath);
+    }
+  }
+
+  const otherLanes = lanes.filter((lane) => lane.id !== selectedLaneId);
+  const activeOtherLanes = otherLanes.filter((lane) => lane.isActive);
+  const touchedOtherLanes = lanes.filter((lane) => otherLanePathsById.has(lane.id));
+  const suggestedLaneIds = [];
+  const suggestedLaneIdSet = new Set();
+
+  function addSuggestedLanes(candidateLanes) {
+    for (const lane of candidateLanes || []) {
+      if (!lane || !lane.id || suggestedLaneIdSet.has(lane.id)) {
+        continue;
+      }
+      suggestedLaneIds.push(lane.id);
+      suggestedLaneIdSet.add(lane.id);
+    }
+  }
+
+  if (selectedLaneId) {
+    addSuggestedLanes(touchedOtherLanes);
+    if (sharedArtifactPaths.length > 0 || repoPaths.length > 0) {
+      addSuggestedLanes(activeOtherLanes.length > 0 ? activeOtherLanes : otherLanes);
+    }
+  } else {
+    const touchedCandidateLanes = lanes.filter((lane) => touchedLaneIds.has(lane.id));
+    addSuggestedLanes(touchedCandidateLanes);
+    if (suggestedLaneIds.length === 0 && (sharedArtifactPaths.length > 0 || repoPaths.length > 0)) {
+      addSuggestedLanes(lanes.filter((lane) => lane.isActive));
+    }
+  }
+
+  return {
+    available: changeSource.available,
+    changedPaths,
+    sharedArtifactPaths,
+    repoPaths,
+    selectedLanePaths,
+    otherLanePathsById,
+    touchedLaneIds: [...touchedLaneIds],
+    touchedOtherLaneIds: touchedOtherLanes.map((lane) => lane.id),
+    suggestedLaneIds,
+    suggestedLanes: lanes.filter((lane) => suggestedLaneIdSet.has(lane.id)),
+  };
+}
+
 function buildLaneResolutionMessage(code, layout, options = {}) {
   const requestedLaneId = normalizeLaneId(options.requestedLaneId);
   const commandPrefix = String(options.commandPrefix || "").trim();
   const laneListCommand = String(options.laneListCommand || "create-ai-os lane list .").trim();
   const laneAddCommand = String(options.laneAddCommand || "create-ai-os lane add <lane-id> .").trim();
   const laneActivateOnlyCommand = String(options.laneActivateOnlyCommand || "create-ai-os lane activate <lane-id> . --only").trim();
+  const worktreeImpact = options.worktreeImpact || null;
   const lanes = layout && Array.isArray(layout.lanes) ? layout.lanes : [];
   const activeLanes = lanes.filter((lane) => lane.isActive);
 
@@ -757,6 +894,19 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
 
   if (code === "unknown-lane") {
     const lines = [`Unknown lane: ${requestedLaneId}`];
+    if (worktreeImpact && worktreeImpact.available && worktreeImpact.suggestedLanes.length > 0) {
+      lines.push("Current worktree suggests checking these lanes first:");
+      lines.push(...worktreeImpact.suggestedLanes.map((lane) => formatLaneDescriptor(lane)));
+      if (worktreeImpact.sharedArtifactPaths.length > 0) {
+        lines.push(`Shared AI-OS artifacts changed: ${summarizePathList(worktreeImpact.sharedArtifactPaths)}`);
+      }
+      if (worktreeImpact.repoPaths.length > 0) {
+        lines.push(`Repo files outside .ai-os changed: ${summarizePathList(worktreeImpact.repoPaths)}`);
+      }
+      if (worktreeImpact.touchedOtherLaneIds.length > 0) {
+        lines.push(`Other lane artifacts changed: ${summarizePathList(worktreeImpact.touchedOtherLaneIds)}`);
+      }
+    }
     if (lanes.length > 0) {
       lines.push("Known lanes:");
       lines.push(...lanes.map((lane) => formatLaneDescriptor(lane)));
@@ -769,19 +919,48 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
 
   if (code === "lane-selection-required") {
     if (activeLanes.length > 1) {
-      return [
+      const lines = [
         `Multiple active lanes found: ${activeLanes.map((lane) => lane.id).join(", ")}`,
         "Active lanes:",
         ...activeLanes.map((lane) => formatLaneDescriptor(lane)),
+      ];
+      if (worktreeImpact && worktreeImpact.available && worktreeImpact.suggestedLanes.length > 0) {
+        lines.push("Current worktree suggests checking these lanes first:");
+        lines.push(...worktreeImpact.suggestedLanes.map((lane) => formatLaneDescriptor(lane)));
+        if (worktreeImpact.sharedArtifactPaths.length > 0) {
+          lines.push(`Shared AI-OS artifacts changed: ${summarizePathList(worktreeImpact.sharedArtifactPaths)}`);
+        }
+        if (worktreeImpact.repoPaths.length > 0) {
+          lines.push(`Repo files outside .ai-os changed: ${summarizePathList(worktreeImpact.repoPaths)}`);
+        }
+        if (worktreeImpact.touchedLaneIds.length > 0) {
+          lines.push(`Touched lane artifacts: ${summarizePathList(worktreeImpact.touchedLaneIds)}`);
+        }
+      }
+      lines.push(
         "Pick the lane you want to operate on:",
         formatLaneCommandExamples(commandPrefix, activeLanes),
         `Review current lane topology with \`${laneListCommand}\`.`,
         `If this work belongs to a new parallel delivery, create it first with \`${laneAddCommand}\`.`,
         `If only one lane should stay active, run \`${laneActivateOnlyCommand}\` to restore auto-selection.`,
-      ].join("\n");
+      );
+      return lines.join("\n");
     }
 
     const lines = ["No active lane found. Specify --lane."];
+    if (worktreeImpact && worktreeImpact.available && worktreeImpact.suggestedLanes.length > 0) {
+      lines.push("Current worktree suggests checking these lanes first:");
+      lines.push(...worktreeImpact.suggestedLanes.map((lane) => formatLaneDescriptor(lane)));
+      if (worktreeImpact.sharedArtifactPaths.length > 0) {
+        lines.push(`Shared AI-OS artifacts changed: ${summarizePathList(worktreeImpact.sharedArtifactPaths)}`);
+      }
+      if (worktreeImpact.repoPaths.length > 0) {
+        lines.push(`Repo files outside .ai-os changed: ${summarizePathList(worktreeImpact.repoPaths)}`);
+      }
+      if (worktreeImpact.touchedLaneIds.length > 0) {
+        lines.push(`Touched lane artifacts: ${summarizePathList(worktreeImpact.touchedLaneIds)}`);
+      }
+    }
     if (lanes.length > 0) {
       lines.push("Configured lanes:");
       lines.push(...lanes.map((lane) => formatLaneDescriptor(lane)));
@@ -819,8 +998,14 @@ function buildLaneScopeNote(laneResolution, options = {}) {
   const commandPrefix = String(options.commandPrefix || "").trim();
   const laneListCommand = String(options.laneListCommand || "create-ai-os lane list .").trim();
   const laneActivateOnlyCommand = String(options.laneActivateOnlyCommand || "create-ai-os lane activate <lane-id> . --only").trim();
+  const worktreeImpact = options.worktreeImpact || laneResolution.worktreeImpact || null;
   const otherActiveLanes = otherLanes.filter((lane) => lane.isActive);
-  const suggestedLanes = otherActiveLanes.length > 0 ? otherActiveLanes : otherLanes;
+  const heuristicSuggestedLanes = worktreeImpact && worktreeImpact.available && worktreeImpact.suggestedLanes.length > 0
+    ? worktreeImpact.suggestedLanes
+    : [];
+  const suggestedLanes = heuristicSuggestedLanes.length > 0
+    ? heuristicSuggestedLanes
+    : (otherActiveLanes.length > 0 ? otherActiveLanes : otherLanes);
 
   const lines = [`Lane scope: this run only covers \`${laneResolution.laneId}\`.`];
 
@@ -830,12 +1015,34 @@ function buildLaneScopeNote(laneResolution, options = {}) {
     );
   }
 
-  lines.push(otherActiveLanes.length > 0 ? "Other active lanes:" : "Other configured lanes:");
+  if (worktreeImpact && worktreeImpact.available) {
+    if (worktreeImpact.sharedArtifactPaths.length > 0 || worktreeImpact.repoPaths.length > 0 || worktreeImpact.touchedOtherLaneIds.length > 0) {
+      lines.push("Worktree impact signals:");
+      if (worktreeImpact.sharedArtifactPaths.length > 0) {
+        lines.push(`- shared AI-OS artifacts changed: ${summarizePathList(worktreeImpact.sharedArtifactPaths)}`);
+      }
+      if (worktreeImpact.repoPaths.length > 0) {
+        lines.push(`- repo files outside .ai-os changed: ${summarizePathList(worktreeImpact.repoPaths)}`);
+      }
+      if (worktreeImpact.touchedOtherLaneIds.length > 0) {
+        const touchedOtherLanePaths = [];
+        for (const laneId of worktreeImpact.touchedOtherLaneIds) {
+          const lanePaths = worktreeImpact.otherLanePathsById.get(laneId) || [];
+          touchedOtherLanePaths.push(...lanePaths);
+        }
+        lines.push(`- other lane artifacts changed: ${summarizePathList(touchedOtherLanePaths)}`);
+      }
+    }
+  }
+
+  lines.push(heuristicSuggestedLanes.length > 0 ? "Most likely affected lanes:" : (otherActiveLanes.length > 0 ? "Other active lanes:" : "Other configured lanes:"));
   lines.push(...suggestedLanes.map((lane) => formatLaneDescriptor(lane)));
 
   if (commandPrefix) {
     lines.push(
-      otherActiveLanes.length > 0
+      heuristicSuggestedLanes.length > 0
+        ? "Start by rerunning the same command for these candidate lanes:"
+        : otherActiveLanes.length > 0
         ? "If shared code / contracts / infra changed, start by rerunning the same command for other active lanes:"
         : "If shared code / contracts / infra changed, rerun the same command for affected lanes:"
     );
@@ -856,12 +1063,17 @@ function buildLaneScopeNote(laneResolution, options = {}) {
 function resolveProjectLane(targetDir, options = {}) {
   const layout = options.layout || inspectProjectDeliveryLayout(targetDir);
   const requestedLaneId = normalizeLaneId(options.laneId);
+  const worktreeImpact = options.worktreeImpact || inspectLaneWorktreeImpact(targetDir, {
+    layout,
+    selectedLaneId: requestedLaneId,
+  });
   const messageOptions = {
     requestedLaneId,
     commandPrefix: options.commandPrefix,
     laneListCommand: options.laneListCommand,
     laneAddCommand: options.laneAddCommand,
     laneActivateOnlyCommand: options.laneActivateOnlyCommand,
+    worktreeImpact,
   };
 
   if (layout.model === DELIVERY_MODEL_NONE) {
@@ -882,6 +1094,7 @@ function resolveProjectLane(targetDir, options = {}) {
         message: buildLaneResolutionMessage("legacy-does-not-support-lane-selection", layout, messageOptions),
         layout,
         requestedLaneId,
+        worktreeImpact,
       };
     }
     return {
@@ -894,6 +1107,7 @@ function resolveProjectLane(targetDir, options = {}) {
       isLegacyFallback: true,
       layout,
       requestedLaneId,
+      worktreeImpact,
     };
   }
 
@@ -904,6 +1118,7 @@ function resolveProjectLane(targetDir, options = {}) {
       message: buildLaneResolutionMessage("no-lanes-found", layout, messageOptions),
       layout,
       requestedLaneId,
+      worktreeImpact,
     };
   }
 
@@ -916,6 +1131,7 @@ function resolveProjectLane(targetDir, options = {}) {
         message: buildLaneResolutionMessage("unknown-lane", layout, messageOptions),
         layout,
         requestedLaneId,
+        worktreeImpact,
       };
     }
     return {
@@ -928,6 +1144,7 @@ function resolveProjectLane(targetDir, options = {}) {
       isLegacyFallback: false,
       layout,
       requestedLaneId,
+      worktreeImpact,
     };
   }
 
@@ -943,6 +1160,7 @@ function resolveProjectLane(targetDir, options = {}) {
       isLegacyFallback: false,
       layout,
       requestedLaneId,
+      worktreeImpact,
     };
   }
 
@@ -952,6 +1170,7 @@ function resolveProjectLane(targetDir, options = {}) {
     message: buildLaneResolutionMessage("lane-selection-required", layout, messageOptions),
     layout,
     requestedLaneId,
+    worktreeImpact,
   };
 }
 
@@ -2752,6 +2971,7 @@ module.exports = {
   getLaneMetadataPath,
   listProjectLanes,
   listLegacyDeliveryArtifactEntries,
+  inspectLaneWorktreeImpact,
   inspectProjectDeliveryLayout,
   resolveProjectLane,
   buildLaneScopeNote,

@@ -13,6 +13,7 @@ assert(typeof shared.getLaneRelativePath === "function", "getLaneRelativePath ex
 assert(typeof shared.getLaneFilePath === "function", "getLaneFilePath exported");
 assert(typeof shared.getLaneMetadataPath === "function", "getLaneMetadataPath exported");
 assert(typeof shared.listProjectLanes === "function", "listProjectLanes exported");
+assert(typeof shared.inspectLaneWorktreeImpact === "function", "inspectLaneWorktreeImpact exported");
 assert(typeof shared.inspectProjectDeliveryLayout === "function", "inspectProjectDeliveryLayout exported");
 assert(typeof shared.resolveProjectLane === "function", "resolveProjectLane exported");
 assert(typeof shared.isLaneArtifactPath === "function", "isLaneArtifactPath exported");

@@ -124,12 +124,14 @@ assert(cliDoc.includes("create-ai-os lane add payments ."), "cli doc documents l
 assert(cliDoc.includes("--only"), "cli doc documents exclusive lane activation");
 assert(cliDoc.includes("lane 敏感 workflow"), "cli doc explains resolving lane before lane-sensitive workflows");
 assert(cliDoc.includes("lane-aware 修复建议"), "cli doc documents lane-aware repair guidance for delivery commands");
+assert(cliDoc.includes("Git 基线"), "cli doc documents git-backed lane candidate hints");
 assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
 assert(readmeDoc.includes("推荐命令示例"), "README documents suggested lane-selection commands for multi-lane ambiguity");
 assert(readmeDoc.includes("Lane 生命周期命令"), "README documents lane lifecycle commands");
 assert(readmeDoc.includes("active / draft / archived"), "README explains lane lifecycle statuses");
 assert(readmeDoc.includes("进入 `/align`、`/change-request`、`/verify` 前"), "README explains resolving lane before lane-sensitive workflows");
 assert(readmeDoc.includes("lane-aware 修复建议"), "README documents lane-aware repair guidance for delivery commands");
+assert(readmeDoc.includes("Git 基线"), "README documents git-backed lane candidate hints");
 assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
 assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
 assert(gettingStartedDoc.includes("会自动重建"), "getting-started documents STATE auto rebuild");

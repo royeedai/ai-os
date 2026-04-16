@@ -8,6 +8,14 @@
 
 ---
 
+## 7.1.3 (2026-04-16)
+
+### Changed
+
+- `ai-os-validate`、`create-ai-os gate`、`ai-os-release-check` 在存在 Git 基线时，会结合当前 worktree 改动路径给出更高置信度的 lane 候选：命中共享根层工件、其他 lane 工件，或 `.ai-os/` 之外的仓库文件时，会优先提示最可能需要补跑的 lane
+- `bin/shared.js` 新增 lane worktree impact 启发式，lane 选择错误和 lane scope 提示现在都会复用这组信号，而不是只做静态“其他 active lane”提醒
+- README、CLI 文档、问题台账和回归测试同步补齐了这组 git-backed lane candidate 提示
+
 ## 7.1.2 (2026-04-16)
 
 ### Changed

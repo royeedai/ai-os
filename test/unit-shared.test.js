@@ -285,6 +285,63 @@ section("lane delivery layout unit tests");
     cleanup(dir);
   }
 }
+
+section("lane worktree impact unit tests");
+{
+  const dir = tmpDir();
+  try {
+    const layout = {
+      model: shared.DELIVERY_MODEL_LANES,
+      lanes: [
+        { id: "default", title: "Default lane", status: "active", isActive: true },
+        { id: "beta", title: "Beta lane", status: "active", isActive: true },
+        { id: "gamma", title: "Gamma lane", status: "draft", isActive: false },
+      ],
+    };
+
+    const impact = shared.inspectLaneWorktreeImpact(dir, {
+      layout,
+      selectedLaneId: "default",
+      changedPaths: [
+        ".ai-os/project.md",
+        ".ai-os/lanes/beta/tasks.yaml",
+        "src/shared.ts",
+      ],
+    });
+
+    assert(impact.available === true, "worktree impact accepts provided change paths");
+    assert(impact.sharedArtifactPaths.includes(".ai-os/project.md"), "worktree impact tracks shared AI-OS artifact changes");
+    assert(impact.repoPaths.includes("src/shared.ts"), "worktree impact tracks repo changes outside .ai-os");
+    assert(impact.touchedOtherLaneIds.includes("beta"), "worktree impact tracks changed other-lane artifacts");
+    assert(JSON.stringify(impact.suggestedLaneIds) === JSON.stringify(["beta"]), "worktree impact prioritizes affected other lanes");
+  } finally {
+    cleanup(dir);
+  }
+}
+{
+  const dir = tmpDir();
+  try {
+    const layout = {
+      model: shared.DELIVERY_MODEL_LANES,
+      lanes: [
+        { id: "default", status: "active", isActive: true },
+        { id: "beta", status: "active", isActive: true },
+        { id: "gamma", status: "draft", isActive: false },
+      ],
+    };
+
+    const impact = shared.inspectLaneWorktreeImpact(dir, {
+      layout,
+      changedPaths: [
+        ".ai-os/lanes/gamma/MISSION.md",
+      ],
+    });
+
+    assert(JSON.stringify(impact.suggestedLaneIds) === JSON.stringify(["gamma"]), "worktree impact suggests touched draft lane when no lane is selected yet");
+  } finally {
+    cleanup(dir);
+  }
+}
 {
   const dir = tmpDir();
   try {

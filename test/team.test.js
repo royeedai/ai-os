@@ -2,8 +2,29 @@
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const shared = require("../bin/shared");
 const { assert, run, tmpDir, cleanup, section } = require("./helpers");
+
+function runGit(args, cwd) {
+  return spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function initGitBaseline(dir) {
+  const initResult = runGit(["init"], dir);
+  assert(initResult.status === 0, "git init succeeds for lane impact test");
+  const addResult = runGit(["add", "."], dir);
+  assert(addResult.status === 0, "git add succeeds for lane impact test");
+  const commitResult = runGit(
+    ["-c", "user.name=AI-OS", "-c", "user.email=ai-os@example.com", "commit", "-m", "init"],
+    dir
+  );
+  assert(commitResult.status === 0, "git commit succeeds for lane impact test");
+}
 
 section("team collaboration config");
 
@@ -154,6 +175,28 @@ section("lane-aware delivery guard guidance");
   assert(unknownRelease.status === 1, "release-check blocks unknown lane selection");
   assert(unknownRelease.stderr.includes("ai-os-release-check . --lane default"), "release-check unknown-lane error includes command-specific rerun guidance");
   assert(unknownRelease.stderr.includes("create-ai-os lane list ."), "release-check unknown-lane error recommends checking lane topology");
+
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", ["lane", "add", "beta"], dir);
+  run("create-ai-os.js", ["lane", "activate", "beta"], dir);
+  fs.mkdirSync(path.join(dir, "src"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "src", "shared.ts"), "export const shared = 1;\n", "utf8");
+  initGitBaseline(dir);
+  fs.writeFileSync(path.join(dir, ".ai-os", "project.md"), "# Shared project\n\nUpdated.\n", "utf8");
+  fs.writeFileSync(path.join(dir, "src", "shared.ts"), "export const shared = 2;\n", "utf8");
+
+  const validateDefault = run("ai-os-validate.js", ["--lane", "default"], dir);
+  assert(validateDefault.status === 0, "validate still passes with git-based lane impact hints");
+  assert(validateDefault.stdout.includes("Worktree impact signals:"), "validate prints git-based worktree impact heading");
+  assert(validateDefault.stdout.includes(".ai-os/project.md"), "validate reports changed shared AI-OS artifacts");
+  assert(validateDefault.stdout.includes("src/shared.ts"), "validate reports changed repo paths outside .ai-os");
+  assert(validateDefault.stdout.includes("Most likely affected lanes:"), "validate promotes candidate lanes when worktree signals exist");
+  assert(validateDefault.stdout.includes("ai-os-validate . --lane beta"), "validate recommends rerunning the candidate lane first");
 
   cleanup(dir);
 }
