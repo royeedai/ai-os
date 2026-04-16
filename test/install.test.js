@@ -59,6 +59,7 @@ const changeRequestWorkflow = fs.readFileSync(path.join(initDir, ".agents", "wor
 const buildWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "build.md"), "utf8");
 const verifyWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "verify.md"), "utf8");
 const shipWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "ship.md"), "utf8");
+const postmortemWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "postmortem.md"), "utf8");
 const baselineStarterFiles = listLaneBaselineRecords(initDir, "default", "BL-");
 assert(baselineStarterFiles.length === 1, "baseline-log starter record created");
 assert(BASELINE_RECORD_NAME_PATTERN.test(baselineStarterFiles[0]), "baseline-log starter record uses timestamp + slug naming");
@@ -158,6 +159,10 @@ assert(verifyWorkflow.includes("validate` / `gate verify` / `release-check --lan
 assert(shipWorkflow.includes("当前 lane 的交付范围"), "ship workflow frames release scope around the current lane");
 assert(shipWorkflow.includes("create-ai-os lane list ."), "ship workflow documents resolving lane before release handoff");
 assert(shipWorkflow.includes("其他 lane"), "ship workflow documents cross-lane release verification when shared changes land");
+assert(shipWorkflow.includes("lane archive <lane-id>"), "ship workflow documents lane archive closure");
+assert(shipWorkflow.includes("memory.md"), "ship workflow requires shared memory reflux before archive");
+assert(postmortemWorkflow.includes("CONVENTIONS.md"), "postmortem workflow syncs stable code patterns back to CONVENTIONS");
+assert(postmortemWorkflow.includes("lane 准备关闭"), "postmortem workflow checks closure reflux before archiving");
 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");
@@ -186,6 +191,7 @@ assert(workflowsIndex.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "wo
 assert(workflowsIndex.includes("先锁当前 lane"), "workflow index frames brownfield alignment around the current lane");
 assert(workflowsIndex.includes("create-ai-os lane list ."), "workflow index documents checking lane topology before lane-sensitive workflows");
 assert(workflowsIndex.includes("`/build`、`/verify`、`/ship`"), "workflow index marks build/verify/ship as lane-sensitive workflows");
+assert(workflowsIndex.includes("回流到共享 `memory.md` / `CONVENTIONS.md`"), "workflow index documents lane closure reflux rule");
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");

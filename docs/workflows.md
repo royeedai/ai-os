@@ -20,7 +20,7 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 | `/change-request` | 任何需求补充、范围调整、验收变化前先新增 baseline record，再按需更新需求基准 |
 | `/debug` | 单点 bug、样式 / 文案 / 配置微调先定界、再修复、再回归 |
 | `/review` | 对方案、实现或交付做多维度结构化审查 |
-| `/postmortem` | 对项目或里程碑做复盘，并把稳定经验同步进 `memory.md` |
+| `/postmortem` | 对项目或里程碑做复盘，并把稳定经验同步进共享 `memory.md` / `CONVENTIONS.md` |
 
 ## Continue
 
@@ -45,5 +45,6 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 - 单点修复先走 `/debug`，禁止越界顺手改
 - `debug` / `verify` 暴露新的稳定 failure mode 时，补 `.ai-os/evals/` 或 `verification-matrix.yaml`，不要只留在当前会话
 - `/build`、`/verify`、`/ship` 命中共享代码 / 契约 / 基础设施时，必须说明当前覆盖了哪些 lane、哪些 lane 仍待补回归
+- lane 准备归档前，先判断哪些稳定结论要回流到共享 `memory.md` / `CONVENTIONS.md`，不要让稳定经验继续留在 lane 私有工件里
 - `/debug`、`/verify`、`/ship` 结论里，显式拆开代码状态、数据状态、运行状态
 - `/build` 只能在用户确认了 Mission / Design / Plan 对应停点后进入

@@ -61,17 +61,18 @@ create-ai-os lane add payments .
 create-ai-os lane add payments . --owner team-pay --quality-tier high-risk --risk-tier high
 create-ai-os lane activate payments .
 create-ai-os lane activate payments . --only
-create-ai-os lane archive payments .
+create-ai-os lane archive payments . --outcome shipped --reason "Merged in 2026-04 train" --memory-sync done --conventions-sync not-needed --problem-ledger-sync not-needed
 ```
 
 - `lane list`：列出 `active / draft / archived` lane、topology、baseline、quality tier、risk tier 和 owner，并提示缺失 owner / 仍在使用推导 risk tier 的 lane
 - `lane add`：创建新 lane。可选写入 `--owner`、`--quality-tier`、`--risk-tier`；若项目里已存在 active lane，则新 lane 默认以 `draft` 创建，避免刚创建就打破自动选择；传 `--activate` 可直接创建为 active
 - `lane activate`：把指定 lane 标记为 active；配合 `--only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择
-- `lane archive`：把 lane 标记为 `archived`，用于本轮交付结束后的收口
+- `lane archive`：用于本轮交付结束后的正式收口。必须显式给出 `--outcome`、`--reason`，并对共享 `memory.md` / `CONVENTIONS.md` 的回流写出 `--memory-sync`、`--conventions-sync`；维护 AI-OS 母仓库或存在等价治理台账时，再通过 `--problem-ledger-sync` 标记治理回流结果
 - `status` / `doctor`：在 lane 项目里会额外输出当前 lane 的 status、quality tier、risk tier、owner 和拓扑摘要，帮助团队确认当前真正操作的是哪条 lane
 - 进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 这类 lane 敏感 workflow 前，先判断这次工作是否继续当前 lane；若是新的并行交付线，先 `lane add`
 - `ai-os-validate`、`create-ai-os gate`、`ai-os-release-check` 现在会输出 lane-aware 修复建议：lane 选择错误时，直接给出带 `--lane` 的重跑命令；显式指定 lane 时，也会提醒这次只覆盖当前 lane，若共享代码 / 契约 / 基础设施变更影响其他 lane，必须补跑对应 lane
 - 若仓库已有 Git 基线，这三条命令还会读取当前 worktree 的改动路径作为启发式信号：命中共享根层工件、其他 lane 工件，或 `.ai-os/` 之外的仓库文件时，会把最可能受影响的 lane 提前列出来，便于优先补跑
+- canonical 多 lane 团队示例见 `examples/multi-lane-team-workspace/`，其中归档 lane 演示了 shared `memory.md` / `CONVENTIONS.md` 回流后的收口形态
 
 Lane 目录结构：
 
@@ -82,7 +83,7 @@ Lane 目录结构：
   CONVENTIONS.md     # 共享
   lanes/
     default/
-      lane.toml      # lane 元数据（id、status、baseline_id、quality_tier、risk_tier、owner）
+      lane.toml      # lane 元数据（id、status、baseline_id、quality_tier、risk_tier、owner；归档后追加 archive/sync 字段）
       MISSION.md
       DESIGN.md
       tasks.yaml

@@ -1,0 +1,79 @@
+version: 2
+baseline_id: "BL-20260315-164500-import-cleanup"
+scope:
+  mode: "change"
+  focus: "import-cleanup"
+  baseline_source: "MISSION.md + specs/"
+  change_control: "all requirement changes must go through /change-request"
+  quality_tier: "standard"
+  primary_spec: "specs/todo-cli.spec.md"
+  confirmed_stack_decisions: "Node.js + JSON 文件存储 + 零依赖"
+  target_runtime: "本地命令行 + 导入文件"
+  dev_fallback: "不适用"
+
+required_special_reviews: []
+
+gates:
+  - id: "design-confirmation"
+    title: "设计确认门"
+    status: passed
+    checks:
+      - "导入链路和清洗规则已确认"
+      - "acceptance.yaml / tasks.yaml / Mission 的 baseline_id 一致"
+    evidence:
+      - "DESIGN.md §6 设计确认记录"
+      - "ia-map"
+
+  - id: "logic-confirmation"
+    title: "逻辑确认门"
+    status: passed
+    checks:
+      - "清洗流程和异常路径已在 spec 中定义"
+      - "baseline-log/ 已留下本轮基线确认记录文件"
+    evidence:
+      - "specs/todo-cli.spec.md §4 关键流程"
+      - "contract-note"
+
+  - id: "implementation-quality"
+    title: "实现质量门"
+    status: passed
+    checks:
+      - "normalize 实现与 spec 一致"
+      - "shared layer / 通用抽象改动已留下副作用影响清单"
+      - "路由 / entrypoint、wrapper / adapter、实体 / schema parity 已核对"
+    evidence:
+      - "build-log"
+      - "static-validation-check"
+      - "shared-impact-check"
+      - "schema-parity-check"
+
+  - id: "delivery-readiness"
+    title: "交付质量门"
+    status: passed
+    checks:
+      - "关键异常路径有 smoke 证据"
+      - "交付说明已区分 AI 已完成 与 需人工执行"
+      - "交付说明已拆分代码状态 / 数据状态 / 运行状态"
+      - "归档前已同步共享 memory / CONVENTIONS"
+    evidence:
+      - "degraded-path-check"
+      - "manual-action-note"
+      - "state-triage-note"
+      - "handoff-note"
+
+  - id: "parity-gate"
+    title: "对照一致性门"
+    status: not_applicable
+    checks:
+      - "本 lane 非 reverse-spec 项目，不需要额外对照参考对象"
+    evidence:
+      - "behavior-note"
+
+result:
+  design_locked: passed
+  logic_locked: passed
+  implementation_ready: passed
+  delivery_ready: passed
+  blockers: []
+  advisories: []
+  user_confirmation_blockers: []

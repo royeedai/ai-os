@@ -9,7 +9,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 | `.ai-os/project.md` | 记录跨 lane 共享的宿主项目身份、技术约束和协作边界 |
 | `.ai-os/CONVENTIONS.md` | 记录项目级代码约定（命名、模式、分层、日志），降低跨 session / 多人协作漂移 |
 | `.ai-os/memory.md` | 记录稳定决策和约束 |
-| `.ai-os/lanes/default/lane.toml` | 当前交付线的机器可读元数据：status、baseline、quality tier、risk tier、owner；供 `lane list`、`status`、`doctor` 和团队协同判断使用 |
+| `.ai-os/lanes/default/lane.toml` | 当前交付线的机器可读元数据：status、baseline、quality tier、risk tier、owner；归档后还会记录 archive outcome / reason / archived_at，以及 shared memory / CONVENTIONS / governance sync 状态 |
 | `.ai-os/lanes/default/MISSION.md` | 定义当前交付线的目标、范围、模式、治理档位和当前确认基线 ID；只承载低频、已确认、共享的交付章程 |
 | `.ai-os/lanes/default/baseline-log/` | 当前交付线的共享基线记录目录，每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录变更分析、确认和升格结果，供多人协作时对齐和审计；不再依赖全局递增编号 |
 | `.ai-os/lanes/default/DESIGN.md` | 锁定当前交付线的关键页面、信息架构、交互和流程，并记录 shared layer 副作用清单、route/schema/wrapper parity 与同仓对照实现 |
@@ -33,6 +33,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 - `brownfield` / `change` 下，`MISSION.md` 写的是当前这轮交付，不是整个存量项目
 - 待确认项、阶段状态和协作过程记录优先写入 `STATE.md` / `baseline-log/`，不要把 `MISSION.md` 写回热点文件
 - 团队协作下 `tasks.yaml` 使用唯一任务 ID 和稳定 `owner` 协作；`/build` 默认只更新自己任务的运行态字段
+- lane 关闭前，先把稳定经验回流到共享 `memory.md` / `CONVENTIONS.md`，再把 lane 标记为 `archived`
 - 任何需求变化先更新工件，再改代码
 - `debug` / `verify` 暴露出的稳定 failure mode，优先沉淀到 `evals/` 或 `verification-matrix.yaml`，不要只留在聊天记录里
 - 轻量流程也必须同步 `STATE.md` 和验证证据

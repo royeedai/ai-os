@@ -28,6 +28,7 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regre
 assert(fs.existsSync(path.join(repoRoot, "evals", "fallback-evidence-used-as-delivery.md")), "fallback-evidence eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "missing-user-confirmation.md")), "missing-user-confirmation eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "legacy-to-lanes-migration-skipped.md")), "legacy-to-lanes migration eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "lane-archive-without-shared-reflux.md")), "lane archive reflux eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "shared-layer-side-effect-audit-missed.md")), "shared-layer side-effect eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "parity-before-reuse-skipped.md")), "parity-before-reuse eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "fix-complete-but-data-runtime-not-recovered.md")), "state-triage eval exists");
@@ -44,6 +45,8 @@ assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix.md")), "
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-infrastructure-audit.md")), "brownfield infrastructure example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "config-closure-clarification.md")), "config closure example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "legacy-to-lanes-migration.md")), "legacy-to-lanes migration example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "lane-archive-shared-memory-reflux.md")), "lane archive reflux example exists");
+assert(fs.existsSync(path.join(repoRoot, "examples", "multi-lane-team-workspace", "README.md")), "multi-lane team workspace example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "DESIGN.md")), "greenfield skeleton includes DESIGN");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "tasks.yaml")), "greenfield skeleton includes tasks");
@@ -97,6 +100,7 @@ assert(maintainersDoc.includes("configurable-meant-operable-gap.md"), "maintaine
 assert(maintainersDoc.includes("docs/problem-ledger.md"), "maintainers doc references problem ledger");
 assert(maintainersDoc.includes("problem-ledger-coverage-regression.md"), "maintainers doc references problem ledger eval");
 assert(maintainersDoc.includes("legacy-to-lanes-migration-skipped.md"), "maintainers doc references migration eval");
+assert(maintainersDoc.includes("lane-archive-without-shared-reflux.md"), "maintainers doc references lane archive reflux eval");
 assert(maintainersDoc.includes("shared-layer-side-effect-audit-missed.md"), "maintainers doc references shared-layer side-effect eval");
 assert(maintainersDoc.includes("parity-before-reuse-skipped.md"), "maintainers doc references parity-before-reuse eval");
 assert(maintainersDoc.includes("fix-complete-but-data-runtime-not-recovered.md"), "maintainers doc references state-triage eval");
@@ -107,10 +111,15 @@ assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers 
 assert(maintainersDoc.includes("brownfield-infrastructure-audit.md"), "maintainers doc references infrastructure example");
 assert(maintainersDoc.includes("config-closure-clarification.md"), "maintainers doc references config closure example");
 assert(maintainersDoc.includes("legacy-to-lanes-migration.md"), "maintainers doc references migration example");
+assert(maintainersDoc.includes("multi-lane-team-workspace"), "maintainers doc references multi-lane team example");
+assert(maintainersDoc.includes("lane-archive-shared-memory-reflux.md"), "maintainers doc references lane archive reflux example");
 assert(examplesDoc.includes("canonical lane"), "examples README marks the canonical lane example");
 assert(examplesDoc.includes("lanes/default"), "examples README documents the lane-default example layout");
 assert(examplesDoc.includes("legacy-to-lanes-migration.md"), "examples README lists the migration example");
+assert(examplesDoc.includes("multi-lane-team-workspace"), "examples README lists the multi-lane team workspace example");
+assert(examplesDoc.includes("lane-archive-shared-memory-reflux.md"), "examples README lists the lane archive reflux example");
 assert(evalsDoc.includes("legacy-to-lanes-migration-skipped.md"), "evals README lists the migration eval");
+assert(evalsDoc.includes("lane-archive-without-shared-reflux.md"), "evals README lists the lane archive reflux eval");
 assert(agentsDoc.includes("node bin/create-ai-os.js plan /tmp/test-project --profile project"), "AGENTS documents plan preview with project profile");
 assert(agentsDoc.includes("node bin/create-ai-os.js /tmp/test-project --profile project"), "AGENTS uses project profile as the canonical install example");
 assert(!agentsDoc.includes("node bin/release.js --check"), "AGENTS avoids stale release.js guidance");
@@ -131,12 +140,14 @@ assert(cliDoc.includes("所有已承诺支持的环境承接"), "cli doc require
 assert(cliDoc.includes("恢复自动选择"), "cli doc explains how multi-lane ambiguity guidance restores auto-selection");
 assert(cliDoc.includes("create-ai-os lane add payments ."), "cli doc documents lane add lifecycle command");
 assert(cliDoc.includes("--risk-tier"), "cli doc documents lane risk tier flag");
+assert(cliDoc.includes("--memory-sync"), "cli doc documents lane archive sync flags");
 assert(cliDoc.includes("--only"), "cli doc documents exclusive lane activation");
 assert(cliDoc.includes("lane 敏感 workflow"), "cli doc explains resolving lane before lane-sensitive workflows");
 assert(cliDoc.includes("`/build`、`/verify`、`/ship`"), "cli doc includes build/verify/ship in lane-sensitive workflow guidance");
 assert(cliDoc.includes("lane-aware 修复建议"), "cli doc documents lane-aware repair guidance for delivery commands");
 assert(cliDoc.includes("Git 基线"), "cli doc documents git-backed lane candidate hints");
 assert(cliDoc.includes("status、quality tier、risk tier、owner"), "cli doc documents lane metadata summary output");
+assert(cliDoc.includes("共享 `memory.md` / `CONVENTIONS.md`"), "cli doc documents lane archive shared reflux");
 assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
 assert(readmeDoc.includes("推荐命令示例"), "README documents suggested lane-selection commands for multi-lane ambiguity");
 assert(readmeDoc.includes("Lane 生命周期命令"), "README documents lane lifecycle commands");
@@ -145,8 +156,11 @@ assert(readmeDoc.includes("risk tier"), "README documents lane risk tier metadat
 assert(readmeDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "README explains resolving lane before lane-sensitive workflows");
 assert(readmeDoc.includes("lane-aware 修复建议"), "README documents lane-aware repair guidance for delivery commands");
 assert(readmeDoc.includes("Git 基线"), "README documents git-backed lane candidate hints");
+assert(readmeDoc.includes("examples/multi-lane-team-workspace/"), "README references the multi-lane team workspace example");
+assert(readmeDoc.includes("`--problem-ledger-sync`"), "README documents governance sync for lane archive");
 assert(workflowsDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "workflows doc explains resolving lane before lane-sensitive workflows");
 assert(workflowsDoc.includes("当前覆盖了哪些 lane"), "workflows doc requires cross-lane coverage summaries for shared changes");
+assert(workflowsDoc.includes("回流到共享 `memory.md` / `CONVENTIONS.md`"), "workflows doc requires lane closure reflux");
 assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
 assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
 assert(artifactsDoc.includes("risk tier"), "artifacts doc documents lane risk tier metadata");
@@ -176,6 +190,7 @@ assert(updatedLedger.includes("legacy-to-lanes-migration-skipped"), "problem led
 assert(updatedLedger.includes("PL-030"), "problem ledger includes PL-030 shared-layer side-effect entry");
 assert(updatedLedger.includes("PL-031"), "problem ledger includes PL-031 parity-before-reuse entry");
 assert(updatedLedger.includes("PL-032"), "problem ledger includes PL-032 code/data/runtime triage entry");
+assert(updatedLedger.includes("PG-007"), "problem ledger includes PG-007 lane archive reflux entry");
 assert(updatedLedger.includes("Codex CLI"), "problem ledger documents Codex CLI in IDE portability rule");
 assert(updatedLedger.includes("默认不纳入 CLI 主能力"), "problem ledger blocks single-IDE features from CLI mainline");
 assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");

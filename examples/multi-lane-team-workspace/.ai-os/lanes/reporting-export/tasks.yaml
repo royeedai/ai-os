@@ -1,0 +1,146 @@
+version: 3
+baseline_id: "BL-20260316-091500-reporting-export"
+scope:
+  mode: "change"
+  focus: "reporting-export"
+  baseline_source: "MISSION.md + specs/"
+  quality_tier: "standard"
+
+milestones:
+  - id: M1
+    title: "导出契约锁定"
+    goal: "命令结构和共享约束已确认"
+    scope: "export 命令设计、格式与过滤语义"
+    acceptance_goal: "spec / acceptance 已可进入实现"
+    target_window: "lane kick-off"
+
+  - id: M2
+    title: "导出实现"
+    goal: "export 命令可跑通"
+    scope: "实现命令、最小 smoke、跨 lane 影响说明"
+    acceptance_goal: "实现质量门具备通过条件"
+    target_window: "current sprint"
+
+tasks:
+  - id: TASK-REP-001
+    title: "锁定 export 契约与共享影响清单"
+    milestone: M1
+    parent: null
+    wave: 1
+    status: done
+    owner: AI
+    risk: medium
+    priority: high
+    execution_role: "contract_mapper"
+    approval_required: "none"
+    context_files:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "specs/todo-cli.spec.md"
+    inputs:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "specs/todo-cli.spec.md"
+    outputs:
+      - "specs/todo-cli.spec.md"
+      - "acceptance.yaml"
+    definition_of_ready:
+      - "导出需求基线已确认"
+    definition_of_done:
+      - "导出命令、格式和异常路径已写入 spec"
+      - "共享入口副作用清单已完成"
+    evidence_required:
+      - "spec-update"
+    parity_evidence_required: []
+    measurable_outcome:
+      - "导出命令表、字段顺序和过滤语义均已锁定"
+      - "共享入口影响面已列出"
+    edge_cases:
+      - "目标目录不可写"
+      - "空列表导出"
+      - "未知 format"
+    impact_tags:
+      - "entrypoint"
+      - "mapping"
+    derived_checks:
+      - "命令契约核对"
+    parity_checks:
+      - "route-contract"
+      - "same-repo-reference"
+    similar_impl_refs:
+      - "src/commands.js"
+      - "bin/todo.js"
+    step_validation:
+      - "node --check src/commands.js"
+    risk_triggers: []
+    blockers: []
+    requirement_refs:
+      - "MISSION §4 范围内: export 子命令"
+    acceptance_criteria:
+      - "export 契约与共享影响面已确认"
+    notes: ""
+
+  - id: TASK-REP-002
+    title: "实现 export 命令与最小 smoke"
+    milestone: M2
+    parent: null
+    wave: 2
+    status: in-progress
+    owner: AI
+    risk: medium
+    priority: high
+    execution_role: "implementer"
+    approval_required: "none"
+    depends_on:
+      - "TASK-REP-001"
+    context_files:
+      - "specs/todo-cli.spec.md"
+      - "DESIGN.md"
+    inputs:
+      - "specs/todo-cli.spec.md"
+    outputs:
+      - "src/export.js"
+      - "src/commands.js"
+      - "bin/todo.js"
+    definition_of_ready:
+      - "导出契约已锁定"
+      - "共享入口影响清单已完成"
+    definition_of_done:
+      - "export 命令可生成 jsonl/csv"
+      - "最小 smoke 已通过"
+      - "已记录需要补看的其他 lane"
+    evidence_required:
+      - "build-log"
+      - "manual-smoke"
+    parity_evidence_required: []
+    measurable_outcome:
+      - "jsonl 导出成功输出条数"
+      - "csv 导出保留固定字段顺序"
+    edge_cases:
+      - "导出空列表"
+      - "重复运行覆盖同一路径"
+      - "无权限写文件"
+    impact_tags:
+      - "entrypoint"
+      - "storage"
+    derived_checks:
+      - "导出 smoke 回归"
+      - "跨 lane 影响说明"
+    parity_checks:
+      - "route-contract"
+      - "schema-consistency"
+      - "same-repo-reference"
+    similar_impl_refs:
+      - "src/commands.js"
+      - "src/store.js"
+    step_validation:
+      - "node --check src/export.js"
+      - "node bin/todo.js export --format jsonl --output /tmp/todos.jsonl --all"
+    risk_triggers: []
+    blockers: []
+    requirement_refs:
+      - "MISSION §4 范围内: export 子命令"
+    acceptance_criteria:
+      - "导出命令可用"
+      - "不修改原始数据"
+    notes: "进入 /verify 时补看 default lane"

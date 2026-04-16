@@ -25,6 +25,10 @@ const changeRequestExampleRoot = path.join(repoRoot, "examples", "change-request
 const degradedPathExampleRoot = path.join(repoRoot, "examples", "degraded-path-verification");
 const quickstartExampleRoot = path.join(repoRoot, "examples", "quickstart-todo-cli");
 const quickstartLaneRoot = path.join(quickstartExampleRoot, ".ai-os", "lanes", "default");
+const multiLaneExampleRoot = path.join(repoRoot, "examples", "multi-lane-team-workspace");
+const multiLaneDefaultRoot = path.join(multiLaneExampleRoot, ".ai-os", "lanes", "default");
+const multiLaneReportingRoot = path.join(multiLaneExampleRoot, ".ai-os", "lanes", "reporting-export");
+const multiLaneArchivedRoot = path.join(multiLaneExampleRoot, ".ai-os", "lanes", "import-cleanup");
 
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "STATE.md")), "reverse-spec example skeleton includes STATE");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "tasks.yaml")), "reverse-spec example skeleton includes tasks");
@@ -75,6 +79,33 @@ assert(/baseline_id: "BL-\d{8}-\d{6}-[a-z0-9-]+"/.test(quickstartTasks), "quicks
 assert(quickstartTasks.includes("measurable_outcome"), "quickstart tasks include measurable outcomes");
 assert(quickstartTasks.includes("edge_cases"), "quickstart tasks include edge cases");
 
+section("multi-lane team workspace example");
+assert(fs.existsSync(path.join(multiLaneExampleRoot, "README.md")), "multi-lane team workspace includes README");
+assert(fs.existsSync(path.join(multiLaneExampleRoot, ".ai-os", "project.md")), "multi-lane team workspace includes shared project charter");
+assert(fs.existsSync(path.join(multiLaneDefaultRoot, "lane.toml")), "multi-lane team workspace includes default lane metadata");
+assert(fs.existsSync(path.join(multiLaneReportingRoot, "lane.toml")), "multi-lane team workspace includes draft reporting lane metadata");
+assert(fs.existsSync(path.join(multiLaneArchivedRoot, "lane.toml")), "multi-lane team workspace includes archived import lane metadata");
+assert(fs.existsSync(path.join(multiLaneArchivedRoot, "release-plan.md")), "multi-lane team workspace keeps release-plan for archived lane closure");
+assert(listLaneBaselineRecords(multiLaneExampleRoot, "reporting-export", "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "reporting-export lane includes timestamped baseline-log record");
+assert(listLaneBaselineRecords(multiLaneExampleRoot, "import-cleanup", "BL-").some((name) => BASELINE_RECORD_NAME_PATTERN.test(name)), "import-cleanup lane includes timestamped baseline-log record");
+const multiLaneReadme = fs.readFileSync(path.join(multiLaneExampleRoot, "README.md"), "utf8");
+assert(multiLaneReadme.includes("1 active + 1 draft + 1 archived"), "multi-lane README documents lane topology");
+assert(multiLaneReadme.includes("memory.md"), "multi-lane README documents shared memory reflux");
+const multiLaneMemory = fs.readFileSync(path.join(multiLaneExampleRoot, ".ai-os", "memory.md"), "utf8");
+assert(multiLaneMemory.includes("导入清洗"), "multi-lane shared memory includes archived lane conclusions");
+const multiLaneList = run("create-ai-os.js", ["lane", "list", multiLaneExampleRoot]);
+assert(multiLaneList.status === 0, "lane list works for multi-lane team workspace example");
+assert(multiLaneList.stdout.includes("Topology: 1 active, 1 draft, 1 archived"), "lane list reports the multi-lane example topology");
+assert(multiLaneList.stdout.includes("outcome=shipped"), "lane list reports archived lane outcome");
+const archivedStatus = run("ai-os-status.js", [multiLaneExampleRoot, "--lane", "import-cleanup"]);
+assert(archivedStatus.status === 0, "status works for archived lane in multi-lane example");
+assert(archivedStatus.stdout.includes("收口结果: shipped"), "status reports archived lane outcome in example");
+assert(archivedStatus.stdout.includes("CONVENTIONS 回流: done"), "status reports archived lane conventions sync in example");
+const archivedDoctor = run("ai-os-doctor.js", [multiLaneExampleRoot, "--lane", "import-cleanup"]);
+assert(archivedDoctor.status === 1, "doctor reports framework skeleton gaps for archived lane example");
+assert(archivedDoctor.stdout.includes("archive outcome: shipped"), "doctor reports archived lane outcome in example");
+assert(archivedDoctor.stdout.includes("Archived lane memory sync is valid: done"), "doctor validates archived lane memory sync in example");
+
 section("migration example guidance");
 const migrationExamplePath = path.join(repoRoot, "examples", "legacy-to-lanes-migration.md");
 assert(fs.existsSync(migrationExamplePath), "migration example exists");
@@ -92,6 +123,7 @@ for (const [label, root, allowWarnings] of [
   ["change-request example", changeRequestExampleRoot, true],
   ["degraded-path example", degradedPathExampleRoot, true],
   ["quickstart example", quickstartExampleRoot, false],
+  ["multi-lane team example", multiLaneExampleRoot, false],
 ]) {
   const result = run("ai-os-validate.js", [root]);
   assert(result.status === 0, `${label}: validate passes`);

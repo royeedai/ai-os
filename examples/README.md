@@ -6,7 +6,8 @@
 
 **首次了解 AI-OS？从这里开始：**
 
-- `quickstart-todo-cli/` — 当前 canonical lane 示例，完整展示 `shared root + .ai-os/lanes/default/`，并走通 `/align` → `/ship`
+- `quickstart-todo-cli/` — canonical lane quickstart，完整展示 `shared root + .ai-os/lanes/default/`，并走通 `/align` → `/ship`
+- `multi-lane-team-workspace/` — canonical 团队协作 lane 示例，展示 `1 active + 1 draft + 1 archived` 拓扑，以及 lane 归档后的 shared memory / CONVENTIONS 回流
 
 ## 场景示例
 
@@ -23,6 +24,7 @@
 - `config-closure-clarification.md`
 - `failure-mode-eval-closure.md`
 - `legacy-to-lanes-migration.md`
+- `lane-archive-shared-memory-reflux.md`
 
 每个示例都配一套最小 `.ai-os/` 骨架，帮助维护者判断：
 
@@ -33,5 +35,6 @@
 
 说明：
 
-- `quickstart-todo-cli/` 是 `7.x` 默认 lane 模型示例
+- `quickstart-todo-cli/` 是 `7.x` 默认 lane 模型的单 lane 示例
+- `multi-lane-team-workspace/` 是 `7.2.x` 团队并行协作与 lane 收口的 canonical example
 - 其余目录示例当前仍保留 legacy 单交付骨架，用于兼容和对比

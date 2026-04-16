@@ -103,6 +103,14 @@ if (laneResolution.ok && laneResolution.lane) {
   process.stdout.write(`- quality tier: ${selectedLane.qualityTier || "missing"}\n`);
   process.stdout.write(`- risk tier: ${selectedLane.riskTier || "missing"}${selectedLane.hasExplicitRiskTier ? "" : " (derived from quality tier)"}\n`);
   process.stdout.write(`- owner: ${selectedLane.owner || "missing"}\n`);
+  if (selectedLane.status === "archived") {
+    process.stdout.write(`- archive outcome: ${selectedLane.archiveOutcome || "missing"}\n`);
+    process.stdout.write(`- archived at: ${selectedLane.archivedAt || "missing"}\n`);
+    process.stdout.write(`- archive reason: ${selectedLane.archiveReason || "missing"}\n`);
+    process.stdout.write(`- memory sync: ${selectedLane.memorySync || "missing"}\n`);
+    process.stdout.write(`- conventions sync: ${selectedLane.conventionsSync || "missing"}\n`);
+    process.stdout.write(`- problem-ledger sync: ${selectedLane.problemLedgerSync || "missing"}\n`);
+  }
   if (allLanes.length > 1) {
     process.stdout.write(`- topology: ${activeCount} active / ${draftCount} draft / ${archivedCount} archived\n`);
   }
@@ -282,6 +290,32 @@ if (laneResolution.ok && laneResolution.lane) {
     selectedLane.owner ? `Lane owner recorded: ${selectedLane.owner}` : "Lane owner missing from lane.toml",
     { warnOnly: warnOnMissingOwner || !selectedLane.owner }
   );
+  if (selectedLane.status === "archived") {
+    report(Boolean(selectedLane.archiveOutcome), "Archived lane records archive outcome", {
+      warnOnly: !selectedLane.archiveOutcome,
+    });
+    report(Boolean(selectedLane.archiveReason), "Archived lane records archive reason", {
+      warnOnly: !selectedLane.archiveReason,
+    });
+    report(Boolean(selectedLane.archivedAt), "Archived lane records archived_at", {
+      warnOnly: !selectedLane.archivedAt,
+    });
+    report(
+      selectedLane.memorySyncValid,
+      `Archived lane memory sync is valid${selectedLane.memorySync ? `: ${selectedLane.memorySync}` : ""}`,
+      { warnOnly: !selectedLane.memorySyncValid || selectedLane.memorySync === "pending" }
+    );
+    report(
+      selectedLane.conventionsSyncValid,
+      `Archived lane CONVENTIONS sync is valid${selectedLane.conventionsSync ? `: ${selectedLane.conventionsSync}` : ""}`,
+      { warnOnly: !selectedLane.conventionsSyncValid || selectedLane.conventionsSync === "pending" }
+    );
+    report(
+      selectedLane.problemLedgerSyncValid,
+      `Archived lane problem-ledger sync is valid${selectedLane.problemLedgerSync ? `: ${selectedLane.problemLedgerSync}` : ""}`,
+      { warnOnly: !selectedLane.problemLedgerSyncValid || selectedLane.problemLedgerSync === "pending" }
+    );
+  }
 }
 
 if (strict) {

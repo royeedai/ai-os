@@ -201,6 +201,7 @@
 - `memory.md` 中的条目使用唯一 ID（DD-001、CD-001 等），不同开发者追加不同 ID 的条目
 - PR 合并时，若 `memory.md` 出现冲突，保留双方条目（决策记录不可丢弃）
 - 归档操作（将条目从 active 移至 archived）建议在主干分支上统一执行
+- lane 关闭前，先判断哪些稳定结论应回流到共享 `memory.md` / `CONVENTIONS.md`，再执行 `lane archive`；不要把稳定经验继续留在 lane 私有工件里
 
 ## Workflows
 

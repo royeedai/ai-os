@@ -419,7 +419,17 @@ section("lane worktree impact unit tests");
   try {
     writeFile(
       path.join(dir, ".ai-os", "lanes", "alpha", "lane.toml"),
-      ['status = "archived"', 'quality_tier = "exploratory"', ""].join("\n")
+      [
+        'status = "archived"',
+        'quality_tier = "exploratory"',
+        'archive_outcome = "shipped"',
+        'archive_reason = "Merged into main"',
+        'archived_at = "2026-04-16"',
+        'memory_sync = "done"',
+        'conventions_sync = "not-needed"',
+        'problem_ledger_sync = "pending"',
+        "",
+      ].join("\n")
     );
     writeFile(
       path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"),
@@ -431,6 +441,9 @@ section("lane worktree impact unit tests");
     const invalidLane = lanes.find((lane) => lane.id === "beta");
     assert(archivedLane.riskTier === "low", "derives low risk tier from exploratory quality tier");
     assert(archivedLane.hasExplicitRiskTier === false, "tracks derived risk tier when lane metadata omits it");
+    assert(archivedLane.archiveOutcome === "shipped", "reads archive outcome from metadata");
+    assert(archivedLane.memorySync === "done", "reads memory sync from metadata");
+    assert(archivedLane.closurePending === true, "tracks archived lane with pending closure follow-up");
     assert(invalidLane.riskTier === "medium", "derives medium risk tier for default quality tier");
 
     const unresolved = shared.resolveProjectLane(dir);

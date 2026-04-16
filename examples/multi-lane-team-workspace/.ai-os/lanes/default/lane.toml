@@ -1,0 +1,7 @@
+id = "default"
+title = "核心 CLI 主线"
+status = "active"
+baseline_id = "BL-20260316-083000-todo-cli-baseline"
+quality_tier = "standard"
+risk_tier = "medium"
+owner = "team-core"

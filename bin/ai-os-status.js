@@ -66,6 +66,14 @@ if (laneResolution.ok && laneResolution.lane) {
   process.stdout.write(`- 风险档位: ${lane.riskTier || "未记录"}${lane.hasExplicitRiskTier ? "" : "（由 quality tier 推导）"}\n`);
   process.stdout.write(`- owner: ${lane.owner || "未记录"}\n`);
   process.stdout.write(`- 工件路径: ${lane.relativePath}/\n`);
+  if (lane.status === "archived") {
+    process.stdout.write(`- 收口结果: ${lane.archiveOutcome || "未记录"}\n`);
+    process.stdout.write(`- 归档时间: ${lane.archivedAt || "未记录"}\n`);
+    process.stdout.write(`- 归档原因: ${lane.archiveReason || "未记录"}\n`);
+    process.stdout.write(`- memory 回流: ${lane.memorySync || "未记录"}\n`);
+    process.stdout.write(`- CONVENTIONS 回流: ${lane.conventionsSync || "未记录"}\n`);
+    process.stdout.write(`- problem-ledger 回流: ${lane.problemLedgerSync || "未记录"}\n`);
+  }
   const lanes = laneResolution.layout && Array.isArray(laneResolution.layout.lanes)
     ? laneResolution.layout.lanes
     : [];

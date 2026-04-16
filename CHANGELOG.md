@@ -8,6 +8,21 @@
 
 ---
 
+## 7.2.1 (2026-04-16)
+
+### Added
+
+- `evals/lane-archive-without-shared-reflux.md`：为 lane 归档只改状态、未回流共享记忆的失误补了 root eval
+- `examples/lane-archive-shared-memory-reflux.md`：补了一份 lane 收口与 shared memory reflux 的最小示例说明
+- `examples/multi-lane-team-workspace/`：新增 canonical 团队协作示例，展示 `1 active + 1 draft + 1 archived` 拓扑，以及 archived lane 的 memory / CONVENTIONS reflux
+
+### Changed
+
+- `create-ai-os lane archive` 现在会稳定保留已归档 lane 的既有 `archived_at` / sync metadata，避免重复收口时把归档元数据误写回 `pending`
+- `status` / `doctor` / `lane list` 对 archived lane 的收口结果与 reflux 状态有了更清晰的可见性；lane 关闭不再只是一个 `status = "archived"` 字段
+- framework 的 `/ship`、`/postmortem` 与团队协作文档同步补齐了 lane 收口规则：归档前先把稳定结论回流到共享 `memory.md` / `CONVENTIONS.md`
+- README、CLI、Artifacts、maintainers、problem-ledger、7.2 backlog 与回归测试同步收口，`7.2` 团队协同增强阶段的出口条件现已完整闭合
+
 ## 7.2.0 (2026-04-16)
 
 ### Added

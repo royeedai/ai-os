@@ -190,6 +190,8 @@ const LANE_DELIVERY_DIRS = [...LANE_CORE_ARTIFACT_DIRS];
 
 const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
 const RISK_TIERS = ["low", "medium", "high"];
+const ARCHIVE_OUTCOMES = ["shipped", "superseded", "abandoned"];
+const LANE_SYNC_STATUSES = ["pending", "done", "not-needed"];
 const IMPACT_TAGS = [
   "entrypoint",
   "transport",
@@ -523,6 +525,22 @@ function normalizeLaneRiskTier(value, options = {}) {
   return normalized;
 }
 
+function normalizeArchiveOutcome(value, options = {}) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return String(options.defaultValue || "").trim().toLowerCase();
+  }
+  return normalized;
+}
+
+function normalizeLaneSyncStatus(value, options = {}) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return String(options.defaultValue || "").trim().toLowerCase();
+  }
+  return normalized;
+}
+
 function setDeliveryLaneContext(laneId = "") {
   CURRENT_DELIVERY_LANE_ID = normalizeLaneId(laneId);
 }
@@ -661,6 +679,48 @@ function listProjectLanes(targetDir) {
       const status = normalizeLaneStatus(values.status);
       const qualityTier = values.quality_tier || "standard";
       const riskTier = normalizeLaneRiskTier(values.risk_tier, { qualityTier });
+      const archived = status === LANE_STATUS_ARCHIVED;
+      const archiveOutcome = archived
+        ? normalizeArchiveOutcome(values.archive_outcome, { defaultValue: "" })
+        : "";
+      const memorySync = archived
+        ? normalizeLaneSyncStatus(values.memory_sync, { defaultValue: "pending" })
+        : "";
+      const conventionsSync = archived
+        ? normalizeLaneSyncStatus(values.conventions_sync, { defaultValue: "pending" })
+        : "";
+      const problemLedgerSync = archived
+        ? normalizeLaneSyncStatus(values.problem_ledger_sync, { defaultValue: "pending" })
+        : "";
+      const closurePendingReasons = [];
+      if (archived) {
+        if (!archiveOutcome) {
+          closurePendingReasons.push("archive outcome missing");
+        } else if (!ARCHIVE_OUTCOMES.includes(archiveOutcome)) {
+          closurePendingReasons.push("archive outcome invalid");
+        }
+        if (!String(values.archive_reason || "").trim()) {
+          closurePendingReasons.push("archive reason missing");
+        }
+        if (!values.archived_at) {
+          closurePendingReasons.push("archived_at missing");
+        }
+        if (!LANE_SYNC_STATUSES.includes(memorySync)) {
+          closurePendingReasons.push("memory sync invalid");
+        } else if (memorySync === "pending") {
+          closurePendingReasons.push("memory sync pending");
+        }
+        if (!LANE_SYNC_STATUSES.includes(conventionsSync)) {
+          closurePendingReasons.push("conventions sync invalid");
+        } else if (conventionsSync === "pending") {
+          closurePendingReasons.push("conventions sync pending");
+        }
+        if (!LANE_SYNC_STATUSES.includes(problemLedgerSync)) {
+          closurePendingReasons.push("problem-ledger sync invalid");
+        } else if (problemLedgerSync === "pending") {
+          closurePendingReasons.push("problem-ledger sync pending");
+        }
+      }
       return {
         id: laneId,
         title: values.title || null,
@@ -672,6 +732,18 @@ function listProjectLanes(targetDir) {
         riskTier,
         riskTierValid: !values.risk_tier || RISK_TIERS.includes(riskTier),
         hasExplicitRiskTier: Boolean(values.risk_tier),
+        archiveOutcome: archiveOutcome || null,
+        archiveOutcomeValid: !values.archive_outcome || ARCHIVE_OUTCOMES.includes(archiveOutcome),
+        archiveReason: values.archive_reason || null,
+        archivedAt: values.archived_at || null,
+        memorySync: memorySync || null,
+        memorySyncValid: !values.memory_sync || LANE_SYNC_STATUSES.includes(memorySync),
+        conventionsSync: conventionsSync || null,
+        conventionsSyncValid: !values.conventions_sync || LANE_SYNC_STATUSES.includes(conventionsSync),
+        problemLedgerSync: problemLedgerSync || null,
+        problemLedgerSyncValid: !values.problem_ledger_sync || LANE_SYNC_STATUSES.includes(problemLedgerSync),
+        closurePending: closurePendingReasons.length > 0,
+        closurePendingReasons,
         owner: values.owner || null,
         rootPath: getLaneFilePath(targetDir, laneId),
         relativePath: getLaneRelativePath(laneId),
@@ -745,6 +817,9 @@ function formatLaneDescriptor(lane) {
   }
   if (lane.riskTier) {
     meta.push(`risk=${lane.riskTier}`);
+  }
+  if (lane.archiveOutcome) {
+    meta.push(`outcome=${lane.archiveOutcome}`);
   }
   if (lane.owner) {
     meta.push(`owner=${lane.owner}`);
@@ -1458,6 +1533,39 @@ function buildLaneMetadata(laneId, options = {}) {
 
   if (options.owner) {
     metadata.owner = options.owner;
+  }
+
+  const archiveStatus = metadata.status === LANE_STATUS_ARCHIVED;
+  const archiveOutcome = normalizeArchiveOutcome(options.archiveOutcome, {
+    defaultValue: archiveStatus ? "" : "",
+  });
+  if (archiveOutcome) {
+    metadata.archive_outcome = archiveOutcome;
+  }
+  if (options.archiveReason) {
+    metadata.archive_reason = String(options.archiveReason).trim();
+  }
+  if (options.archivedAt) {
+    metadata.archived_at = String(options.archivedAt).trim();
+  }
+
+  const memorySync = normalizeLaneSyncStatus(options.memorySync, {
+    defaultValue: archiveStatus ? "pending" : "",
+  });
+  if (memorySync) {
+    metadata.memory_sync = memorySync;
+  }
+  const conventionsSync = normalizeLaneSyncStatus(options.conventionsSync, {
+    defaultValue: archiveStatus ? "pending" : "",
+  });
+  if (conventionsSync) {
+    metadata.conventions_sync = conventionsSync;
+  }
+  const problemLedgerSync = normalizeLaneSyncStatus(options.problemLedgerSync, {
+    defaultValue: archiveStatus ? "pending" : "",
+  });
+  if (problemLedgerSync) {
+    metadata.problem_ledger_sync = problemLedgerSync;
   }
 
   return metadata;
@@ -3004,6 +3112,8 @@ module.exports = {
   isQuickIncluded,
   QUALITY_TIERS,
   RISK_TIERS,
+  ARCHIVE_OUTCOMES,
+  LANE_SYNC_STATUSES,
   IMPACT_TAGS,
   HIGH_RISK_SPECIAL_REVIEWS,
   readFrameworkVersion,

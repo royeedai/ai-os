@@ -14,6 +14,8 @@ section("lane lifecycle command");
   const laneHelpResult = run("create-ai-os.js", ["lane", "--help"]);
   assert(laneHelpResult.status === 0, "create-ai-os lane --help exits with code 0");
   assert(laneHelpResult.stdout.includes("--risk-tier <tier>"), "create-ai-os lane --help documents lane risk tier");
+  assert(laneHelpResult.stdout.includes("--outcome <outcome>"), "create-ai-os lane --help documents lane archive outcome");
+  assert(laneHelpResult.stdout.includes("--memory-sync <status>"), "create-ai-os lane --help documents lane archive sync status");
 }
 
 {
@@ -57,9 +59,43 @@ section("lane lifecycle command");
   assert(statusResult.stdout.includes("lane: beta"), "status auto-selects the activated lane");
   assert(statusResult.stdout.includes("风险档位: high"), "status reports current lane risk tier");
 
-  const archiveResult = run("create-ai-os.js", ["lane", "archive", "beta", dir]);
+  const blockedArchiveResult = run("create-ai-os.js", ["lane", "archive", "beta", dir, "--outcome", "shipped", "--reason", "Ready to merge"]);
+  assert(blockedArchiveResult.status === 1, "lane archive blocks when closure sync decisions are missing");
+  assert(blockedArchiveResult.stderr.includes("memory sync still pending"), "lane archive reports pending memory sync");
+
+  const archiveResult = run("create-ai-os.js", [
+    "lane",
+    "archive",
+    "beta",
+    dir,
+    "--outcome",
+    "superseded",
+    "--reason",
+    "Merged into default lane",
+    "--memory-sync",
+    "done",
+    "--conventions-sync",
+    "not-needed",
+    "--problem-ledger-sync",
+    "not-needed",
+  ]);
   assert(archiveResult.status === 0, "lane archive succeeds");
+  assert(archiveResult.stdout.includes("Outcome: superseded"), "lane archive prints archive outcome");
   assert(archiveResult.stdout.includes("No active lane remains"), "lane archive reports when no active lane remains");
+
+  const archivedBetaMetadata = fs.readFileSync(path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"), "utf8");
+  assert(archivedBetaMetadata.includes('archive_outcome = "superseded"'), "lane archive writes archive outcome");
+  assert(archivedBetaMetadata.includes('memory_sync = "done"'), "lane archive writes memory sync status");
+
+  const archivedStatusResult = run("ai-os-status.js", [dir, "--lane", "beta"]);
+  assert(archivedStatusResult.status === 0, "status can read archived lane explicitly");
+  assert(archivedStatusResult.stdout.includes("收口结果: superseded"), "status reports archived lane outcome");
+  assert(archivedStatusResult.stdout.includes("memory 回流: done"), "status reports archived lane memory sync");
+
+  const archivedDoctorResult = run("ai-os-doctor.js", [dir, "--lane", "beta"]);
+  assert(archivedDoctorResult.status === 0, "doctor can inspect archived lane explicitly");
+  assert(archivedDoctorResult.stdout.includes("archive outcome: superseded"), "doctor reports archived lane outcome");
+  assert(archivedDoctorResult.stdout.includes("Archived lane memory sync is valid: done"), "doctor validates archived lane memory sync");
 
   cleanup(dir);
 }

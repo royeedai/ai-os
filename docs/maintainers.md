@@ -42,6 +42,7 @@
 - `evals/problem-ledger-coverage-regression.md`
 - `evals/read-only-analysis-before-edit.md`
 - `evals/legacy-to-lanes-migration-skipped.md`
+- `evals/lane-archive-without-shared-reflux.md`
 - `evals/shared-layer-side-effect-audit-missed.md`
 - `evals/parity-before-reuse-skipped.md`
 - `evals/fix-complete-but-data-runtime-not-recovered.md`
@@ -49,6 +50,7 @@
 ## 当前主示例
 
 - `examples/quickstart-todo-cli/`（canonical lane 示例，展示 `shared root + lanes/default`）
+- `examples/multi-lane-team-workspace/`（canonical 团队协作 lane 示例，展示 active / draft / archived 拓扑与 shared memory reflux）
 - `examples/greenfield-guided-product.md`（含 `.ai-os/` 骨架）
 - `examples/reverse-spec-admin-console.md`（含 `.ai-os/` 骨架）
 - `examples/brownfield-change-journey.md`（含 `.ai-os/` 骨架）
@@ -62,6 +64,7 @@
 - `examples/config-closure-clarification.md`
 - `examples/failure-mode-eval-closure.md`
 - `examples/legacy-to-lanes-migration.md`
+- `examples/lane-archive-shared-memory-reflux.md`
 
 ## 治理问题台账
 
@@ -70,6 +73,7 @@
 - PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
 - PG-004: CLI / 框架能力只在单一 IDE 可用 → 必须写清 Codex / Cursor / Claude Code 等承接路径，否则不纳入 CLI 主能力
 - PG-006: 单工作区单当前基线模型无法承载多人多迭代并行 → 进入 `7.x lanes` 演进规划，当前 CLI 落点见 `bin/ai-os-lane.js`、`bin/ai-os-status.js`、`bin/ai-os-doctor.js`，workflow 进入规则见 `framework/.agents/workflows/AGENTS.md` / `align.md` / `change-request.md` / `verify.md`，lane-aware 修复建议与 worktree 启发式见 `bin/shared.js` / `bin/ai-os-validate.js` / `bin/ai-os-gate.js` / `bin/ai-os-release-check.js`，整体规划见 `docs/evolution/multi-delivery-lanes-proposal.md`、`docs/evolution/multi-delivery-lanes-7.2-backlog.md`、`examples/legacy-to-lanes-migration.md`、`evals/legacy-to-lanes-migration-skipped.md`
+- PG-007: lane 归档只改 status、没有共享记忆回流 → 收口规则见 `bin/ai-os-lane.js` / `bin/shared.js` / `bin/ai-os-status.js` / `bin/ai-os-doctor.js`，workflow 规则见 `framework/.agents/workflows/ship.md` / `postmortem.md` / `AGENTS.md`，canonical example 见 `examples/multi-lane-team-workspace/`、`examples/lane-archive-shared-memory-reflux.md`，回归 eval 见 `evals/lane-archive-without-shared-reflux.md`
 
 ## 版本纪律
 

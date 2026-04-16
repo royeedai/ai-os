@@ -26,7 +26,9 @@ description: 做交付、发布、回滚和移交
 5. 明确交付说明与移交内容，输出 `AI 已完成` / `需人工执行` 双清单
 6. 列出本次已实现功能、未纳入范围的内容、影响范围、上线注意事项和后续维护建议
 7. 区分 fallback 证据和正式交付证据，并显式记录静态校验证据
-8. 在真正收口前，向用户输出完整交付说明并等待确认
+8. 若当前 lane 将在本轮收口后归档，先判断哪些稳定结论要回流到共享 `.ai-os/memory.md` / `.ai-os/CONVENTIONS.md`，并记录各自是 `done` 还是 `not-needed`
+9. 若确认要归档当前 lane，在共享结论已回流或已明确 `not-needed` 后，再执行 `create-ai-os lane archive <lane-id> . --outcome <outcome> --reason <reason> --memory-sync <status> --conventions-sync <status> --problem-ledger-sync <status>`
+10. 在真正收口前，向用户输出完整交付说明并等待确认
 
 ## 禁止事项
 
@@ -34,4 +36,5 @@ description: 做交付、发布、回滚和移交
 - 禁止多 active lane 未判定当前 lane 就输出 release 说明
 - 禁止共享代码改动只确认当前 lane，就把其他 lane 一并写成“已交付”
 - 禁止把仍需人工执行的 SQL / 重启 / 迁移 / 补数 / 环境变更写成 AI 已全部完成
+- 禁止 lane 归档只改 `status = "archived"`，却不先明确共享 `memory.md` / `CONVENTIONS.md` 的回流结果
 - 禁止未说明风险、回滚和运行态前提就直接宣称可上线

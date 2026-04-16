@@ -32,7 +32,7 @@
   - `lane add` 支持更完整元数据
   - `lane list`、`status`、`doctor` 显示 lane 元数据和 topology
   - 对缺失 owner、使用推导 risk tier、无效 metadata 的场景给出提示
-- **当前状态**：进行中
+- **当前状态**：已完成（7.2.0）
 
 ### L72-02 Lane 收口与记忆回流
 
@@ -41,7 +41,7 @@
   - 为 `lane archive` 补收口清单
   - 明确哪些结论应回流到共享 `memory.md` / `CONVENTIONS.md` / `problem-ledger.md`
   - 增加 lane 关闭后的 evidence / note 要求
-- **当前状态**：待开始
+- **当前状态**：已完成（7.2.1）
 
 ### L72-03 多 lane 示例与协作叙事
 
@@ -50,10 +50,18 @@
   - 新增多 lane canonical example
   - README / docs / framework workflow 增补团队并行 lane 的日常操作说明
   - 增加对应 eval / docs / examples 回归
-- **当前状态**：待开始
+- **当前状态**：已完成（7.2.1）
 
 ## 4. 建议实施顺序
 
-1. 先做 `L72-01`，让 lane 元数据和拓扑可见
-2. 再做 `L72-02`，把 lane 关闭后的沉淀规则补上
-3. 最后做 `L72-03`，用 example 和文档把团队心智收口
+1. `L72-01` 已完成：lane 元数据和拓扑可见
+2. `L72-02` 已完成：lane 收口时显式记录 shared memory / CONVENTIONS / governance reflux
+3. `L72-03` 已完成：canonical 多 lane example 与团队协作叙事已补齐
+
+## 5. 收口结论
+
+`7.2.x` 当前已满足本阶段出口：
+
+1. lane 元数据与拓扑已成为团队日常可见信息
+2. lane 归档不再只是改 `status`，而是显式记录 shared reflux 决定
+3. 仓库已包含可运行的 multi-lane canonical example 和对应回归样例

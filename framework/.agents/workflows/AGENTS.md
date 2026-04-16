@@ -38,7 +38,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 | `/plan` | 生成 spec、任务波次、门禁和证据计划 | 产出或更新 `specs/`、`tasks.yaml`、`acceptance.yaml`，等待用户确认任务与验收 |
 | `/build` | 按 wave 实现，执行角色分工和审批停点 | 更新代码、任务、状态和实现证据 |
 | `/verify` | 做设计、逻辑、工程质量和运行态验证 | 输出逐项验证结论、回归结论和证据 |
-| `/ship` | 做交付、发布、回滚和移交 | 输出 `release-plan.md` 和最终交付说明，等待用户确认收口 |
+| `/ship` | 做交付、发布、回滚和移交 | 输出 `release-plan.md`、最终交付说明和 lane 收口决定，等待用户确认收口 |
 
 ## Specialized Workflows
 
@@ -47,7 +47,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 | `/change-request` | 在任何需求补充、范围调整、验收变化前，先完成影响分析和基准同步 | 先新增 `baseline-log/CR-YYYYMMDD-HHMMSS-slug.md`，再按需更新当前 lane 的 `MISSION.md` / `specs/` / `DESIGN.md` / `STATE.md`，形成最新需求基准并等待用户确认 |
 | `/debug` | 对单一 bug、配置修复、文案或样式微调执行轻量闭环 | 输出修复方案、边界、验证结果；若超出边界则升级到 `/change-request` 或 `/design` |
 | `/review` | 对当前方案、实现或交付进行多维度结构化审查 | 输出带风险等级的问题清单、影响说明和优化建议 |
-| `/postmortem` | 对项目或里程碑做复盘并沉淀稳定经验 | 输出复盘结论、归档条目清单（如有）并同步更新 `memory.md` |
+| `/postmortem` | 对项目或里程碑做复盘并沉淀稳定经验 | 输出复盘结论、归档条目清单（如有），并同步更新共享 `memory.md` / `CONVENTIONS.md` |
 
 ## Continue Workflows
 
@@ -72,6 +72,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 - `debug` / `/verify` 暴露新的稳定 failure mode 时，补 `evals/` 或 `verification-matrix.yaml`，不要只留在当前会话
 - lane 项目中的 `/align`、`/change-request`、`/build`、`/verify`、`/ship`，先确认当前 lane；若这轮工作属于新的并行交付线，先建 lane 再继续
 - `/verify` 遇到共享代码改动时，不要只给一个笼统“已验证”；必须说明当前验证覆盖了哪些 lane，哪些 lane 仍待回归
+- lane 准备归档前，先判断哪些稳定结论要回流到共享 `memory.md` / `CONVENTIONS.md`，不要把稳定经验继续留在 lane 私有工件里
 - `debug` / `/verify` / `/ship` 输出修复与交付结论时，显式拆开代码状态、数据状态、运行状态
 - `/auto-advance` 只能在不存在待确认项、审批点和高风险阻塞时进入大规模推进
 - 存在测试套件的项目，`/build` 和 `/verify` 必须执行回归基线对比；原本通过的测试变为失败时，必须先修复回归再继续
