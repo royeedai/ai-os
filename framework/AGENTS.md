@@ -14,6 +14,10 @@
 
 > 路径说明：lane 布局下，下文提到的 `MISSION.md`、`DESIGN.md`、`tasks.yaml`、`acceptance.yaml`、`STATE.md`、`baseline-log/`、`specs/` 默认位于 `.ai-os/lanes/<lane-id>/`；共享根层只保留 `.ai-os/project.md`、`.ai-os/CONVENTIONS.md`、`.ai-os/memory.md`。legacy 单交付项目则仍位于 `.ai-os/` 根层。
 
+- lane 项目开始任何 workflow 前，先判断当前工作是继续现有 lane，还是应该新建并行 lane；不要把两个并行交付目标硬塞进同一条 lane
+- 若当前工作属于新的并行交付线，先用 `create-ai-os lane add <lane-id> .` 建 lane，再进入 `/align` 或 `/change-request`
+- 若存在多个 active lane，不要猜当前 lane；先用 `create-ai-os lane list .` 明确拓扑，必要时用 `create-ai-os lane activate <lane-id> . --only` 恢复单 lane 自动选择
+
 ### 1. 需求基准与全生命周期管理
 
 - `MISSION.md` 与 `specs/` 是当前 lane（legacy 单交付项目则是当前单交付）的唯一需求真理源；开发、变更、修复、验收都必须以它们为准，禁止以零散聊天记录或临时一句话指令直接替代基准
@@ -27,6 +31,7 @@
 
 - 需求模糊、素材零散、边界不清时，必须先澄清再执行；禁止脑补、禁止为了推进流程伪造需求细节
 - `/align` 必须把零散素材整理成结构化需求框架，至少覆盖：当前 lane 的交付目标、用户场景、范围内 / 范围外、成功标准、技术约束、核心依赖、待确认项；若是 `brownfield` / `change`，先写清宿主项目上下文和本轮变更定位，再锁当前 lane 的交付基准
+- 当 lane 项目里出现新的并行交付主题、独立 release train 或不应与当前基线共用 Mission / Tasks / Acceptance 的工作时，必须先新建 lane，而不是在当前 lane 上追加第二套目标
 - 对所有歧义点、默认假设、需要用户拍板的内容，必须形成清单式问题并请求确认
 - 需求中出现“配置 / 设置 / 选项”时，必须轻量追问一次操作闭环：它是静态预置、后台可配，还是需要用户 / 运营入口；禁止直接默认成某一种实现方式
 - 必须主动把需求拆成“当前最小可行闭环”和“可后续补充项”，引导用户选择节奏，而不是一刀切要求一次定义全部细节
@@ -62,6 +67,7 @@
 
 - 验收标准必须在 `/plan` 阶段前置锁定，并与需求点一一对应
 - `/verify` 必须逐项对照需求基准、Design、Spec、Tasks 和 Acceptance 做全量核验，既验证正常路径，也验证异常路径、空数据、权限拒绝、超时、部分失败和回归影响
+- `/verify` 默认只对当前 lane 放行；若共享代码改动可能影响多个 lane，必须显式列出受影响 lane，并按 lane 分别执行 `validate` / `gate verify` / `release-check`，或记录哪些 lane 的回归仍待完成
 - `debug` / `/verify` / `/postmortem` 暴露出稳定失败模式、关键回归入口或高频 tricky path 时，必须把最小复现、放行条件和验证方法同步到 `.ai-os/evals/`、`.ai-os/verification-matrix.yaml` 或等价工件；禁止只在当前会话里口头保留
 - `/verify` 必须提供至少一项项目原生静态校验证据：优先 compile / type-check；若仓库没有独立入口，则允许用 build 承担；若没有任何静态校验入口，必须显式记录风险或 blocker
 - IDE 内置诊断（如 ReadLints、内联 linter、编辑器标红）不等同于项目原生静态校验；verify 阶段的校验证据必须来自项目构建工具链（如 `mvn compile`、`tsc --noEmit`、`pnpm build`、`cargo check`、`go build`），ReadLints 可作为辅助但不可作为唯一校验证据

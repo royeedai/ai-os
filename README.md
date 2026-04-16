@@ -227,6 +227,7 @@ create-ai-os lane archive payments .
 - `lane add` 默认会在已有 active lane 的项目里把新 lane 建成 `draft`，避免刚创建就打破自动选择；如果这是项目里的第一条 lane，或你显式传了 `--activate`，则会直接成为 active
 - `lane activate ... --only` 会把其他 active lane 回退为 `draft`，适合在多人并行后恢复“单 active lane 自动选择”
 - `lane list` 会列出 `active / draft / archived` lane 及其 baseline、quality tier、owner，方便团队确认当前并行拓扑
+- 进入 `/align`、`/change-request`、`/verify` 前，先判断这轮工作是继续当前 lane，还是应该先 `lane add` 新建并行 lane；不要把两条并行交付线硬塞进同一条 lane
 
 ## IDE 兼容性
 

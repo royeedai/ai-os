@@ -17,6 +17,18 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 9. 需要做结构化质量审查：`/review`
 10. 需要做项目 / 里程碑复盘和经验沉淀：`/postmortem`
 
+在 lane 项目里，进入 workflow 前先判断：
+
+1. 这次工作是否继续当前 lane 的交付目标
+2. 这次工作是否其实应该新建并行 lane
+3. 若存在多个 active lane，当前到底要操作哪一条
+
+不要默认把并行交付揉进同一条 lane。需要时先执行：
+
+- `create-ai-os lane list .`
+- `create-ai-os lane add <lane-id> .`
+- `create-ai-os lane activate <lane-id> . --only`
+
 ## Phase Workflows
 
 | workflow | 用途 | 结果 |
@@ -56,5 +68,7 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 - `reverse-spec` 项目默认要补 `parity-map`
 - `change` / `debug` 允许更轻，但仍需更新 `STATE.md`、同步基准并保留验证证据
 - `debug` / `/verify` 暴露新的稳定 failure mode 时，补 `evals/` 或 `verification-matrix.yaml`，不要只留在当前会话
+- lane 项目中的 `/align`、`/change-request`、`/verify`，先确认当前 lane；若这轮工作属于新的并行交付线，先建 lane 再继续
+- `/verify` 遇到共享代码改动时，不要只给一个笼统“已验证”；必须说明当前验证覆盖了哪些 lane，哪些 lane 仍待回归
 - `/auto-advance` 只能在不存在待确认项、审批点和高风险阻塞时进入大规模推进
 - 存在测试套件的项目，`/build` 和 `/verify` 必须执行回归基线对比；原本通过的测试变为失败时，必须先修复回归再继续

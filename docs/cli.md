@@ -67,6 +67,7 @@ create-ai-os lane archive payments .
 - `lane add`：创建新 lane。若项目里已存在 active lane，则新 lane 默认以 `draft` 创建，避免刚创建就打破自动选择；传 `--activate` 可直接创建为 active
 - `lane activate`：把指定 lane 标记为 active；配合 `--only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择
 - `lane archive`：把 lane 标记为 `archived`，用于本轮交付结束后的收口
+- 进入 `/align`、`/change-request`、`/verify` 这类 lane 敏感 workflow 前，先判断这次工作是否继续当前 lane；若是新的并行交付线，先 `lane add`
 
 Lane 目录结构：
 

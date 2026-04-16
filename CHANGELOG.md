@@ -8,6 +8,14 @@
 
 ---
 
+## 7.1.1 (2026-04-16)
+
+### Changed
+
+- framework 分发工作流补齐了 lane 进入规则：`/align`、`/change-request`、`/verify` 和 workflow index 现在会先判断“继续当前 lane 还是先新建并行 lane”
+- README、CLI 文档和治理台账同步明确：lane 敏感 workflow 进入前先确认 lane，不要把并行交付揉进同一条 lane
+- 安装回归测试新增对 lane 进入规则和 lane-scoped verify 指引的断言
+
 ## 7.1.0 (2026-04-16)
 
 ### Added
