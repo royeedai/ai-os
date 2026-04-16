@@ -19,6 +19,7 @@ const {
   resolveProjectLane,
   fail,
   setDeliveryLaneContext,
+  buildLaneScopeNote,
   createReporter,
   VALIDATION_SCHEMAS,
   countTopLevelYamlListEntries,
@@ -140,7 +141,11 @@ Options:
 }
 
 const targetDir = resolveTargetDir(parsed.positional);
-const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+const commandTarget = parsed.positional || ".";
+const laneResolution = resolveProjectLane(targetDir, {
+  laneId: parsed.flags.lane,
+  commandPrefix: `ai-os-validate ${commandTarget}`,
+});
 if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
   fail(laneResolution.message);
 }
@@ -154,6 +159,12 @@ const { report } = reporter;
 process.stdout.write(`\nAI-OS Validate — ${targetDir}\n\n`);
 if (laneResolution.ok && laneResolution.laneId) {
   process.stdout.write(`Delivery model: ${laneResolution.model} (lane: ${laneResolution.laneId})\n\n`);
+  const laneScopeNote = buildLaneScopeNote(laneResolution, {
+    commandPrefix: `ai-os-validate ${commandTarget}`,
+  });
+  if (laneScopeNote) {
+    process.stdout.write(`${laneScopeNote}\n\n`);
+  }
 } else if (laneResolution.ok && laneResolution.isLegacyFallback) {
   process.stdout.write("Delivery model: legacy single-delivery\n\n");
 }

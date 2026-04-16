@@ -68,6 +68,7 @@ create-ai-os lane archive payments .
 - `lane activate`：把指定 lane 标记为 active；配合 `--only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择
 - `lane archive`：把 lane 标记为 `archived`，用于本轮交付结束后的收口
 - 进入 `/align`、`/change-request`、`/verify` 这类 lane 敏感 workflow 前，先判断这次工作是否继续当前 lane；若是新的并行交付线，先 `lane add`
+- `ai-os-validate`、`create-ai-os gate`、`ai-os-release-check` 现在会输出 lane-aware 修复建议：lane 选择错误时，直接给出带 `--lane` 的重跑命令；显式指定 lane 时，也会提醒这次只覆盖当前 lane，若共享代码 / 契约 / 基础设施变更影响其他 lane，必须补跑对应 lane
 
 Lane 目录结构：
 

@@ -718,8 +718,23 @@ function formatLaneFlagExamples(lanes) {
     .join("\n");
 }
 
+function formatLaneCommandExamples(commandPrefix, lanes) {
+  const normalizedCommandPrefix = String(commandPrefix || "").trim();
+  if (!normalizedCommandPrefix) {
+    return formatLaneFlagExamples(lanes);
+  }
+  return lanes
+    .slice(0, 5)
+    .map((lane) => `- ${normalizedCommandPrefix} --lane ${lane.id}`)
+    .join("\n");
+}
+
 function buildLaneResolutionMessage(code, layout, options = {}) {
   const requestedLaneId = normalizeLaneId(options.requestedLaneId);
+  const commandPrefix = String(options.commandPrefix || "").trim();
+  const laneListCommand = String(options.laneListCommand || "create-ai-os lane list .").trim();
+  const laneAddCommand = String(options.laneAddCommand || "create-ai-os lane add <lane-id> .").trim();
+  const laneActivateOnlyCommand = String(options.laneActivateOnlyCommand || "create-ai-os lane activate <lane-id> . --only").trim();
   const lanes = layout && Array.isArray(layout.lanes) ? layout.lanes : [];
   const activeLanes = lanes.filter((lane) => lane.isActive);
 
@@ -735,6 +750,7 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
     return [
       "Lane-based project has no lanes configured.",
       "Expected at least one `.ai-os/lanes/<lane-id>/lane.toml` file.",
+      `Create the first lane with \`${laneAddCommand}\`.`,
       "If this is still a legacy single-delivery project, run `create-ai-os upgrade . --to-lanes` first.",
     ].join("\n");
   }
@@ -745,7 +761,8 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
       lines.push("Known lanes:");
       lines.push(...lanes.map((lane) => formatLaneDescriptor(lane)));
       lines.push("Re-run with one of:");
-      lines.push(formatLaneFlagExamples(lanes));
+      lines.push(formatLaneCommandExamples(commandPrefix, lanes));
+      lines.push(`Review current lane topology with \`${laneListCommand}\`.`);
     }
     return lines.join("\n");
   }
@@ -756,9 +773,11 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
         `Multiple active lanes found: ${activeLanes.map((lane) => lane.id).join(", ")}`,
         "Active lanes:",
         ...activeLanes.map((lane) => formatLaneDescriptor(lane)),
-        "Re-run with one of:",
-        formatLaneFlagExamples(activeLanes),
-        "Or keep only one lane with `status = \"active\"` in `.ai-os/lanes/<lane-id>/lane.toml` to restore auto-selection.",
+        "Pick the lane you want to operate on:",
+        formatLaneCommandExamples(commandPrefix, activeLanes),
+        `Review current lane topology with \`${laneListCommand}\`.`,
+        `If this work belongs to a new parallel delivery, create it first with \`${laneAddCommand}\`.`,
+        `If only one lane should stay active, run \`${laneActivateOnlyCommand}\` to restore auto-selection.`,
       ].join("\n");
     }
 
@@ -767,8 +786,12 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
       lines.push("Configured lanes:");
       lines.push(...lanes.map((lane) => formatLaneDescriptor(lane)));
       lines.push("Re-run with one of:");
-      lines.push(formatLaneFlagExamples(lanes));
-      lines.push("Or mark one lane as `status = \"active\"` in `.ai-os/lanes/<lane-id>/lane.toml` to restore auto-selection.");
+      lines.push(formatLaneCommandExamples(commandPrefix, lanes));
+      lines.push(`Review current lane topology with \`${laneListCommand}\`.`);
+      lines.push(`If this is a brand-new parallel delivery, create a lane first with \`${laneAddCommand}\`.`);
+      lines.push(
+        `Or mark one lane as \`status = "active"\` in \`.ai-os/lanes/<lane-id>/lane.toml\`, or run \`${laneActivateOnlyCommand}\`, to restore auto-selection.`
+      );
     }
     return lines.join("\n");
   }
@@ -776,9 +799,70 @@ function buildLaneResolutionMessage(code, layout, options = {}) {
   return "";
 }
 
+function buildLaneScopeNote(laneResolution, options = {}) {
+  if (!laneResolution || !laneResolution.ok || !laneResolution.laneId || !laneResolution.layout) {
+    return "";
+  }
+
+  const layout = laneResolution.layout;
+  const lanes = Array.isArray(layout.lanes) ? layout.lanes : [];
+  if (layout.model !== DELIVERY_MODEL_LANES || lanes.length <= 1) {
+    return "";
+  }
+
+  const selectedLane = laneResolution.lane || lanes.find((lane) => lane.id === laneResolution.laneId) || null;
+  const otherLanes = lanes.filter((lane) => lane.id !== laneResolution.laneId);
+  if (otherLanes.length === 0) {
+    return "";
+  }
+
+  const commandPrefix = String(options.commandPrefix || "").trim();
+  const laneListCommand = String(options.laneListCommand || "create-ai-os lane list .").trim();
+  const laneActivateOnlyCommand = String(options.laneActivateOnlyCommand || "create-ai-os lane activate <lane-id> . --only").trim();
+  const otherActiveLanes = otherLanes.filter((lane) => lane.isActive);
+  const suggestedLanes = otherActiveLanes.length > 0 ? otherActiveLanes : otherLanes;
+
+  const lines = [`Lane scope: this run only covers \`${laneResolution.laneId}\`.`];
+
+  if (selectedLane && selectedLane.status && selectedLane.status !== LANE_STATUS_ACTIVE && otherActiveLanes.length > 0) {
+    lines.push(
+      `Selected lane \`${selectedLane.id}\` is currently \`${selectedLane.status}\`; active lanes still include ${otherActiveLanes.map((lane) => `\`${lane.id}\``).join(", ")}.`
+    );
+  }
+
+  lines.push(otherActiveLanes.length > 0 ? "Other active lanes:" : "Other configured lanes:");
+  lines.push(...suggestedLanes.map((lane) => formatLaneDescriptor(lane)));
+
+  if (commandPrefix) {
+    lines.push(
+      otherActiveLanes.length > 0
+        ? "If shared code / contracts / infra changed, start by rerunning the same command for other active lanes:"
+        : "If shared code / contracts / infra changed, rerun the same command for affected lanes:"
+    );
+    lines.push(formatLaneCommandExamples(commandPrefix, suggestedLanes));
+  }
+
+  lines.push(`Review lane topology with \`${laneListCommand}\`.`);
+
+  if (selectedLane && selectedLane.status && selectedLane.status !== LANE_STATUS_ACTIVE && otherActiveLanes.length > 0) {
+    lines.push(
+      `If you meant to work on the active delivery lane, rerun with one of the active lanes above or restore single-lane auto-selection via \`${laneActivateOnlyCommand}\`.`
+    );
+  }
+
+  return lines.join("\n");
+}
+
 function resolveProjectLane(targetDir, options = {}) {
   const layout = options.layout || inspectProjectDeliveryLayout(targetDir);
   const requestedLaneId = normalizeLaneId(options.laneId);
+  const messageOptions = {
+    requestedLaneId,
+    commandPrefix: options.commandPrefix,
+    laneListCommand: options.laneListCommand,
+    laneAddCommand: options.laneAddCommand,
+    laneActivateOnlyCommand: options.laneActivateOnlyCommand,
+  };
 
   if (layout.model === DELIVERY_MODEL_NONE) {
     return {
@@ -795,7 +879,7 @@ function resolveProjectLane(targetDir, options = {}) {
       return {
         ok: false,
         code: "legacy-does-not-support-lane-selection",
-        message: buildLaneResolutionMessage("legacy-does-not-support-lane-selection", layout, { requestedLaneId }),
+        message: buildLaneResolutionMessage("legacy-does-not-support-lane-selection", layout, messageOptions),
         layout,
         requestedLaneId,
       };
@@ -817,7 +901,7 @@ function resolveProjectLane(targetDir, options = {}) {
     return {
       ok: false,
       code: "no-lanes-found",
-      message: buildLaneResolutionMessage("no-lanes-found", layout, { requestedLaneId }),
+      message: buildLaneResolutionMessage("no-lanes-found", layout, messageOptions),
       layout,
       requestedLaneId,
     };
@@ -829,7 +913,7 @@ function resolveProjectLane(targetDir, options = {}) {
       return {
         ok: false,
         code: "unknown-lane",
-        message: buildLaneResolutionMessage("unknown-lane", layout, { requestedLaneId }),
+        message: buildLaneResolutionMessage("unknown-lane", layout, messageOptions),
         layout,
         requestedLaneId,
       };
@@ -865,7 +949,7 @@ function resolveProjectLane(targetDir, options = {}) {
   return {
     ok: false,
     code: "lane-selection-required",
-    message: buildLaneResolutionMessage("lane-selection-required", layout, { requestedLaneId }),
+    message: buildLaneResolutionMessage("lane-selection-required", layout, messageOptions),
     layout,
     requestedLaneId,
   };
@@ -2670,6 +2754,7 @@ module.exports = {
   listLegacyDeliveryArtifactEntries,
   inspectProjectDeliveryLayout,
   resolveProjectLane,
+  buildLaneScopeNote,
   isLaneArtifactPath,
   resolveDeliveryPath,
   formatDeliveryPath,

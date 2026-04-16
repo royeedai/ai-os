@@ -135,3 +135,44 @@ section("lane-aware recovery commands");
 
   cleanup(dir);
 }
+
+section("lane-aware delivery guard guidance");
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", ["lane", "add", "beta"], dir);
+  run("create-ai-os.js", ["lane", "activate", "beta"], dir);
+
+  const ambiguousValidate = run("ai-os-validate.js", [], dir);
+  assert(ambiguousValidate.status === 1, "validate blocks when multiple active lanes exist");
+  assert(ambiguousValidate.stderr.includes("ai-os-validate . --lane default"), "validate ambiguity error includes command-specific rerun guidance");
+  assert(ambiguousValidate.stderr.includes("create-ai-os lane list ."), "validate ambiguity error recommends checking lane topology");
+  assert(ambiguousValidate.stderr.includes("create-ai-os lane activate <lane-id> . --only"), "validate ambiguity error explains how to restore auto-selection");
+
+  const unknownRelease = run("ai-os-release-check.js", ["--lane", "gamma"], dir);
+  assert(unknownRelease.status === 1, "release-check blocks unknown lane selection");
+  assert(unknownRelease.stderr.includes("ai-os-release-check . --lane default"), "release-check unknown-lane error includes command-specific rerun guidance");
+  assert(unknownRelease.stderr.includes("create-ai-os lane list ."), "release-check unknown-lane error recommends checking lane topology");
+
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files"]);
+  run("create-ai-os.js", ["lane", "add", "beta"], dir);
+
+  const validateBeta = run("ai-os-validate.js", ["--lane", "beta"], dir);
+  assert(validateBeta.status === 0, "validate accepts explicit draft lane selection");
+  assert(validateBeta.stdout.includes("Lane scope: this run only covers `beta`."), "validate prints lane-scoped coverage note");
+  assert(validateBeta.stdout.includes("Selected lane `beta` is currently `draft`"), "validate warns when the selected lane is not active");
+  assert(validateBeta.stdout.includes("ai-os-validate . --lane default"), "validate suggests rerunning the active lane when shared code may be affected");
+
+  const gateBeta = run("create-ai-os.js", ["gate", "verify", "--lane", "beta"], dir);
+  assert(gateBeta.stdout.includes("Lane scope: this run only covers `beta`."), "gate prints lane-scoped coverage note");
+  assert(gateBeta.stdout.includes("create-ai-os gate verify . --lane default"), "gate suggests rerunning verify for the active lane");
+  assert(gateBeta.stdout.includes("shared code / contracts / infra"), "gate explains when to rerun affected lanes");
+
+  cleanup(dir);
+}

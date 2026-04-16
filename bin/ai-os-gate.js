@@ -31,6 +31,7 @@ const {
   resolveTargetDir,
   getProjectFilePath,
   resolveProjectLane,
+  buildLaneScopeNote,
   setDeliveryLaneContext,
   countTopLevelYamlListEntries,
   listProjectEvalFiles,
@@ -389,7 +390,15 @@ const flags = parsed.flags;
 let targetArg = parsed.positional || "";
 
 const targetDir = resolveTargetDir(targetArg || ".");
-const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
+const commandTarget = targetArg || ".";
+const laneResolution = resolveProjectLane(targetDir, {
+  laneId: parsed.flags.lane,
+  commandPrefix: phaseArg
+    ? `create-ai-os gate ${phaseArg} ${commandTarget}${flags.entry ? " --entry" : ""}`
+    : flags.all
+      ? `create-ai-os gate --all ${commandTarget}`
+      : `create-ai-os gate ${commandTarget}`,
+});
 if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
   process.stderr.write(`Error: ${laneResolution.message}\n`);
   process.exit(1);
@@ -401,6 +410,14 @@ const jsonMode = !!flags.json;
 const allResults = [];
 
 if (flags.all) {
+  if (!jsonMode && laneResolution.ok && laneResolution.laneId) {
+    const laneScopeNote = buildLaneScopeNote(laneResolution, {
+      commandPrefix: `create-ai-os gate --all ${commandTarget}`,
+    });
+    if (laneScopeNote) {
+      process.stdout.write(`${laneScopeNote}\n\n`);
+    }
+  }
   for (const phase of PHASES) {
     const entryResult = runPhaseGates(phase, "entry", targetDir);
     const exitResult = runPhaseGates(phase, "exit", targetDir);
@@ -411,6 +428,14 @@ if (flags.all) {
 } else {
   const phase = phaseArg || detectCurrentPhase(targetDir);
   const direction = flags.entry ? "entry" : "exit";
+  if (!jsonMode && laneResolution.ok && laneResolution.laneId) {
+    const laneScopeNote = buildLaneScopeNote(laneResolution, {
+      commandPrefix: `create-ai-os gate ${phase} ${commandTarget}${flags.entry ? " --entry" : ""}`,
+    });
+    if (laneScopeNote) {
+      process.stdout.write(`${laneScopeNote}\n\n`);
+    }
+  }
   const result = runPhaseGates(phase, direction, targetDir);
   printGateResults(result, jsonMode);
   allResults.push(result);

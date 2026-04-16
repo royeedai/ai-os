@@ -8,6 +8,14 @@
 
 ---
 
+## 7.1.2 (2026-04-16)
+
+### Changed
+
+- `ai-os-validate`、`create-ai-os gate`、`ai-os-release-check` 的 lane 解析失败文案改成命令感知：会直接列出可复制的 `--lane` 重跑命令，以及 `lane list` / `lane activate --only` / `lane add` 的修复路径
+- 多 lane 项目里显式指定 lane 运行 `validate` / `gate` / `release-check` 时，会额外提示“本次只覆盖当前 lane”，并在选到 draft lane 时提醒先核对 active lane
+- README、CLI 文档、问题台账和回归测试同步补齐 lane-aware 修复建议叙事
+
 ## 7.1.1 (2026-04-16)
 
 ### Changed
