@@ -11,10 +11,10 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 | `.ai-os/memory.md` | 记录稳定决策和约束 |
 | `.ai-os/lanes/default/MISSION.md` | 定义当前交付线的目标、范围、模式、治理档位和当前确认基线 ID；只承载低频、已确认、共享的交付章程 |
 | `.ai-os/lanes/default/baseline-log/` | 当前交付线的共享基线记录目录，每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录变更分析、确认和升格结果，供多人协作时对齐和审计；不再依赖全局递增编号 |
-| `.ai-os/lanes/default/DESIGN.md` | 锁定当前交付线的关键页面、信息架构、交互和流程 |
-| `.ai-os/lanes/default/specs/` | 定义当前交付线的逻辑规则、契约、状态流转、边界条件和验收映射 |
-| `.ai-os/lanes/default/tasks.yaml` | 编排当前交付线的 wave、角色、审批点、impact_tags、边界和证据要求；团队协作下每个任务都应有稳定 `owner` 和唯一 ID |
-| `.ai-os/lanes/default/acceptance.yaml` | 管理当前交付线的质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
+| `.ai-os/lanes/default/DESIGN.md` | 锁定当前交付线的关键页面、信息架构、交互和流程，并记录 shared layer 副作用清单、route/schema/wrapper parity 与同仓对照实现 |
+| `.ai-os/lanes/default/specs/` | 定义当前交付线的逻辑规则、契约、状态流转、边界条件、shared layer / parity 锚点和验收映射 |
+| `.ai-os/lanes/default/tasks.yaml` | 编排当前交付线的 wave、角色、审批点、impact_tags、parity_checks、similar_impl_refs、step_validation、边界和证据要求；团队协作下每个任务都应有稳定 `owner` 和唯一 ID |
+| `.ai-os/lanes/default/acceptance.yaml` | 管理当前交付线的质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门，以及 shared-impact / route-contract / schema-parity / state-triage 证据 |
 | `.ai-os/lanes/default/STATE.md` | 恢复当前交付线的方位、已锁定内容、待确认项和确认停点；缺失时可由 CLI 从共享工件自动重建 |
 
 ## 按需工件

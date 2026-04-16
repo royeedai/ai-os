@@ -29,6 +29,9 @@ AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
 | 天然流式 / 长耗时场景被错建成同步接口 | 在 `/plan` 先锁 `interaction_mode`，避免后置重构 |
 | 跨层字段或配置改动总是漏联动 | 用 `contract baseline`、`impact_tags`、`impact_rules` 补联动检查 |
 | brownfield 任务里藏着全局拆包 / DTO / 样式约定，AI 却只看局部文件就开改 | 在 `/design`、`/debug` 和 review 里先做共享基础设施审计，再锁局部契约 |
+| 改了共享层或通用抽象后，别的模块才开始连锁出错 | 在 `/design`、`/plan`、`/build` 里先写副作用影响清单，再进入实现 |
+| AI 先复用 BaseEntity / wrapper / 路由模式，后面才发现 schema 或 controller 契约不匹配 | 先做 schema / route / wrapper parity 和同仓对照实现，再允许复用抽象 |
+| 代码改对了，但数据状态和运行状态还没恢复 | 在 `/debug`、`/verify`、`/ship` 里显式拆成代码状态 / 数据状态 / 运行状态 |
 | 老项目开始做新需求时，AI 把整个项目重新当成 mission | 在 brownfield / change 中，`MISSION.md` 只定义本轮交付基准，宿主项目只保留必要上下文 |
 | 多人并行时 Mission 总冲突，确认记录和变更日志互相覆盖 | 把 `MISSION.md` 变薄成低频章程，把高频变更挪到 `baseline-log/` 和 `STATE.md` |
 | 用户说“系统可设置”，AI 却没确认到底谁来操作、在哪里操作 | 在 `/align` 和 `/change-request` 里轻量追问配置闭环，避免把“可设置”直接等价成某一种实现方式 |
@@ -98,10 +101,10 @@ AI-OS 默认采用“共享根层 + `lanes/default`”的工件拓扑。共享�
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
 | `.ai-os/lanes/default/MISSION.md` | 当前交付线的低频、已确认、共享的交付基线章程：当前目标、范围、模式、质量标准、当前基线 ID |
 | `.ai-os/lanes/default/baseline-log/` | 当前交付线的共享基线记录目录：每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录基线分析、确认和升格结果，供多人协作对齐和审计；不要再用全局递增的 `001/002` 编号 |
-| `.ai-os/lanes/default/DESIGN.md` | 当前交付线的信息架构、关键页面、关键交互、视觉方向、关键流程 |
-| `.ai-os/lanes/default/specs/` | 当前交付线的业务规则、交互模式、契约基准、状态流转、边界条件 |
-| `.ai-os/lanes/default/tasks.yaml` | 当前交付线的任务波次、角色分工、审批点、impact_tags 和证据要求；团队协作下每个任务必须有稳定 `owner`，任务 ID 推荐用 `TASK-<OWNER>-NNN` |
-| `.ai-os/lanes/default/acceptance.yaml` | 当前交付线的质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门 |
+| `.ai-os/lanes/default/DESIGN.md` | 当前交付线的信息架构、关键页面、关键交互、视觉方向、关键流程，以及 shared layer 副作用清单、route/schema/wrapper parity 和同仓对照实现 |
+| `.ai-os/lanes/default/specs/` | 当前交付线的业务规则、交互模式、契约基准、状态流转、边界条件，以及 shared layer / parity / step-validation 锚点 |
+| `.ai-os/lanes/default/tasks.yaml` | 当前交付线的任务波次、角色分工、审批点、impact_tags、parity_checks、similar_impl_refs、step_validation 和证据要求；团队协作下每个任务必须有稳定 `owner`，任务 ID 推荐用 `TASK-<OWNER>-NNN` |
+| `.ai-os/lanes/default/acceptance.yaml` | 当前交付线的质量档位、专项审查、设计门、逻辑门、实现质量门、交付质量门，以及 shared-impact / route-contract / schema-parity / state-triage 证据 |
 | `.ai-os/lanes/default/STATE.md` | 当前交付线的当前方位、已锁定内容、待确认项、确认停点和下一步 |
 
 按风险或场景补充：

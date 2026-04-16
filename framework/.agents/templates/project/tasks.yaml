@@ -86,6 +86,14 @@ tasks:
       - "load contract baseline before task split"
       - "derive context_files from integration touchpoints"
       - "verify requirement-to-acceptance traceability"
+    parity_checks:
+      - "shared-side-effects"
+      - "route-contract"
+      - "schema-consistency"
+    similar_impl_refs:
+      - "[同仓一个已工作的同类实现路径或模块]"
+    step_validation:
+      - "[每完成一个高风险或跨层 slice 就执行的最小验证，例如：模块 compile / 定向测试 / 单页 smoke]"
     risk_triggers: []
     blockers: []
     change_scope:
@@ -171,6 +179,14 @@ tasks:
       - "compare implementation against contract baseline"
       - "collect degraded-path evidence for key tasks"
       - "confirm no out-of-scope edits were introduced"
+    parity_checks:
+      - "shared-side-effects"
+      - "route-contract"
+      - "schema-consistency"
+    similar_impl_refs:
+      - "[同仓一个已工作的同类实现路径或模块]"
+    step_validation:
+      - "[先跑最小 compile / type-check / 定向测试，再继续下一处改动]"
     risk_triggers: []
     blockers: []
     change_scope:

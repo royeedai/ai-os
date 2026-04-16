@@ -67,8 +67,11 @@ AI-OS 仍以阶段式 workflow 为主，但补充了变更和修复的专项入�
 - 没有用户确认，不要静默跨阶段推进
 - `reverse-spec` 项目默认要补 `parity-map`
 - `change` / `debug` 允许更轻，但仍需更新 `STATE.md`、同步基准并保留验证证据
+- 共享层、全局包装层、通用抽象或跨层 entrypoint 改动，先列副作用影响清单，再进入实现
+- 复用共享抽象、统一 wrapper、schema / route 模式前，先找同仓正常实现，再做 parity 检查；不要先套抽象后补核对
 - `debug` / `/verify` 暴露新的稳定 failure mode 时，补 `evals/` 或 `verification-matrix.yaml`，不要只留在当前会话
 - lane 项目中的 `/align`、`/change-request`、`/build`、`/verify`、`/ship`，先确认当前 lane；若这轮工作属于新的并行交付线，先建 lane 再继续
 - `/verify` 遇到共享代码改动时，不要只给一个笼统“已验证”；必须说明当前验证覆盖了哪些 lane，哪些 lane 仍待回归
+- `debug` / `/verify` / `/ship` 输出修复与交付结论时，显式拆开代码状态、数据状态、运行状态
 - `/auto-advance` 只能在不存在待确认项、审批点和高风险阻塞时进入大规模推进
 - 存在测试套件的项目，`/build` 和 `/verify` 必须执行回归基线对比；原本通过的测试变为失败时，必须先修复回归再继续

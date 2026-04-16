@@ -49,6 +49,14 @@ tasks:
       - "storage"
     derived_checks:
       - "文件读写回归"
+    parity_checks:
+      - "schema-consistency"
+      - "same-repo-reference"
+    similar_impl_refs:
+      - "src/store.js"
+    step_validation:
+      - "node --check src/store.js"
+      - "node -e \"const { loadTodos } = require('./src/store'); console.log(typeof loadTodos === 'function')\""
     risk_triggers: []
     blockers: []
     requirement_refs:
@@ -97,6 +105,15 @@ tasks:
       - "entrypoint"
     derived_checks:
       - "命令输出格式回归"
+    parity_checks:
+      - "route-contract"
+      - "same-repo-reference"
+    similar_impl_refs:
+      - "src/commands.js"
+      - "bin/todo.js"
+    step_validation:
+      - "node --check src/commands.js"
+      - "node bin/todo.js list --all"
     risk_triggers: []
     blockers: []
     requirement_refs:

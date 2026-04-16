@@ -36,14 +36,19 @@
 
 ## 5. 数据与契约
 
-```json
-{
-  "id": 1,
-  "text": "买牛奶",
-  "done": false,
-  "createdAt": "2026-03-26T10:00:00Z"
-}
-```
+- **契约基准**：JSON 文件格式 `[{ id, text, done, createdAt }]`
+- **输入**：CLI 参数 `add <text>`、`list [--all|--done|--pending]`、`done <id>`、`delete <id>`
+- **输出**：格式化终端输出或错误提示
+- **关键字段 / 状态枚举**：`id` 为自增整数；`done` 为 `true / false`
+- **字段映射/适配说明**：无中间 DTO / adapter，命令层直接读写 JSON 结构
+- **共享层 / 包装层副作用审计**：本例无统一 wrapper / interceptor / BaseEntity；若后续引入统一存储抽象，需检查命令输出与 JSON 契约是否被间接改变
+- **集成触点**：Node.js `fs`、`os.homedir()`、`~/.todo.json`
+- **路由 / 入口契约对照**：`bin/todo.js` 提供唯一命令入口；子命令名称必须与 CLI help 和命令表一致
+- **静态路径 / 动态路径冲突备注**：本例无 HTTP 路由；CLI 子命令使用固定静态命令名，禁止引入会吞掉固定命令的通配命令解析
+- **Schema / 存储一致性说明**：持久化结构必须与 `DESIGN.md` 中确认的数据格式一致，不得额外写入未声明字段
+- **同仓正常实现对照**：`src/store.js` 的读写逻辑与 `src/commands.js` 的命令映射是本例的同仓正常实现
+- **持久化 / 外部依赖**：本地 JSON 文件，无远端依赖
+- **受影响模块 / 文件边界**：`src/store.js`、`src/commands.js`、`bin/todo.js`
 
 ## 6. 边界条件与异常处理
 
@@ -62,3 +67,4 @@
 - 4 个命令正常执行
 - 5 个异常场景有正确错误提示
 - JSON 文件读写无数据丢失
+- **最小验证步骤**：每次修改 `src/store.js` 或 `src/commands.js` 后，先跑 `node --check` 和一个最小 CLI smoke，再继续下一处改动

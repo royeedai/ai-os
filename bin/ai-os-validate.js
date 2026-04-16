@@ -445,7 +445,7 @@ if (tasksContent !== null) {
   );
   report(
     missingTaskTransitionMarkers.length === 0,
-    `${getProjectRelativePath("tasks.yaml")} includes linkage/risk metadata`,
+    `${getProjectRelativePath("tasks.yaml")} includes linkage/risk/parity/step-validation metadata`,
     { warnOnly: true, details: missingTaskTransitionMarkers.map((marker) => `missing marker: ${marker}`) }
   );
   report(parsedTasks.tasks.length > 0, `${getProjectRelativePath("tasks.yaml")} includes at least one task`);
@@ -604,7 +604,7 @@ for (const specFile of specFiles) {
   const missingSpecMarkers = missingMarkers(content || "", VALIDATION_SCHEMAS.specMarkers);
   report(
     missingSpecMarkers.length === 0,
-    `${getProjectRelativePath(specFile)} includes interaction mode / contract baseline markers`,
+    `${getProjectRelativePath(specFile)} includes interaction mode / contract / side-effect / parity markers`,
     { warnOnly: true, details: missingSpecMarkers.map((marker) => `missing marker: ${marker}`) }
   );
 }
@@ -631,7 +631,7 @@ if (acceptanceContent !== null) {
   });
   report(
     missingAcceptanceTransitionMarkers.length === 0,
-    `${getProjectRelativePath("acceptance.yaml")} includes contract/degraded-path markers`,
+    `${getProjectRelativePath("acceptance.yaml")} includes contract/parity/degraded-path markers`,
     { warnOnly: true, details: missingAcceptanceTransitionMarkers.map((marker) => `missing marker: ${marker}`) }
   );
 

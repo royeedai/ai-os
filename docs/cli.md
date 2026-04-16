@@ -29,7 +29,7 @@ create-ai-os skill-check .agents/skills/my-skill
 
 - `gate`：检查当前阶段的门禁是否通过，回答"能不能进入下一阶段"
 - `doctor`：看框架和核心工件是否齐
-- `validate`：看 Mission / Design / Spec / Tasks / Acceptance / State 是否完整，并对新旧结构给出 fail / warning
+- `validate`：看 Mission / Design / Spec / Tasks / Acceptance / State 是否完整，并对新旧结构、shared-layer / parity / step-validation 锚点给出 fail / warning
 - `resume`：导出最小阅读集
 - `release-check`：看当前交付是否具备发布条件，并在 `high-risk` 档强查授权 / 并发 / degraded-path 证据
 

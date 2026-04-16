@@ -297,6 +297,30 @@
 - **当前覆盖锚点**：`framework/AGENTS.md`、`framework/.agents/workflows/AGENTS.md`、`framework/.agents/workflows/debug.md`、`framework/.agents/workflows/verify.md`、`framework/.agents/templates/project/verification-matrix.yaml`、`bin/ai-os-validate.js`、`bin/ai-os-release-check.js`、`docs/artifacts.md`、`README.md`、`examples/failure-mode-eval-closure.md`
 - **每次迭代核对**：不能把稳定 failure mode 的沉淀退化成“记到 memory 就算完”；也不能把一次性偶发噪音误升格成长期回归工件。
 
+### PL-030 共享层或通用抽象改动没有先做副作用审计
+
+- **来源**：2026-04 用户复杂全栈项目复盘；多租户拦截器、统一响应包装器、BaseEntity、全局 Layout / Router Guard 改动后出现跨模块连带问题
+- **真实问题**：AI 改了 shared layer、通用抽象或全局包装层后，没有先列出副作用影响清单，导致 tenant 注入、统一解包、鉴权、导航或白名单排除在实现后期甚至运行时才暴露。
+- **AI-OS 必须保证**：只要任务触及 shared layer、全局包装层或通用抽象，进入实现前必须先输出“副作用影响清单”，至少覆盖受影响模块、接口 / 页面、无字段 / 无上下文 / 无鉴权场景，以及是否需要白名单 / 排除清单；verify 需回查该清单与实际改动是否一致。
+- **当前覆盖锚点**：`framework/AGENTS.md`、`framework/.agents/workflows/design.md`、`framework/.agents/workflows/plan.md`、`framework/.agents/workflows/build.md`、`framework/.agents/workflows/verify.md`、`framework/.agents/templates/project/DESIGN.md`、`framework/.agents/templates/project/specs/example.spec.md`、`framework/.agents/templates/project/acceptance.yaml`、`bin/ai-os-validate.js`、`evals/shared-layer-side-effect-audit-missed.md`
+- **每次迭代核对**：不能把共享层审计退化成“看一下 interceptor / wrapper 就算做过”；也不能只写“可能有影响”而不列出具体影响面与排除面。
+
+### PL-031 先复用共享抽象，再补做契约 / schema / 路由 parity 校对
+
+- **来源**：2026-04 用户复杂全栈项目复盘；`R<T>` 解包不一致、前端路由调用不存在的 controller 路径、静态路径被动态路由吞掉、实体继承 BaseEntity 后映射出表中不存在字段
+- **真实问题**：AI 先复用 BaseEntity、wrapper、DTO、路由模式或既有抽象，再回头验证真实 schema、controller、响应包装和静态 / 动态入口冲突，顺序反了，导致代码表面统一但真实契约漂移。
+- **AI-OS 必须保证**：任何复用共享抽象、共享审计字段、统一包装层或新增 client/server entrypoint 前，必须先核对真实 schema / route / wrapper 契约，并找到同仓正常实现对照；若偏离既有模式，必须说明理由；若存在动态路径，需显式检查常见静态子路径冲突风险。
+- **当前覆盖锚点**：`framework/AGENTS.md`、`framework/.agents/workflows/design.md`、`framework/.agents/workflows/plan.md`、`framework/.agents/workflows/build.md`、`framework/.agents/workflows/debug.md`、`framework/.agents/workflows/verify.md`、`framework/.agents/templates/project/DESIGN.md`、`framework/.agents/templates/project/specs/example.spec.md`、`framework/.agents/templates/project/tasks.yaml`、`framework/.agents/templates/project/acceptance.yaml`、`bin/ai-os-validate.js`、`evals/parity-before-reuse-skipped.md`
+- **每次迭代核对**：不能把 parity 检查退化成“代码看起来像”；不能让“同仓对照实现”重新变成可选建议；也不能把静态路径 / 动态路径冲突风险漏出设计与验证。
+
+### PL-032 修复只落到代码层，数据状态与运行状态未被显式诊断
+
+- **来源**：2026-04 用户复杂全栈项目复盘；代码修复后仍需补 SQL、重启服务、刷新浏览器、重新登录或修正种子数据才能真正恢复
+- **真实问题**：AI 把“代码 diff 已改对”直接等同于“问题已解决”，没有把数据状态和运行状态单独拆开说明，也缺少每步最小验证和同仓正常实现对照，导致代码问题与环境问题混在一起。
+- **AI-OS 必须保证**：debug / build 遇到跨层或共享改动时，必须优先找同仓正常实现对照，并按任务声明执行最小 step validation；修复完成后必须分别说明代码状态、数据状态、运行状态，避免把待补救的数据或待重启环境写成代码已完成。
+- **当前覆盖锚点**：`framework/AGENTS.md`、`framework/.agents/workflows/build.md`、`framework/.agents/workflows/debug.md`、`framework/.agents/workflows/verify.md`、`framework/.agents/templates/project/specs/example.spec.md`、`framework/.agents/templates/project/tasks.yaml`、`framework/.agents/templates/project/acceptance.yaml`、`bin/ai-os-validate.js`、`evals/fix-complete-but-data-runtime-not-recovered.md`
+- **每次迭代核对**：不能把 step validation 退化成“最后统一 build 一次”；也不能把代码状态 / 数据状态 / 运行状态三分诊断重新混成一句模糊的“已修复”。
+
 ### PG-006 单工作区只有一个当前基线，无法承载多人多迭代并行
 
 - **来源**：2026-04-14 用户反馈；团队多人多迭代同时进行时，`MISSION.md` 的 `当前基线 ID`、`tasks.yaml` 和 `acceptance.yaml` 在合并后会争夺同一个“当前交付”语义

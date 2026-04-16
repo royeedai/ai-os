@@ -23,6 +23,9 @@ AI-OS 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `problem-ledger-coverage-regression.md`
 - `read-only-analysis-before-edit.md`
 - `legacy-to-lanes-migration-skipped.md`
+- `shared-layer-side-effect-audit-missed.md`
+- `parity-before-reuse-skipped.md`
+- `fix-complete-but-data-runtime-not-recovered.md`
 
 ## 使用原则
 

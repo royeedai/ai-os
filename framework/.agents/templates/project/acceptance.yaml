@@ -52,6 +52,8 @@ gates:
       - "关键用户任务 / 操作员任务所需的能力入口与执行链路真实可用，不是静态占位"
       - "未实现、未验证或仅 demo / placeholder 的能力未被标记为完成"
       - "契约基准、字段映射和状态枚举与实现一致"
+      - "shared layer / 通用抽象改动已留下副作用影响清单"
+      - "路由 / entrypoint、wrapper / adapter、实体 / schema parity 已核对"
       - "修改边界符合确认方案，没有越界改动"
       - "项目原生静态校验已完成（compile / type-check / build 其一）"
       - "测试与 review 已通过"
@@ -63,6 +65,9 @@ gates:
       - "task-flow-check"
       - "review-report"
       - "contract-baseline-check"
+      - "shared-impact-check"
+      - "route-contract-check"
+      - "schema-parity-check"
 
   - id: delivery-readiness
     title: "交付质量门"
@@ -75,11 +80,13 @@ gates:
       - "交付说明、回滚和移交信息齐全"
       - "交付说明已明确本次实现范围与未纳入范围项"
       - "交付说明已区分 AI 已完成 与 需人工执行，未把待人工执行动作写成已完成"
+      - "交付说明已拆分代码状态 / 数据状态 / 运行状态"
       - "fallback 证据未被误当成正式交付证据"
     evidence:
       - "runtime-check"
       - "uat-result"
       - "manual-action-note"
+      - "state-triage-note"
       - "handoff-note"
       - "rollback-note"
       - "degraded-path-check"

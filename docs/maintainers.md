@@ -42,6 +42,9 @@
 - `evals/problem-ledger-coverage-regression.md`
 - `evals/read-only-analysis-before-edit.md`
 - `evals/legacy-to-lanes-migration-skipped.md`
+- `evals/shared-layer-side-effect-audit-missed.md`
+- `evals/parity-before-reuse-skipped.md`
+- `evals/fix-complete-but-data-runtime-not-recovered.md`
 
 ## 当前主示例
 

@@ -8,6 +8,15 @@
 
 ---
 
+## 7.1.5 (2026-04-16)
+
+### Changed
+
+- AI-OS 新增了三类从真实复杂项目复盘抽象出的交付护栏：shared layer / 通用抽象副作用审计、schema / route / wrapper parity 先于复用、以及代码状态 / 数据状态 / 运行状态三分诊断
+- `design` / `plan` / `build` / `debug` / `verify` workflow、根层宪法与工件模板同步补齐了这些要求，并把同仓正常实现对照与 step validation 前移到了执行阶段
+- `ai-os-validate` 现在会对 spec / tasks / acceptance 中缺失的 shared-layer / parity / step-validation 锚点给出 warning；canonical quickstart 示例也已升级到零 warning 新基线
+- 新增 `shared-layer-side-effect-audit-missed`、`parity-before-reuse-skipped`、`fix-complete-but-data-runtime-not-recovered` 三个 root eval，避免这轮规则在后续重写中回退
+
 ## 7.1.4 (2026-04-16)
 
 ### Changed

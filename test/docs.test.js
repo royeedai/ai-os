@@ -28,6 +28,9 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regre
 assert(fs.existsSync(path.join(repoRoot, "evals", "fallback-evidence-used-as-delivery.md")), "fallback-evidence eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "missing-user-confirmation.md")), "missing-user-confirmation eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "legacy-to-lanes-migration-skipped.md")), "legacy-to-lanes migration eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "shared-layer-side-effect-audit-missed.md")), "shared-layer side-effect eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "parity-before-reuse-skipped.md")), "parity-before-reuse eval exists");
+assert(fs.existsSync(path.join(repoRoot, "evals", "fix-complete-but-data-runtime-not-recovered.md")), "state-triage eval exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
@@ -92,6 +95,9 @@ assert(maintainersDoc.includes("configurable-meant-operable-gap.md"), "maintaine
 assert(maintainersDoc.includes("docs/problem-ledger.md"), "maintainers doc references problem ledger");
 assert(maintainersDoc.includes("problem-ledger-coverage-regression.md"), "maintainers doc references problem ledger eval");
 assert(maintainersDoc.includes("legacy-to-lanes-migration-skipped.md"), "maintainers doc references migration eval");
+assert(maintainersDoc.includes("shared-layer-side-effect-audit-missed.md"), "maintainers doc references shared-layer side-effect eval");
+assert(maintainersDoc.includes("parity-before-reuse-skipped.md"), "maintainers doc references parity-before-reuse eval");
+assert(maintainersDoc.includes("fix-complete-but-data-runtime-not-recovered.md"), "maintainers doc references state-triage eval");
 assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
 assert(maintainersDoc.includes("quickstart-todo-cli"), "maintainers doc references canonical quickstart example");
 assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
@@ -160,6 +166,9 @@ assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE for
 assert(updatedLedger.includes("PG-005"), "problem ledger includes PG-005 mission hotspot entry");
 assert(updatedLedger.includes("quickstart-todo-cli"), "problem ledger records the canonical lane example coverage");
 assert(updatedLedger.includes("legacy-to-lanes-migration-skipped"), "problem ledger records migration eval coverage");
+assert(updatedLedger.includes("PL-030"), "problem ledger includes PL-030 shared-layer side-effect entry");
+assert(updatedLedger.includes("PL-031"), "problem ledger includes PL-031 parity-before-reuse entry");
+assert(updatedLedger.includes("PL-032"), "problem ledger includes PL-032 code/data/runtime triage entry");
 assert(updatedLedger.includes("Codex CLI"), "problem ledger documents Codex CLI in IDE portability rule");
 assert(updatedLedger.includes("默认不纳入 CLI 主能力"), "problem ledger blocks single-IDE features from CLI mainline");
 assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");
