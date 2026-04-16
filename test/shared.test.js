@@ -25,6 +25,14 @@ assert(Array.isArray(shared.IMPACT_TAGS), "IMPACT_TAGS exported");
 assert(Array.isArray(shared.HIGH_RISK_SPECIAL_REVIEWS), "HIGH_RISK_SPECIAL_REVIEWS exported");
 assert(shared.LANES_DIR === "lanes", "LANES_DIR exported");
 assert(shared.DEFAULT_LANE_ID === "default", "DEFAULT_LANE_ID exported");
+assert(typeof shared.validateLaneId === "function", "validateLaneId exported");
+assert(typeof shared.createInitialBaselineContext === "function", "createInitialBaselineContext exported");
+assert(typeof shared.buildLaneMetadata === "function", "buildLaneMetadata exported");
+assert(typeof shared.writeLaneMetadata === "function", "writeLaneMetadata exported");
+assert(shared.LANE_STATUS_ACTIVE === "active", "LANE_STATUS_ACTIVE exported");
+assert(shared.LANE_STATUS_DRAFT === "draft", "LANE_STATUS_DRAFT exported");
+assert(shared.LANE_STATUS_ARCHIVED === "archived", "LANE_STATUS_ARCHIVED exported");
+assert(Array.isArray(shared.LANE_STATUSES), "LANE_STATUSES exported");
 
 section("shared.js new exports");
 assert(Array.isArray(shared.LITE_INCLUDES), "LITE_INCLUDES exported");

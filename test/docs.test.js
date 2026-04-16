@@ -120,8 +120,12 @@ assert(cliDoc.includes("create-ai-os my-project --profile project"), "cli doc us
 assert(cliDoc.includes("`create-ai-os` 初始化和 `upgrade`"), "cli doc uses the current command names for team config");
 assert(cliDoc.includes("所有已承诺支持的环境承接"), "cli doc requires CLI features to be portable across supported environments");
 assert(cliDoc.includes("恢复自动选择"), "cli doc explains how multi-lane ambiguity guidance restores auto-selection");
+assert(cliDoc.includes("create-ai-os lane add payments ."), "cli doc documents lane add lifecycle command");
+assert(cliDoc.includes("--only"), "cli doc documents exclusive lane activation");
 assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
 assert(readmeDoc.includes("推荐命令示例"), "README documents suggested lane-selection commands for multi-lane ambiguity");
+assert(readmeDoc.includes("Lane 生命周期命令"), "README documents lane lifecycle commands");
+assert(readmeDoc.includes("active / draft / archived"), "README explains lane lifecycle statuses");
 assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
 assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
 assert(gettingStartedDoc.includes("会自动重建"), "getting-started documents STATE auto rebuild");

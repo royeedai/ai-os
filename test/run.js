@@ -16,6 +16,7 @@ require("./lite.test");
 require("./ide.test");
 require("./examples.test");
 require("./team.test");
+require("./lane.test");
 require("./real-project-validation.test");
 
 const { passed, failed } = getSummary();

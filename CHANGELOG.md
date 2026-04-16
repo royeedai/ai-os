@@ -8,6 +8,19 @@
 
 ---
 
+## 7.1.0 (2026-04-16)
+
+### Added
+
+- 新增 `create-ai-os lane` 生命周期子命令，支持 `list` / `add` / `activate` / `archive`
+- `lane add` 现在可以在 lane 项目里创建新交付线，也可以在 `core` 安装但尚未创建 starter 工件的项目里直接落第一条 lane
+- `lane activate --only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择
+
+### Changed
+
+- README、CLI 文档、问题台账和维护文档同步补齐了 lane lifecycle 的用户叙事与治理锚点
+- 回归测试新增 lane lifecycle 命令覆盖，并将 create-ai-os 主帮助文案纳入断言
+
 ## 7.0.2 (2026-04-15)
 
 ### Changed

@@ -214,6 +214,20 @@ npx --yes github:royeedai/ai-os my-project --profile project --no-team-config
 
 `status`、`next`、`resume`、`doctor`、`validate`、`gate`、`release-check` 都支持 `--lane <lane-id>` 读取指定 lane；若项目仍是 legacy 单交付结构，则自动退化到根层 `.ai-os/`。当存在多个 active lane 而未传 `--lane` 时，CLI 会列出候选 lane、推荐命令示例，并提示如何恢复自动选择。详见 `docs/cli.md` 和 `docs/evolution/multi-delivery-lanes-proposal.md`。
 
+Lane 生命周期命令：
+
+```bash
+create-ai-os lane list .
+create-ai-os lane add payments .
+create-ai-os lane activate payments .
+create-ai-os lane activate payments . --only
+create-ai-os lane archive payments .
+```
+
+- `lane add` 默认会在已有 active lane 的项目里把新 lane 建成 `draft`，避免刚创建就打破自动选择；如果这是项目里的第一条 lane，或你显式传了 `--activate`，则会直接成为 active
+- `lane activate ... --only` 会把其他 active lane 回退为 `draft`，适合在多人并行后恢复“单 active lane 自动选择”
+- `lane list` 会列出 `active / draft / archived` lane 及其 baseline、quality tier、owner，方便团队确认当前并行拓扑
+
 ## IDE 兼容性
 
 安装时自动生成所有 IDE 适配文件，无需额外步骤：
@@ -260,6 +274,8 @@ npx --yes github:royeedai/ai-os doctor .
 npx --yes github:royeedai/ai-os validate .
 npx --yes github:royeedai/ai-os gate align .
 npx --yes github:royeedai/ai-os status .
+npx --yes github:royeedai/ai-os lane list .
+npx --yes github:royeedai/ai-os lane add payments .
 npx --yes github:royeedai/ai-os next .
 npx --yes github:royeedai/ai-os resume .
 npx --yes github:royeedai/ai-os diff .
@@ -276,6 +292,7 @@ npx --yes github:royeedai/ai-os lab /tmp/ai-os-labs
 - `doctor` / `validate`：检查框架和交付工件是否完整
 - `gate`：检查阶段门禁——当前阶段的前置/出口条件是否满足，回答"能不能进入下一阶段"
 - `status` / `next` / `resume`：恢复项目上下文
+- `lane`：管理多交付 lane（list / add / activate / archive）
 - `diff` / `upgrade`：对比并升级框架文件
 - `release-check`：发布前做最后检查
 - `cursor-rules`：手动重新生成 IDE 适配文件（安装时已自动生成，通常不需要单独运行）

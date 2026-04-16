@@ -26,6 +26,11 @@ const INITIAL_BASELINE_SLUG = "initial-baseline";
 const LANES_DIR = "lanes";
 const LANE_METADATA_FILE = "lane.toml";
 const DEFAULT_LANE_ID = "default";
+const LANE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const LANE_STATUS_ACTIVE = "active";
+const LANE_STATUS_DRAFT = "draft";
+const LANE_STATUS_ARCHIVED = "archived";
+const LANE_STATUSES = [LANE_STATUS_ACTIVE, LANE_STATUS_DRAFT, LANE_STATUS_ARCHIVED];
 const TEMPLATE_TOKEN_INITIAL_BASELINE_ID = "{{INITIAL_BASELINE_ID}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_FILE = "{{INITIAL_BASELINE_FILE}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_DATE = "{{INITIAL_BASELINE_DATE}}";
@@ -498,6 +503,28 @@ function setDeliveryLaneContext(laneId = "") {
 
 function getDeliveryLaneContext() {
   return CURRENT_DELIVERY_LANE_ID || null;
+}
+
+function validateLaneId(laneId = "") {
+  const normalized = normalizeLaneId(laneId);
+  if (!normalized) {
+    fail("lane id is required");
+  }
+  if (!LANE_ID_PATTERN.test(normalized)) {
+    fail(
+      `invalid lane id: ${normalized}\n` +
+      "Use letters, numbers, dots, underscores, or hyphens, and start with a letter or number."
+    );
+  }
+  return normalized;
+}
+
+function getDefaultLaneTitle(laneId = "") {
+  const normalizedLaneId = validateLaneId(laneId);
+  if (normalizedLaneId === DEFAULT_LANE_ID) {
+    return "默认交付线";
+  }
+  return normalizedLaneId.replace(/[._-]+/g, " ").trim() || normalizedLaneId;
 }
 
 function escapeRegExp(value) {
@@ -1072,6 +1099,33 @@ function createInitialBaselineContext(options = {}) {
   };
 }
 
+function buildLaneMetadata(laneId, options = {}) {
+  const normalizedLaneId = validateLaneId(laneId);
+  const metadata = {
+    id: normalizedLaneId,
+    title: options.title || getDefaultLaneTitle(normalizedLaneId),
+    status: normalizeLaneStatus(
+      options.status || (normalizedLaneId === DEFAULT_LANE_ID ? LANE_STATUS_ACTIVE : LANE_STATUS_DRAFT)
+    ),
+    baseline_id: options.baselineId || "",
+    quality_tier: options.qualityTier || "standard",
+  };
+
+  if (options.owner) {
+    metadata.owner = options.owner;
+  }
+
+  return metadata;
+}
+
+function writeLaneMetadata(targetDir, laneId, values) {
+  const normalizedLaneId = validateLaneId(laneId);
+  const metadataPath = getLaneMetadataPath(targetDir, normalizedLaneId);
+  ensureDir(path.dirname(metadataPath));
+  fs.writeFileSync(metadataPath, serializeSimpleToml(values), "utf8");
+  return metadataPath;
+}
+
 // ---------------------------------------------------------------------------
 // Read target project metadata
 // ---------------------------------------------------------------------------
@@ -1241,7 +1295,7 @@ function deriveBaselineContextFromExistingRecords(recordRelPaths, fallbackContex
 function createLaneProjectFiles(targetDir, options = {}) {
   const { logger = defaultLogger } = options;
   const requestedBaselineContext = options.baselineContext || createInitialBaselineContext();
-  const laneId = options.laneId || DEFAULT_LANE_ID;
+  const laneId = validateLaneId(options.laneId || DEFAULT_LANE_ID);
   const createdPaths = [];
 
   ensureDir(getProjectRoot(targetDir));
@@ -1325,6 +1379,21 @@ function createLaneProjectFiles(targetDir, options = {}) {
   };
   for (const filePath of createdPaths) {
     applyProjectTemplateTokens(filePath, tokenValues);
+  }
+
+  if (!fs.existsSync(laneTomlDst) || createdPaths.includes(laneTomlDst)) {
+    const metadataSeed = options.laneMetadata || {};
+    writeLaneMetadata(
+      targetDir,
+      laneId,
+      buildLaneMetadata(laneId, {
+        title: options.title || metadataSeed.title,
+        status: options.status || metadataSeed.status,
+        baselineId: options.baselineId || metadataSeed.baseline_id || baselineContext.baselineId,
+        qualityTier: options.qualityTier || metadataSeed.quality_tier,
+        owner: options.owner || metadataSeed.owner,
+      })
+    );
   }
 }
 
@@ -2544,6 +2613,11 @@ module.exports = {
   LANES_DIR,
   LANE_METADATA_FILE,
   DEFAULT_LANE_ID,
+  LANE_ID_PATTERN,
+  LANE_STATUS_ACTIVE,
+  LANE_STATUS_DRAFT,
+  LANE_STATUS_ARCHIVED,
+  LANE_STATUSES,
   DELIVERY_MODEL_NONE,
   DELIVERY_MODEL_LEGACY,
   DELIVERY_MODEL_LANES,
@@ -2603,6 +2677,7 @@ module.exports = {
   getProjectMetadataPath,
   normalizeRelativePath,
   normalizeLaneId,
+  validateLaneId,
   setDeliveryLaneContext,
   getDeliveryLaneContext,
   isProjectArtifactPath,
@@ -2610,6 +2685,9 @@ module.exports = {
   formatProjectPath,
   parseSimpleToml,
   serializeSimpleToml,
+  createInitialBaselineContext,
+  buildLaneMetadata,
+  writeLaneMetadata,
   readInstalledMeta,
   copyFileWithMode,
   getProjectTemplatePath,

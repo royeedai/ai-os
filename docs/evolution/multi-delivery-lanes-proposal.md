@@ -258,6 +258,7 @@ owner = "team-payment"
 
 `7.1.0` 应交付：
 
+- `create-ai-os lane list/add/activate/archive` 这组最小 lane 生命周期命令
 - `/align` / `/change-request` / `/build` / `/verify` / `/ship` 的 lane 作用域规则
 - `gate verify`、`release-check`、`validate` 的 lane 级错误信息和修复建议
 - lane 级 example / eval / regression tests

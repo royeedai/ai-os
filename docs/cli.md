@@ -12,6 +12,8 @@ create-ai-os doctor .
 create-ai-os validate .
 create-ai-os gate align .
 create-ai-os status .
+create-ai-os lane list .
+create-ai-os lane add payments .
 create-ai-os next .
 create-ai-os resume .
 create-ai-os release-check .
@@ -50,6 +52,21 @@ Lane 选择规则：
 1. 若项目只有一个 active lane，自动选择
 2. 若存在多个 active lane 但未传 `--lane`，CLI 报错并列出候选、推荐 `--lane` 示例，并提示如何恢复自动选择
 3. 若项目仍是旧版单交付结构（无 `.ai-os/lanes/`），自动退化到 legacy 模式
+
+Lane 生命周期：
+
+```bash
+create-ai-os lane list .
+create-ai-os lane add payments .
+create-ai-os lane activate payments .
+create-ai-os lane activate payments . --only
+create-ai-os lane archive payments .
+```
+
+- `lane list`：列出 `active / draft / archived` lane、baseline、quality tier 和 owner
+- `lane add`：创建新 lane。若项目里已存在 active lane，则新 lane 默认以 `draft` 创建，避免刚创建就打破自动选择；传 `--activate` 可直接创建为 active
+- `lane activate`：把指定 lane 标记为 active；配合 `--only` 会把其他 active lane 回退为 `draft`，用于恢复单 lane 自动选择
+- `lane archive`：把 lane 标记为 `archived`，用于本轮交付结束后的收口
 
 Lane 目录结构：
 

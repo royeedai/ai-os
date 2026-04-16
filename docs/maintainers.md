@@ -66,7 +66,7 @@
 - PG-002: 框架 token 成本占用过高 → `--lite` / `token-budget`
 - PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
 - PG-004: CLI / 框架能力只在单一 IDE 可用 → 必须写清 Codex / Cursor / Claude Code 等承接路径，否则不纳入 CLI 主能力
-- PG-006: 单工作区单当前基线模型无法承载多人多迭代并行 → 进入 `7.x lanes` 演进规划，见 `docs/evolution/multi-delivery-lanes-proposal.md`、`examples/legacy-to-lanes-migration.md`、`evals/legacy-to-lanes-migration-skipped.md`
+- PG-006: 单工作区单当前基线模型无法承载多人多迭代并行 → 进入 `7.x lanes` 演进规划，当前最小 CLI 落点见 `bin/ai-os-lane.js`，整体规划见 `docs/evolution/multi-delivery-lanes-proposal.md`、`examples/legacy-to-lanes-migration.md`、`evals/legacy-to-lanes-migration-skipped.md`
 
 ## 版本纪律
 
@@ -88,6 +88,7 @@
 node ./bin/create-ai-os.js --help
 node ./bin/create-ai-os.js plan /tmp/test-project --profile project
 node ./bin/create-ai-os.js /tmp/test-project --profile project
+node ./bin/create-ai-os.js lane list /tmp/test-project
 node ./bin/ai-os-doctor.js /tmp/test-project
 node ./bin/ai-os-diff.js /tmp/test-project
 node ./bin/ai-os-upgrade.js /tmp/test-project

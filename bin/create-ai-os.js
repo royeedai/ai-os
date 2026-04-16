@@ -19,6 +19,7 @@ const SUBCOMMANDS = {
   "release-check": "./ai-os-release-check",
   "token-budget":  "./ai-os-token-budget",
   "cursor-rules":  "./ai-os-cursor-rules",
+  lane:            "./ai-os-lane",
 };
 
 const _sub = process.argv[2];
@@ -81,6 +82,12 @@ Recover and continue:
   create-ai-os status [target-dir]         Show current delivery status
   create-ai-os next [target-dir]           Show next ready tasks
   create-ai-os resume [target-dir]         Print resume context pack
+  create-ai-os lane list [target-dir]      Show configured delivery lanes
+  create-ai-os lane add <lane-id> [dir]    Create a new delivery lane
+  create-ai-os lane activate <lane-id> [dir] [--only]
+                                          Mark a lane active and optionally restore single-lane auto-selection
+  create-ai-os lane archive <lane-id> [dir]
+                                          Archive a lane when it is no longer active
 
 Maintain framework:
   create-ai-os diff [target-dir]           Compare framework files against source
