@@ -8,6 +8,14 @@
 
 ---
 
+## 7.1.4 (2026-04-16)
+
+### Changed
+
+- framework 分发工作流把 `/build`、`/ship` 也补齐到 lane 进入规则：实现和交付前都必须先确认当前 lane，不再默认沿用根层单当前交付语义
+- `/build` 与 `/ship` 现在明确要求：命中共享代码 / 契约 / 基础设施时，要记录其他受影响 lane，并在验证或收口时说明哪些 lane 已覆盖、哪些仍待补回归
+- README、CLI、`docs/workflows.md`、问题台账和安装回归测试同步补齐这组 lane-sensitive workflow 说明
+
 ## 7.1.3 (2026-04-16)
 
 ### Changed

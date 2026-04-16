@@ -227,7 +227,7 @@ create-ai-os lane archive payments .
 - `lane add` 默认会在已有 active lane 的项目里把新 lane 建成 `draft`，避免刚创建就打破自动选择；如果这是项目里的第一条 lane，或你显式传了 `--activate`，则会直接成为 active
 - `lane activate ... --only` 会把其他 active lane 回退为 `draft`，适合在多人并行后恢复“单 active lane 自动选择”
 - `lane list` 会列出 `active / draft / archived` lane 及其 baseline、quality tier、owner，方便团队确认当前并行拓扑
-- 进入 `/align`、`/change-request`、`/verify` 前，先判断这轮工作是继续当前 lane，还是应该先 `lane add` 新建并行 lane；不要把两条并行交付线硬塞进同一条 lane
+- 进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前，先判断这轮工作是继续当前 lane，还是应该先 `lane add` 新建并行 lane；不要把两条并行交付线硬塞进同一条 lane
 - `ai-os-validate`、`create-ai-os gate`、`ai-os-release-check` 在 lane 项目里会给出 lane-aware 修复建议：lane 选错时直接列出可复制的 `--lane` 重跑命令；显式指定某条 lane 时，也会提醒这次只覆盖当前 lane，若共享代码 / 契约 / 基础设施受影响，仍需补跑其他 lane
 - 若仓库已有 Git 基线，这三条命令还会结合当前 worktree 改动给出更高置信度的 lane 候选：例如命中了共享根层工件、其他 lane 工件，或仓库里存在 `.ai-os/` 之外的改动时，会优先提示最可能需要补跑的 lane
 

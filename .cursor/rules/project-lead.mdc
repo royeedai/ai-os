@@ -11,12 +11,12 @@ alwaysApply: true
 
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
-- 当前版本：7.1.3（VERSION + package.json 同步）
+- 当前版本：7.1.4（VERSION + package.json 同步）
 - 最新 git tag：v6.3.0
 - 分支：main
 - CI：.github/workflows/ci.yml
 - 零运行时依赖，devDependencies 仅 eslint
-- 测试：npm test（当前 952 项断言）
+- 测试：npm test（当前 961 项断言）
 - 安装 profile：core（默认）、project、quick
 - CLI 子命令共 15 个：plan/doctor/diff/lab/upgrade/validate/gate/skill-check/status/next/resume/release-check/token-budget/cursor-rules/lane
 

@@ -35,10 +35,12 @@ AI-OS 以阶段式 workflow 为主，并补充兼容性的专项入口：`/chang
 
 - 新项目、新模块、模糊需求先走 `/align`
 - brownfield / change 下，先锁当前这轮交付基准，不要把整个存量项目重新当成 mission
+- lane 项目进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前，先判断这次工作是否继续当前 lane；若是新的并行交付线，先 `lane add`
 - 多人协作时，`MISSION.md` 视为低频锁定章程；高频变更记录放到 `baseline-log/`
 - 复杂多文件或边界不清的 `/build` / `/debug` 任务，首次写入前先做只读分析 pass，先锁目标文件、共享约定和验证入口
 - 关键设计未锁时停在 `/design`
 - 需求变化先走 `/change-request`，禁止直接按聊天指令改代码
 - 单点修复先走 `/debug`，禁止越界顺手改
 - `debug` / `verify` 暴露新的稳定 failure mode 时，补 `.ai-os/evals/` 或 `verification-matrix.yaml`，不要只留在当前会话
+- `/build`、`/verify`、`/ship` 命中共享代码 / 契约 / 基础设施时，必须说明当前覆盖了哪些 lane、哪些 lane 仍待补回归
 - `/build` 只能在用户确认了 Mission / Design / Plan 对应停点后进入

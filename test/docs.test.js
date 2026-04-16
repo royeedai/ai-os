@@ -60,6 +60,7 @@ const cliDoc = fs.readFileSync(path.join(repoRoot, "docs", "cli.md"), "utf8");
 const problemLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledger.md"), "utf8");
 const agentsDoc = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
 const readmeDoc = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
+const workflowsDoc = fs.readFileSync(path.join(repoRoot, "docs", "workflows.md"), "utf8");
 const examplesDoc = fs.readFileSync(path.join(repoRoot, "examples", "README.md"), "utf8");
 const evalsDoc = fs.readFileSync(path.join(repoRoot, "evals", "README.md"), "utf8");
 const changeEvaluationTemplate = fs.readFileSync(
@@ -123,15 +124,18 @@ assert(cliDoc.includes("恢复自动选择"), "cli doc explains how multi-lane a
 assert(cliDoc.includes("create-ai-os lane add payments ."), "cli doc documents lane add lifecycle command");
 assert(cliDoc.includes("--only"), "cli doc documents exclusive lane activation");
 assert(cliDoc.includes("lane 敏感 workflow"), "cli doc explains resolving lane before lane-sensitive workflows");
+assert(cliDoc.includes("`/build`、`/verify`、`/ship`"), "cli doc includes build/verify/ship in lane-sensitive workflow guidance");
 assert(cliDoc.includes("lane-aware 修复建议"), "cli doc documents lane-aware repair guidance for delivery commands");
 assert(cliDoc.includes("Git 基线"), "cli doc documents git-backed lane candidate hints");
 assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
 assert(readmeDoc.includes("推荐命令示例"), "README documents suggested lane-selection commands for multi-lane ambiguity");
 assert(readmeDoc.includes("Lane 生命周期命令"), "README documents lane lifecycle commands");
 assert(readmeDoc.includes("active / draft / archived"), "README explains lane lifecycle statuses");
-assert(readmeDoc.includes("进入 `/align`、`/change-request`、`/verify` 前"), "README explains resolving lane before lane-sensitive workflows");
+assert(readmeDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "README explains resolving lane before lane-sensitive workflows");
 assert(readmeDoc.includes("lane-aware 修复建议"), "README documents lane-aware repair guidance for delivery commands");
 assert(readmeDoc.includes("Git 基线"), "README documents git-backed lane candidate hints");
+assert(workflowsDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "workflows doc explains resolving lane before lane-sensitive workflows");
+assert(workflowsDoc.includes("当前覆盖了哪些 lane"), "workflows doc requires cross-lane coverage summaries for shared changes");
 assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
 assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
 assert(gettingStartedDoc.includes("会自动重建"), "getting-started documents STATE auto rebuild");

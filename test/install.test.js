@@ -55,6 +55,7 @@ const specTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "defa
 const installedAgents = fs.readFileSync(path.join(initDir, "AGENTS.md"), "utf8");
 const alignWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "align.md"), "utf8");
 const changeRequestWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "change-request.md"), "utf8");
+const buildWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "build.md"), "utf8");
 const verifyWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "verify.md"), "utf8");
 const shipWorkflow = fs.readFileSync(path.join(initDir, ".agents", "workflows", "ship.md"), "utf8");
 const baselineStarterFiles = listLaneBaselineRecords(initDir, "default", "BL-");
@@ -133,8 +134,13 @@ assert(installedAgents.includes("create-ai-os lane add <lane-id> ."), "installed
 assert(alignWorkflow.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "align workflow explains lane-scoped artifact paths");
 assert(alignWorkflow.includes("create-ai-os lane add <lane-id> ."), "align workflow documents creating a lane for parallel delivery");
 assert(changeRequestWorkflow.includes("create-ai-os lane add <lane-id> ."), "change-request workflow documents switching to a new lane for parallel delivery");
+assert(buildWorkflow.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "build workflow explains lane-scoped artifact paths");
+assert(buildWorkflow.includes("create-ai-os lane list ."), "build workflow documents resolving lane before implementation");
+assert(buildWorkflow.includes("其他 lane"), "build workflow records when shared changes require cross-lane regression follow-up");
 assert(verifyWorkflow.includes("validate` / `gate verify` / `release-check --lane <lane-id>`"), "verify workflow documents lane-scoped verification for affected lanes");
 assert(shipWorkflow.includes("当前 lane 的交付范围"), "ship workflow frames release scope around the current lane");
+assert(shipWorkflow.includes("create-ai-os lane list ."), "ship workflow documents resolving lane before release handoff");
+assert(shipWorkflow.includes("其他 lane"), "ship workflow documents cross-lane release verification when shared changes land");
 
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "align.md")), "align workflow installed");
 assert(fs.existsSync(path.join(initDir, ".agents", "workflows", "design.md")), "design workflow installed");
@@ -162,6 +168,7 @@ assert(workflowsIndex.includes("/postmortem"), "workflow index documents /postmo
 assert(workflowsIndex.includes("当前 lane 的 `.ai-os/lanes/<lane-id>/`"), "workflow index explains lane-scoped artifact paths");
 assert(workflowsIndex.includes("先锁当前 lane"), "workflow index frames brownfield alignment around the current lane");
 assert(workflowsIndex.includes("create-ai-os lane list ."), "workflow index documents checking lane topology before lane-sensitive workflows");
+assert(workflowsIndex.includes("`/build`、`/verify`、`/ship`"), "workflow index marks build/verify/ship as lane-sensitive workflows");
 
 const projectPlannerSkill = path.join(initDir, ".agents", "skills", "project-planner");
 const acceptanceGateSkill = path.join(initDir, ".agents", "skills", "acceptance-gate");
