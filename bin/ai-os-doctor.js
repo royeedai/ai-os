@@ -87,6 +87,28 @@ if (laneId) {
   process.stdout.write("Delivery model: legacy single-delivery\n\n");
 }
 
+if (laneResolution.ok && laneResolution.lane) {
+  const selectedLane = laneResolution.lane;
+  const allLanes = laneResolution.layout && Array.isArray(laneResolution.layout.lanes)
+    ? laneResolution.layout.lanes
+    : [];
+  const activeCount = allLanes.filter((lane) => lane.isActive).length;
+  const draftCount = allLanes.filter((lane) => lane.status === "draft").length;
+  const archivedCount = allLanes.filter((lane) => lane.status === "archived").length;
+
+  process.stdout.write("Lane metadata:\n");
+  process.stdout.write(`- path: ${selectedLane.relativePath}/\n`);
+  process.stdout.write(`- status: ${selectedLane.status || "unknown"}\n`);
+  process.stdout.write(`- baseline: ${selectedLane.baselineId || "missing"}\n`);
+  process.stdout.write(`- quality tier: ${selectedLane.qualityTier || "missing"}\n`);
+  process.stdout.write(`- risk tier: ${selectedLane.riskTier || "missing"}${selectedLane.hasExplicitRiskTier ? "" : " (derived from quality tier)"}\n`);
+  process.stdout.write(`- owner: ${selectedLane.owner || "missing"}\n`);
+  if (allLanes.length > 1) {
+    process.stdout.write(`- topology: ${activeCount} active / ${draftCount} draft / ${archivedCount} archived\n`);
+  }
+  process.stdout.write("\n");
+}
+
 // 1. Metadata
 const meta = readInstalledMeta(targetDir);
 const installedManagedFiles = listManagedFiles(targetDir);
@@ -237,6 +259,29 @@ if (mission.exists || baselineLog.exists) {
   } else if (baselineLog.exists) {
     process.stdout.write("  - Latest confirmed baseline: 未记录\n");
   }
+}
+
+if (laneResolution.ok && laneResolution.lane) {
+  const selectedLane = laneResolution.lane;
+  report(selectedLane.metadataExists, `${selectedLane.metadataRelativePath} exists`, {
+    warnOnly: !selectedLane.metadataExists,
+  });
+  report(
+    selectedLane.qualityTierValid,
+    `Lane quality tier is valid${selectedLane.qualityTier ? `: ${selectedLane.qualityTier}` : ""}`,
+    { warnOnly: !selectedLane.qualityTierValid }
+  );
+  report(
+    selectedLane.riskTierValid,
+    `Lane risk tier is valid${selectedLane.riskTier ? `: ${selectedLane.riskTier}` : ""}`,
+    { warnOnly: !selectedLane.riskTierValid }
+  );
+  const warnOnMissingOwner = laneResolution.layout && Array.isArray(laneResolution.layout.lanes) && laneResolution.layout.lanes.length > 1;
+  report(
+    Boolean(selectedLane.owner),
+    selectedLane.owner ? `Lane owner recorded: ${selectedLane.owner}` : "Lane owner missing from lane.toml",
+    { warnOnly: warnOnMissingOwner || !selectedLane.owner }
+  );
 }
 
 if (strict) {

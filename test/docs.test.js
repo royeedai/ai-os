@@ -31,6 +31,7 @@ assert(fs.existsSync(path.join(repoRoot, "evals", "legacy-to-lanes-migration-ski
 assert(fs.existsSync(path.join(repoRoot, "evals", "shared-layer-side-effect-audit-missed.md")), "shared-layer side-effect eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "parity-before-reuse-skipped.md")), "parity-before-reuse eval exists");
 assert(fs.existsSync(path.join(repoRoot, "evals", "fix-complete-but-data-runtime-not-recovered.md")), "state-triage eval exists");
+assert(fs.existsSync(path.join(repoRoot, "docs", "evolution", "multi-delivery-lanes-7.2-backlog.md")), "7.2 lanes backlog exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
 assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
@@ -64,6 +65,7 @@ const problemLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledge
 const agentsDoc = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
 const readmeDoc = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
 const workflowsDoc = fs.readFileSync(path.join(repoRoot, "docs", "workflows.md"), "utf8");
+const lanes72BacklogDoc = fs.readFileSync(path.join(repoRoot, "docs", "evolution", "multi-delivery-lanes-7.2-backlog.md"), "utf8");
 const examplesDoc = fs.readFileSync(path.join(repoRoot, "examples", "README.md"), "utf8");
 const evalsDoc = fs.readFileSync(path.join(repoRoot, "evals", "README.md"), "utf8");
 const changeEvaluationTemplate = fs.readFileSync(
@@ -128,15 +130,18 @@ assert(cliDoc.includes("`create-ai-os` 初始化和 `upgrade`"), "cli doc uses t
 assert(cliDoc.includes("所有已承诺支持的环境承接"), "cli doc requires CLI features to be portable across supported environments");
 assert(cliDoc.includes("恢复自动选择"), "cli doc explains how multi-lane ambiguity guidance restores auto-selection");
 assert(cliDoc.includes("create-ai-os lane add payments ."), "cli doc documents lane add lifecycle command");
+assert(cliDoc.includes("--risk-tier"), "cli doc documents lane risk tier flag");
 assert(cliDoc.includes("--only"), "cli doc documents exclusive lane activation");
 assert(cliDoc.includes("lane 敏感 workflow"), "cli doc explains resolving lane before lane-sensitive workflows");
 assert(cliDoc.includes("`/build`、`/verify`、`/ship`"), "cli doc includes build/verify/ship in lane-sensitive workflow guidance");
 assert(cliDoc.includes("lane-aware 修复建议"), "cli doc documents lane-aware repair guidance for delivery commands");
 assert(cliDoc.includes("Git 基线"), "cli doc documents git-backed lane candidate hints");
+assert(cliDoc.includes("status、quality tier、risk tier、owner"), "cli doc documents lane metadata summary output");
 assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
 assert(readmeDoc.includes("推荐命令示例"), "README documents suggested lane-selection commands for multi-lane ambiguity");
 assert(readmeDoc.includes("Lane 生命周期命令"), "README documents lane lifecycle commands");
 assert(readmeDoc.includes("active / draft / archived"), "README explains lane lifecycle statuses");
+assert(readmeDoc.includes("risk tier"), "README documents lane risk tier metadata");
 assert(readmeDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "README explains resolving lane before lane-sensitive workflows");
 assert(readmeDoc.includes("lane-aware 修复建议"), "README documents lane-aware repair guidance for delivery commands");
 assert(readmeDoc.includes("Git 基线"), "README documents git-backed lane candidate hints");
@@ -144,9 +149,11 @@ assert(workflowsDoc.includes("进入 `/align`、`/change-request`、`/build`、`
 assert(workflowsDoc.includes("当前覆盖了哪些 lane"), "workflows doc requires cross-lane coverage summaries for shared changes");
 assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
 assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
+assert(artifactsDoc.includes("risk tier"), "artifacts doc documents lane risk tier metadata");
 assert(gettingStartedDoc.includes("会自动重建"), "getting-started documents STATE auto rebuild");
 assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
 assert(maintainersDoc.includes("node ./bin/create-ai-os.js plan /tmp/test-project --profile project"), "maintainers doc includes plan preview in local examples");
+assert(lanes72BacklogDoc.includes("L72-01"), "7.2 lanes backlog includes metadata workstream");
 
 section("eval content structure");
 const EVAL_REQUIRED_SECTIONS = ["## 场景", "## 错误交付", "## AI-OS 预期行为", "## 最低证据", "## 若需改 framework，优先检查"];

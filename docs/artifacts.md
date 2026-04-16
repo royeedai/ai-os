@@ -9,6 +9,7 @@ AI-OS 采用“少而强的必备工件 + 按风险加深”的策略。
 | `.ai-os/project.md` | 记录跨 lane 共享的宿主项目身份、技术约束和协作边界 |
 | `.ai-os/CONVENTIONS.md` | 记录项目级代码约定（命名、模式、分层、日志），降低跨 session / 多人协作漂移 |
 | `.ai-os/memory.md` | 记录稳定决策和约束 |
+| `.ai-os/lanes/default/lane.toml` | 当前交付线的机器可读元数据：status、baseline、quality tier、risk tier、owner；供 `lane list`、`status`、`doctor` 和团队协同判断使用 |
 | `.ai-os/lanes/default/MISSION.md` | 定义当前交付线的目标、范围、模式、治理档位和当前确认基线 ID；只承载低频、已确认、共享的交付章程 |
 | `.ai-os/lanes/default/baseline-log/` | 当前交付线的共享基线记录目录，每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录变更分析、确认和升格结果，供多人协作时对齐和审计；不再依赖全局递增编号 |
 | `.ai-os/lanes/default/DESIGN.md` | 锁定当前交付线的关键页面、信息架构、交互和流程，并记录 shared layer 副作用清单、route/schema/wrapper parity 与同仓对照实现 |

@@ -19,7 +19,7 @@
 
 - `.ai-os/project.md`：宿主项目共享章程
 - `.ai-os/CONVENTIONS.md`、`.ai-os/memory.md`：跨 lane 共享约束与记忆
-- `.ai-os/lanes/default/lane.toml`：默认 lane 元数据
+- `.ai-os/lanes/default/lane.toml`：默认 lane 元数据（status、baseline、quality tier、risk tier）
 - `.ai-os/lanes/default/`：当前交付线的 Mission / Design / tasks / acceptance / STATE / specs / baseline-log
 
 ## 关键观察点

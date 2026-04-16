@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   QUALITY_TIERS,
+  RISK_TIERS,
   DEFAULT_LANE_ID,
   DELIVERY_MODEL_NONE,
   DELIVERY_MODEL_LEGACY,
@@ -27,7 +28,7 @@ const ACTIONS = new Set(["list", "add", "activate", "archive"]);
 function printHelp() {
   process.stdout.write(`Usage:
   create-ai-os lane list [target-dir]
-  create-ai-os lane add <lane-id> [target-dir] [--title <title>] [--quality-tier <tier>] [--owner <owner>] [--activate]
+  create-ai-os lane add <lane-id> [target-dir] [--title <title>] [--quality-tier <tier>] [--risk-tier <tier>] [--owner <owner>] [--activate]
   create-ai-os lane activate <lane-id> [target-dir] [--only]
   create-ai-os lane archive <lane-id> [target-dir]
 
@@ -36,6 +37,7 @@ Manage multi-delivery lanes for a lane-based AI-OS project.
 Options:
   --title <title>          Human-readable lane title for \`lane add\`
   --quality-tier <tier>    Lane quality tier for \`lane add\` (${QUALITY_TIERS.join(", ")})
+  --risk-tier <tier>       Lane risk tier for \`lane add\` (${RISK_TIERS.join(", ")})
   --owner <owner>          Optional owner metadata for \`lane add\`
   --activate               Create the new lane as active instead of draft
   --only                   With \`lane activate\`, move other active lanes back to draft
@@ -52,6 +54,7 @@ function parseArgs(argv) {
     flags: {
       title: "",
       "quality-tier": "",
+      "risk-tier": "",
       owner: "",
       activate: false,
       only: false,
@@ -77,7 +80,7 @@ function parseArgs(argv) {
       result.flags.only = true;
       continue;
     }
-    if (arg === "--title" || arg === "--quality-tier" || arg === "--owner") {
+    if (arg === "--title" || arg === "--quality-tier" || arg === "--risk-tier" || arg === "--owner") {
       if (i + 1 >= args.length) {
         fail(`${arg} requires a value`);
       }
@@ -129,6 +132,9 @@ function formatLaneLine(lane) {
   if (lane.qualityTier) {
     meta.push(`quality=${lane.qualityTier}`);
   }
+  if (lane.riskTier) {
+    meta.push(`risk=${lane.hasExplicitRiskTier ? lane.riskTier : `${lane.riskTier} (derived)`}`);
+  }
   if (lane.owner) {
     meta.push(`owner=${lane.owner}`);
   }
@@ -173,10 +179,41 @@ function printLaneList(targetDir, layout) {
     return;
   }
 
+  const activeCount = layout.lanes.filter((lane) => lane.status === LANE_STATUS_ACTIVE).length;
+  const draftCount = layout.lanes.filter((lane) => lane.status === LANE_STATUS_DRAFT).length;
+  const archivedCount = layout.lanes.filter((lane) => lane.status === LANE_STATUS_ARCHIVED).length;
+  process.stdout.write(`Topology: ${activeCount} active, ${draftCount} draft, ${archivedCount} archived\n\n`);
+
   process.stdout.write("Configured lanes:\n");
   for (const lane of layout.lanes) {
     process.stdout.write(`${formatLaneLine(lane)}\n`);
     process.stdout.write(`  path: ${lane.relativePath}/\n`);
+  }
+
+  const lanesMissingOwner = layout.lanes.filter((lane) => !lane.owner);
+  const lanesUsingDerivedRisk = layout.lanes.filter((lane) => !lane.hasExplicitRiskTier);
+  const lanesWithInvalidRisk = layout.lanes.filter((lane) => !lane.riskTierValid);
+  const lanesWithInvalidQuality = layout.lanes.filter((lane) => !lane.qualityTierValid);
+
+  if (
+    lanesMissingOwner.length > 0 ||
+    lanesUsingDerivedRisk.length > 0 ||
+    lanesWithInvalidRisk.length > 0 ||
+    lanesWithInvalidQuality.length > 0
+  ) {
+    process.stdout.write("\nMetadata notes:\n");
+    if (lanesMissingOwner.length > 0) {
+      process.stdout.write(`- owner missing: ${lanesMissingOwner.map((lane) => lane.id).join(", ")}\n`);
+    }
+    if (lanesUsingDerivedRisk.length > 0) {
+      process.stdout.write(`- risk tier derived from quality tier: ${lanesUsingDerivedRisk.map((lane) => lane.id).join(", ")}\n`);
+    }
+    if (lanesWithInvalidRisk.length > 0) {
+      process.stdout.write(`- invalid risk tier value: ${lanesWithInvalidRisk.map((lane) => lane.id).join(", ")}\n`);
+    }
+    if (lanesWithInvalidQuality.length > 0) {
+      process.stdout.write(`- invalid quality tier value: ${lanesWithInvalidQuality.map((lane) => lane.id).join(", ")}\n`);
+    }
   }
 
   if (layout.model === DELIVERY_MODEL_MIXED) {
@@ -190,6 +227,16 @@ function validateQualityTier(value) {
   }
   if (!QUALITY_TIERS.includes(value)) {
     fail(`unknown quality tier: ${value}\nExpected one of: ${QUALITY_TIERS.join(", ")}`);
+  }
+  return value;
+}
+
+function validateRiskTier(value) {
+  if (!value) {
+    return "";
+  }
+  if (!RISK_TIERS.includes(value)) {
+    fail(`unknown risk tier: ${value}\nExpected one of: ${RISK_TIERS.join(", ")}`);
   }
   return value;
 }
@@ -209,15 +256,20 @@ function saveLane(targetDir, lane, updates = {}) {
     status: updates.status !== undefined ? updates.status : lane.status,
     baselineId: updates.baselineId !== undefined ? updates.baselineId : (lane.baselineId || ""),
     qualityTier: updates.qualityTier !== undefined ? updates.qualityTier : (lane.qualityTier || "standard"),
+    riskTier: updates.riskTier !== undefined ? updates.riskTier : lane.riskTier,
     owner: updates.owner !== undefined ? updates.owner : lane.owner,
   });
   writeLaneMetadata(targetDir, lane.id, metadata);
 }
 
 const parsed = parseArgs(process.argv);
-if (parsed.flags.help || !parsed.action) {
+if (parsed.flags.help) {
   printHelp();
-  process.exit(parsed.action ? 0 : 1);
+  process.exit(0);
+}
+if (!parsed.action) {
+  printHelp();
+  process.exit(1);
 }
 if (!ACTIONS.has(parsed.action)) {
   fail(`unknown lane action: ${parsed.action}`);
@@ -226,8 +278,8 @@ if (!ACTIONS.has(parsed.action)) {
 if (parsed.action === "list" && parsed.flags.activate) {
   fail("--activate only applies to `lane add`");
 }
-if (parsed.action !== "add" && (parsed.flags.title || parsed.flags["quality-tier"] || parsed.flags.owner)) {
-  fail("--title, --quality-tier, and --owner only apply to `lane add`");
+if (parsed.action !== "add" && (parsed.flags.title || parsed.flags["quality-tier"] || parsed.flags["risk-tier"] || parsed.flags.owner)) {
+  fail("--title, --quality-tier, --risk-tier, and --owner only apply to `lane add`");
 }
 if (parsed.action !== "activate" && parsed.flags.only) {
   fail("--only only applies to `lane activate`");
@@ -255,6 +307,7 @@ if (parsed.action === "add") {
   }
 
   const qualityTier = validateQualityTier(parsed.flags["quality-tier"]);
+  const riskTier = validateRiskTier(parsed.flags["risk-tier"]);
   const status = parsed.flags.activate
     ? LANE_STATUS_ACTIVE
     : (layout.lanes.length === 0 ? LANE_STATUS_ACTIVE : LANE_STATUS_DRAFT);
@@ -264,6 +317,7 @@ if (parsed.action === "add") {
     status,
     baselineId: baselineContext.baselineId,
     qualityTier: qualityTier || "standard",
+    riskTier,
     owner: parsed.flags.owner || undefined,
   });
 
@@ -281,6 +335,9 @@ if (parsed.action === "add") {
   process.stdout.write(`Status: ${createdLane.status}\n`);
   process.stdout.write(`Path: ${createdLane.relativePath}/\n`);
   process.stdout.write(`Baseline: ${createdLane.baselineId || "[missing]"}\n`);
+  process.stdout.write(`Quality tier: ${createdLane.qualityTier || "[missing]"}\n`);
+  process.stdout.write(`Risk tier: ${createdLane.riskTier || "[missing]"}\n`);
+  process.stdout.write(`Owner: ${createdLane.owner || "[missing]"}\n`);
 
   const activeLanes = layout.lanes.filter((lane) => lane.isActive);
   if (activeLanes.length > 1) {

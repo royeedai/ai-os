@@ -8,6 +8,19 @@
 
 ---
 
+## 7.2.0 (2026-04-16)
+
+### Added
+
+- `docs/evolution/multi-delivery-lanes-7.2-backlog.md`：正式把 `7.2` 团队协同增强拆成 lane 元数据与可见性、lane 收口与记忆回流、多 lane canonical example 三个 workstream，避免后续推进继续依赖会话记忆
+
+### Changed
+
+- lane 元数据从最小身份信息提升到团队协同可见信息：`lane.toml` 与 `buildLaneMetadata` 现在稳定承载 `quality_tier`、`risk_tier`、`owner`，其中 `risk_tier` 在未显式声明时会由 `quality_tier` 推导
+- `create-ai-os lane add` 新增 `--risk-tier`，`lane list` 会显示 topology、quality / risk / owner，并标出缺失 owner、使用推导 risk tier 或 metadata 非法的 lane
+- `status` / `doctor` 现在会输出当前 lane 的 metadata 摘要与并行拓扑，帮助团队确认自己正在操作哪条 lane，而不是只看到“当前项目”
+- README、CLI、Artifacts、canonical quickstart example、问题台账和回归测试同步改成 `7.2` 的 lane metadata / topology 叙事
+
 ## 7.1.5 (2026-04-16)
 
 ### Changed

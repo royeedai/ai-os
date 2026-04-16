@@ -363,6 +363,8 @@ section("lane worktree impact unit tests");
     assert(lanes[0].id === "default", "uses directory name as lane id");
     assert(lanes[0].isActive === true, "marks active lane from metadata");
     assert(lanes[0].baselineId === "BL-default", "reads lane baseline id");
+    assert(lanes[0].riskTier === "high", "reads lane risk tier from metadata");
+    assert(lanes[0].riskTierValid === true, "marks valid explicit risk tier");
 
     const layout = shared.inspectProjectDeliveryLayout(dir);
     assert(layout.model === shared.DELIVERY_MODEL_LANES, "detects lanes layout");
@@ -417,12 +419,19 @@ section("lane worktree impact unit tests");
   try {
     writeFile(
       path.join(dir, ".ai-os", "lanes", "alpha", "lane.toml"),
-      ['status = "archived"', ""].join("\n")
+      ['status = "archived"', 'quality_tier = "exploratory"', ""].join("\n")
     );
     writeFile(
       path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"),
       ['status = "paused"', ""].join("\n")
     );
+
+    const lanes = shared.listProjectLanes(dir);
+    const archivedLane = lanes.find((lane) => lane.id === "alpha");
+    const invalidLane = lanes.find((lane) => lane.id === "beta");
+    assert(archivedLane.riskTier === "low", "derives low risk tier from exploratory quality tier");
+    assert(archivedLane.hasExplicitRiskTier === false, "tracks derived risk tier when lane metadata omits it");
+    assert(invalidLane.riskTier === "medium", "derives medium risk tier for default quality tier");
 
     const unresolved = shared.resolveProjectLane(dir);
     assert(unresolved.ok === false, "lane layout without active lanes requires explicit selection");

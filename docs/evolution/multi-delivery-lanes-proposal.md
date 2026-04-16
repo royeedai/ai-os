@@ -279,6 +279,8 @@ owner = "team-payment"
 - 关闭 lane 时的沉淀与共享记忆回流规则
 - 多 lane 项目的 README / docs / examples 体系
 
+建议实施拆分见 `docs/evolution/multi-delivery-lanes-7.2-backlog.md`。
+
 `7.2.0` 仍然不建议承诺：
 
 - 自动安排团队排期

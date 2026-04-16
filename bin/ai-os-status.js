@@ -57,6 +57,27 @@ if (laneId) {
 } else if (laneResolution.isLegacyFallback) {
   process.stdout.write(`Delivery model: legacy single-delivery\n\n`);
 }
+
+if (laneResolution.ok && laneResolution.lane) {
+  const lane = laneResolution.lane;
+  process.stdout.write("当前 lane 元数据:\n");
+  process.stdout.write(`- 状态: ${lane.status || "未记录"}\n`);
+  process.stdout.write(`- 质量档位: ${lane.qualityTier || "未记录"}\n`);
+  process.stdout.write(`- 风险档位: ${lane.riskTier || "未记录"}${lane.hasExplicitRiskTier ? "" : "（由 quality tier 推导）"}\n`);
+  process.stdout.write(`- owner: ${lane.owner || "未记录"}\n`);
+  process.stdout.write(`- 工件路径: ${lane.relativePath}/\n`);
+  const lanes = laneResolution.layout && Array.isArray(laneResolution.layout.lanes)
+    ? laneResolution.layout.lanes
+    : [];
+  if (lanes.length > 1) {
+    const activeCount = lanes.filter((entry) => entry.isActive).length;
+    const draftCount = lanes.filter((entry) => entry.status === "draft").length;
+    const archivedCount = lanes.filter((entry) => entry.status === "archived").length;
+    process.stdout.write(`- 并行拓扑: ${activeCount} active / ${draftCount} draft / ${archivedCount} archived\n`);
+  }
+  process.stdout.write("\n");
+}
+
 if (ensuredState.rebuilt) {
   process.stdout.write(`已从共享工件重建 ${formatArtifactPath("STATE.md")}。\n\n`);
 }

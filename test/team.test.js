@@ -102,6 +102,8 @@ section("lane-aware recovery commands");
   assert(statusResult.status === 0, "status works on a lane-based project");
   assert(statusResult.stdout.includes("lane: default"), "status reports the selected lane");
   assert(statusResult.stdout.includes(".ai-os/lanes/default/STATE.md") || statusResult.stdout.includes("Delivery model"), "status uses lane-scoped state context");
+  assert(statusResult.stdout.includes("当前 lane 元数据"), "status prints lane metadata summary");
+  assert(statusResult.stdout.includes("风险档位: medium"), "status prints derived lane risk tier");
 
   const nextResult = run("ai-os-next.js", [dir]);
   assert(nextResult.status === 0, "next works on a lane-based project");
@@ -115,6 +117,8 @@ section("lane-aware recovery commands");
   const doctorResult = run("ai-os-doctor.js", [dir]);
   assert(doctorResult.status === 0, "doctor works on a lane-based project");
   assert(doctorResult.stdout.includes("lane: default"), "doctor reports the selected lane");
+  assert(doctorResult.stdout.includes("Lane metadata:"), "doctor prints lane metadata summary");
+  assert(doctorResult.stdout.includes("Lane risk tier is valid: medium"), "doctor validates lane risk tier");
 
   cleanup(dir);
 }

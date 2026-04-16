@@ -48,6 +48,7 @@ assert(!fs.existsSync(path.join(initDir, ".ai-os", "lanes", "default", "verifica
 const missionTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "MISSION.md"), "utf8");
 const designTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "DESIGN.md"), "utf8");
 const conventionsTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "CONVENTIONS.md"), "utf8");
+const laneMetadataTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "lane.toml"), "utf8");
 const tasksTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "tasks.yaml"), "utf8");
 const acceptanceTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "acceptance.yaml"), "utf8");
 const stateTemplate = fs.readFileSync(path.join(initDir, ".ai-os", "lanes", "default", "STATE.md"), "utf8");
@@ -88,6 +89,7 @@ assert(designTemplate.includes("## 8. 方案选型依据"), "DESIGN template inc
 assert(designTemplate.includes("## 10. 风险与注意事项"), "DESIGN template includes risk notes section");
 assert(designTemplate.includes("共享基础设施约定"), "DESIGN template includes shared infrastructure constraint");
 assert(designTemplate.includes("共享层 / 通用抽象副作用清单"), "DESIGN template includes shared-layer side-effect checklist");
+assert(laneMetadataTemplate.includes('risk_tier = "medium"'), "lane metadata template includes default risk tier");
 assert(designTemplate.includes("路由 / 入口契约对照"), "DESIGN template includes route contract parity field");
 assert(designTemplate.includes("同仓正常实现对照"), "DESIGN template includes same-repo reference field");
 assert(conventionsTemplate.includes("## 命名约定"), "CONVENTIONS template has naming section");

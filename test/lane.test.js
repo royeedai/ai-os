@@ -11,6 +11,9 @@ section("lane lifecycle command");
   assert(helpResult.status === 0, "create-ai-os --help exits with code 0");
   assert(helpResult.stdout.includes("create-ai-os lane list [target-dir]"), "create-ai-os --help documents the lane list command");
   assert(helpResult.stdout.includes("create-ai-os lane add <lane-id> [dir]"), "create-ai-os --help documents the lane add command");
+  const laneHelpResult = run("create-ai-os.js", ["lane", "--help"]);
+  assert(laneHelpResult.status === 0, "create-ai-os lane --help exits with code 0");
+  assert(laneHelpResult.stdout.includes("--risk-tier <tier>"), "create-ai-os lane --help documents lane risk tier");
 }
 
 {
@@ -20,12 +23,14 @@ section("lane lifecycle command");
   const listResult = run("create-ai-os.js", ["lane", "list", dir]);
   assert(listResult.status === 0, "lane list exits with code 0");
   assert(listResult.stdout.includes("Auto-selection: default"), "lane list reports single active lane auto-selection");
+  assert(listResult.stdout.includes("Topology: 1 active, 0 draft, 0 archived"), "lane list reports lane topology counts");
   assert(listResult.stdout.includes("default"), "lane list prints the default lane");
 
-  const addResult = run("create-ai-os.js", ["lane", "add", "beta", dir, "--title", "Beta lane", "--owner", "team-pay"]);
+  const addResult = run("create-ai-os.js", ["lane", "add", "beta", dir, "--title", "Beta lane", "--owner", "team-pay", "--risk-tier", "high"]);
   assert(addResult.status === 0, "lane add succeeds on lane-based project");
   assert(addResult.stdout.includes("Created lane: beta"), "lane add prints the created lane id");
   assert(addResult.stdout.includes("Status: draft"), "lane add defaults new secondary lane to draft");
+  assert(addResult.stdout.includes("Risk tier: high"), "lane add prints the requested risk tier");
   assert(fs.existsSync(path.join(dir, ".ai-os", "lanes", "beta", "MISSION.md")), "lane add creates lane-scoped MISSION");
 
   const betaMetadata = fs.readFileSync(path.join(dir, ".ai-os", "lanes", "beta", "lane.toml"), "utf8");
@@ -33,6 +38,7 @@ section("lane lifecycle command");
   assert(betaMetadata.includes('title = "Beta lane"'), "lane add writes the requested lane title");
   assert(betaMetadata.includes('status = "draft"'), "lane add writes draft status for inactive lane");
   assert(betaMetadata.includes('owner = "team-pay"'), "lane add writes the requested lane owner");
+  assert(betaMetadata.includes('risk_tier = "high"'), "lane add writes the requested lane risk tier");
   assert(betaMetadata.includes('baseline_id = "BL-'), "lane add writes a generated baseline id");
 
   const activateResult = run("create-ai-os.js", ["lane", "activate", "beta", dir]);
@@ -49,6 +55,7 @@ section("lane lifecycle command");
   const statusResult = run("create-ai-os.js", ["status", dir]);
   assert(statusResult.status === 0, "status works after activating a new single active lane");
   assert(statusResult.stdout.includes("lane: beta"), "status auto-selects the activated lane");
+  assert(statusResult.stdout.includes("风险档位: high"), "status reports current lane risk tier");
 
   const archiveResult = run("create-ai-os.js", ["lane", "archive", "beta", dir]);
   assert(archiveResult.status === 0, "lane archive succeeds");
@@ -64,6 +71,7 @@ section("lane lifecycle command");
   const laneAddResult = run("create-ai-os.js", ["lane", "add", "payments", dir, "--quality-tier", "high-risk"]);
   assert(laneAddResult.status === 0, "lane add succeeds on a core-profile install with no lanes yet");
   assert(laneAddResult.stdout.includes("Auto-selection now resolves to: payments"), "first lane add becomes active by default");
+  assert(laneAddResult.stdout.includes("Risk tier: high"), "lane add derives risk tier from quality tier by default");
   assert(fs.existsSync(path.join(dir, ".ai-os", "project.md")), "lane add materializes shared project artifacts on core installs");
   assert(fs.existsSync(path.join(dir, ".ai-os", "lanes", "payments", "acceptance.yaml")), "lane add materializes lane starter artifacts on core installs");
 

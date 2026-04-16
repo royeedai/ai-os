@@ -99,6 +99,7 @@ AI-OS 默认采用“共享根层 + `lanes/default`”的工件拓扑。共享�
 | `.ai-os/project.md` | 跨 lane 共享的宿主项目章程：项目身份、共享技术约束、共享质量基线和跨 lane 协调规则 |
 | `.ai-os/CONVENTIONS.md` | 项目级代码约定（命名、模式、分层、日志），防止跨 session 实现风格漂移 |
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
+| `.ai-os/lanes/default/lane.toml` | 当前交付线的机器可读元数据：lane id、status、baseline、quality tier、risk tier、owner；供 `lane list`、`status`、`doctor` 和多 lane 协作判断使用 |
 | `.ai-os/lanes/default/MISSION.md` | 当前交付线的低频、已确认、共享的交付基线章程：当前目标、范围、模式、质量标准、当前基线 ID |
 | `.ai-os/lanes/default/baseline-log/` | 当前交付线的共享基线记录目录：每条记录单独成 `CR-YYYYMMDD-HHMMSS-slug.md` / `BL-YYYYMMDD-HHMMSS-slug.md` 文件，记录基线分析、确认和升格结果，供多人协作对齐和审计；不要再用全局递增的 `001/002` 编号 |
 | `.ai-os/lanes/default/DESIGN.md` | 当前交付线的信息架构、关键页面、关键交互、视觉方向、关键流程，以及 shared layer 副作用清单、route/schema/wrapper parity 和同仓对照实现 |
@@ -222,6 +223,7 @@ Lane 生命周期命令：
 ```bash
 create-ai-os lane list .
 create-ai-os lane add payments .
+create-ai-os lane add payments . --owner team-pay --quality-tier high-risk --risk-tier high
 create-ai-os lane activate payments .
 create-ai-os lane activate payments . --only
 create-ai-os lane archive payments .
@@ -229,7 +231,8 @@ create-ai-os lane archive payments .
 
 - `lane add` 默认会在已有 active lane 的项目里把新 lane 建成 `draft`，避免刚创建就打破自动选择；如果这是项目里的第一条 lane，或你显式传了 `--activate`，则会直接成为 active
 - `lane activate ... --only` 会把其他 active lane 回退为 `draft`，适合在多人并行后恢复“单 active lane 自动选择”
-- `lane list` 会列出 `active / draft / archived` lane 及其 baseline、quality tier、owner，方便团队确认当前并行拓扑
+- `lane list` 会列出 `active / draft / archived` lane、topology、baseline、quality tier、risk tier、owner，并提示缺失 owner 或仍在使用推导 risk tier 的 lane，方便团队确认当前并行拓扑
+- `status` 和 `doctor` 现在会输出当前 lane 元数据摘要，至少包括 status、quality tier、risk tier、owner 和 lane 路径；多人并行时还能直接看到 active / draft / archived 拓扑
 - 进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前，先判断这轮工作是继续当前 lane，还是应该先 `lane add` 新建并行 lane；不要把两条并行交付线硬塞进同一条 lane
 - `ai-os-validate`、`create-ai-os gate`、`ai-os-release-check` 在 lane 项目里会给出 lane-aware 修复建议：lane 选错时直接列出可复制的 `--lane` 重跑命令；显式指定某条 lane 时，也会提醒这次只覆盖当前 lane，若共享代码 / 契约 / 基础设施受影响，仍需补跑其他 lane
 - 若仓库已有 Git 基线，这三条命令还会结合当前 worktree 改动给出更高置信度的 lane 候选：例如命中了共享根层工件、其他 lane 工件，或仓库里存在 `.ai-os/` 之外的改动时，会优先提示最可能需要补跑的 lane

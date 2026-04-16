@@ -189,6 +189,7 @@ const LANE_DELIVERY_FILES = [...LANE_CORE_ARTIFACT_FILES];
 const LANE_DELIVERY_DIRS = [...LANE_CORE_ARTIFACT_DIRS];
 
 const QUALITY_TIERS = ["exploratory", "standard", "high-risk"];
+const RISK_TIERS = ["low", "medium", "high"];
 const IMPACT_TAGS = [
   "entrypoint",
   "transport",
@@ -498,6 +499,30 @@ function normalizeLaneStatus(value) {
   return normalized || "active";
 }
 
+function normalizeQualityTier(value) {
+  const normalized = String(value || "").trim();
+  return QUALITY_TIERS.includes(normalized) ? normalized : "standard";
+}
+
+function deriveRiskTierFromQualityTier(qualityTier = "") {
+  const normalizedQualityTier = normalizeQualityTier(qualityTier);
+  if (normalizedQualityTier === "exploratory") {
+    return "low";
+  }
+  if (normalizedQualityTier === "high-risk") {
+    return "high";
+  }
+  return "medium";
+}
+
+function normalizeLaneRiskTier(value, options = {}) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) {
+    return deriveRiskTierFromQualityTier(options.qualityTier);
+  }
+  return normalized;
+}
+
 function setDeliveryLaneContext(laneId = "") {
   CURRENT_DELIVERY_LANE_ID = normalizeLaneId(laneId);
 }
@@ -634,13 +659,19 @@ function listProjectLanes(targetDir) {
         ? parseSimpleToml(fs.readFileSync(metadataPath, "utf8"))
         : {};
       const status = normalizeLaneStatus(values.status);
+      const qualityTier = values.quality_tier || "standard";
+      const riskTier = normalizeLaneRiskTier(values.risk_tier, { qualityTier });
       return {
         id: laneId,
         title: values.title || null,
         status,
         isActive: status === "active",
         baselineId: values.baseline_id || null,
-        qualityTier: values.quality_tier || null,
+        qualityTier,
+        qualityTierValid: !values.quality_tier || QUALITY_TIERS.includes(values.quality_tier),
+        riskTier,
+        riskTierValid: !values.risk_tier || RISK_TIERS.includes(riskTier),
+        hasExplicitRiskTier: Boolean(values.risk_tier),
         owner: values.owner || null,
         rootPath: getLaneFilePath(targetDir, laneId),
         relativePath: getLaneRelativePath(laneId),
@@ -708,6 +739,15 @@ function formatLaneDescriptor(lane) {
   const meta = [`status=${lane.status || "unknown"}`];
   if (lane.baselineId) {
     meta.push(`baseline=${lane.baselineId}`);
+  }
+  if (lane.qualityTier) {
+    meta.push(`quality=${lane.qualityTier}`);
+  }
+  if (lane.riskTier) {
+    meta.push(`risk=${lane.riskTier}`);
+  }
+  if (lane.owner) {
+    meta.push(`owner=${lane.owner}`);
   }
   return `- ${label} [${meta.join(", ")}]`;
 }
@@ -1404,6 +1444,7 @@ function createInitialBaselineContext(options = {}) {
 
 function buildLaneMetadata(laneId, options = {}) {
   const normalizedLaneId = validateLaneId(laneId);
+  const qualityTier = normalizeQualityTier(options.qualityTier || "standard");
   const metadata = {
     id: normalizedLaneId,
     title: options.title || getDefaultLaneTitle(normalizedLaneId),
@@ -1411,7 +1452,8 @@ function buildLaneMetadata(laneId, options = {}) {
       options.status || (normalizedLaneId === DEFAULT_LANE_ID ? LANE_STATUS_ACTIVE : LANE_STATUS_DRAFT)
     ),
     baseline_id: options.baselineId || "",
-    quality_tier: options.qualityTier || "standard",
+    quality_tier: qualityTier,
+    risk_tier: normalizeLaneRiskTier(options.riskTier, { qualityTier }),
   };
 
   if (options.owner) {
@@ -1694,6 +1736,7 @@ function createLaneProjectFiles(targetDir, options = {}) {
         status: options.status || metadataSeed.status,
         baselineId: options.baselineId || metadataSeed.baseline_id || baselineContext.baselineId,
         qualityTier: options.qualityTier || metadataSeed.quality_tier,
+        riskTier: options.riskTier || metadataSeed.risk_tier,
         owner: options.owner || metadataSeed.owner,
       })
     );
@@ -2960,6 +3003,7 @@ module.exports = {
   QUICK_PROJECT_DIRS,
   isQuickIncluded,
   QUALITY_TIERS,
+  RISK_TIERS,
   IMPACT_TAGS,
   HIGH_RISK_SPECIAL_REVIEWS,
   readFrameworkVersion,
