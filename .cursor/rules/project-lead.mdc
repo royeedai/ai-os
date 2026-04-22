@@ -11,32 +11,46 @@ alwaysApply: true
 
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
-- 当前版本：7.4.0（VERSION + package.json 同步）
-- 最新 git tag：v7.4.0
+- 当前版本：8.0.0（VERSION + package.json 同步）
+- 最新 git tag：v8.0.0
+- 归档 tag：v7-legacy（指向 v7.4.0，用户可 `git checkout v7-legacy` 回退）
 - 分支：main
 - CI：.github/workflows/ci.yml
 - 零运行时依赖，devDependencies 仅 eslint
-- 测试：npm test（当前 1102 项断言）
-- 安装 profile：core（默认）、project、quick
-- CLI 子命令共 15 个：plan/doctor/diff/lab/upgrade/validate/gate/skill-check/status/next/resume/release-check/token-budget/cursor-rules/lane
+- 测试：npm test（当前 196 项断言；v8 重新聚焦核心能力）
+- 定位：AI Delivery Constitution（AGENTS.md ≤150 行）+ 12 组工件 + 3 个 CLI
+- CLI 子命令共 3 个：install（默认）/ doctor / upgrade
+- 无 profile / 无 slash commands / 无 skills：v8 全部砍掉，行为由 AGENTS.md 规则驱动
+
+## v8 核心心智
+
+- 操作面极简（3 CLI + 行为规则），工件面完整（12 组默认全装）
+- 不做模型层 self-verification、harness、记忆 auto-extract 等原生工具已覆盖的事
+- 改动要问：这是否改进"把项目做对"的能力？若只是追加概念，默认不纳入
+- AGENTS.md 是唯一交付宪法，同时也被 install 分发到用户项目
+- AI-OS 本身的维护指导在 `docs/maintainers.md`
 
 ## 每次改动必须主动检查
 
-1. **版本号**：改动 framework/ 下的内容 → 必须升 VERSION + package.json
-2. **README.md**：新增用户可见功能（命令、flag、profile、工作流）→ 必须同步更新 README
-3. **docs/cli.md**：新增/修改 CLI 命令 → 必须同步更新 cli.md
-4. **测试**：npm test 必须全部通过，不能引入回归
-5. **ESLint**：npx eslint bin/ 必须零报错零警告
-6. **AGENTS.md 规则回看**：根层改动需回答 AGENTS.md 里的 4 个判断问题
-7. **problem-ledger.md**：来自真实项目的问题先登记到台账
-8. **旧结构清理**：新结构落地时同步清理旧规则、旧命名、旧模板和旧测试
+1. **版本号**：改动 framework/ 或 AGENTS.md 下的内容 → 必须升 VERSION + package.json
+2. **AGENTS.md 行数**：任何改动后仍须 ≤150 行；超限即重写压缩
+3. **README.md**：新增用户可见功能（命令、flag、工件、行为规则）→ 必须同步更新 README
+4. **docs/cli.md**：新增/修改 CLI 命令 → 必须同步更新 cli.md
+5. **docs/artifacts.md**：新增/修改工件 schema → 必须同步更新
+6. **docs/constitution-spec.md**：改动会影响 spec 兼容性时，必须 bump spec 版本
+7. **测试**：npm test 必须全部通过，不能引入回归
+8. **ESLint**：npx eslint bin/ test/ 必须零报错零警告
+9. **PROJECT_PURPOSE.md**：根层原则变化时必须回看 4 个判断问题
+10. **problem-ledger.md**：来自真实项目的问题先登记到台账
+11. **旧结构清理**：新结构落地时同步清理旧规则、旧命名、旧模板、旧测试
 
 ## 发布到 GitHub 前的完整检查清单
 
 - [ ] npm test 全部通过
-- [ ] npx eslint bin/ 零警告
+- [ ] npx eslint bin/ test/ 零警告
 - [ ] VERSION 和 package.json 版本一致且已升级
-- [ ] README.md 覆盖所有用户可见的新功能
+- [ ] AGENTS.md ≤150 行
+- [ ] README.md 首屏清晰，无过时叙事
 - [ ] docs/cli.md 覆盖所有 CLI 变更
 - [ ] docs/ 下相关文档已更新
 - [ ] git status 干净，无遗漏文件
@@ -48,18 +62,33 @@ alwaysApply: true
 ## 项目发展视角
 
 每次较大改动完成后，主动思考：
+
 - 这个版本是否该打 tag？
-- examples/ 是否需要配套新示例？
+- examples/ 是否需要配套新示例？（v8 保留 5 个：greenfield / brownfield / debug / high-risk / spec-kit coexist）
 - evals/ 是否需要新增回归场景？
 - docs/problem-ledger.md 是否有条目因本次改动得到覆盖？
-- 对外叙事（README 的用户感知）是否与实际能力匹配？
+- docs/constitution-spec.md 是否需要 bump？
+- 对外叙事（README 首屏、PROJECT_PURPOSE.md）是否与实际能力匹配？
+- 是否有能力应该下放到 AGENTS.md 行为规则而非写进 CLI？
+
+## 守住不扩张的红线
+
+v8 定位是"极简操作面 + 完整工件面"。以下属于主动回避：
+
+- 不新增 slash commands（即使用户或其他工具流行）
+- 不新增 skill 系统（让 agent 用原生 skill）
+- 不新增第二个 install profile（打破"一个默认形态"）
+- 不新增 CLI 子命令除非满足所有：跨 IDE 稳定承接、无法由 AGENTS.md 规则承载、真实用户问题覆盖
+- 不新增 IDE 专有文件（保持 agents.md 开放标准即可）
+- 不把 Opus 4.7 / Cursor / Kiro / spec-kit 等具体工具名写进 framework 规则
 
 ## 自我维护
 
 当项目出现以下变化时，主动更新本文件：
+
 - 版本号变化 → 更新"当前版本"
 - 新增/删除 CLI 命令 → 更新命令清单
-- 新增安装 profile → 更新 profile 列表
 - 测试数量显著变化 → 更新测试计数
 - git tag 变化 → 更新最新 tag
 - 发布检查清单需要增减项 → 直接修改
+- 核心心智或定位调整 → 同步更新"v8 核心心智"与"守住不扩张的红线"
