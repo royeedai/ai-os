@@ -18,6 +18,7 @@ description: 锁定关键信息架构、页面、交互、视觉方向和关键�
 3. 对 brownfield / change / reverse-spec 任务，先审计会影响局部实现的共享基础设施约定，如 request wrapper / interceptor、DTO / adapter、中间件、路由 / 鉴权和全局样式变量
 4. 若本轮会改 shared layer、通用抽象或跨层 entrypoint，先输出副作用影响清单：受影响模块、接口 / 页面、无字段 / 无上下文 / 无鉴权场景，以及白名单 / 排除清单需求
 5. 若本轮会复用共享抽象、共享审计字段、统一包装层或新增 client/server entrypoint，先核对真实 schema / route / wrapper 契约，并找到同仓正常实现对照；若偏离既有模式，先记录理由
+5.1. 若 `.ai-os/CONVENTIONS.md` 存在"跨层契约登记表"专章（HTTP↔业务码映射、Wire 类型契约、名单型常量真理源、敏感数据 service 方法语义档位、中间件方言契约），本轮设计必须先核对该登记表并在 DESIGN.md 中显式声明哪些登记项被本轮触及；若本轮会引入新的跨层隐式契约（如新引入查询引擎、新增名单型常量、新增可能跨语言精度损失的字段类型），必须同步在 CONVENTIONS.md 登记表追加条目，未登记不得进入 `/plan`
 6. 确认本轮必须先锁的关键页面 / 关键流程 / 核心接口旅程 / 核心设计决策
 7. 生成或更新 `.ai-os/DESIGN.md`：
    - 信息架构
@@ -34,6 +35,7 @@ description: 锁定关键信息架构、页面、交互、视觉方向和关键�
    - 方案选型依据、核心约束、风险与注意事项
    - 设计确认记录
 8. 若设计引入了 `/align` 中未覆盖的新依赖（框架、插件、SDK、基础镜像等），在锁定前对其执行实际可用性验证（包管理器查询、registry API、manifest 检查等），禁止仅凭 AI 训练数据认定版本存在
+8.1. 凡是 spec 中"用户可输入或可选择的字段"（含 ID、外键、枚举、自由文本、时间、文件等），必须在 spec 第 3 节 `input_mode` 列显式声明输入方式（`manual_text` / `manual_number` / `select_from_list` / `autocomplete` / `reference_picker` / `static_preset`）；后端定义为 Long / BIGINT / Snowflake 等可能超出 JS Safe Integer 边界的 ID 字段，**禁止** `manual_number`，必须至少为 `select_from_list` 或 `reference_picker`，从源头杜绝精度静默丢失
 9. 如果是 `reverse-spec` 模式，生成或更新 `.ai-os/design-pack/parity-map.md`
 10. 显式区分"必须用户确认的核心决策"和"AI 可自行处理的非核心细节"
 11. 把已锁定内容、待确认项、确认停点写回 `.ai-os/STATE.md`
@@ -55,3 +57,5 @@ description: 锁定关键信息架构、页面、交互、视觉方向和关键�
 - 禁止先复用抽象或路由模式，再回头补做 schema / route / wrapper parity 核对
 - 禁止超出已确认的 `MISSION.md` 边界擅自扩展需求或调整目标
 - 禁止仅凭 AI 训练数据认定新引入的依赖版本可用，必须通过实际查询 registry 验证
+- 禁止本轮引入新的跨层隐式契约（新查询引擎、新名单型常量、新跨语言精度损失字段类型）但不在 CONVENTIONS.md 跨层契约登记表追加条目
+- 禁止 spec 中 ID / 外键 / 枚举类字段不显式声明 `input_mode`；禁止 Long / Snowflake ID 字段使用 `manual_number`

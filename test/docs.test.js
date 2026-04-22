@@ -197,10 +197,15 @@ assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current
 
 section("README positioning section");
 const updatedReadme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
-assert(updatedReadme.includes("为什么需要 AI-OS"), "README includes why-AI-OS section");
-assert(updatedReadme.includes("1.7 倍"), "README cites AI bug rate data");
-assert(updatedReadme.includes("运行时护栏工具"), "README differentiates from runtime guardrail tools");
-assert(updatedReadme.includes("只定义本轮交付基准"), "README clarifies brownfield mission scope");
+const problemsDoc = fs.readFileSync(path.join(repoRoot, "docs", "problems.md"), "utf8");
+const readmeOrProblems = (needle) => updatedReadme.includes(needle) || problemsDoc.includes(needle);
+assert(
+  readmeOrProblems("为什么需要 AI-OS") || readmeOrProblems("AI-OS 的差异化位置"),
+  "README or docs/problems.md explains why AI-OS exists"
+);
+assert(readmeOrProblems("1.7 倍"), "README or docs/problems.md cites AI bug rate data");
+assert(readmeOrProblems("运行时护栏工具"), "README or docs/problems.md differentiates from runtime guardrail tools");
+assert(readmeOrProblems("只定义本轮交付基准"), "README or docs/problems.md clarifies brownfield mission scope");
 assert(updatedReadme.includes("baseline-log/"), "README documents baseline-log");
 assert(updatedReadme.includes("baseline-sync"), "README documents baseline-sync workflow");
 assert(updatedReadme.includes("所有已承诺支持的环境都有等价承接"), "README states CLI features must work across supported IDE environments");

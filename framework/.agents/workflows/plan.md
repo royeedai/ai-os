@@ -20,11 +20,12 @@ description: 生成 specs、tasks、acceptance 和证据计划
 5. 逐条建立“需求点 -> task -> acceptance”的映射，确保无遗漏、无合并丢失
 6. 对大型项目 / 模块主动拆分里程碑，明确每个里程碑的交付目标、范围、验收标准和排期 / 目标窗口
 7. 若任务触及 shared layer、通用抽象、schema / route / wrapper parity 或跨层 entrypoint，必须把副作用清单、同仓对照实现、parity 检查点和 step validation 显式写进 spec / tasks / acceptance，而不是只在会话里说明
-8. 生成或更新 `.ai-os/tasks.yaml`，为任务补齐优先级、依赖关系、改动范围、风险点、`impact_tags`、`derived_checks`、`risk_triggers`、`parity_checks`、`similar_impl_refs`、`step_validation`、边界说明和验收映射；每个任务必须填写 `measurable_outcome`（用可验证的具体条件替代形容词）和 `edge_cases`（本任务必须覆盖的异常路径）
-9. 生成或更新 `.ai-os/acceptance.yaml`，写入 `quality_tier`、`required_special_reviews`、逐项验收标准，以及 shared-impact / route-contract / schema-parity / degraded-path / state-triage 等证据要求
-10. 命中高风险触发时，强制补 `risk-register.md`、`release-plan.md`、`verification-matrix.yaml`
-11. 更新 `.ai-os/STATE.md`，把当前阶段切到 `plan`，并记录待用户确认的任务 / 验收摘要
-12. 向用户输出任务清单、里程碑、优先级、依赖、改动范围、风险点、同仓对照实现、step validation 计划和验收标准，等待确认后再进入 `/build`
+8. 凡涉及"前端 UI 消费后端接口"的端到端 user journey，必须在 spec 中先填写 5.5 节 User Journey 闭环契约（途经接口 / 关键消费点 / 字段映射），再在 tasks.yaml 中**显式拆出独立的 E2E-SMOKE 任务**承担"打通"工作，归整条链路的 owner（不归前端也不归后端）；E2E-SMOKE 任务的验收标准必须是"在本地启动栈走完用户实际路径产出真实响应或渲染截图/日志"，不能用"前后端各自做完了自然就通"代替
+9. 生成或更新 `.ai-os/tasks.yaml`，为任务补齐优先级、依赖关系、改动范围、风险点、`impact_tags`、`derived_checks`、`risk_triggers`、`parity_checks`、`similar_impl_refs`、`step_validation`、边界说明和验收映射；每个任务必须填写 `measurable_outcome`（用可验证的具体条件替代形容词）和 `edge_cases`（本任务必须覆盖的异常路径）
+10. 生成或更新 `.ai-os/acceptance.yaml`，写入 `quality_tier`、`required_special_reviews`、逐项验收标准，以及 shared-impact / route-contract / schema-parity / degraded-path / state-triage 等证据要求
+11. 命中高风险触发时，强制补 `risk-register.md`、`release-plan.md`、`verification-matrix.yaml`
+12. 更新 `.ai-os/STATE.md`，把当前阶段切到 `plan`，并记录待用户确认的任务 / 验收摘要
+13. 向用户输出任务清单、里程碑、优先级、依赖、改动范围、风险点、同仓对照实现、step validation 计划和验收标准，等待确认后再进入 `/build`
 
 ## 输出
 
@@ -43,4 +44,5 @@ description: 生成 specs、tasks、acceptance 和证据计划
 - 禁止 client/server entrypoint 变更没有路由契约对照和静态 / 动态路径冲突备注
 - 禁止任务的 `measurable_outcome` 使用模糊形容词（如"性能良好""用户体验好"），必须转化为可验证条件
 - 禁止任务的 `edge_cases` 为空；至少列出 1 条与本任务最相关的异常路径
+- 禁止跨栈 user journey 没有独立 E2E-SMOKE 任务承接，就让前后端任务各自宣称完成；"单点接口看起来对"不能替代端到端跑通
 - 禁止在用户未确认任务拆解和验收标准前直接开工

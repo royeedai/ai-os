@@ -27,6 +27,10 @@ AI-OS 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS �
 - `shared-layer-side-effect-audit-missed.md`
 - `parity-before-reuse-skipped.md`
 - `fix-complete-but-data-runtime-not-recovered.md`
+- `implicit-cross-layer-contract-undocumented.md`
+- `weak-type-hole-erodes-contract.md`
+- `e2e-journey-broken-by-single-point-pass.md`
+- `cross-module-same-defect-not-escalated.md`
 
 ## 使用原则
 

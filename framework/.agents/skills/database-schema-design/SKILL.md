@@ -96,6 +96,16 @@ CREATE INDEX idx_orders_status_created ON orders(status, created_at DESC);
 - 外键 + CASCADE 选项
 - 设置默认值
 
+**列容量必须对照业务负载估算**（详见 `framework/.agents/references/derived-rules.md` 2.4 节与 PL-035）：
+
+- 任何承载用户上传 / 业务文本 / 序列化对象的列，必须在 `DESIGN.md` 中**标注预期最大体积和据此选择的类型**：
+  - base64 图片（200KB~10MB） → `MEDIUMTEXT`（16MB） / `LONGTEXT`（4GB）
+  - 富文本 / 长 SQL / JSON 配置（>2KB） → `TEXT`（64KB） / `MEDIUMTEXT`
+  - 短描述（<500 字符） → `VARCHAR(N)` 且 N 必须显式标注理由
+  - 加密字符串（AES base64） → 长度约为明文 1.4 倍 + 16 字节填充，按上限取 `VARCHAR(N)` 或 `TEXT`
+- **禁止** `VARCHAR(200)` / `VARCHAR(500)` / `TEXT` 作为"不知道选啥时的工程默认"。默认必须是"先回答这列要承载什么，再选类型"。
+- `/verify` 阶段在涉及上传 / base64 / 长文本列的模块里，必须做一次"上限边界测试"：放入预期最大体积，确认不截断、不报错。
+
 ### 第五步：编写迁移脚本
 
 **任务**：

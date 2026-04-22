@@ -336,3 +336,35 @@
 - **AI-OS 必须保证**：lane 归档前必须显式给出收口结果、归档原因和共享记忆回流决定；至少要判断共享 `memory.md` / `CONVENTIONS.md` 是 `done` 还是 `not-needed`，必要时由 CLI 拦截或在 doctor/status 中暴露 pending follow-up；团队文档与 canonical example 也必须把“lane 关闭 = 有沉淀的关闭”讲清楚。
 - **当前覆盖锚点**：`bin/ai-os-lane.js` 的 archive checklist 与 `--memory-sync` / `--conventions-sync` / `--problem-ledger-sync`、`bin/shared.js` 的 archived lane metadata / closurePending 解析、`bin/ai-os-status.js` / `bin/ai-os-doctor.js` 的 archived lane 回流摘要、`framework/.agents/workflows/ship.md` / `postmortem.md` / `AGENTS.md` 的 lane 收口规则、`README.md` / `docs/cli.md` / `docs/workflows.md` / `docs/artifacts.md` 的 lane archive 说明、`examples/multi-lane-team-workspace/`、`examples/lane-archive-shared-memory-reflux.md`、`evals/lane-archive-without-shared-reflux.md`、`test/lane.test.js`、`test/examples.test.js`、`test/install.test.js`、`test/unit-shared.test.js`
 - **每次迭代核对**：不能让 `lane archive` 重新退化成“只改一个状态字段”；不能把共享结论回流仅靠聊天约定维持；也不能让 archived lane 的 pending follow-up 在 canonical example 和文档里长期悬空。
+
+### PL-033 隐式跨层契约缺乏显式登记表
+
+- **来源**：2026-04-22 用户多轮全栈复盘；HTTP 401/403 拦截器漏分支、Snowflake Long ID 越界 JS Number、多租户白名单与 schema 列脱节、敏感字段 service 方法语义混淆、Calcite 方言与拼 SQL 反引号错配、createdAt/createTime 同概念多命名共存等多个 bug 共享同一根因
+- **真实问题**：HTTP 状态码 ↔ 业务码语义、Long/UUID/Instant/枚举的 wire 格式、白名单/CORS/序列化忽略字段集等"名单型常量"的反向真理源、敏感字段加密/解密/打码 service 的语义档位、查询引擎方言（Calcite lex / 标识符引号 / SQL 终止符）等"看不见的跨层假设"，全部靠口头约定或单点经验维持，没有被显式登记为项目级真理源。AI 在不同 session、不同模块写代码时各自脑补一份合理但不一致的实现，bug 以新面目反复复现。
+- **AI-OS 必须保证**：项目级 `.ai-os/CONVENTIONS.md` 必须保留"跨层契约登记表"专章，至少覆盖 HTTP↔业务码↔客户端行为映射、Wire 类型契约、名单型常量反向真理源、敏感数据 service 方法语义档位、中间件/查询引擎方言契约五个子节；`/design` 在跨层任务前置必须先核对该登记表，`/verify` 必须把"实现是否与登记表一致"作为通过条件。
+- **当前覆盖锚点**：`framework/.agents/templates/project/CONVENTIONS.md` 的"跨层契约登记表"五节、`framework/.agents/references/derived-rules.md` 4.8 节、`framework/.agents/workflows/design.md` 跨层契约前置核对、`framework/.agents/workflows/verify.md` 跨层契约登记表 vs 实现对照检查、`evals/implicit-cross-layer-contract-undocumented.md`、`bin/ai-os-validate.js` 对登记表五节存在性的 WARNING 级 CLI 兜底（7.4.0 新增）
+- **每次迭代核对**：不能把"跨层契约登记表"五节降级为可选；不能把"必须显式登记"退化成"建议在 memory 里写一下"；也不能在 framework 里硬编码具体决策（如必须 Long→String），只能要求项目自己锁定。
+
+### PL-034 弱类型洞导致契约擦除
+
+- **来源**：2026-04-22 用户多轮全栈复盘；@RequestBody Map<String,?> 把字段名降级为字符串魔法值、axios.get(path) 裸字符串动词丢 method 校验、前端 reactive({code,status}) 自由声明 UI 字段后端静默丢弃、catch (Exception) 包成 BizException(50000,"xxx失败") 三重错误被吞、el-input-number 默认 max=MAX_SAFE_INTEGER 把 19 位 ID 静默夹断、ComponentDTO.id:Long 字段从未被 service 读取却阻断前端反序列化、用户 SQL 末尾分号谁都没清洗等多个 bug
+- **真实问题**：契约只要承载在"字符串/Map/自由对象/弱类型字段/库的隐式默认值"上，AI 就一定会在某个 session 飘走，因为这些位置在编译期没有任何约束。具体反模式包括：Map 作为请求/响应体、catch(Exception)+笼统业务码包装、DTO 字段无服务层使用者、UI 字段反向不可追溯到 DTO/spec/schema、UI 控件默认 max/min/精度/格式化、用户自由文本输入字段无归一化 owner。
+- **AI-OS 必须保证**：`code-review-guard` Step 1.5 必须把"弱类型洞扫描"作为硬检查项，命中即视为实现质量门未通过；`derived-rules` 4.4 必须明确禁止弱类型洞作为契约载体；项目特定的具体类型选择（用什么类型替代 Map / 用什么控件替代 input-number / 用什么异常基类）留给项目 CONVENTIONS.md，框架只锁定通用反模式禁令。
+- **当前覆盖锚点**：`framework/.agents/skills/code-review-guard/SKILL.md` Step 1.5b 弱类型洞扫描表格化（7.4.0 重写后）、`framework/.agents/references/derived-rules.md` 4.4 节 8 类反模式表格、`framework/.agents/skills/code-review-guard/SKILL.md` Step 0.3 横切基础设施 bean 全仓审计、`evals/weak-type-hole-erodes-contract.md`
+- **每次迭代核对**：不能把弱类型洞扫描退化成"建议检查"；不能让 framework 硬编码具体类型选择；也不能把"DTO 字段无使用者"误改成"未使用字段必须删除"——保留注释也是合规出口。
+
+### PL-035 单点接口合格 ≠ 端到端 user journey 闭环
+
+- **来源**：2026-04-22 用户多轮全栈复盘；queryChartData 接口存在多日但前端零调用方、保存数据集 → 跳转编辑 → 预览数据 三步串联里 2 个接口和 1 个 service 都"单点看起来对"但合起来不闭环、PropertyPanel 数据集 ID 输入用 input-number 控件让用户手输 19 位雪花 ID、外观上传 base64 图片 ~2.7MB 撞 VARCHAR(500) 截断等多个 bug
+- **真实问题**：`/plan` 阶段把"后端出接口"和"前端拼图表"拆成两个任务后没有任何任务显式承担"打通"工作，每个任务自验收时只看自己半边，端到端闭环在任务拆解时就丢了；同时 spec 只规定了字段类型（Long/BIGINT），没规定字段的用户输入方式（手输/下拉/选择器），UX 落到 build 阶段就变成"有输入框就行"的最低实现；DDL 列容量也只用工程默认值 VARCHAR(200/500)，没对照实际业务数据负载估算。
+- **AI-OS 必须保证**：spec 模板第 3 节"界面/接口/命令清单"表格必须包含 `input_mode` 列；spec 必须有"User Journey 闭环契约"专节列出该模块涉及的端到端 journey 链路；tasks.yaml 必须示范 E2E-SMOKE wave 任务；`/plan` 必须要求跨栈任务显式拆出 E2E-SMOKE 任务；`database-schema-design` 必须要求列容量标注预期最大体积；`derived-rules` 2.4 必须明确"端到端 journey 必须有独立任务承担"。
+- **当前覆盖锚点**：`framework/.agents/templates/project/specs/example.spec.md` input_mode 列与 5.5 节 User Journey 闭环契约、`framework/.agents/templates/project/tasks.yaml` E2E-SMOKE wave 示例、`framework/.agents/workflows/plan.md` 跨栈任务必须拆 E2E-SMOKE、`framework/.agents/workflows/design.md` input_mode 声明要求、`framework/.agents/skills/database-schema-design/SKILL.md` 列容量标注、`framework/.agents/references/derived-rules.md` 2.4 节、`evals/e2e-journey-broken-by-single-point-pass.md`、`bin/ai-os-validate.js` 对 spec 5.5 节 / input_mode 列 / E2E-SMOKE 任务联动的 WARNING 级 CLI 兜底（7.4.0 新增）
+- **每次迭代核对**：不能把 E2E-SMOKE 任务降级为可选；不能让 input_mode 退化成"下次再补"；也不能把"端到端 journey 链路"误改成"只列前端旅程而不列后端接口"。
+
+### PL-036 跨模块同型缺陷只修单点没升级为全仓扫描
+
+- **来源**：2026-04-22 用户多轮全栈复盘；SysRoleMenu 联结表无 id 列报错修完后 SysOrg 继承 BaseEntity 又踩同型；ds_dataset.type Integer-vs-字符串枚举错位修完后 ComponentDTO.id Long-vs-string 又踩同型；JacksonConfig 凭印象只搜 zhbi-common/zhbi-server 两模块没搜 zhbi-core 导致同名 bean 冲突几乎炸启动等多个跨模块同型缺陷
+- **真实问题**：debug 默认按"单点修"推进，第一次同型缺陷修完不会主动扫描同仓是否还有同型；横切基础设施 bean 新增前的全仓审计搜索范围常被采样性缩到"印象中相关的几个模块"，跳过真正放全局配置的模块；同 session 内连续 2 个同型缺陷往往是发现"抽象继承模式问题"或"全仓约定漂移"的信号，但当前 debug 流程不会强制升级为 P0/P1 全仓扫描。
+- **AI-OS 必须保证**：`systematic-debugging` 第二阶段（模式分析）必须把"跨模块同型扫描启发式"作为 Step 5：每发现一个 bug，必须主动扫描同仓是否存在同型缺陷，搜索范围必须包含全部模块（不得采样性缩到单一模块）；命中即升级为 P0/P1 全仓扫描，产出"同型缺陷全仓扫描报告"；`/debug` workflow 必须明确升级触发条件：跨模块同型缺陷 1 次即升级、同 session 连续 2 次同型缺陷强制升级；`code-review-guard` Step 0 B 必须把"横切基础设施 bean 新增前全仓审计、搜索范围必须覆盖所有模块"作为硬检查项；`derived-rules` 4.9 节必须明确"同型缺陷必须升级"。
+- **当前覆盖锚点**：`framework/.agents/skills/systematic-debugging/SKILL.md` 第二阶段 Step 5、`framework/.agents/workflows/debug.md` 跨模块同型升级触发条件、`framework/.agents/skills/code-review-guard/SKILL.md` Step 0 B 横切基础设施 bean 全仓审计、`framework/.agents/references/derived-rules.md` 4.9 节、`evals/cross-module-same-defect-not-escalated.md`
+- **每次迭代核对**：不能把"跨模块同型 1 次即升级"放回"3 次失败再质疑架构"的旧路；不能让横切基础设施 bean 全仓审计的搜索范围被默认收缩到当前 lane / 当前模块；也不能让"全仓扫描报告"退化为"在 chat 里口头说一下还有哪些地方可能踩雷"。

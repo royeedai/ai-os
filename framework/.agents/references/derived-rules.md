@@ -42,6 +42,17 @@
 - request wrapper / interceptor、DTO / adapter、中间件、路由鉴权和全局样式变量等共享基础设施，会改变局部实现的真实契约
 - 这些约定未审计前，不要把局部页面 / 接口文件的表层结构直接当最终基准
 
+### 2.4 端到端 user journey 必须有独立任务承担
+
+- 凡涉及"前端 UI 消费后端接口"的端到端 user journey，spec 必须填写 5.5 节 User Journey 闭环契约（途经接口 / 关键消费点 / 字段映射）
+- tasks.yaml 必须显式拆出独立的 E2E-SMOKE 任务承担"打通"工作，归整条链路的 owner（不归前端也不归后端）
+- E2E-SMOKE 任务的验收标准必须是"在本地启动栈走完用户实际路径产出真实响应或渲染截图/日志"，不能用"前后端各自做完了自然就通"代替
+- **E2E-SMOKE 任务失败即视为端到端 journey 未通过；`/verify` 不得仅凭前后端单点接口通过就出"接口已交付"结论**
+- spec 中"用户可输入或可选择的字段"（含 ID、外键、枚举、自由文本、时间、文件等）必须在第 3 节 `input_mode` 列显式声明输入方式
+- 后端定义为 Long / BIGINT / Snowflake 等可能超出 JS Safe Integer 边界的 ID 字段，禁止 `manual_number`，必须至少为 `select_from_list` 或 `reference_picker`
+- DDL 列容量必须对照实际业务负载估算，禁止 `VARCHAR(200/500)` 作为"不知道选啥时的默认"；用户可上传图片 / 长文本 / 序列化对象的列必须在 `DESIGN.md` 中标注预期最大体积并据此选类型
+- **CLI 兜底**：`ai-os-validate` 对 `CONVENTIONS.md` 跨层契约登记表五节、spec 5.5 节、`input_mode` 列、`tasks.yaml` 中 `[E2E-SMOKE]` 任务存在性全部输出 WARNING；规则未被人工遵守时，CLI 层面会持续暴露为待修复项
+
 ## 3. 自适应治理
 
 ### 3.1 先判断项目模式
@@ -89,6 +100,19 @@
 - spec 必须显式记录交互模式、契约基准、字段映射 / 适配说明和集成触点
 - build / verify 必须对照契约基准检查跨层字段、状态枚举和错误语义是否一致
 
+#### 禁止弱类型洞作为契约载体（PL-034）
+
+| 反模式类别 | 具体反模式 | 合规出口 |
+|---|---|---|
+| 契约载体 | `Map<String,?>` / `JSONObject` / `dict` / 自由对象作为请求/响应体 | 仅透传/动态字段/第三方回调允许；必须在代码注释和 `memory.md` 技术债区登记 |
+| 契约载体 | 前端裸字符串动词（`request.get(path)`）无 method × path × requestDTO × responseDTO 类型校验 | 必须在类型层校验四元组 |
+| 异常处理 | `catch (Exception)` + 笼统业务码包装，不带 cause、不 log 堆栈 | 仅捕获可预期具体异常 / 必须传 cause / 必须 `log.error(..., e)` 三选一 |
+| 字段定义 | DTO 字段无 service 层使用点 | 必须删除或有显式保留注释（"前端回显" / "审计字段" / "兼容旧版本"） |
+| 字段定义 | 前端 reactive/ref/state 业务字段在 DTO/spec/schema 三处均找不到 | 升格走 `/change-request` 落基线，或从 UI 中移除；禁止 UI 自产字段挂着等后端 |
+| UI 控件默认值 | 业务关键字段（尤其 ID、金额、时间、精度敏感字段）使用带默认 `max`/`min`/`step`/ 精度 / 格式化的 UI 控件时未显式覆盖默认值 | 必须显式声明覆盖值 |
+| UI 控件默认值 | ID 类字段（Long/BIGINT/Snowflake）使用会走 JS Number 的输入控件（`el-input-number` / `input[type=number]`） | 必须改为 `el-select` 等下拉/选择器 |
+| 输入归一化 | 用户自由文本字段（SQL/表达式/JSON/脚本）消费侧假设"上游会清洗" | 必须在 DTO 层或 service 入口声明归一化 owner |
+
 ### 4.5 交付必须显式暴露静态校验与人工动作
 
 - 至少保留一项项目原生静态校验证据：compile / type-check / build 其一
@@ -106,6 +130,21 @@
 - 每个 wave 的实际改动文件应在 wave 计划的 `context_files` 范围内
 - 超出范围的改动必须暂停说明原因，而不是静默扩散
 - 禁止在一个 wave 中做"顺手优化"不相关文件
+
+### 4.8 跨层契约必须在 CONVENTIONS.md 显式登记
+
+- 项目级 `.ai-os/CONVENTIONS.md` 必须保留"跨层契约登记表"专章，至少覆盖五个子节：HTTP 状态码 ↔ 业务码 ↔ 客户端行为映射、Wire 类型契约（Long/UUID/Instant/Decimal/跨边界枚举）、名单型常量反向真理源（含启动期一致性自检结论）、敏感数据 service 方法语义档位（getXxxForDisplay vs getXxxRaw）、中间件 / 查询引擎方言契约（Calcite lex / 标识符引号 / SQL 终止符）
+- `/design` 在跨层任务前置必须先核对该登记表；本轮引入新的跨层隐式契约时必须同步追加条目，未登记不得进入 `/plan`
+- `/verify` 必须把"实现是否与登记表一致"作为通过条件，登记表与实现不一致即视为实现质量门未通过
+- 项目特定的具体决策（如必须 Long→String、必须用反引号、必须用 el-select 等）由项目自己在 CONVENTIONS.md 锁定；framework 只规定"必须显式登记"
+
+### 4.9 同型缺陷必须升级
+
+- `/debug` 第二阶段（模式分析）必须包含跨模块同型缺陷扫描；搜索范围必须覆盖所有模块（不得采样性收缩）
+- **跨模块同型缺陷 1 次** → 升级为 P1 全仓扫描
+- **同 session 连续 2 次同型缺陷** → 升级为 P0 全仓扫描 + 约定固化（更新 CONVENTIONS.md 或 memory.md DD/PT 条目）
+- 升级后必须产出"同型缺陷全仓扫描报告"（落到 `baseline-log/` 或 `evals/`），列出所有潜在错位点
+- 横切基础设施 bean（Jackson / Web MVC / GlobalException / Security / Mybatis-Plus / Cors 等）新增前必须全仓审计，搜索范围必须覆盖所有 Java / 后端模块，已检索的模块清单必须在 debug 说明 / baseline-log / commit message 中显式列出
 
 ## 5. 可恢复的项目记忆
 

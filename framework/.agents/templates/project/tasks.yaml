@@ -195,3 +195,81 @@ tasks:
     out_of_scope_guard:
       - "禁止顺手优化、重构或修改无关逻辑"
     notes: ""
+
+  - id: TASK-AI-003
+    title: "[E2E-SMOKE] 端到端 user journey J-001 真实跑通"
+    milestone: M2
+    parent: null
+    status: todo
+    owner: AI
+    risk: medium
+    priority: P0
+    wave: 3
+    execution_role: "implementer"
+    approval_required: "before_execution"
+    depends_on:
+      - "TASK-AI-002"
+    requirement_refs:
+      - "REQ-001"
+    acceptance_refs:
+      - "AC-001"
+    context_files:
+      - "MISSION.md"
+      - "DESIGN.md"
+      - "STATE.md"
+      - "specs/example.spec.md"
+      - "acceptance.yaml"
+    inputs:
+      - "specs/example.spec.md (5.5 节 User Journey 闭环契约 J-001)"
+    outputs:
+      - "evals/journey-J-001-smoke.md"
+    affected_components:
+      - "frontend"
+      - "backend"
+    verification_required:
+      - "build"
+      - "runtime"
+    restart_required: true
+    cold_start_required: false
+    measurable_outcome:
+      - "[端到端 journey J-001 在本地启动栈走完用户实际路径，产出真实响应或渲染截图/日志，并把每个接口产出字段 → 下游消费字段映射核对一遍]"
+    edge_cases:
+      - "[journey 中任一接口返回空 / null / 异常 / 超时 / 权限拒绝时下游能否优雅降级]"
+    definition_of_ready:
+      - "spec 5.5 节已锁定 J-001 的途经接口和消费字段映射"
+      - "前后端接口任务（TASK-AI-002 等）已完成且通过单点验收"
+    definition_of_done:
+      - "本地启动完整栈（前端 + 后端 + DB + 中间件）"
+      - "按 J-001 用户路径走一遍真实操作"
+      - "每个接口的实际请求响应日志和前端渲染截图归档到 evals/"
+      - "每个接口产出字段是否真的被下游消费、字段名/类型/精度是否一致已逐项对照"
+      - "若有任何一处单点接口看起来对但 journey 走不通，必须在此任务暴露并升级处理"
+    acceptance_criteria:
+      - "AC-001"
+    evidence_required:
+      - "journey-trace-log"
+      - "screenshot-or-render-log"
+      - "field-mapping-check"
+    parity_evidence_required: []
+    impact_tags:
+      - "entrypoint"
+      - "transport"
+      - "mapping"
+    derived_checks:
+      - "verify each interface's output fields are actually consumed by downstream"
+      - "verify wire-type contract from CONVENTIONS.md is honored end-to-end"
+    parity_checks:
+      - "shared-side-effects"
+      - "route-contract"
+      - "schema-consistency"
+    similar_impl_refs:
+      - "[同仓另一条已跑通的端到端 journey]"
+    step_validation:
+      - "[每走完一个接口节点立即对照 spec 5.5 节字段映射，不通过即暂停]"
+    risk_triggers: []
+    blockers: []
+    change_scope: []
+    out_of_scope_guard:
+      - "禁止把单点接口已通过当成 journey 已通过"
+      - "禁止只跑 happy path 而跳过 edge_cases 中的异常路径"
+    notes: "本任务归整条 journey 的 owner，不归前端也不归后端；没有此类任务，/verify 不得出'接口已交付'结论。"

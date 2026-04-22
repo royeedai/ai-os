@@ -12,12 +12,12 @@
 
 ## 3. 界面 / 接口 / 命令清单
 
-| 命令 | 输入 | 输出 |
-|------|------|------|
-| `todo add <text>` | 文本内容 | `Added #<id>: <text>` |
-| `todo list [--all\|--done\|--pending]` | 过滤选项 | 格式化列表 |
-| `todo done <id>` | 数字 ID | `Done #<id>: <text>` |
-| `todo delete <id>` | 数字 ID | `Deleted #<id>` |
+| 命令 | 输入 | 输出 | input_mode |
+|------|------|------|------------|
+| `todo add <text>` | 文本内容 | `Added #<id>: <text>` | `manual_text` |
+| `todo list [--all\|--done\|--pending]` | 过滤选项 | 格式化列表 | `static_preset`（固定 flag） |
+| `todo done <id>` | 数字 ID | `Done #<id>: <text>` | `manual_number`（本地自增小整数，无 Long 精度风险） |
+| `todo delete <id>` | 数字 ID | `Deleted #<id>` | `manual_number`（同上） |
 
 - **交互模式**：同步 CLI（request/response）
 - **推荐模式理由**：单次命令执行，无需流式或长轮询
@@ -49,6 +49,13 @@
 - **同仓正常实现对照**：`src/store.js` 的读写逻辑与 `src/commands.js` 的命令映射是本例的同仓正常实现
 - **持久化 / 外部依赖**：本地 JSON 文件，无远端依赖
 - **受影响模块 / 文件边界**：`src/store.js`、`src/commands.js`、`bin/todo.js`
+
+## 5.5 User Journey 闭环契约
+
+> 本例为 CLI 单栈项目，无"前端 UI 消费后端接口"的端到端链路。显式声明"暂无跨栈 journey"以满足 spec 模板的 5.5 节要求。
+
+- 暂无跨栈 journey：所有命令在单次进程内完成，无多接口串联、无前后端字段映射。
+- 后续如果引入 HTTP 或前端，必须把本节从"暂无"升级为真实 journey 表，并为每条 journey 补一个 `[E2E-SMOKE]` 任务。
 
 ## 6. 边界条件与异常处理
 

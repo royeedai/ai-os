@@ -1,74 +1,44 @@
 # AI-OS
 
-AI-OS 是一套给 AI 开发助手使用的项目交付操作系统。
+> 让 AI 按"高质量交付"工作，而不只是按"代码生成"工作。
 
-它的目标不是让 AI 更自动写代码，而是让 AI 更稳定地引导你把项目做对：
+```bash
+# 最快上手（极简安装：MISSION + STATE + 主路径 workflow + 门禁）
+npx --yes github:royeedai/ai-os my-project --quick
 
-1. 先把目标和成功标准说清
-2. 先锁关键设计和关键逻辑
-3. 再推进实现、验证和交付
-4. 全程保留可恢复的项目记忆和证据
+# 新项目完整安装
+npx --yes github:royeedai/ai-os my-project --profile project
 
-一句话说：
+# 已有项目接入
+npx --yes github:royeedai/ai-os .
+```
 
-> AI-OS 让 AI 按“高质量交付”工作，而不只是按“代码生成”工作。
+## 5 分钟了解
 
-## 它解决什么问题
+AI-OS 是给 AI 开发助手用的项目交付操作系统。它不帮你写代码更快，它帮你 **把项目做对**：
 
-很多团队开始用 AI 后，会遇到这些问题：
+1. 先把目标和成功标准说清（`/align`）
+2. 先锁关键设计和关键逻辑（`/design`）
+3. 再推进实现、验证和交付（`/plan` → `/build` → `/verify` → `/ship`）
+4. 全程保留可恢复的项目记忆和证据（`STATE.md` + `memory.md` + `baseline-log/`）
 
-| 常见问题 | AI-OS 的做法 |
-|------|------|
-| 需求一模糊，AI 就直接开工 | 先走 `/align`，先锁当前交付基线章程 |
-| 需求补充后，AI 直接改代码，文档和代码脱节 | 先走 `/change-request`，更新 `MISSION.md` / spec 再执行 |
-| 技术栈或关键方案没对齐，AI 就自己拍板 | 在 `/align` 和 `/design` 里把关键选型、确认状态和待确认项写清 |
-| 页面做出来了，但逻辑经常错 | 先锁 Design 和关键逻辑，再进入 build |
-| bug 修复时顺手乱改，改 A 坏 B | 先走 `/debug`，锁定边界、影响范围和回归计划 |
-| 界面上像有功能，但其实不能真用 | 用 spec / verify / acceptance 拦截“假入口、占位态、未验证能力” |
-| 代码跑了，但离可交付还很远 | 用 acceptance 的 4 个质量门拦截伪完成 |
-| 天然流式 / 长耗时场景被错建成同步接口 | 在 `/plan` 先锁 `interaction_mode`，避免后置重构 |
-| 跨层字段或配置改动总是漏联动 | 用 `contract baseline`、`impact_tags`、`impact_rules` 补联动检查 |
-| brownfield 任务里藏着全局拆包 / DTO / 样式约定，AI 却只看局部文件就开改 | 在 `/design`、`/debug` 和 review 里先做共享基础设施审计，再锁局部契约 |
-| 改了共享层或通用抽象后，别的模块才开始连锁出错 | 在 `/design`、`/plan`、`/build` 里先写副作用影响清单，再进入实现 |
-| AI 先复用 BaseEntity / wrapper / 路由模式，后面才发现 schema 或 controller 契约不匹配 | 先做 schema / route / wrapper parity 和同仓对照实现，再允许复用抽象 |
-| 代码改对了，但数据状态和运行状态还没恢复 | 在 `/debug`、`/verify`、`/ship` 里显式拆成代码状态 / 数据状态 / 运行状态 |
-| 老项目开始做新需求时，AI 把整个项目重新当成 mission | 在 brownfield / change 中，`MISSION.md` 只定义本轮交付基准，宿主项目只保留必要上下文 |
-| 多人并行时 Mission 总冲突，确认记录和变更日志互相覆盖 | 把 `MISSION.md` 变薄成低频章程，把高频变更挪到 `baseline-log/` 和 `STATE.md` |
-| 用户说“系统可设置”，AI 却没确认到底谁来操作、在哪里操作 | 在 `/align` 和 `/change-request` 里轻量追问配置闭环，避免把“可设置”直接等价成某一种实现方式 |
-| 资产 / 权限 / 状态流转类需求没被自动升级 | 用硬触发高风险档和专项审查拦截 |
-| happy path 通过，但空值 / 异常一碰就碎 | 用 `degraded-path-check` 拦截只测正常流程的伪完成 |
-| 交付还需要 SQL / 重启 / 静态校验，AI 却写成“已经全部完成” | 在 `/verify` 和 `/ship` 里显式区分 `AI 已完成` / `需人工执行`，并要求静态校验证据 |
-| 一换 session，AI 就忘了做到哪 | 用 `STATE.md` 做恢复入口 |
+出现需求变更、bug、session 中断、里程碑复盘时，也有专项入口：`/change-request`、`/debug`、`/review`、`/postmortem`、`/resume`。
 
-这些问题的单独台账、覆盖锚点和后续迭代核对入口统一维护在 [docs/problem-ledger.md](docs/problem-ledger.md)。
+## 它和市面上其他工具什么区别
 
-## 为什么需要 AI-OS
+| | Vibe coding | Spec-Kit | 运行时护栏 | **AI-OS** |
+|---|---|---|---|---|
+| 需求对齐 | 无 | `/speckit.specify` | 无 | `/align` + CLI 门禁 |
+| 设计锁定 | 无 | `/speckit.plan` | 无 | `/design` + 跨层契约登记表 |
+| 变更管理 | 无 | 无 | 无 | `/change-request` + `baseline-log/` |
+| 证据化 verify | 无 | 无 | 无 | 四门验证 + 静态校验证据 |
+| 跨 session 恢复 | 无 | 无 | 无 | `STATE.md` + `memory.md` + `/resume` |
+| Debug 定界 | 无 | 无 | 部分 | `/debug` + 跨模块同型扫描 |
+| CLI 确定性校验 | 无 | 无 | 无 | `validate` / `doctor` / `gate` |
 
-### 2026 年的 AI 编程现实
+Spec-Kit 解决 0→1 立项；AI-OS 覆盖全项目生命周期。两者可共存，见 [docs/interop/spec-kit-coexistence.md](docs/interop/spec-kit-coexistence.md)。
 
-AI 编码工具已经普及（92% 的美国开发者日常使用），但质量危机正在加深：
-
-- AI 生成代码的 bug 率是人类代码的 **1.7 倍**（CodeRabbit 2026）
-- **45%** 的 AI 生成代码含安全漏洞
-- 开发者对 AI 代码的信任度从 77% 降至 **60%**
-- 技术债积累速度是传统方式的 **3 倍**
-- 开发者自以为快了 20%，实际上复杂任务 **慢了 19%**（METR 研究）
-
-核心问题不是 AI 写不出代码，而是 AI 不知道什么时候该停下来确认、什么才算真正完成。
-
-### AI-OS 的差异化
-
-市场上已有运行时护栏工具（如 AgentSteer、Caliper、Ouro Loop），它们在代码层拦截错误动作。AI-OS 做的是更上游的事：
-
-| 层面 | 运行时护栏工具 | AI-OS |
-|------|--------------|-------|
-| 拦截层 | 代码生成后 | 需求对齐前 |
-| 关注点 | 代码安全、工具调用 | 交付质量、目标正确性 |
-| 覆盖范围 | 单次 agent turn | 全项目生命周期 |
-| 记忆 | 无跨会话记忆 | STATE.md + memory.md |
-| 治理深度 | 规则匹配 | 自适应分级（P0/P1/P2） |
-
-AI-OS 不替代这些工具，而是在它们之上提供交付层治理：先确保目标对、设计锁、逻辑通，再让代码护栏去拦实现错误。
+AI-OS 想拦截的完整真实问题列表和 2026 年 AI 编程现实数据见 [docs/problems.md](docs/problems.md)。每条问题的覆盖锚点见 [docs/problem-ledger.md](docs/problem-ledger.md)。
 
 ## 核心心智
 
@@ -97,7 +67,7 @@ AI-OS 默认采用“共享根层 + `lanes/default`”的工件拓扑。共享�
 | 路径 | 作用 |
 |------|------|
 | `.ai-os/project.md` | 跨 lane 共享的宿主项目章程：项目身份、共享技术约束、共享质量基线和跨 lane 协调规则 |
-| `.ai-os/CONVENTIONS.md` | 项目级代码约定（命名、模式、分层、日志），防止跨 session 实现风格漂移 |
+| `.ai-os/CONVENTIONS.md` | 项目级代码约定（命名、模式、分层、日志）+ 跨层契约登记表（HTTP↔业务码映射、Wire 类型契约、名单型常量真理源、敏感数据 service 方法语义档位、中间件方言契约），防止跨 session 实现风格漂移和跨层隐式契约飘走 |
 | `.ai-os/memory.md` | 稳定决策、约束、偏好和坑点 |
 | `.ai-os/lanes/default/lane.toml` | 当前交付线的机器可读元数据：lane id、status、baseline、quality tier、risk tier、owner；归档后还会记录 outcome、reason、shared memory / conventions sync 等收口信息；供 `lane list`、`status`、`doctor` 和多 lane 协作判断使用 |
 | `.ai-os/lanes/default/MISSION.md` | 当前交付线的低频、已确认、共享的交付基线章程：当前目标、范围、模式、质量标准、当前基线 ID |
@@ -118,40 +88,24 @@ AI-OS 默认采用“共享根层 + `lanes/default`”的工件拓扑。共享�
 
 ## 5 分钟上手
 
-### 1. 安装
+### 1. 安装选项
 
-最快体验（只要 MISSION.md + STATE.md + 核心工作流 + 门禁）：
+首屏已给出三种常用安装方式。可用的 profile：
 
-```bash
-npx --yes github:royeedai/ai-os my-project --quick
-```
+- `quick`：极简安装（AGENTS.md + 主路径 workflow + YAML 门禁 + MISSION.md + STATE.md），适合首次接触或小项目
+- `core`（默认）：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`，适合已有项目先接入
+- `project`：安装框架层，并创建共享根层工件 + `.ai-os/lanes/default/` starter 工件，适合新项目
 
-新项目完整安装：
-
-```bash
-npx --yes github:royeedai/ai-os my-project --profile project
-```
-
-已有项目：
-
-```bash
-npx --yes github:royeedai/ai-os .
-```
-
-安装前如果想先看会管理哪些内容：
+安装前预览会管理哪些内容：
 
 ```bash
 npx --yes github:royeedai/ai-os plan . --profile core
 npx --yes github:royeedai/ai-os plan my-project --profile project
 ```
 
-说明：
+补充说明：
 
-- 默认 profile 是 `core`
-- `quick`：极简安装，只含 AGENTS.md + 主路径工作流 + YAML 门禁 + MISSION.md + STATE.md，适合首次接触或小项目
-- `core`：只安装框架层和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`，适合已有项目先接入
-- `project`：安装框架层，并创建共享根层工件 + `.ai-os/lanes/default/` starter 工件，适合新项目
-- `--with-project-files` 仍然保留，作为 `--profile project` 的兼容别名
+- `--with-project-files` 仍保留，作为 `--profile project` 的兼容别名
 - `--quick` 项目复杂度增长时，可直接重新运行 `create-ai-os <target> --profile project` 补齐完整 starter 工件
 - 老项目第一次接入时，常见做法是先用默认 `core` profile 安装框架，再通过 `/align` / `/plan` 逐步生成项目事实
 

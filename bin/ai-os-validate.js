@@ -593,6 +593,8 @@ if (tasksContent !== null) {
 const specFiles = listSpecFiles(targetDir);
 report(specFiles.length > 0, `${getProjectRelativePath("specs")}/ includes at least one .spec.md`);
 
+const specsDeclaringJourney = [];
+
 for (const specFile of specFiles) {
   const content = readUtf8IfExists(getProjectFilePath(targetDir, specFile));
   const missingSections = markdownHasSections(content || "", VALIDATION_SCHEMAS.spec);
@@ -606,6 +608,56 @@ for (const specFile of specFiles) {
     missingSpecMarkers.length === 0,
     `${getProjectRelativePath(specFile)} includes interaction mode / contract / side-effect / parity markers`,
     { warnOnly: true, details: missingSpecMarkers.map((marker) => `missing marker: ${marker}`) }
+  );
+  const specContent = content || "";
+
+  report(
+    specContent.includes(VALIDATION_SCHEMAS.specInputModeColumn),
+    `${getProjectRelativePath(specFile)} declares input_mode column in section 3`,
+    {
+      warnOnly: true,
+      details: [
+        "add `input_mode` column to the 界面 / 接口 / 命令清单 table (PL-035)",
+        "suppress via explicit `input_mode: N/A` row when the module has no user-input fields",
+      ],
+    }
+  );
+
+  report(
+    specContent.includes(VALIDATION_SCHEMAS.specUserJourneySection),
+    `${getProjectRelativePath(specFile)} declares User Journey closure contract (section 5.5)`,
+    {
+      warnOnly: true,
+      details: [
+        "add `## 5.5 User Journey 闭环契约` with end-to-end journey rows (PL-035)",
+        "explicitly write `暂无跨栈 journey` inside the section if the module is backend-only or frontend-only",
+      ],
+    }
+  );
+
+  const hasJourneyRow = /\bJ-\d{3}\b/.test(specContent)
+    && specContent.includes(VALIDATION_SCHEMAS.specUserJourneySection)
+    && !/\|\s*J-001\s*\|\s*\[示例/.test(specContent);
+  if (hasJourneyRow) {
+    specsDeclaringJourney.push(getProjectRelativePath(specFile));
+  }
+}
+
+if (tasksContent !== null && specsDeclaringJourney.length > 0) {
+  const hasE2eSmokeTask = tasksContent.includes(VALIDATION_SCHEMAS.tasksE2eSmokeMarker);
+  report(
+    hasE2eSmokeTask,
+    `${getProjectRelativePath("tasks.yaml")} declares at least one [E2E-SMOKE] task when specs list journeys`,
+    {
+      warnOnly: true,
+      details: hasE2eSmokeTask
+        ? []
+        : [
+            `specs declaring journeys: ${specsDeclaringJourney.join(", ")}`,
+            "cross-stack user journeys must be owned by a dedicated [E2E-SMOKE] task (PL-035)",
+            "add a task with `title: \"[E2E-SMOKE] ...\"` whose DoD is real end-to-end traversal",
+          ],
+    }
   );
 }
 
@@ -762,6 +814,19 @@ if (conventionsContent === null && isStandardOrHigher) {
     conventionsSections.length === 0,
     `${getProjectRelativePath("CONVENTIONS.md")} sections complete`,
     { warnOnly: true, details: conventionsSections.map((section) => `missing section: ${section}`) }
+  );
+
+  const missingCrossLayerMarkers = missingMarkers(
+    conventionsContent,
+    VALIDATION_SCHEMAS.conventionsCrossLayerRegistry
+  );
+  report(
+    missingCrossLayerMarkers.length === 0,
+    `${getProjectRelativePath("CONVENTIONS.md")} cross-layer contract registry has five subsections`,
+    {
+      warnOnly: true,
+      details: missingCrossLayerMarkers.map((marker) => `missing section heading: ${marker}`),
+    }
   );
 }
 

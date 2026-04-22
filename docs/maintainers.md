@@ -46,11 +46,16 @@
 - `evals/shared-layer-side-effect-audit-missed.md`
 - `evals/parity-before-reuse-skipped.md`
 - `evals/fix-complete-but-data-runtime-not-recovered.md`
+- `evals/implicit-cross-layer-contract-undocumented.md`
+- `evals/weak-type-hole-erodes-contract.md`
+- `evals/e2e-journey-broken-by-single-point-pass.md`
+- `evals/cross-module-same-defect-not-escalated.md`
 
 ## 当前主示例
 
 - `examples/quickstart-todo-cli/`（canonical lane 示例，展示 `shared root + lanes/default`）
 - `examples/multi-lane-team-workspace/`（canonical 团队协作 lane 示例，展示 active / draft / archived 拓扑与 shared memory reflux）
+- `examples/coexist-with-spec-kit.md`（AI-OS × GitHub Spec-Kit 共存的模式 A 最小示例）
 - `examples/greenfield-guided-product.md`（含 `.ai-os/` 骨架）
 - `examples/reverse-spec-admin-console.md`（含 `.ai-os/` 骨架）
 - `examples/brownfield-change-journey.md`（含 `.ai-os/` 骨架）

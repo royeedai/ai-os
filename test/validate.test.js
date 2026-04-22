@@ -1230,3 +1230,153 @@ for (const [artifact, evalName] of coreArtifactEvalMap) {
   assert(result.stdout.includes("duplicate memory entry id"), "validate reports duplicate memory ids");
   cleanup(dir);
 }
+
+section("validate: cross-layer contract registry (PL-033)");
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const baselineResult = run("ai-os-validate.js", [dir]);
+  assert(
+    baselineResult.status === 0,
+    "validate accepts default CONVENTIONS (includes cross-layer registry five subsections)"
+  );
+  assert(
+    !baselineResult.stdout.includes("missing section heading:"),
+    "validate does not warn about missing cross-layer registry sections in default template"
+  );
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const conventionsPath = path.join(dir, ".ai-os", "CONVENTIONS.md");
+  const original = fs.readFileSync(conventionsPath, "utf8");
+  const stripped = original.split("## 跨层契约登记表")[0];
+  fs.writeFileSync(conventionsPath, stripped, "utf8");
+  const result = run("ai-os-validate.js", [dir]);
+  assert(
+    result.status === 0,
+    "validate warns but does not fail when cross-layer registry is missing"
+  );
+  assert(
+    result.stdout.includes("cross-layer contract registry has five subsections"),
+    "validate warns on missing cross-layer contract registry"
+  );
+  assert(
+    result.stdout.includes("## 跨层契约登记表"),
+    "validate reports which cross-layer registry heading is missing"
+  );
+  cleanup(dir);
+}
+
+section("validate: spec input_mode column (PL-035)");
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const baselineResult = run("ai-os-validate.js", [dir]);
+  assert(
+    baselineResult.status === 0,
+    "validate accepts default spec (includes input_mode column)"
+  );
+  assert(
+    !baselineResult.stdout.includes("add `input_mode` column"),
+    "validate does not warn about input_mode when spec template is intact"
+  );
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const specPath = path.join(dir, ".ai-os", "specs", "example.spec.md");
+  fs.writeFileSync(
+    specPath,
+    fs.readFileSync(specPath, "utf8").replace(/ input_mode \|/g, " col3 |"),
+    "utf8"
+  );
+  const result = run("ai-os-validate.js", [dir]);
+  assert(
+    result.status === 0,
+    "validate warns but does not fail when spec drops input_mode column"
+  );
+  assert(
+    result.stdout.includes("declares input_mode column in section 3"),
+    "validate warns on missing input_mode column"
+  );
+  cleanup(dir);
+}
+
+section("validate: spec User Journey section 5.5 (PL-035)");
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const specPath = path.join(dir, ".ai-os", "specs", "example.spec.md");
+  const original = fs.readFileSync(specPath, "utf8");
+  const withoutJourney = original.replace(
+    /## 5\.5 User Journey 闭环契约[\s\S]+?(?=## 6\.)/,
+    ""
+  );
+  assert(
+    !withoutJourney.includes("## 5.5 User Journey 闭环契约"),
+    "fixture prepares spec without journey section"
+  );
+  fs.writeFileSync(specPath, withoutJourney, "utf8");
+  const result = run("ai-os-validate.js", [dir]);
+  assert(
+    result.status === 0,
+    "validate warns but does not fail when spec drops User Journey section"
+  );
+  assert(
+    result.stdout.includes("declares User Journey closure contract (section 5.5)"),
+    "validate warns on missing User Journey section 5.5"
+  );
+  cleanup(dir);
+}
+
+section("validate: tasks.yaml E2E-SMOKE linkage (PL-035)");
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const specPath = path.join(dir, ".ai-os", "specs", "example.spec.md");
+  const tasksPath = path.join(dir, ".ai-os", "tasks.yaml");
+  const originalSpec = fs.readFileSync(specPath, "utf8");
+  const journeyRow = "| J-100 | 保存任务 → 查看任务列表 | [POST /tasks, GET /tasks] | taskId 路由参数 | POST data.id → 前端 list | [TASK-AI-003] |";
+  const withRealJourney = originalSpec.replace(
+    /\| J-001 \| \[示例：保存数据集.*\[TASK-AI-XXX\] \|/,
+    journeyRow
+  );
+  fs.writeFileSync(specPath, withRealJourney, "utf8");
+
+  const withoutE2e = fs.readFileSync(tasksPath, "utf8").replace(
+    /- id: TASK-AI-003[\s\S]+?notes: "本任务归整条 journey 的 owner.+?"/m,
+    ""
+  );
+  fs.writeFileSync(tasksPath, withoutE2e, "utf8");
+
+  const result = run("ai-os-validate.js", [dir]);
+  assert(
+    result.status === 0,
+    "validate warns but does not fail when tasks.yaml misses E2E-SMOKE for declared journey"
+  );
+  assert(
+    result.stdout.includes("declares at least one [E2E-SMOKE] task"),
+    "validate warns on missing [E2E-SMOKE] task when spec declares real journey"
+  );
+  cleanup(dir);
+}
+
+{
+  const dir = tmpDir();
+  run("create-ai-os.js", [dir, "--with-project-files", "--legacy-layout"]);
+  const result = run("ai-os-validate.js", [dir]);
+  assert(
+    result.status === 0,
+    "validate accepts default example where spec has placeholder J-001 only"
+  );
+  assert(
+    !result.stdout.includes("declares at least one [E2E-SMOKE] task when specs list journeys"),
+    "validate does not warn about E2E-SMOKE when spec journey row is still the template placeholder"
+  );
+  cleanup(dir);
+}

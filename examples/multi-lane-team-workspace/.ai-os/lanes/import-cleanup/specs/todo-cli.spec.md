@@ -12,10 +12,10 @@
 
 ## 3. 界面 / 接口 / 命令清单
 
-| 命令 | 输入 | 输出 |
-|------|------|------|
-| `todo import <file>` | 文件路径 | `Imported <count> todos (...)` |
-| `todo import <file> --replace` | 文件路径、replace 选项 | 同上 |
+| 命令 | 输入 | 输出 | input_mode |
+|------|------|------|------------|
+| `todo import <file>` | 文件路径 | `Imported <count> todos (...)` | `manual_text`（文件路径） |
+| `todo import <file> --replace` | 文件路径、replace 选项 | 同上 | `manual_text` + `static_preset`（`--replace` 固定 flag） |
 
 - **交互模式**：同步 CLI（request/response）
 - **推荐模式理由**：本地一次性批处理
@@ -46,6 +46,12 @@ read input -> parse lines -> normalize -> assign ids -> persist
 - **同仓正常实现对照**：`default` lane 的 CRUD 写入逻辑是同仓对照
 - **持久化 / 外部依赖**：本地文件，无远端依赖
 - **受影响模块 / 文件边界**：导入模块、`src/store.js`、共享 memory / CONVENTIONS
+
+## 5.5 User Journey 闭环契约
+
+> 本 lane 为 CLI 单栈批处理 lane，无前后端跨栈 journey。显式声明"暂无跨栈 journey"以满足 spec 模板的 5.5 节要求。
+
+- 暂无跨栈 journey：`todo import` 在单次进程内完成，无多接口串联、无前后端字段映射。
 
 ## 6. 边界条件与异常处理
 

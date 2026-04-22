@@ -12,10 +12,10 @@
 
 ## 3. 界面 / 接口 / 命令清单
 
-| 命令 | 输入 | 输出 |
-|------|------|------|
-| `todo export --format jsonl --output <path> [--all\|--done\|--pending]` | 格式、输出路径、过滤选项 | `Exported <count> todos to <path>` |
-| `todo export --format csv --output <path> [--all\|--done\|--pending]` | 同上 | `Exported <count> todos to <path>` |
+| 命令 | 输入 | 输出 | input_mode |
+|------|------|------|------------|
+| `todo export --format jsonl --output <path> [--all\|--done\|--pending]` | 格式、输出路径、过滤选项 | `Exported <count> todos to <path>` | `static_preset`（`--format` 枚举） + `manual_text`（`--output` 路径） |
+| `todo export --format csv --output <path> [--all\|--done\|--pending]` | 同上 | `Exported <count> todos to <path>` | 同上 |
 
 - **交互模式**：同步 CLI（request/response）
 - **推荐模式理由**：导出是一次性本地命令
@@ -46,6 +46,12 @@ read todos -> filter -> serialize -> write file -> print summary
 - **同仓正常实现对照**：`list` 的过滤逻辑是 export lane 的同仓对照
 - **持久化 / 外部依赖**：本地文件，无远端依赖
 - **受影响模块 / 文件边界**：`bin/todo.js`、`src/commands.js`、未来的 `src/export.js`
+
+## 5.5 User Journey 闭环契约
+
+> 本 lane 为 CLI 单栈导出 lane，无前后端跨栈 journey。显式声明"暂无跨栈 journey"以满足 spec 模板的 5.5 节要求。
+
+- 暂无跨栈 journey：`todo export` 一次性完成，无前端 UI / 外部接口串联。
 
 ## 6. 边界条件与异常处理
 

@@ -8,6 +8,43 @@
 
 ---
 
+## 7.4.0 (2026-04-22)
+
+### Added
+
+- `ai-os-validate` 对 7.3.0 新增的 4 条规则补 CLI 确定性兜底（全部 WARNING，不 block，保持渐进兼容）：`.ai-os/CONVENTIONS.md` 跨层契约登记表五节存在性（PL-033）、spec 第 3 节 `input_mode` 列存在性（PL-035）、spec 5.5 节 User Journey 闭环契约存在性（PL-035）、spec 声明真实 journey 时 `tasks.yaml` 必须含 `[E2E-SMOKE]` 任务（PL-035）
+- `test/validate.test.js` 新增 16 项断言覆盖以上四类 CLI 校验的正反场景；`npm test` 从 1086 → 1102 项断言全绿
+- `docs/interop/spec-kit-coexistence.md` + `examples/coexist-with-spec-kit.md`：说明 AI-OS 与 GitHub Spec-Kit 两种共存模式（Spec-Kit 主导 + AI-OS 治理 / AI-OS 自包含），以及工件映射和禁忌反模式
+- `docs/problems.md`：把 README 里冗长的"常见问题 → AI-OS 做法"长表下沉到单独文档；README 首屏改为"一句话定位 + 安装命令 + 差异化简表"，安装命令从第 100+ 行前移到第 5-13 行
+
+### Changed
+
+- `framework/.agents/skills/code-review-guard/SKILL.md` 重写：从 300 行压缩到 254 行（-15.3%），token 从 7464 → 6075（-18.6%），全部反模式语义 1:1 保留。Step 1.5b 弱类型洞扫描改为 8 行表格化；Step 0 B/C 合并，Step 2/3 按模块类型整合为单一表格；lite 模式总 token 从 78345 → 77466 净减少
+- `framework/.agents/references/derived-rules.md` 追加 PL-034 弱类型洞 8 类反模式表格（在 4.4 节）、PL-035 E2E-SMOKE 失败即视为 journey 未通过的显式禁令与 CLI 兜底说明（在 2.4 节）
+- `examples/quickstart-todo-cli/`、`examples/multi-lane-team-workspace/`（3 lane）同步到 7.3.0 模板标准：CONVENTIONS 补跨层契约登记表五节、spec 第 3 节补 `input_mode` 列、spec 补 5.5 节（CLI 单栈显式声明"暂无跨栈 journey"）
+- `bin/shared.js` 新增 `VALIDATION_SCHEMAS.conventionsCrossLayerRegistry` / `specUserJourneySection` / `specInputModeColumn` / `tasksE2eSmokeMarker` 四个常量，供 validate 和未来 gate 校验复用
+- `docs/maintainers.md` 主示例清单追加 `examples/coexist-with-spec-kit.md`
+- `docs/problem-ledger.md` PL-033 ~ PL-036 的"当前覆盖锚点"字段追加 `bin/ai-os-validate.js` 对应校验项
+
+## 7.3.0 (2026-04-22)
+
+### Added
+
+- 4 个新 root eval：`evals/implicit-cross-layer-contract-undocumented.md`、`evals/weak-type-hole-erodes-contract.md`、`evals/e2e-journey-broken-by-single-point-pass.md`、`evals/cross-module-same-defect-not-escalated.md`，把三轮全栈复盘里 15+ 条建议按 4 个稳定根因压缩成回归基线
+- `docs/problem-ledger.md` 新增 PL-033 ~ PL-036 四条条目，分别覆盖：隐式跨层契约缺乏显式登记表 / 弱类型洞导致契约擦除 / 单点接口合格 ≠ 端到端 user journey 闭环 / 跨模块同型缺陷只修单点没升级为全仓扫描
+
+### Changed
+
+- `framework/.agents/templates/project/CONVENTIONS.md`：新增"跨层契约登记表"专章（5 个强制子节）：HTTP 状态码 ↔ 业务码 ↔ 客户端行为映射、Wire 类型契约、名单型常量反向真理源、敏感数据 service 方法语义档位、中间件/查询引擎方言契约
+- `framework/.agents/skills/code-review-guard/SKILL.md`：Step 1.5 新增"弱类型洞扫描"子检查项（Map 契约 / 笼统 catch / DTO 字段使用者 / UI 自产字段 / 控件默认行为 / 输入归一化 owner 六类反模式）；Step 0 新增 C 节"横切基础设施 bean 全仓审计"
+- `framework/.agents/templates/project/specs/example.spec.md`：第 3 节"界面/接口/命令清单"表格新增 `input_mode` 列；新增第 5.5 节 User Journey 闭环契约
+- `framework/.agents/templates/project/tasks.yaml`：新增 E2E-SMOKE wave 任务示例（验收标准为本地启动栈走完用户实际路径）
+- `framework/.agents/skills/systematic-debugging/SKILL.md`：第二阶段（模式分析）新增 Step 5"跨模块同型缺陷扫描"，命中即升级为 P1/P0 全仓扫描
+- `framework/.agents/skills/database-schema-design/SKILL.md`：第四步增补"列容量必须对照业务负载估算"，禁止 `VARCHAR(200/500)` 作为默认
+- `framework/.agents/workflows/plan.md`、`design.md`、`verify.md`、`debug.md` 同步补齐：跨层契约登记表前置核对、input_mode 声明、E2E-SMOKE 任务拆分、跨模块同型缺陷升级触发条件
+- `framework/.agents/references/derived-rules.md` 新增 2.4（端到端 journey 必须独立任务承担）、4.8（跨层契约必须在 CONVENTIONS.md 显式登记）、4.9（同型缺陷必须升级）三节；4.4 节追加禁止弱类型洞作为契约载体
+- 整合策略采用根因压缩，不在 framework 里硬编码项目特定决策（不写"必须 Long→String"、"必须用 el-select"），项目特定锁定留给项目自己在 CONVENTIONS.md 登记
+
 ## 7.2.2 (2026-04-17)
 
 ### Changed

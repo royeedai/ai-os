@@ -2549,6 +2549,17 @@ const VALIDATION_SCHEMAS = {
     "需人工执行",
     "静态校验",
   ],
+  conventionsCrossLayerRegistry: [
+    "## 跨层契约登记表",
+    "### HTTP 状态码 ↔ 业务码 ↔ 客户端行为映射",
+    "### Wire 类型契约",
+    "### 名单型常量的反向真理源",
+    "### 敏感数据 service 方法语义档位",
+    "### 中间件 / 查询引擎方言契约",
+  ],
+  specUserJourneySection: "## 5.5 User Journey 闭环契约",
+  specInputModeColumn: "input_mode",
+  tasksE2eSmokeMarker: "[E2E-SMOKE]",
 };
 
 // ---------------------------------------------------------------------------
