@@ -1,326 +1,180 @@
 #!/usr/bin/env node
 
-// ---------------------------------------------------------------------------
-// Stable CLI entrypoint: init + lifecycle subcommands
-// ---------------------------------------------------------------------------
+/**
+ * AI-OS v8 installer
+ *
+ * One default install form. No profiles, no flags for "what to include".
+ * All 12 artifacts are always installed.
+ *
+ * Subcommands:
+ *   create-ai-os [target-dir]       Default install (the only supported form)
+ *   create-ai-os install [target]   Explicit install (same behavior)
+ *   create-ai-os doctor  [target]   Check artifact completeness
+ *   create-ai-os upgrade [target]   Migrate v7 project to v8
+ */
+
+"use strict";
+
+const path = require("path");
 
 const SUBCOMMANDS = {
-  plan:            "./ai-os-plan",
-  doctor:          "./ai-os-doctor",
-  diff:            "./ai-os-diff",
-  lab:             "./ai-os-lab",
-  upgrade:         "./ai-os-upgrade",
-  validate:        "./ai-os-validate",
-  gate:            "./ai-os-gate",
-  "skill-check":   "./ai-os-skill-check",
-  status:          "./ai-os-status",
-  next:            "./ai-os-next",
-  resume:          "./ai-os-resume",
-  "release-check": "./ai-os-release-check",
-  "token-budget":  "./ai-os-token-budget",
-  "cursor-rules":  "./ai-os-cursor-rules",
-  lane:            "./ai-os-lane",
+  install: null, // handled below (same as default)
+  doctor: "./ai-os-doctor",
+  upgrade: "./ai-os-upgrade",
 };
 
-const _sub = process.argv[2];
-if (SUBCOMMANDS[_sub]) {
-  process.argv.splice(2, 1);
-  require(SUBCOMMANDS[_sub]);
-} else {
-// ---------------------------------------------------------------------------
-// create-ai-os (init)
-// ---------------------------------------------------------------------------
+function printHelp(version) {
+  process.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
 
-const fs = require("fs");
-const path = require("path");
-const {
-  MANAGED_ROOTS,
-  detectInstallProfileName,
-  getDefaultInstallProfileName,
-  getInstallProfile,
-  readInstalledMeta,
-  readFrameworkVersion,
-  readPackageJson,
-  ensureDir,
-  fail,
-  copyFramework,
-  createProjectFiles,
-  writeMetadata,
-  writeManagedFilesManifest,
-  removeManagedPaths,
-  appendGitignoreEntries,
-  appendGitattributesEntries,
-  generateIdeFiles,
-} = require("./shared");
-
-const FRAMEWORK_VERSION = readFrameworkVersion();
-const PACKAGE_JSON = readPackageJson();
-
-function printHelp() {
-  process.stdout.write(`Usage:
-  create-ai-os [target-dir] [--target <dir>] [--profile <name>] [--with-project-files] [--force-framework]
-  create-ai-os [target-dir] [--target <dir>] [--profile <name>] [--with-project-files] [--force-framework] [--lite]
-  create-ai-os <command> [target-dir]
-
-Primary workflow phases:
-  /align                    Clarify the current delivery mission, users, quality bar, and project mode
-  /design                   Lock key pages, IA, flows, and visual direction
-  /plan                     Generate specs, tasks, acceptance, and evidence plan
-  /build                    Implement wave-by-wave after design/logic are locked
-  /verify                   Validate design quality, logic correctness, and runtime readiness
-  /ship                     Prepare handoff, release, rollback, and delivery notes
-
-Check your setup:
-  create-ai-os plan [target-dir]           Preview managed install scope
-  create-ai-os doctor [target-dir]         Check framework health
-  create-ai-os validate [target-dir]       Validate delivery artifacts
-  create-ai-os gate [phase] [target-dir]   Check phase transition gates
-  create-ai-os skill-check [skill-dir]     Validate a custom Skill
-  create-ai-os lab [target-dir]            Bootstrap multi-scenario lab sandboxes
-
-Recover and continue:
-  create-ai-os status [target-dir]         Show current delivery status
-  create-ai-os next [target-dir]           Show next ready tasks
-  create-ai-os resume [target-dir]         Print resume context pack
-  create-ai-os lane list [target-dir]      Show configured delivery lanes
-  create-ai-os lane add <lane-id> [dir]    Create a new delivery lane
-  create-ai-os lane activate <lane-id> [dir] [--only]
-                                          Mark a lane active and optionally restore single-lane auto-selection
-  create-ai-os lane archive <lane-id> [dir]
-                                          Archive a lane when it is no longer active
-
-Maintain framework:
-  create-ai-os diff [target-dir]           Compare framework files against source
-  create-ai-os upgrade [target-dir]        Upgrade framework files to latest
-
-Prepare delivery:
-  create-ai-os release-check [target-dir]  Check release readiness
-
-Cross-tool adapters:
-  create-ai-os cursor-rules [target-dir]   Regenerate IDE integration files manually
-
-  IDE integration files (.cursor/, CLAUDE.md, GEMINI.md) are generated automatically
-  during install. Use cursor-rules only to regenerate after manual deletion.
-
-  Cross-tool compatibility:
-  - AGENTS.md + .agents/skills/: natively supported by Codex CLI and Antigravity
-  - .cursor/rules/ + .cursor/skills/: generated for Cursor
-  - CLAUDE.md: generated for Claude Code
-  - GEMINI.md: generated for Antigravity (supplements AGENTS.md)
+Usage:
+  create-ai-os [target-dir]               Install AI-OS v8 into the target (default: current dir)
+  create-ai-os install [target-dir]       Same as above (explicit)
+  create-ai-os doctor  [target-dir]       Check artifact completeness
+  create-ai-os upgrade [target-dir]       Migrate a v7 project to v8
 
 Options:
-  --target <dir>        Target project directory. Defaults to the first positional arg or the current directory.
-  --profile <name>      Install profile. Defaults to the detected install profile or ${getDefaultInstallProfileName()}.
-  --with-project-files  Compatibility alias for --profile project.
-  --force-framework     Overwrite existing framework-managed files: AGENTS.md and .agents/
-  --lite                Install minimal framework: AGENTS.md + core workflows (align/design/build/verify/debug) + essential skills; ~60% fewer files, ideal for small projects or first-time users
-  --quick               Quick start: minimal AGENTS.md + main workflows + gate checks + only MISSION.md and STATE.md; later rerun create-ai-os <target> --profile project for full starter artifacts
-  --no-team-config      Skip automatic .gitignore/.gitattributes setup for team collaboration
-  --no-ide-files        Skip generating IDE integration files (CLAUDE.md, GEMINI.md, .cursor/)
-  -h, --help            Show this help message
+  --force          Overwrite existing artifacts (AGENTS.md and .ai-os/*)
+  --no-team-config Skip .gitignore / .gitattributes setup
+  --no-ide-files   Skip CLAUDE.md / GEMINI.md generation
+  -h, --help       Show this help
+  -v, --version    Show version
+
+Installed artifacts (always, no profiles):
+  AGENTS.md                     Delivery constitution
+  .ai-os/MISSION.md             Goal + success criteria
+  .ai-os/DESIGN.md              Key design + acceptance
+  .ai-os/STATE.md               Session recovery entry (gitignored)
+  .ai-os/memory.md              Stable decisions + conventions
+  .ai-os/baseline-log/          Change and baseline records
+  .ai-os/specs/                 Local contracts
+  .ai-os/tasks.yaml             Tasks with owners
+  .ai-os/risk-register.md       High-risk register
+  .ai-os/release-plan.md        Release plan
+  .ai-os/verification-matrix.yaml Regression assertions
+  .ai-os/design-pack/           Reverse-spec parity artifacts
+  .ai-os/evals/                 Project-level failure-mode samples
+
+Docs: https://github.com/royeedai/ai-os
 `);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-let withProjectFiles = false;
-let forceFramework = false;
-let profileArg = "";
-let liteMode = false;
-let quickMode = false;
-let noTeamConfig = false;
-let noIdeFiles = false;
-let legacyLayout = false;
+function runInstall(argv) {
+  const fs = require("fs");
+  const {
+    PROJECT_STATE_ROOT,
+    readFrameworkVersion,
+    readPackageJson,
+    ensureDir,
+    fail,
+    installAgentsMd,
+    installArtifacts,
+    writeMetadata,
+    writeManagedFilesManifest,
+    installIdeFiles,
+    appendGitignoreEntries,
+    appendGitattributesEntries,
+  } = require("./shared");
 
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
+  let targetArg = "";
+  let force = false;
+  let noTeamConfig = false;
+  let noIdeFiles = false;
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--force" || arg === "--force-framework") { force = true; continue; }
+    if (arg === "--no-team-config") { noTeamConfig = true; continue; }
+    if (arg === "--no-ide-files") { noIdeFiles = true; continue; }
+    if (arg.startsWith("-")) fail(`unknown option: ${arg}`);
+    if (targetArg) fail(`unexpected argument: ${arg}`);
+    targetArg = arg;
   }
-  if (arg === "--with-project-files") {
-    withProjectFiles = true;
-    continue;
+
+  const version = readFrameworkVersion();
+  const pkg = readPackageJson();
+  const targetDir = path.resolve(targetArg || ".");
+  ensureDir(targetDir);
+
+  const aiOsDir = path.join(targetDir, PROJECT_STATE_ROOT);
+  const isExistingAiOs = fs.existsSync(aiOsDir);
+
+  process.stdout.write(`Installing AI-OS v${version} into ${targetDir}${isExistingAiOs ? " (existing project)" : ""}\n`);
+
+  const agentsInstalled = installAgentsMd(targetDir, { overwrite: force });
+  const { installed, baseline } = installArtifacts(targetDir, { overwrite: force });
+  writeMetadata(targetDir, { version });
+  writeManagedFilesManifest(targetDir);
+
+  let ideInstalled = [];
+  if (!noIdeFiles) {
+    ideInstalled = installIdeFiles(targetDir, { overwrite: force });
   }
-  if (arg === "--profile") {
-    if (i + 1 >= args.length) {
-      fail("--profile requires a value");
-    }
-    profileArg = args[i + 1];
-    i += 1;
-    continue;
+
+  let gitignoreUpdated = false;
+  let gitattributesUpdated = false;
+  if (!noTeamConfig) {
+    gitignoreUpdated = appendGitignoreEntries(targetDir);
+    gitattributesUpdated = appendGitattributesEntries(targetDir);
   }
-  if (arg === "--force-framework") {
-    forceFramework = true;
-    continue;
-  }
-  if (arg === "--lite") {
-    liteMode = true;
-    continue;
-  }
-  if (arg === "--quick") {
-    quickMode = true;
-    continue;
-  }
-  if (arg === "--no-team-config") {
-    noTeamConfig = true;
-    continue;
-  }
-  if (arg === "--no-ide-files") {
-    noIdeFiles = true;
-    continue;
-  }
-  if (arg === "--legacy-layout") {
-    legacyLayout = true;
-    continue;
-  }
-  if (arg === "--target") {
-    if (i + 1 >= args.length) {
-      fail("--target requires a value");
-    }
-    targetArg = args[i + 1];
-    i += 1;
-    continue;
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
-}
 
-if (withProjectFiles && profileArg && profileArg !== "project") {
-  fail("--with-project-files cannot be combined with a different --profile");
-}
-
-const targetDir = path.resolve(targetArg || ".");
-ensureDir(targetDir);
-const installedMeta = readInstalledMeta(targetDir);
-
-let installProfile;
-try {
-  const resolvedProfile = quickMode
-    ? "quick"
-    : (withProjectFiles
-        ? "project"
-        : (profileArg || detectInstallProfileName(targetDir, { meta: installedMeta })));
-  installProfile = getInstallProfile(resolvedProfile);
-} catch (error) {
-  fail(error.message);
-}
-
-const existingFrameworkPaths = MANAGED_ROOTS
-  .map((relPath) => path.join(targetDir, relPath))
-  .filter((absolutePath) => fs.existsSync(absolutePath));
-const isExistingProject = existingFrameworkPaths.length > 0;
-
-if (forceFramework) {
-  removeManagedPaths(targetDir);
-}
-
-const modeLabel = quickMode ? " (quick)" : liteMode ? " (lite)" : "";
-process.stdout.write(`Initializing AI-OS ${FRAMEWORK_VERSION}${modeLabel} into ${targetDir} (profile: ${installProfile.name})\n`);
-
-const overwrite = forceFramework || !isExistingProject;
-copyFramework(targetDir, { overwrite, lite: liteMode || quickMode, quick: quickMode });
-
-if (installProfile.includeProjectFiles) {
-  createProjectFiles(targetDir, {
-    quick: quickMode,
-    legacyLayout,
-  });
-}
-
-writeMetadata(targetDir, { installProfile: installProfile.name });
-writeManagedFilesManifest(targetDir);
-
-if (!noIdeFiles) {
-  generateIdeFiles(targetDir);
-}
-
-if (!noTeamConfig) {
-  appendGitignoreEntries(targetDir);
-  appendGitattributesEntries(targetDir);
-}
-
-if (quickMode) {
   process.stdout.write(`
-Initialization complete (quick mode).
+Installation complete.
 
-Framework version: ${FRAMEWORK_VERSION}
-Target project: ${targetDir}
+  Framework: ${pkg.name}@${version}
+  Target:    ${targetDir}
+  Baseline:  ${baseline.id}
 
-AI-OS Quick Start — deliver in 5 steps:
-
-  1. /align    Tell the AI what you want to build (generates MISSION.md)
-  2. /design   Lock the key design decisions (generates DESIGN.md)
-  3. /build    Implement the code
-  4. /verify   Validate quality and correctness
-  5. gate      Check anytime: create-ai-os gate <phase>
-
-When your project grows, upgrade to the full framework:
-  create-ai-os ${targetDir} --profile project
-
-Commit the generated files (AGENTS.md, .agents/, .ai-os/) into your repository.
-`);
-} else if (isExistingProject && !forceFramework) {
-  process.stdout.write(`
-Initialization complete (existing project updated).
-
-Framework version: ${FRAMEWORK_VERSION}
-Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
-Target project: ${targetDir}
-Install profile: ${installProfile.name}
-
-AI-OS framework installed. Use /align in your AI tool to initialize project files
-(MISSION, DESIGN, tasks, acceptance, STATE, etc.) with real content from your codebase.
-
-Pick a workflow to start:
-  /align             Clarify goal, users, mode, and quality bar
-  /design            Lock key pages, IA, and core flows
-  /plan              Generate specs, tasks, and acceptance gates
-  /build             Execute approved work waves
-  /verify            Review quality and runtime evidence
-
-IDE integration:
-  Cursor:       .cursor/rules/ + .cursor/skills/ (auto-generated)
-  Claude Code:  CLAUDE.md (auto-generated)
-  Antigravity:  GEMINI.md (auto-generated)
-  Codex CLI:    .agents/skills/ natively compatible
-
-Commit the framework files (AGENTS.md, .agents/, .ai-os/) into your repository.
-`);
-} else {
-  process.stdout.write(`
-Initialization complete.
-
-Framework version: ${FRAMEWORK_VERSION}
-Package: ${PACKAGE_JSON.name}@${PACKAGE_JSON.version}
-Target project: ${targetDir}
-Install profile: ${installProfile.name}
+  AGENTS.md:       ${agentsInstalled ? "installed" : "already present (use --force to overwrite)"}
+  Artifacts:       ${installed.length} file(s) written under .ai-os/
+  IDE pointers:    ${ideInstalled.length > 0 ? ideInstalled.join(", ") : "skipped or already present"}
+  .gitignore:      ${gitignoreUpdated ? "updated" : "already configured or skipped"}
+  .gitattributes:  ${gitattributesUpdated ? "updated" : "already configured or skipped"}
 
 Next steps:
-1. Pick the right start workflow:
-   - clarify the mission first: /align
-   - lock design and flows: /design
-   - generate delivery artifacts: /plan
-   - execute implementation waves: /build
-   - verify quality before ship: /verify
-2. When you come back later, use create-ai-os status/resume to recover context.
-3. Commit the generated framework and project state files into the target repository.
+  1. Read AGENTS.md (≤150 lines) — the delivery constitution
+  2. Fill in .ai-os/MISSION.md — your delivery goal and success criteria
+  3. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
 
-Note:
-- .agents/templates/project/ contains framework reference templates.
-- Your project's working state files live under .ai-os/.
-
-IDE integration:
-  Cursor:       .cursor/rules/ + .cursor/skills/ (auto-generated)
-  Claude Code:  CLAUDE.md (auto-generated)
-  Antigravity:  GEMINI.md (auto-generated)
-  Codex CLI:    .agents/skills/ natively compatible
+Commands:
+  create-ai-os doctor    Check artifact completeness
+  create-ai-os upgrade   Migrate a v7 project to v8
 `);
 }
 
-} // end else (init)
+function main() {
+  const argv = process.argv.slice(2);
+  const { readFrameworkVersion } = require("./shared");
+
+  if (argv.length === 0 || argv[0] === "-h" || argv[0] === "--help") {
+    if (argv.length === 0) {
+      // default: install into current dir
+      runInstall([]);
+      return;
+    }
+    printHelp(readFrameworkVersion());
+    return;
+  }
+
+  if (argv[0] === "-v" || argv[0] === "--version") {
+    process.stdout.write(`${readFrameworkVersion()}\n`);
+    return;
+  }
+
+  const sub = argv[0];
+  if (Object.prototype.hasOwnProperty.call(SUBCOMMANDS, sub)) {
+    const handler = SUBCOMMANDS[sub];
+    if (handler) {
+      process.argv.splice(2, 1); // drop subcommand, keep remaining args
+      require(handler);
+      return;
+    }
+    // install (explicit)
+    runInstall(argv.slice(1));
+    return;
+  }
+
+  // Default: treat first positional as target dir
+  runInstall(argv);
+}
+
+main();

@@ -1,7 +1,7 @@
 {
   "name": "create-ai-os",
-  "version": "7.4.0",
-  "description": "Initialize the AI project delivery operating system into a target project.",
+  "version": "8.0.0",
+  "description": "AI Delivery Constitution installer. Install AGENTS.md + 12 artifact set into any project.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/royeedai/ai-os.git"
@@ -17,7 +17,7 @@
   "files": [
     "bin",
     "framework",
-    "manifests",
+    "AGENTS.md",
     "LICENSE",
     "README.md",
     "VERSION"

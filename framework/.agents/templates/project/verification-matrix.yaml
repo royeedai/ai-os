@@ -2,7 +2,7 @@
 version: 1
 
 commands:
-  validate: "create-ai-os doctor . --strict"
+  validate: "create-ai-os doctor ."
   verify: "[项目测试命令，例如 npm test / go test ./...]"
   build: "[项目构建或静态校验命令，例如 npm run build / npm run type-check / go build ./... / mvn compile]"
   restart_api: "[受影响 API 服务重启命令]"
@@ -118,6 +118,6 @@ failure_modes:
   - id: "[稳定 failure mode 标识，例如 missing-auth-context]"
     trigger: "[最小复现条件，例如 token 缺失时访问鉴权 API]"
     guards:
-      - "[需要执行的验证动作，优先引用 acceptance.yaml 中已声明的 evidence，例如 degraded-path-check]"
+      - "[需要执行的验证动作，优先引用 DESIGN.md §13 验收标准中已声明的 evidence，例如 degraded-path-check]"
       - "[需要回看的项目级工件，例如 evals/auth-context-missing.md]"
     notes: "当 debug / verify / postmortem 暴露出稳定 failure mode 或高频回归入口时，把最小复现、放行条件和验证方法沉淀到这里；high-risk 交付不能只保留空 failure_modes:"

@@ -1,211 +1,123 @@
 #!/usr/bin/env node
 
+/**
+ * Documentation / constitution consistency checks.
+ */
+
 const fs = require("fs");
 const path = require("path");
 const { assert, repoRoot, section } = require("./helpers");
 
-section("Version sync");
-const versionFile = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
-const pkgVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
-assert(versionFile === pkgVersion, `VERSION (${versionFile}) matches package.json (${pkgVersion})`);
+section("docs: AGENTS.md exists and is within 150 lines");
 
-section("Root docs / evals / examples");
-assert(fs.existsSync(path.join(repoRoot, "PROJECT_PURPOSE.md")), "PROJECT_PURPOSE exists");
-assert(fs.existsSync(path.join(repoRoot, "docs", "problem-ledger.md")), "problem ledger exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "design-not-locked-before-build.md")), "design-lock eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "ui-looks-right-but-logic-wrong.md")), "ui-vs-logic eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "logic-right-but-product-shape-wrong.md")), "product-shape eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "feature-visible-but-unusable.md")), "feature-visible eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "cross-layer-change-missed-linkage.md")), "cross-layer linkage eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "interaction-mode-misclassified.md")), "interaction-mode eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "sensitive-flow-not-escalated.md")), "high-risk escalation eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "happy-path-passed-but-null-path-broken.md")), "degraded-path eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "change-request-before-code.md")), "change-request eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "debug-overreach-regression.md")), "debug-overreach eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "brownfield-infrastructure-audit-missed.md")), "brownfield infrastructure eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "configurable-meant-operable-gap.md")), "config closure eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "problem-ledger-coverage-regression.md")), "problem-ledger eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "fallback-evidence-used-as-delivery.md")), "fallback-evidence eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "missing-user-confirmation.md")), "missing-user-confirmation eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "legacy-to-lanes-migration-skipped.md")), "legacy-to-lanes migration eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "lane-archive-without-shared-reflux.md")), "lane archive reflux eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "shared-layer-side-effect-audit-missed.md")), "shared-layer side-effect eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "parity-before-reuse-skipped.md")), "parity-before-reuse eval exists");
-assert(fs.existsSync(path.join(repoRoot, "evals", "fix-complete-but-data-runtime-not-recovered.md")), "state-triage eval exists");
-assert(fs.existsSync(path.join(repoRoot, "docs", "evolution", "multi-delivery-lanes-7.2-backlog.md")), "7.2 lanes backlog exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product.md")), "greenfield example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console.md")), "reverse-spec example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey.md")), "brownfield example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "interaction-mode-chat.md")), "interaction-mode example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "high-risk-state-change.md")), "high-risk example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "cross-layer-schema-change.md")), "cross-layer schema example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "degraded-path-verification.md")), "degraded-path example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "change-request-baseline-sync.md")), "change-request example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "debug-bounded-fix.md")), "debug example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-infrastructure-audit.md")), "brownfield infrastructure example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "config-closure-clarification.md")), "config closure example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "legacy-to-lanes-migration.md")), "legacy-to-lanes migration example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "lane-archive-shared-memory-reflux.md")), "lane archive reflux example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "multi-lane-team-workspace", "README.md")), "multi-lane team workspace example exists");
-assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "MISSION.md")), "greenfield skeleton includes MISSION");
-assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "DESIGN.md")), "greenfield skeleton includes DESIGN");
-assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "tasks.yaml")), "greenfield skeleton includes tasks");
-assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "acceptance.yaml")), "greenfield skeleton includes acceptance");
-assert(fs.existsSync(path.join(repoRoot, "examples", "greenfield-guided-product", ".ai-os", "STATE.md")), "greenfield skeleton includes STATE");
-assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "MISSION.md")), "reverse-spec skeleton includes MISSION");
-assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "DESIGN.md")), "reverse-spec skeleton includes DESIGN");
-assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "design-pack", "parity-map.md")), "reverse-spec skeleton includes parity map");
-assert(fs.existsSync(path.join(repoRoot, "examples", "reverse-spec-admin-console", ".ai-os", "acceptance.yaml")), "reverse-spec skeleton includes acceptance");
-assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "MISSION.md")), "brownfield skeleton includes MISSION");
-assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "tasks.yaml")), "brownfield skeleton includes tasks");
-assert(fs.existsSync(path.join(repoRoot, "examples", "brownfield-change-journey", ".ai-os", "STATE.md")), "brownfield skeleton includes STATE");
-
-const maintainersDoc = fs.readFileSync(path.join(repoRoot, "docs", "maintainers.md"), "utf8");
-const gettingStartedDoc = fs.readFileSync(path.join(repoRoot, "docs", "getting-started.md"), "utf8");
-const artifactsDoc = fs.readFileSync(path.join(repoRoot, "docs", "artifacts.md"), "utf8");
-const cliDoc = fs.readFileSync(path.join(repoRoot, "docs", "cli.md"), "utf8");
-const problemLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledger.md"), "utf8");
-const agentsDoc = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
-const readmeDoc = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
-const workflowsDoc = fs.readFileSync(path.join(repoRoot, "docs", "workflows.md"), "utf8");
-const lanes72BacklogDoc = fs.readFileSync(path.join(repoRoot, "docs", "evolution", "multi-delivery-lanes-7.2-backlog.md"), "utf8");
-const examplesDoc = fs.readFileSync(path.join(repoRoot, "examples", "README.md"), "utf8");
-const evalsDoc = fs.readFileSync(path.join(repoRoot, "evals", "README.md"), "utf8");
-const changeEvaluationTemplate = fs.readFileSync(
-  path.join(repoRoot, "docs", "change-evaluation-template.md"),
-  "utf8"
-);
-
-assert(problemLedger.includes("PL-001"), "problem ledger records existing product problems");
-assert(problemLedger.includes("PL-013"), "problem ledger records targeted-mod overreach issue");
-assert(problemLedger.includes("PL-014"), "problem ledger records product-shape issue");
-assert(problemLedger.includes("PL-015"), "problem ledger records infrastructure audit issue");
-assert(problemLedger.includes("PL-016"), "problem ledger records config closure issue");
-assert(problemLedger.includes("PG-001"), "problem ledger records governance coverage issue");
-assert(problemLedger.includes("每次重构、学习进步"), "problem ledger documents iteration review rule");
-assert(agentsDoc.includes("docs/problem-ledger.md"), "AGENTS references problem ledger");
-assert(readmeDoc.includes("docs/problem-ledger.md"), "README links to problem ledger");
-assert(readmeDoc.includes("`.ai-os/CONVENTIONS.md`"), "README documents CONVENTIONS as a project artifact");
-assert(readmeDoc.includes("## 四条推荐路径"), "README path-count heading matches the documented paths");
-assert(readmeDoc.includes("`MISSION.md`、`DESIGN.md`、`CONVENTIONS.md`"), "README team-collaboration section includes CONVENTIONS");
-assert(changeEvaluationTemplate.includes("关联问题台账与覆盖核对"), "change evaluation template includes ledger coverage section");
-assert(changeEvaluationTemplate.includes("需补或更新的 eval / example / CLI / test"), "change evaluation template requires coverage follow-up");
-assert(maintainersDoc.includes("design-not-locked-before-build.md"), "maintainers doc references new evals");
-assert(maintainersDoc.includes("feature-visible-but-unusable.md"), "maintainers doc references usability eval");
-assert(maintainersDoc.includes("cross-layer-change-missed-linkage.md"), "maintainers doc references linkage eval");
-assert(maintainersDoc.includes("change-request-before-code.md"), "maintainers doc references change-request eval");
-assert(maintainersDoc.includes("debug-overreach-regression.md"), "maintainers doc references debug eval");
-assert(maintainersDoc.includes("brownfield-infrastructure-audit-missed.md"), "maintainers doc references infrastructure audit eval");
-assert(maintainersDoc.includes("configurable-meant-operable-gap.md"), "maintainers doc references config closure eval");
-assert(maintainersDoc.includes("docs/problem-ledger.md"), "maintainers doc references problem ledger");
-assert(maintainersDoc.includes("problem-ledger-coverage-regression.md"), "maintainers doc references problem ledger eval");
-assert(maintainersDoc.includes("legacy-to-lanes-migration-skipped.md"), "maintainers doc references migration eval");
-assert(maintainersDoc.includes("lane-archive-without-shared-reflux.md"), "maintainers doc references lane archive reflux eval");
-assert(maintainersDoc.includes("shared-layer-side-effect-audit-missed.md"), "maintainers doc references shared-layer side-effect eval");
-assert(maintainersDoc.includes("parity-before-reuse-skipped.md"), "maintainers doc references parity-before-reuse eval");
-assert(maintainersDoc.includes("fix-complete-but-data-runtime-not-recovered.md"), "maintainers doc references state-triage eval");
-assert(maintainersDoc.includes("interaction-mode-chat.md"), "maintainers doc references interaction-mode example");
-assert(maintainersDoc.includes("quickstart-todo-cli"), "maintainers doc references canonical quickstart example");
-assert(maintainersDoc.includes("greenfield-guided-product.md"), "maintainers doc references new examples");
-assert(maintainersDoc.includes("change-request-baseline-sync.md"), "maintainers doc references change-request example");
-assert(maintainersDoc.includes("brownfield-infrastructure-audit.md"), "maintainers doc references infrastructure example");
-assert(maintainersDoc.includes("config-closure-clarification.md"), "maintainers doc references config closure example");
-assert(maintainersDoc.includes("legacy-to-lanes-migration.md"), "maintainers doc references migration example");
-assert(maintainersDoc.includes("multi-lane-team-workspace"), "maintainers doc references multi-lane team example");
-assert(maintainersDoc.includes("lane-archive-shared-memory-reflux.md"), "maintainers doc references lane archive reflux example");
-assert(examplesDoc.includes("canonical lane"), "examples README marks the canonical lane example");
-assert(examplesDoc.includes("lanes/default"), "examples README documents the lane-default example layout");
-assert(examplesDoc.includes("legacy-to-lanes-migration.md"), "examples README lists the migration example");
-assert(examplesDoc.includes("multi-lane-team-workspace"), "examples README lists the multi-lane team workspace example");
-assert(examplesDoc.includes("lane-archive-shared-memory-reflux.md"), "examples README lists the lane archive reflux example");
-assert(evalsDoc.includes("legacy-to-lanes-migration-skipped.md"), "evals README lists the migration eval");
-assert(evalsDoc.includes("lane-archive-without-shared-reflux.md"), "evals README lists the lane archive reflux eval");
-assert(agentsDoc.includes("node bin/create-ai-os.js plan /tmp/test-project --profile project"), "AGENTS documents plan preview with project profile");
-assert(agentsDoc.includes("node bin/create-ai-os.js /tmp/test-project --profile project"), "AGENTS uses project profile as the canonical install example");
-assert(!agentsDoc.includes("node bin/release.js --check"), "AGENTS avoids stale release.js guidance");
-assert(readmeDoc.includes("npx --yes github:royeedai/ai-os plan . --profile core"), "README documents core-profile plan preview");
-assert(readmeDoc.includes("npx --yes github:royeedai/ai-os my-project --profile project"), "README uses project profile for new-project install");
-assert(gettingStartedDoc.includes("plan my-project --profile project"), "getting-started explains project-profile plan preview");
-assert(gettingStartedDoc.includes("my-project --profile project --lite"), "getting-started uses project profile for lite installs");
-assert(gettingStartedDoc.includes("自动生成 `.cursor/`、`CLAUDE.md`、`GEMINI.md`"), "getting-started explains automatic IDE file generation");
-assert(gettingStartedDoc.includes("第一次使用先记住 6 件事"), "getting-started heading count matches checklist");
-assert(gettingStartedDoc.includes("`CONVENTIONS.md` 负责锁项目级代码约定"), "getting-started explains the role of CONVENTIONS");
-assert(artifactsDoc.includes("`core` profile 初始化时不会直接创建"), "artifacts doc explains core profile starter-file behavior");
-assert(artifactsDoc.includes("`--profile project`"), "artifacts doc explains project profile for starter files");
-assert(artifactsDoc.includes("`.ai-os/CONVENTIONS.md`"), "artifacts doc includes CONVENTIONS");
-assert(cliDoc.includes("create-ai-os plan . --profile core"), "cli doc documents plan preview");
-assert(cliDoc.includes("create-ai-os my-project --profile project"), "cli doc uses project profile for initialization");
-assert(cliDoc.includes("`create-ai-os` 初始化和 `upgrade`"), "cli doc uses the current command names for team config");
-assert(cliDoc.includes("所有已承诺支持的环境承接"), "cli doc requires CLI features to be portable across supported environments");
-assert(cliDoc.includes("恢复自动选择"), "cli doc explains how multi-lane ambiguity guidance restores auto-selection");
-assert(cliDoc.includes("create-ai-os lane add payments ."), "cli doc documents lane add lifecycle command");
-assert(cliDoc.includes("--risk-tier"), "cli doc documents lane risk tier flag");
-assert(cliDoc.includes("--memory-sync"), "cli doc documents lane archive sync flags");
-assert(cliDoc.includes("--only"), "cli doc documents exclusive lane activation");
-assert(cliDoc.includes("lane 敏感 workflow"), "cli doc explains resolving lane before lane-sensitive workflows");
-assert(cliDoc.includes("`/build`、`/verify`、`/ship`"), "cli doc includes build/verify/ship in lane-sensitive workflow guidance");
-assert(cliDoc.includes("lane-aware 修复建议"), "cli doc documents lane-aware repair guidance for delivery commands");
-assert(cliDoc.includes("Git 基线"), "cli doc documents git-backed lane candidate hints");
-assert(cliDoc.includes("status、quality tier、risk tier、owner"), "cli doc documents lane metadata summary output");
-assert(cliDoc.includes("共享 `memory.md` / `CONVENTIONS.md`"), "cli doc documents lane archive shared reflux");
-assert(readmeDoc.includes("`tasks.yaml` 保持正常合并"), "README documents normal merge strategy for tasks.yaml");
-assert(readmeDoc.includes("推荐命令示例"), "README documents suggested lane-selection commands for multi-lane ambiguity");
-assert(readmeDoc.includes("Lane 生命周期命令"), "README documents lane lifecycle commands");
-assert(readmeDoc.includes("active / draft / archived"), "README explains lane lifecycle statuses");
-assert(readmeDoc.includes("risk tier"), "README documents lane risk tier metadata");
-assert(readmeDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "README explains resolving lane before lane-sensitive workflows");
-assert(readmeDoc.includes("lane-aware 修复建议"), "README documents lane-aware repair guidance for delivery commands");
-assert(readmeDoc.includes("Git 基线"), "README documents git-backed lane candidate hints");
-assert(readmeDoc.includes("examples/multi-lane-team-workspace/"), "README references the multi-lane team workspace example");
-assert(readmeDoc.includes("`--problem-ledger-sync`"), "README documents governance sync for lane archive");
-assert(workflowsDoc.includes("进入 `/align`、`/change-request`、`/build`、`/verify`、`/ship` 前"), "workflows doc explains resolving lane before lane-sensitive workflows");
-assert(workflowsDoc.includes("当前覆盖了哪些 lane"), "workflows doc requires cross-lane coverage summaries for shared changes");
-assert(workflowsDoc.includes("回流到共享 `memory.md` / `CONVENTIONS.md`"), "workflows doc requires lane closure reflux");
-assert(cliDoc.includes("仅为 `memory.md` 设置 `merge=union`"), "cli doc limits merge=union to memory.md");
-assert(artifactsDoc.includes("唯一 ID"), "artifacts doc documents unique task ids");
-assert(artifactsDoc.includes("risk tier"), "artifacts doc documents lane risk tier metadata");
-assert(gettingStartedDoc.includes("会自动重建"), "getting-started documents STATE auto rebuild");
-assert(maintainersDoc.includes("framework/.agents/skills/references/skill-spec.md"), "maintainers doc references skill authoring spec");
-assert(maintainersDoc.includes("node ./bin/create-ai-os.js plan /tmp/test-project --profile project"), "maintainers doc includes plan preview in local examples");
-assert(lanes72BacklogDoc.includes("L72-01"), "7.2 lanes backlog includes metadata workstream");
-
-section("eval content structure");
-const EVAL_REQUIRED_SECTIONS = ["## 场景", "## 错误交付", "## AI-OS 预期行为", "## 最低证据", "## 若需改 framework，优先检查"];
-const evalDir = path.join(repoRoot, "evals");
-const evalFiles = fs.readdirSync(evalDir).filter((f) => f !== "README.md" && f.endsWith(".md"));
-for (const evalFile of evalFiles) {
-  const evalContent = fs.readFileSync(path.join(evalDir, evalFile), "utf8");
-  const missingSections = EVAL_REQUIRED_SECTIONS.filter((s) => !evalContent.includes(s));
-  assert(missingSections.length === 0, `eval ${evalFile} has all required sections${missingSections.length ? " (missing: " + missingSections.join(", ") + ")" : ""}`);
+{
+  const p = path.join(repoRoot, "AGENTS.md");
+  assert(fs.existsSync(p), "AGENTS.md exists at repo root");
+  const content = fs.readFileSync(p, "utf8");
+  const lines = content.split(/\r?\n/).length;
+  assert(lines <= 150, `AGENTS.md within 150 lines (got ${lines})`);
+  assert(content.includes("五条核心要求"), "AGENTS.md contains 'five core requirements' section");
+  assert(content.includes("绝对禁止"), "AGENTS.md contains 'absolute prohibitions' section");
+  assert(content.includes("12 组工件"), "AGENTS.md references the 12-artifact set");
 }
 
-section("problem ledger new entries");
-const updatedLedger = fs.readFileSync(path.join(repoRoot, "docs", "problem-ledger.md"), "utf8");
-assert(updatedLedger.includes("PG-002"), "problem ledger includes PG-002 token budget entry");
-assert(updatedLedger.includes("PG-003"), "problem ledger includes PG-003 advisory rules entry");
-assert(updatedLedger.includes("PG-004"), "problem ledger includes PG-004 IDE format entry");
-assert(updatedLedger.includes("PG-005"), "problem ledger includes PG-005 mission hotspot entry");
-assert(updatedLedger.includes("quickstart-todo-cli"), "problem ledger records the canonical lane example coverage");
-assert(updatedLedger.includes("legacy-to-lanes-migration-skipped"), "problem ledger records migration eval coverage");
-assert(updatedLedger.includes("PL-030"), "problem ledger includes PL-030 shared-layer side-effect entry");
-assert(updatedLedger.includes("PL-031"), "problem ledger includes PL-031 parity-before-reuse entry");
-assert(updatedLedger.includes("PL-032"), "problem ledger includes PL-032 code/data/runtime triage entry");
-assert(updatedLedger.includes("PG-007"), "problem ledger includes PG-007 lane archive reflux entry");
-assert(updatedLedger.includes("Codex CLI"), "problem ledger documents Codex CLI in IDE portability rule");
-assert(updatedLedger.includes("默认不纳入 CLI 主能力"), "problem ledger blocks single-IDE features from CLI mainline");
-assert(updatedLedger.includes("PL-020"), "problem ledger includes PL-020 current mission scoping entry");
+section("docs: key documentation files exist");
 
-section("README positioning section");
-const updatedReadme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
-const problemsDoc = fs.readFileSync(path.join(repoRoot, "docs", "problems.md"), "utf8");
-const readmeOrProblems = (needle) => updatedReadme.includes(needle) || problemsDoc.includes(needle);
-assert(
-  readmeOrProblems("为什么需要 AI-OS") || readmeOrProblems("AI-OS 的差异化位置"),
-  "README or docs/problems.md explains why AI-OS exists"
-);
-assert(readmeOrProblems("1.7 倍"), "README or docs/problems.md cites AI bug rate data");
-assert(readmeOrProblems("运行时护栏工具"), "README or docs/problems.md differentiates from runtime guardrail tools");
-assert(readmeOrProblems("只定义本轮交付基准"), "README or docs/problems.md clarifies brownfield mission scope");
-assert(updatedReadme.includes("baseline-log/"), "README documents baseline-log");
-assert(updatedReadme.includes("baseline-sync"), "README documents baseline-sync workflow");
-assert(updatedReadme.includes("所有已承诺支持的环境都有等价承接"), "README states CLI features must work across supported IDE environments");
+{
+  const docs = [
+    "PROJECT_PURPOSE.md",
+    "README.md",
+    "docs/artifacts.md",
+    "docs/cli.md",
+    "docs/constitution-spec.md",
+    "docs/migrate-v7-to-v8.md",
+    "docs/maintainers.md",
+    "docs/getting-started.md",
+    "docs/problems.md",
+    "docs/problem-ledger.md",
+    "docs/change-evaluation-template.md",
+    "docs/interop/spec-kit-coexistence.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "VERSION",
+    "package.json",
+  ];
+  for (const rel of docs) {
+    assert(fs.existsSync(path.join(repoRoot, rel)), `${rel} exists`);
+  }
+}
+
+section("docs: obsolete v7 files removed");
+
+{
+  const obsolete = [
+    "framework/AGENTS.md",
+    "framework/.agents/workflows",
+    "framework/.agents/skills",
+    "framework/.agents/policies",
+    "framework/.agents/references",
+    "manifests",
+    "docs/workflows.md",
+    "docs/skill-tiers.md",
+    "docs/ai-os-v2-customization-guide.md",
+    "docs/evolution",
+    "bin/ai-os-plan.js",
+    "bin/ai-os-validate.js",
+    "bin/ai-os-gate.js",
+    "bin/ai-os-lane.js",
+    "bin/ai-os-status.js",
+    "bin/ai-os-next.js",
+    "bin/ai-os-resume.js",
+    "bin/ai-os-release-check.js",
+    "bin/ai-os-skill-check.js",
+    "bin/ai-os-token-budget.js",
+    "bin/ai-os-cursor-rules.js",
+    "bin/ai-os-lab.js",
+    "bin/ai-os-diff.js",
+    "bin/project-state.js",
+  ];
+  for (const rel of obsolete) {
+    assert(!fs.existsSync(path.join(repoRoot, rel)), `${rel} does not exist (v7 cleanup)`);
+  }
+}
+
+section("docs: bin contains exactly 4 scripts");
+
+{
+  const binDir = path.join(repoRoot, "bin");
+  const files = fs.readdirSync(binDir).sort();
+  const expected = ["ai-os-doctor.js", "ai-os-upgrade.js", "create-ai-os.js", "shared.js"];
+  assert(JSON.stringify(files) === JSON.stringify(expected), `bin/ has exactly 4 scripts: ${files.join(", ")}`);
+}
+
+section("docs: framework templates contain 12-artifact starters");
+
+{
+  const tpl = path.join(repoRoot, "framework/.agents/templates/project");
+  const required = ["MISSION.md", "DESIGN.md", "STATE.md", "memory.md", "tasks.yaml", "risk-register.md", "release-plan.md", "verification-matrix.yaml"];
+  for (const f of required) {
+    assert(fs.existsSync(path.join(tpl, f)), `template ${f} exists`);
+  }
+  assert(fs.existsSync(path.join(tpl, "baseline-log", "BL-template.md")), "baseline-log template exists");
+  assert(fs.existsSync(path.join(tpl, "specs", "example.spec.md")), "specs example template exists");
+  assert(fs.existsSync(path.join(tpl, "design-pack", "parity-map.md")), "design-pack parity-map template exists");
+}
+
+section("docs: VERSION and package.json are in sync");
+
+{
+  const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
+  const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
+  assert(version === "8.0.0", `version is 8.0.0 (got ${version})`);
+}
+
+section("docs: package.json bin field is minimal");
+
+{
+  const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  const binKeys = Object.keys(pkg.bin || {});
+  assert(binKeys.length === 1, `package.json has exactly 1 bin entry (got ${binKeys.length})`);
+  assert(binKeys[0] === "create-ai-os", `package.json bin key is create-ai-os (got ${binKeys[0]})`);
+}

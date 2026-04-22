@@ -48,7 +48,6 @@ tasks:
       - "specs/example.spec.md"
     outputs:
       - "specs/example.spec.md"
-      - "acceptance.yaml"
     affected_components:
       - "design"
       - "contracts"
@@ -98,7 +97,6 @@ tasks:
     blockers: []
     change_scope:
       - "specs/example.spec.md"
-      - "acceptance.yaml"
     out_of_scope_guard:
       - "不进入未确认的实现工作"
     notes: ""
@@ -125,12 +123,10 @@ tasks:
       - "DESIGN.md"
       - "STATE.md"
       - "specs/example.spec.md"
-      - "acceptance.yaml"
     inputs:
       - "MISSION.md"
       - "DESIGN.md"
       - "specs/example.spec.md"
-      - "acceptance.yaml"
     outputs:
       - "src/example.ts"
       - "tests/example.test.ts"
@@ -218,7 +214,6 @@ tasks:
       - "DESIGN.md"
       - "STATE.md"
       - "specs/example.spec.md"
-      - "acceptance.yaml"
     inputs:
       - "specs/example.spec.md (5.5 节 User Journey 闭环契约 J-001)"
     outputs:

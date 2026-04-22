@@ -1,43 +1,66 @@
-# AI-OS Root Evals
+# AI-OS v8 regression evals
 
-这里存放 AI-OS 母仓库的根层回归评估样例。
+Failure-mode samples used to regression-test AI-OS itself. Each entry describes a real project failure mode AI-OS is designed to intercept — not a "does the CLI run" check, but a "does the constitution actually prevent wrong delivery" check.
 
-AI-OS 的 eval 不再主要检查“流程够不够多”，而是检查 AI-OS 能不能拦住错误交付。
+## Structure of each eval
 
-## 当前基线样例
+Every eval answers 5 questions:
 
-- `design-not-locked-before-build.md`
-- `ui-looks-right-but-logic-wrong.md`
-- `logic-right-but-product-shape-wrong.md`
-- `fallback-evidence-used-as-delivery.md`
-- `missing-user-confirmation.md`
-- `feature-visible-but-unusable.md`
-- `cross-layer-change-missed-linkage.md`
-- `interaction-mode-misclassified.md`
-- `sensitive-flow-not-escalated.md`
-- `happy-path-passed-but-null-path-broken.md`
-- `change-request-before-code.md`
-- `debug-overreach-regression.md`
-- `brownfield-infrastructure-audit-missed.md`
-- `configurable-meant-operable-gap.md`
-- `problem-ledger-coverage-regression.md`
-- `read-only-analysis-before-edit.md`
-- `legacy-to-lanes-migration-skipped.md`
-- `lane-archive-without-shared-reflux.md`
-- `shared-layer-side-effect-audit-missed.md`
-- `parity-before-reuse-skipped.md`
-- `fix-complete-but-data-runtime-not-recovered.md`
-- `implicit-cross-layer-contract-undocumented.md`
-- `weak-type-hole-erodes-contract.md`
-- `e2e-journey-broken-by-single-point-pass.md`
-- `cross-module-same-defect-not-escalated.md`
+1. **Scenario**: what input situation triggers this failure mode
+2. **Wrong delivery**: what the bad outcome looks like
+3. **AI-OS expected behavior**: which constitution rule should intercept it
+4. **Minimum evidence**: which artifacts should contain proof
+5. **If AI-OS needs changes**: where in `AGENTS.md` to strengthen the rule
 
-## 使用原则
+## Current baseline samples
 
-每个 eval 都回答 5 件事：
+Grouped by the five core requirements they enforce.
 
-1. 输入场景是什么
-2. 错误交付会长什么样
-3. AI-OS 应该如何拦截
-4. 最少需要哪些工件 / 证据
-5. 如果改 framework，优先改哪里
+### R1: Goal and user confirmation first
+
+- `missing-user-confirmation.md` — AI proceeds without user confirmation
+- `change-request-before-code.md` — AI changes code before updating baseline
+- `configurable-meant-operable-gap.md` — "Configurable" requirements without operational closure
+
+### R2: Key design and logic locked first
+
+- `design-not-locked-before-build.md` — Implementation before design confirmed
+- `ui-looks-right-but-logic-wrong.md` — UI renders but business logic broken
+- `logic-right-but-product-shape-wrong.md` — Logic correct but IA / product shape off
+- `interaction-mode-misclassified.md` — Streaming / long-running UX built as sync
+- `brownfield-infrastructure-audit-missed.md` — Shared infrastructure not audited
+- `shared-layer-side-effect-audit-missed.md` — No side-effect list for shared-layer changes
+- `parity-before-reuse-skipped.md` — Abstraction reused without parity check
+- `implicit-cross-layer-contract-undocumented.md` — Cross-layer contract not registered in `memory.md`
+- `weak-type-hole-erodes-contract.md` — Map/Any/untyped catch erodes contract
+
+### R3: Adaptive governance
+
+- `sensitive-flow-not-escalated.md` — High-risk signal not escalated
+- `debug-overreach-regression.md` — Bug fix scopes creep into unrelated code
+- `read-only-analysis-before-edit.md` — Agent starts editing before read-only analysis
+- `cross-module-same-defect-not-escalated.md` — Same bug shape across modules, fixed singly
+
+### R4: Evidence-based completion
+
+- `fallback-evidence-used-as-delivery.md` — Fallback / stub treated as delivered
+- `feature-visible-but-unusable.md` — UI entry exists but not functional
+- `happy-path-passed-but-null-path-broken.md` — Happy path passes, edges crash
+- `cross-layer-change-missed-linkage.md` — Cross-layer change misses impact surface
+- `fix-complete-but-data-runtime-not-recovered.md` — Code fixed but data/runtime not
+- `e2e-journey-broken-by-single-point-pass.md` — Single endpoints pass, end-to-end journey broken
+
+### R5: Recoverable project memory
+
+- `problem-ledger-coverage-regression.md` — Problem coverage regresses after refactor
+
+## Using evals
+
+- When you propose any change to `AGENTS.md`, check if an eval would break.
+- When you hit a new real-world failure mode, add a new eval with the 5-question template.
+- When a failure mode becomes inert (e.g., covered by model-level self-verification in a future upgrade), archive rather than delete the eval.
+
+## Notes
+
+- v8 removed evals tied to v7 lane machinery (`legacy-to-lanes-migration-skipped`, `lane-archive-without-shared-reflux`) since lanes are now optional and non-automated.
+- Internal references to `framework/.agents/workflows/*.md` in older evals are stale. In v8, the equivalent rules all live in the root `AGENTS.md` behavior-rules section. Those evals remain valid as failure-mode descriptions; only the "where to fix" pointer has moved.

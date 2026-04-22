@@ -1,9 +1,83 @@
-# 示例：已有项目里的局部变更
+# Example: Brownfield change journey
 
-这个示例演示：
+Scenario: you have a 2-year-old SaaS app. A new requirement comes in: "Add CSV bulk import for product catalog."
 
-1. `/align` 如何在 change 模式下做局部判断
-2. 为什么不是每次都先全仓分析
-3. 小改动也要有最小状态、联动检查和异常路径证据
+## 0. Install (if not already done)
 
-参考骨架：`examples/brownfield-change-journey/`
+```bash
+cd my-existing-app
+npx --yes github:royeedai/ai-os .
+```
+
+The agent now reads `AGENTS.md` on every session.
+
+## 1. Change request (agent detects this is a change to an existing project)
+
+**You**: "Add CSV bulk import for the product catalog."
+
+**Agent behavior (per AGENTS.md §3, requirement-change rule)**:
+
+1. Does NOT immediately start coding
+2. Creates `.ai-os/baseline-log/CR-20260422-141000-csv-bulk-import.md` with:
+   - Impact analysis: what this changes in MISSION (catalog module scope expansion)
+   - Files likely affected (controllers, services, db migrations, UI modal)
+   - What sits on the boundary of shared infrastructure (request wrapper, validation pipeline, audit log)
+3. Proposes MISSION baseline update (append to "scope" in catalog module)
+4. Stops. Asks: "Confirm this impact analysis and MISSION baseline update?"
+
+## 2. Brownfield shared-infrastructure audit
+
+Per AGENTS.md §2, brownfield changes must audit shared infrastructure before implementation.
+
+Agent:
+
+1. Scans the repo for request wrappers, response adapters, audit-log middleware, validation pipelines
+2. Writes findings into `.ai-os/DESIGN.md` §7 (shared-layer side-effects clause)
+3. Identifies: "Your existing `ImportPipeline` already handles CSV for the customers module. Propose reusing it for products."
+4. Asks: "Reuse existing `ImportPipeline` or write a product-specific pipeline? Trade-offs listed."
+
+**You**: "Reuse it."
+
+## 3. Parity check before abstraction reuse
+
+Per AGENTS.md §2, reuse of shared abstractions requires parity check.
+
+Agent:
+
+1. Reads `ImportPipeline` source
+2. Writes to DESIGN §7: "Products schema differs from customers — has 'sku' (unique) and 'inventory' (non-null) that customers don't. Reuse is viable but requires a product-specific validator."
+3. Confirms with you
+
+## 4. Scoped build
+
+Agent only writes code in:
+
+- New `ProductImportController`
+- New `ProductImportValidator`
+- DB migration for import-log tracking
+- UI: one modal
+
+Agent explicitly avoids touching `ImportPipeline` internals, authentication, or unrelated services (per AGENTS.md absolute rules #5, #6, #7).
+
+## 5. Verify
+
+Agent runs:
+
+- Project-native static check (`pnpm build`, `pnpm typecheck`)
+- Regression: all existing tests still pass (no new failures introduced)
+- Edge cases: empty CSV, malformed CSV, duplicate SKUs, 10k+ rows, permission denied
+- Writes results to `.ai-os/verification-matrix.yaml` with failure-mode guards
+
+## 6. Ship
+
+Release plan includes:
+
+- "Code state": deployed
+- "Data state": no migration of existing data (greenfield import)
+- "Runtime state": requires one-time restart of import worker after deploy
+- AI done / human needed: separate
+- Rollback: feature flag off + rollback migration
+
+## What changed vs. v7
+
+No slash commands. The agent identified "this is a change request" from your message and followed the `AGENTS.md` behavior rule automatically.

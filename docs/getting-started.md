@@ -1,103 +1,110 @@
 # Getting Started
 
-AI-OS 的默认顺序不是"先写代码"，而是：
-
-1. `/align`
-2. `/design`
-3. `/plan`
-4. `/build`
-5. `/verify`
-6. `/ship`
-
-## 选择安装方式
-
-**完整安装**（19 个 skill + 14 个 workflow，~99K tokens）：
+## 1. Install
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --profile project
+# New project
+npx --yes github:royeedai/ai-os my-project
+
+# Existing repo (idempotent)
+npx --yes github:royeedai/ai-os .
 ```
 
-安装前如果想先确认 AI-OS 会管理哪些内容，可以先预览：
+Installation creates:
+
+- `AGENTS.md` at project root — delivery constitution, ≤150 lines
+- `CLAUDE.md`, `GEMINI.md` — lightweight IDE pointers (≤30 lines each)
+- `.ai-os/` with all 12 artifacts (always; no profiles)
+- `.gitignore` + `.gitattributes` entries for team collaboration
+
+## 2. First read
+
+After install, read these in order:
+
+1. `AGENTS.md` — the delivery constitution (5–10 min)
+2. `.ai-os/MISSION.md` — empty template; you will fill this in next
+3. `docs/artifacts.md` (in the AI-OS repo, not your project) — 12-artifact schema reference
+
+## 3. How agents use AI-OS
+
+There are **no slash commands** in v8. When you open your project with an AI coding agent (Cursor, Claude Code, Codex, etc.):
+
+- The agent reads `AGENTS.md` automatically (it is agents.md open standard)
+- Behavior is rule-driven: agent decides what to produce and when to stop based on the task type
+- For a fresh project, the agent will typically ask you to confirm `MISSION.md` before any code
+
+## 4. Core behavior rules
+
+From `AGENTS.md`:
+
+- **New project / unclear requirement** → agent produces `MISSION.md` + `baseline-log/CR-*.md`, waits for confirmation
+- **Key design not locked** → agent produces `DESIGN.md`, waits for approval
+- **Requirement change** → agent writes `baseline-log/CR-<timestamp>.md` impact analysis first
+- **Bug fix** → agent states root cause + scope + files to touch, waits for "go"
+- **Verification** → agent provides project-native static-check evidence (not just ReadLints)
+- **Session resume** → agent reads `STATE.md` first
+
+## 5. When to escalate governance
+
+- `P0` (full governance): new project, new module, large-scope change
+- `P1` (change-request + plan): small feature add, non-core change
+- `P2` (debug lightweight): single-point bug, wording, minor config
+
+**High-risk escalation** (user assets, permission changes, irreversible state, cross-tenant data, concurrency-sensitive, external side effects):
+
+- `tasks.yaml` sets `approval_required: true`
+- Populate `.ai-os/risk-register.md` and `.ai-os/release-plan.md`
+- Add at least one real `failure_modes` guard to `.ai-os/verification-matrix.yaml`
+
+## 6. Check health
 
 ```bash
-npx --yes github:royeedai/ai-os plan . --profile core
-npx --yes github:royeedai/ai-os plan my-project --profile project
+npx --yes github:royeedai/ai-os doctor .
 ```
 
-其中：
+Checks:
 
-- `core` 只安装框架层和 `.ai-os/` 元数据
-- `project` 会额外创建共享根层工件 + `.ai-os/lanes/default/` starter 项目工件
-- `--with-project-files` 仍保留，作为 `--profile project` 的兼容别名
+- `AGENTS.md` exists and is at most 150 lines
+- All 12 artifacts are present (or session-local ones justified)
+- `baseline-log/` has at least one record
+- Naming conventions follow `CR-YYYYMMDD-HHMMSS-*` / `BL-YYYYMMDD-HHMMSS-*`
+- `.gitignore` excludes `STATE.md`
+- Any `lanes/` subdirectories have `lane.toml`
 
-**轻量安装**（核心 workflow + 必要 skill，~32K tokens，适合小项目或首次体验）：
+## 7. Multiple parallel delivery lines
+
+For most projects, you will **never need** `lanes/`. If you do have separate parallel delivery trains:
 
 ```bash
-npx --yes github:royeedai/ai-os my-project --profile project --lite
+mkdir -p .ai-os/lanes/payments
+cp -r .ai-os/{MISSION.md,DESIGN.md,STATE.md,tasks.yaml,baseline-log,specs} .ai-os/lanes/payments/
+# Create .ai-os/lanes/payments/lane.toml
 ```
 
-**IDE 适配文件**：安装时会自动生成 `.cursor/`、`CLAUDE.md`、`GEMINI.md`。
+Shared across lanes: `.ai-os/memory.md`.
 
-如需手动恢复：
+## 8. Upgrading from v7
+
+See [migrate-v7-to-v8.md](migrate-v7-to-v8.md).
 
 ```bash
-npx --yes github:royeedai/ai-os cursor-rules my-project
+npx --yes github:royeedai/ai-os upgrade .
 ```
 
-如需跳过生成：
+## 9. Common first tasks
 
-```bash
-npx --yes github:royeedai/ai-os my-project --profile project --no-ide-files
-```
+| You want to... | Open your AI agent and... |
+|---|---|
+| Start a new project from scratch | Tell it your goal — agent guides through MISSION.md |
+| Add a feature to existing repo | Ask — agent reads code, proposes updated MISSION baseline |
+| Change a requirement | Say "we need to change X" — agent writes `baseline-log/CR-*.md` first |
+| Fix a bug | Describe symptom — agent states root cause before touching code |
+| Verify completion | Ask "is it done?" — agent runs static check + regression + evidence list |
 
-## 第一次使用先记住 6 件事
+## 10. Further reading
 
-- `MISSION.md` + `specs/` 是当前交付的唯一需求真理源
-- `MISSION.md` 是低频共享章程，`baseline-log/` 是共享基线记录目录
-- `brownfield` / `change` 下，`MISSION.md` 记录的是本轮要交付什么，不是把整个老项目重新定义一遍
-- `DESIGN.md` 负责锁关键页面和关键流程
-- `CONVENTIONS.md` 负责锁项目级代码约定，避免多 session / 多人协作时模式漂移
-- `tasks.yaml` + `acceptance.yaml` 负责把任务、验收和证据闭环写清；多人协作时任务要有稳定 `owner` 和唯一 ID
-- `STATE.md` 负责恢复上下文、确认停点和下一步；缺失时 `status` / `next` / `resume` 会自动重建
-
-## 安装后你会看到什么
-
-- `AGENTS.md`
-- `.agents/skills/`（lite 模式只含 acceptance-gate 和 memory-manager）
-- `.agents/workflows/`（lite 模式只含 align/design/build/verify/debug）
-- `.ai-os/project.md`
-- `.ai-os/CONVENTIONS.md`
-- `.ai-os/memory.md`
-- `.ai-os/lanes/default/MISSION.md`
-- `.ai-os/lanes/default/baseline-log/`
-- `.ai-os/lanes/default/DESIGN.md`
-- `.ai-os/lanes/default/tasks.yaml`
-- `.ai-os/lanes/default/acceptance.yaml`
-- `.ai-os/lanes/default/STATE.md`
-- `.ai-os/lanes/default/specs/`
-
-只有使用 `project` profile（或兼容别名 `--with-project-files`）时，这些 starter 文件才会在初始化阶段直接创建。`core` profile 只会先写入框架和 `.ai-os/framework.toml`、`.ai-os/managed-files.tsv`。如果你是从旧版单交付结构升级，可运行 `create-ai-os upgrade . --to-lanes` 迁到默认 lane 布局。
-
-## 什么时候用专项入口
-
-- 需求补充、范围变化、验收改变：`/change-request`
-- 单一 bug、样式微调、文案修正、配置修复：`/debug`
-- 需要正式审查当前方案或实现：`/review`
-- 项目 / 里程碑结束后做复盘：`/postmortem`
-
-## 什么时候继续往下做
-
-- Mission 说不清：不要离开 `/align`
-- 老项目新增需求时，不要把整个存量项目重写成 Mission；先锁本轮交付基准
-- Design 没锁：不要进入完整 `/build`
-- Spec / tasks / acceptance 不完整：先 `/plan`
-- 命中资产、权限、不可逆状态流转、跨用户数据或并发敏感更新：直接升到 `high-risk`
-- 想判断"是不是真的做对了"：用 `/verify`
-
-## 检查你的项目
-
-```bash
-npx --yes github:royeedai/ai-os doctor .        # 框架和工件健康检查
-npx --yes github:royeedai/ai-os validate .       # 交付工件完整性校验
-npx --yes github:royeedai/ai-os token-budget .   # 查看框架 token 占用
-```
+- [AGENTS.md](../AGENTS.md) — constitution
+- [artifacts.md](artifacts.md) — artifact schema
+- [cli.md](cli.md) — CLI reference (3 commands)
+- [constitution-spec.md](constitution-spec.md) — formal spec
+- [migrate-v7-to-v8.md](migrate-v7-to-v8.md) — migration guide

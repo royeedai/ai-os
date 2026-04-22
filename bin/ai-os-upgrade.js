@@ -1,579 +1,300 @@
 #!/usr/bin/env node
 
 /**
- * ai-os-upgrade — Upgrade a project's framework files to the latest AI-OS source.
+ * AI-OS v8 upgrade: migrate v7 project to v8
  *
- * Usage:
- *   ai-os-upgrade [target-dir] [--force] [--dry-run] [--preflight] [--to-lanes]
- *   ai-os-upgrade --help
+ * Mechanical transformations:
+ *   1. Replace root AGENTS.md with v8 version
+ *   2. Delete framework/.agents/workflows/, skills/, policies/ from target
+ *   3. Flatten .ai-os/lanes/default/* to .ai-os/* (if single-lane project)
+ *   4. Merge .ai-os/CONVENTIONS.md into .ai-os/memory.md as an appended section
+ *   5. Merge .ai-os/project.md into .ai-os/MISSION.md as "宿主项目上下文" section
+ *   6. Merge .ai-os/lanes/_/acceptance.yaml into matching DESIGN.md as an appended section
+ *   7. Rewrite .ai-os/framework.toml
+ *   8. Reset .ai-os/managed-files.tsv
+ *   9. Remove .cursor/skills and .cursor/rules auto-generated files
+ *
+ * Does not touch: business code, user-written content inside MISSION/DESIGN/specs/tasks/memory/baseline-log.
  */
+
+"use strict";
 
 const fs = require("fs");
 const path = require("path");
+
 const {
-  FRAMEWORK_ROOT,
-  PROJECT_MANAGED_FILES_MANIFEST,
-  DEFAULT_LANE_ID,
-  DELIVERY_MODEL_LEGACY,
-  DELIVERY_MODEL_LANES,
-  DELIVERY_MODEL_MIXED,
-  detectInstallProfileName,
-  detectFrameworkFootprint,
+  PROJECT_STATE_ROOT,
   readFrameworkVersion,
-  readInstalledMeta,
-  copyFileWithMode,
-  getProjectTemplatePath,
-  listManagedFiles,
-  inspectProjectDeliveryLayout,
-  listLegacyDeliveryArtifactEntries,
-  getLaneFilePath,
-  getLaneRelativePath,
-  getLaneMetadataPath,
-  getProjectFilePath,
-  getProjectRelativePath,
-  serializeSimpleToml,
+  readMetadata,
   writeMetadata,
   writeManagedFilesManifest,
+  installAgentsMd,
+  installArtifacts,
+  installIdeFiles,
   appendGitignoreEntries,
   appendGitattributesEntries,
-  generateIdeFiles,
-  ensureDir,
   fail,
+  fileExists,
+  ensureDir,
 } = require("./shared");
-const { computeDiff } = require("./ai-os-diff");
-const {
-  readMissionFile,
-  readBaselineLogFile,
-  parseTasksFile,
-  parseAcceptanceFile,
-} = require("./project-state");
-
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
 
 function printHelp() {
-  process.stdout.write(`Usage:
-  ai-os-upgrade [target-dir] [--force] [--dry-run] [--preflight] [--to-lanes]
+  process.stdout.write(`create-ai-os upgrade — Migrate AI-OS v7 project to v8
 
-Upgrade a project's framework files to the latest AI-OS source.
+Usage:
+  create-ai-os upgrade [target-dir]
 
 Options:
-  --force      Skip conflict check and overwrite all framework files
-  --dry-run    Show what would be done without making changes
-  --preflight  Check whether upgrade can proceed safely
-  --to-lanes   Migrate legacy single-delivery project artifacts into .ai-os/lanes/default/
-  -h, --help   Show this help message
+  --dry-run    Show what would change without writing files
+  --force      Overwrite v8 conflicts (advanced; normally not needed)
+  -h, --help   Show this help
+
+Safe operations only. Does not touch your business code or user-written content.
 `);
 }
 
-const args = process.argv.slice(2);
-let targetArg = "";
-let force = false;
-let dryRun = false;
-let preflight = false;
-let toLanes = false;
-
-for (let i = 0; i < args.length; i += 1) {
-  const arg = args[i];
-  if (arg === "-h" || arg === "--help") {
-    printHelp();
-    process.exit(0);
+function parseArgs(argv) {
+  const opts = { target: "", dryRun: false, force: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "-h" || arg === "--help") { printHelp(); process.exit(0); }
+    if (arg === "--dry-run") { opts.dryRun = true; continue; }
+    if (arg === "--force") { opts.force = true; continue; }
+    if (arg.startsWith("-")) fail(`unknown option: ${arg}`);
+    if (opts.target) fail(`unexpected argument: ${arg}`);
+    opts.target = arg;
   }
-  if (arg === "--force") {
-    force = true;
-    continue;
-  }
-  if (arg === "--dry-run") {
-    dryRun = true;
-    continue;
-  }
-  if (arg === "--preflight") {
-    preflight = true;
-    continue;
-  }
-  if (arg === "--to-lanes") {
-    toLanes = true;
-    continue;
-  }
-  if (arg.startsWith("-")) {
-    fail(`unknown option: ${arg}`);
-  }
-  if (targetArg) {
-    fail(`unexpected argument: ${arg}`);
-  }
-  targetArg = arg;
+  return opts;
 }
 
-const targetDir = path.resolve(targetArg || ".");
-
-if (!fs.existsSync(targetDir)) {
-  fail(`target directory does not exist: ${targetDir}`);
+function log(dryRun, action, label) {
+  const prefix = dryRun ? "[dry-run]" : "[upgrade]";
+  process.stdout.write(`${prefix} ${action}: ${label}\n`);
 }
 
-// ---------------------------------------------------------------------------
-// Pre-flight
-// ---------------------------------------------------------------------------
-
-const meta = readInstalledMeta(targetDir);
-const installedManagedFiles = listManagedFiles(targetDir);
-if (!meta.exists && installedManagedFiles.length === 0) {
-  fail(
-    `No ${getProjectRelativePath("framework.toml")} found in ${targetDir}.\n` +
-    `Initialize the project first:\n` +
-    `  npx --yes github:royeedai/ai-os ${targetDir === process.cwd() ? "." : targetDir}`
-  );
-}
-if (meta.exists && meta.mode === "submodule") {
-  fail(
-    [
-      "ai-os-upgrade does not manage submodule installations.",
-      "Update the framework by moving the submodule pointer instead.",
-    ].join("\n")
-  );
+function removeFile(abs, dryRun) {
+  if (!fileExists(abs)) return false;
+  if (!dryRun) fs.unlinkSync(abs);
+  return true;
 }
 
-const frameworkVersion = readFrameworkVersion();
-const installProfileName = detectInstallProfileName(targetDir, { meta });
-const frameworkFootprint = detectFrameworkFootprint(targetDir, {
-  meta,
-  managedFiles: installedManagedFiles,
-});
-const metadataManifestPath = getProjectFilePath(targetDir, PROJECT_MANAGED_FILES_MANIFEST);
-const needsLocalMetadataRefresh =
-  !meta.exists ||
-  !fs.existsSync(metadataManifestPath) ||
-  !meta.installProfile ||
-  !meta.frameworkFootprint;
-
-// ---------------------------------------------------------------------------
-// Compute diff
-// ---------------------------------------------------------------------------
-
-const diff = computeDiff(targetDir);
-const lanePlan = toLanes ? buildLegacyToLanesPlan(targetDir) : null;
-
-const frameworkChangeCount = diff.modified.length + diff.outdated.length + diff.missing.length;
-const laneChangeCount = lanePlan && !lanePlan.noop ? lanePlan.createdCount + lanePlan.moveCount : 0;
-const totalChanges = frameworkChangeCount + laneChangeCount;
-
-function printTeamConfigSummary(gitignoreAdded, gitattrsAdded) {
-  if (!gitignoreAdded && !gitattrsAdded) {
-    return;
-  }
-  process.stdout.write("Team collaboration config:\n");
-  if (gitignoreAdded) {
-    process.stdout.write("  + .gitignore: added AI-OS session file entries (STATE.md etc. are now local-only)\n");
-  }
-  if (gitattrsAdded) {
-    process.stdout.write("  + .gitattributes: aligned merge strategies (kept memory.md merge=union, removed tasks.yaml merge=union)\n");
-  }
-  process.stdout.write("  Use --no-team-config on next init to opt out.\n\n");
+function removeDir(abs, dryRun) {
+  if (!fileExists(abs)) return false;
+  if (!dryRun) fs.rmSync(abs, { recursive: true, force: true });
+  return true;
 }
 
-function deriveLaneMetadataFromLegacy(targetDir) {
-  const missionInfo = readMissionFile(targetDir);
-  const baselineInfo = readBaselineLogFile(targetDir);
-  const tasksInfo = parseTasksFile(getProjectFilePath(targetDir, "tasks.yaml"));
-  const acceptanceInfo = parseAcceptanceFile(getProjectFilePath(targetDir, "acceptance.yaml"));
-
-  const baselineId =
-    missionInfo.currentBaselineId ||
-    tasksInfo.baselineId ||
-    acceptanceInfo.baselineId ||
-    (baselineInfo.latestConfirmed && baselineInfo.latestConfirmed.id) ||
-    "";
-  const title = missionInfo.summaryFields["当前交付主题"] || "默认交付线";
-  const qualityTier = acceptanceInfo.qualityTier || tasksInfo.qualityTier || "standard";
-
-  return {
-    id: DEFAULT_LANE_ID,
-    title,
-    status: "active",
-    baseline_id: baselineId,
-    quality_tier: qualityTier,
-  };
+function readText(abs) {
+  return fileExists(abs) ? fs.readFileSync(abs, "utf8") : "";
 }
 
-function buildLegacyToLanesPlan(targetDir) {
-  const layout = inspectProjectDeliveryLayout(targetDir);
-  const laneId = DEFAULT_LANE_ID;
-
-  if (layout.model === DELIVERY_MODEL_LANES) {
-    return {
-      requested: true,
-      ok: true,
-      noop: true,
-      code: "already-lane-based",
-      message: "Project already uses lane-based delivery artifacts.",
-      layout,
-      laneId,
-      creates: [],
-      moves: [],
-      conflicts: [],
-      laneMetadata: null,
-      createdCount: 0,
-      moveCount: 0,
-    };
-  }
-
-  if (layout.model === DELIVERY_MODEL_MIXED) {
-    return {
-      requested: true,
-      ok: false,
-      noop: false,
-      code: "mixed-layout",
-      message: "Project contains both legacy root delivery artifacts and .ai-os/lanes/. Clean up the mixed layout before migrating.",
-      layout,
-      laneId,
-      creates: [],
-      moves: [],
-      conflicts: [],
-      laneMetadata: null,
-      createdCount: 0,
-      moveCount: 0,
-    };
-  }
-
-  if (layout.model !== DELIVERY_MODEL_LEGACY) {
-    return {
-      requested: true,
-      ok: false,
-      noop: false,
-      code: "no-legacy-delivery",
-      message: "No legacy single-delivery project artifacts found to migrate. Use create-ai-os --profile project to initialize lane-based starter files.",
-      layout,
-      laneId,
-      creates: [],
-      moves: [],
-      conflicts: [],
-      laneMetadata: null,
-      createdCount: 0,
-      moveCount: 0,
-    };
-  }
-
-  const creates = [];
-  const conflicts = [];
-  const moves = listLegacyDeliveryArtifactEntries(targetDir).map((entry) => {
-    const toAbsolutePath = getLaneFilePath(targetDir, laneId, entry.relPath);
-    const move = {
-      kind: entry.kind,
-      fromRelPath: entry.relativePath,
-      fromAbsolutePath: entry.absolutePath,
-      toRelPath: getLaneRelativePath(laneId, entry.relPath),
-      toAbsolutePath,
-    };
-    if (fs.existsSync(toAbsolutePath)) {
-      conflicts.push({
-        relPath: move.toRelPath,
-        absolutePath: toAbsolutePath,
-        reason: "target already exists",
-      });
-    }
-    return move;
-  });
-
-  const projectMdPath = getProjectFilePath(targetDir, "project.md");
-  if (!fs.existsSync(projectMdPath)) {
-    creates.push({
-      kind: "file",
-      relPath: getProjectRelativePath("project.md"),
-      absolutePath: projectMdPath,
-      templateRelPath: "project.md",
-    });
-  }
-
-  const laneMetadataPath = getLaneMetadataPath(targetDir, laneId);
-  if (fs.existsSync(laneMetadataPath)) {
-    conflicts.push({
-      relPath: getLaneRelativePath(laneId, "lane.toml"),
-      absolutePath: laneMetadataPath,
-      reason: "target already exists",
-    });
-  } else {
-    creates.push({
-      kind: "file",
-      relPath: getLaneRelativePath(laneId, "lane.toml"),
-      absolutePath: laneMetadataPath,
-      templateRelPath: "lane.toml",
-    });
-  }
-
-  return {
-    requested: true,
-    ok: conflicts.length === 0,
-    noop: false,
-    code: conflicts.length === 0 ? "migration-planned" : "migration-conflicts",
-    message: conflicts.length === 0
-      ? `Legacy delivery artifacts will be migrated into ${getLaneRelativePath(laneId)}.`
-      : "Lane migration is blocked by existing target files.",
-    layout,
-    laneId,
-    creates,
-    moves,
-    conflicts,
-    laneMetadata: deriveLaneMetadataFromLegacy(targetDir),
-    createdCount: creates.length,
-    moveCount: moves.length,
-  };
+function appendSection(destFile, sectionTitle, sectionBody, dryRun) {
+  if (!fileExists(destFile)) return false;
+  if (dryRun) return true;
+  const existing = fs.readFileSync(destFile, "utf8");
+  const header = `\n\n## ${sectionTitle} (v7 migration)\n\n`;
+  const block = `${header}${sectionBody.trimEnd()}\n`;
+  fs.writeFileSync(destFile, existing.trimEnd() + block);
+  return true;
 }
 
-function printLegacyToLanesPlan(plan) {
-  process.stdout.write("Legacy-to-lanes migration:\n");
-  if (!plan) {
-    process.stdout.write("  - not requested\n");
-    return;
-  }
-
-  process.stdout.write(`  - status: ${plan.code}\n`);
-  process.stdout.write(`  - ${plan.message}\n`);
-
-  if (plan.moves.length > 0) {
-    process.stdout.write(`  - move ${plan.moves.length} path(s):\n`);
-    for (const move of plan.moves) {
-      process.stdout.write(`    > ${move.fromRelPath} -> ${move.toRelPath}\n`);
-    }
-  }
-
-  if (plan.creates.length > 0) {
-    process.stdout.write(`  - create ${plan.creates.length} file(s):\n`);
-    for (const entry of plan.creates) {
-      process.stdout.write(`    + ${entry.relPath}\n`);
-    }
-  }
-
-  if (plan.conflicts.length > 0) {
-    process.stdout.write(`  - conflicts (${plan.conflicts.length}):\n`);
-    for (const conflict of plan.conflicts) {
-      process.stdout.write(`    ! ${conflict.relPath} (${conflict.reason})\n`);
-    }
-  }
-
-  if (plan.laneMetadata) {
-    process.stdout.write(
-      `  - lane metadata: baseline_id=${plan.laneMetadata.baseline_id || "[missing]"}, quality_tier=${plan.laneMetadata.quality_tier}\n`
-    );
-  }
+function detectLanesLayout(aiOsDir) {
+  const lanesDir = path.join(aiOsDir, "lanes");
+  if (!fileExists(lanesDir)) return { hasLanes: false, laneIds: [] };
+  const laneIds = fs.readdirSync(lanesDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+  return { hasLanes: laneIds.length > 0, laneIds };
 }
 
-function executeLegacyToLanesMigration(plan) {
-  if (!plan || plan.noop || !plan.ok) {
-    return;
+function flattenDefaultLane(aiOsDir, dryRun) {
+  // If only lanes/default exists and no other lanes, flatten to root
+  const { hasLanes, laneIds } = detectLanesLayout(aiOsDir);
+  if (!hasLanes) return { flattened: false, reason: "no-lanes" };
+  if (laneIds.length !== 1 || laneIds[0] !== "default") {
+    return { flattened: false, reason: `multiple-lanes: ${laneIds.join(", ")}` };
   }
-
-  ensureDir(getLaneFilePath(targetDir, plan.laneId));
-
-  for (const entry of plan.creates) {
-    ensureDir(path.dirname(entry.absolutePath));
-    if (entry.templateRelPath === "project.md") {
-      copyFileWithMode(getProjectTemplatePath("project.md"), entry.absolutePath);
+  const laneDir = path.join(aiOsDir, "lanes", "default");
+  const entries = fs.readdirSync(laneDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === "lane.toml") continue; // drop
+    const src = path.join(laneDir, entry.name);
+    const dest = path.join(aiOsDir, entry.name);
+    if (fileExists(dest)) {
+      // Root already has this file (shouldn't normally happen)
       continue;
     }
-    if (entry.templateRelPath === "lane.toml") {
-      fs.writeFileSync(entry.absolutePath, serializeSimpleToml(plan.laneMetadata), "utf8");
+    log(dryRun, "move", `lanes/default/${entry.name} -> ${entry.name}`);
+    if (!dryRun) {
+      fs.renameSync(src, dest);
     }
   }
+  log(dryRun, "remove", `lanes/ (flattened default to root)`);
+  removeDir(path.join(aiOsDir, "lanes"), dryRun);
+  return { flattened: true };
+}
 
-  const sortedMoves = [...plan.moves].sort((left, right) => {
-    if (left.kind === right.kind) {
-      return left.fromRelPath.localeCompare(right.fromRelPath);
+function upgradeConventionsIntoMemory(aiOsDir, dryRun) {
+  const src = path.join(aiOsDir, "CONVENTIONS.md");
+  const dest = path.join(aiOsDir, "memory.md");
+  if (!fileExists(src)) return false;
+  const conventions = readText(src);
+  if (!fileExists(dest)) {
+    // memory.md missing — move CONVENTIONS as memory.md base
+    log(dryRun, "move", "CONVENTIONS.md -> memory.md (base)");
+    if (!dryRun) fs.renameSync(src, dest);
+    return true;
+  }
+  log(dryRun, "merge", "CONVENTIONS.md -> memory.md (appended section)");
+  appendSection(dest, "约定（从 v7 CONVENTIONS.md 合并）", conventions, dryRun);
+  removeFile(src, dryRun);
+  return true;
+}
+
+function upgradeProjectIntoMission(aiOsDir, dryRun) {
+  const src = path.join(aiOsDir, "project.md");
+  const dest = path.join(aiOsDir, "MISSION.md");
+  if (!fileExists(src)) return false;
+  const projectContent = readText(src);
+  if (!fileExists(dest)) {
+    log(dryRun, "move", "project.md -> MISSION.md (base)");
+    if (!dryRun) fs.renameSync(src, dest);
+    return true;
+  }
+  log(dryRun, "merge", "project.md -> MISSION.md (appended section)");
+  appendSection(dest, "宿主项目上下文（从 v7 project.md 合并）", projectContent, dryRun);
+  removeFile(src, dryRun);
+  return true;
+}
+
+function upgradeAcceptanceIntoDesign(aiOsDir, dryRun) {
+  const src = path.join(aiOsDir, "acceptance.yaml");
+  const dest = path.join(aiOsDir, "DESIGN.md");
+  if (!fileExists(src)) return false;
+  const acceptance = readText(src);
+  if (!fileExists(dest)) {
+    log(dryRun, "keep", "acceptance.yaml kept (no DESIGN.md to merge into)");
+    return false;
+  }
+  log(dryRun, "merge", "acceptance.yaml -> DESIGN.md §13 (appended section)");
+  const body = "```yaml\n" + acceptance.trimEnd() + "\n```";
+  appendSection(dest, "验收标准（从 v7 acceptance.yaml 合并）", body, dryRun);
+  removeFile(src, dryRun);
+  return true;
+}
+
+function cleanupIdeAutoGenerated(targetDir, dryRun) {
+  const removedPaths = [];
+  const candidates = [
+    path.join(targetDir, ".cursor", "skills"),
+    path.join(targetDir, ".cursor", "rules"),
+  ];
+  for (const candidate of candidates) {
+    if (fileExists(candidate)) {
+      log(dryRun, "remove", path.relative(targetDir, candidate));
+      removeDir(candidate, dryRun);
+      removedPaths.push(candidate);
     }
-    return left.kind === "dir" ? -1 : 1;
-  });
-
-  for (const move of sortedMoves) {
-    ensureDir(path.dirname(move.toAbsolutePath));
-    fs.renameSync(move.fromAbsolutePath, move.toAbsolutePath);
   }
+  return removedPaths;
 }
 
-if (totalChanges === 0) {
-  if (lanePlan && !lanePlan.ok) {
-    process.stdout.write(`\nAlready up to date (v${frameworkVersion}).\n\n`);
-    printLegacyToLanesPlan(lanePlan);
-    process.stdout.write("\n");
-    if (preflight) {
-      process.stdout.write(`Preflight result: BLOCKED — ${lanePlan.message}.\n\n`);
-      process.exit(1);
+function cleanupObsoleteFramework(targetDir, dryRun) {
+  const removed = [];
+  const candidates = [
+    path.join(targetDir, ".agents", "workflows"),
+    path.join(targetDir, ".agents", "skills"),
+    path.join(targetDir, ".agents", "policies"),
+    path.join(targetDir, ".agents", "references"),
+    path.join(targetDir, ".agents"),
+  ];
+  for (const candidate of candidates) {
+    if (fileExists(candidate)) {
+      log(dryRun, "remove", path.relative(targetDir, candidate));
+      removeDir(candidate, dryRun);
+      removed.push(candidate);
     }
-    if (dryRun) {
-      process.stdout.write(`\n--dry-run: no changes were made.\n\n`);
-      process.exit(0);
-    }
-    fail(lanePlan.message);
+  }
+  return removed;
+}
+
+function main() {
+  const argv = process.argv.slice(2);
+  const opts = parseArgs(argv);
+  const targetDir = path.resolve(opts.target || ".");
+  const aiOsDir = path.join(targetDir, PROJECT_STATE_ROOT);
+
+  if (!fileExists(aiOsDir) && !fileExists(path.join(targetDir, ".agents"))) {
+    fail(`Not an AI-OS project: ${targetDir}. Run 'create-ai-os ${targetDir}' for a fresh install.`);
   }
 
-  let metadataRefreshed = false;
-  if (!preflight && !dryRun && needsLocalMetadataRefresh) {
-    writeMetadata(targetDir, {
-      installProfile: installProfileName,
-      frameworkFootprint,
-    });
-    writeManagedFilesManifest(targetDir, { frameworkFootprint });
-    metadataRefreshed = true;
+  const version = readFrameworkVersion();
+  const meta = readMetadata(targetDir);
+
+  process.stdout.write(`AI-OS v${version} upgrade ${opts.dryRun ? "(dry-run)" : ""} for ${targetDir}\n`);
+  if (meta && meta.framework_version) {
+    process.stdout.write(`Installed: v${meta.framework_version} -> target: v${version}\n\n`);
+  } else {
+    process.stdout.write(`No existing framework.toml found. Will treat as pre-v8 project.\n\n`);
   }
 
-  let gitignoreAdded = false;
-  let gitattrsAdded = false;
-  if (!preflight && !dryRun) {
-    gitignoreAdded = appendGitignoreEntries(targetDir, { logger() {} });
-    gitattrsAdded = appendGitattributesEntries(targetDir, { logger() {} });
+  // Step 1: replace AGENTS.md
+  log(opts.dryRun, "replace", "AGENTS.md with v8 constitution");
+  if (!opts.dryRun) installAgentsMd(targetDir, { overwrite: true });
+
+  // Step 2: remove obsolete framework
+  cleanupObsoleteFramework(targetDir, opts.dryRun);
+
+  // Step 3: flatten single-default-lane layout
+  if (fileExists(aiOsDir)) {
+    flattenDefaultLane(aiOsDir, opts.dryRun);
+
+    // Step 4-6: merge legacy files
+    upgradeConventionsIntoMemory(aiOsDir, opts.dryRun);
+    upgradeProjectIntoMission(aiOsDir, opts.dryRun);
+    upgradeAcceptanceIntoDesign(aiOsDir, opts.dryRun);
+  } else {
+    ensureDir(aiOsDir);
   }
 
-  process.stdout.write(
-    metadataRefreshed
-      ? `\nAlready up to date (v${frameworkVersion}). Refreshed local install metadata.\n\n`
-      : `\nAlready up to date (v${frameworkVersion}).\n\n`
-  );
-  if (lanePlan && lanePlan.noop) {
-    process.stdout.write("Lane migration: project already uses lane-based delivery artifacts.\n\n");
+  // Step 7: refresh framework metadata
+  log(opts.dryRun, "write", ".ai-os/framework.toml (v8)");
+  if (!opts.dryRun) writeMetadata(targetDir, { version });
+
+  // Step 8: rewrite managed files manifest
+  log(opts.dryRun, "write", ".ai-os/managed-files.tsv (v8)");
+  if (!opts.dryRun) writeManagedFilesManifest(targetDir);
+
+  // Step 9: clean up IDE auto-generated dirs
+  cleanupIdeAutoGenerated(targetDir, opts.dryRun);
+
+  // Step 10: install lightweight IDE pointers
+  log(opts.dryRun, "write", "CLAUDE.md / GEMINI.md lightweight pointers");
+  if (!opts.dryRun) installIdeFiles(targetDir, { overwrite: true });
+
+  // Step 11: fill in any missing v8 artifacts with starter templates (non-overwriting)
+  log(opts.dryRun, "fill", "missing v8 starter artifacts (non-overwriting)");
+  if (!opts.dryRun) {
+    installArtifacts(targetDir, { overwrite: false });
   }
-  printTeamConfigSummary(gitignoreAdded, gitattrsAdded);
-  process.exit(0);
-}
 
-// ---------------------------------------------------------------------------
-// Show plan
-// ---------------------------------------------------------------------------
-
-process.stdout.write(`\nAI-OS upgrade: v${diff.targetVersion} → v${diff.sourceVersion}\n\n`);
-
-if (diff.modified.length > 0) {
-  process.stdout.write(`  Conflicts detected (${diff.modified.length}):\n`);
-  for (const f of diff.modified) {
-    process.stdout.write(`    ! ${f}\n`);
+  // Step 12: refresh .gitignore / .gitattributes
+  log(opts.dryRun, "update", ".gitignore / .gitattributes");
+  if (!opts.dryRun) {
+    appendGitignoreEntries(targetDir);
+    appendGitattributesEntries(targetDir);
   }
-  process.stdout.write(`  These files differ from the source and will only be overwritten with --force.\n`);
-}
 
-if (diff.outdated.length > 0) {
-  process.stdout.write(`  Safe framework updates (${diff.outdated.length}):\n`);
-  for (const f of diff.outdated) {
-    process.stdout.write(`    ~ ${f}\n`);
-  }
-}
+  process.stdout.write(`
+${opts.dryRun ? "Dry-run complete. No files were written." : "Upgrade complete."}
 
-if (diff.missing.length > 0) {
-  process.stdout.write(`  Files to create (${diff.missing.length}):\n`);
-  for (const f of diff.missing) {
-    process.stdout.write(`    + ${f}\n`);
-  }
-}
-
-if (diff.extra.length > 0) {
-  process.stdout.write(`  Extra files kept as-is (${diff.extra.length}):\n`);
-  for (const f of diff.extra) {
-    process.stdout.write(`    · ${f}\n`);
-  }
-}
-
-if (lanePlan) {
-  process.stdout.write("\n");
-  printLegacyToLanesPlan(lanePlan);
-}
-
-if (preflight) {
-  process.stdout.write("\n");
-  if (diff.modified.length > 0 || (lanePlan && !lanePlan.ok)) {
-    const reasons = [];
-    if (diff.modified.length > 0) {
-      reasons.push("framework-managed conflicts require --force");
-    }
-    if (lanePlan && !lanePlan.ok) {
-      reasons.push(lanePlan.message);
-    }
-    process.stdout.write(`Preflight result: BLOCKED — ${reasons.join("; ")}.\n\n`);
-    process.exit(1);
-  }
-  process.stdout.write(
-    lanePlan && !lanePlan.noop
-      ? "Preflight result: SAFE_TO_UPGRADE_AND_MIGRATE\n\n"
-      : "Preflight result: SAFE_TO_UPGRADE\n\n"
-  );
-  process.exit(0);
-}
-
-// ---------------------------------------------------------------------------
-// Dry-run exit
-// ---------------------------------------------------------------------------
-
-if (dryRun) {
-  process.stdout.write(`\n--dry-run: no changes were made.\n\n`);
-  process.exit(0);
-}
-
-if (lanePlan && !lanePlan.ok) {
-  fail(lanePlan.message);
-}
-
-if (diff.modified.length > 0 && !force) {
-  fail(
-    [
-      "Upgrade blocked by modified framework-managed files.",
-      "Review the conflict list above.",
-      "Use --dry-run to preview again, or rerun with --force to overwrite conflicts."
-    ].join("\n")
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Execute upgrade
-// ---------------------------------------------------------------------------
-
-const filesToWrite = force
-  ? [...diff.modified, ...diff.outdated, ...diff.missing]
-  : [...diff.outdated, ...diff.missing];
-
-for (const rel of filesToWrite) {
-  const src = path.join(FRAMEWORK_ROOT, rel);
-  const dst = path.join(targetDir, rel);
-  copyFileWithMode(src, dst);
-}
-
-if (lanePlan && !lanePlan.noop) {
-  executeLegacyToLanesMigration(lanePlan);
-}
-
-writeMetadata(targetDir, {
-  installProfile: installProfileName,
-  frameworkFootprint,
-});
-writeManagedFilesManifest(targetDir, { frameworkFootprint });
-
-generateIdeFiles(targetDir);
-
-// ---------------------------------------------------------------------------
-// Report
-// ---------------------------------------------------------------------------
-
-process.stdout.write(`
-Upgrade complete.
-
-  Previous version: ${diff.targetVersion}
-  Current version:  ${frameworkVersion}
-  Target project:   ${targetDir}
-  Updated files:    ${(force ? diff.modified.length : 0) + diff.outdated.length}
-  Created files:    ${diff.missing.length}
+Next steps:
+  1. Review AGENTS.md for v8 constitution
+  2. Review .ai-os/DESIGN.md if you had acceptance.yaml (merged into §13)
+  3. Review .ai-os/memory.md if you had CONVENTIONS.md (merged)
+  4. Review .ai-os/MISSION.md if you had project.md (merged)
+  5. Run: create-ai-os doctor ${opts.target || "."}
 `);
-
-if (lanePlan && !lanePlan.noop) {
-  process.stdout.write(`  Lane migration:  moved ${lanePlan.moveCount}, created ${lanePlan.createdCount}\n`);
 }
 
-if (diff.extra.length > 0) {
-  process.stdout.write(`  Extra files:     ${diff.extra.length} (kept)\n`);
-}
-
-process.stdout.write("\n");
-
-if (lanePlan && !lanePlan.noop) {
-  process.stdout.write(
-    `Legacy delivery artifacts now live under ${getLaneRelativePath(lanePlan.laneId)}/.\n` +
-    `Review ${getProjectRelativePath("project.md")} and fill shared cross-lane project context if needed.\n\n`
-  );
-}
-
-const gitignoreAdded = appendGitignoreEntries(targetDir, { logger() {} });
-const gitattrsAdded = appendGitattributesEntries(targetDir, { logger() {} });
-printTeamConfigSummary(gitignoreAdded, gitattrsAdded);
+main();

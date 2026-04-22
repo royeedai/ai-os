@@ -1,356 +1,348 @@
 #!/usr/bin/env node
 
 /**
- * ai-os-doctor — Check the health of an AI-OS enabled project.
+ * AI-OS v8 doctor
  *
- * Usage:
- *   ai-os-doctor [target-dir]
- *   ai-os-doctor --help
+ * Checks artifact completeness and constitution compliance.
+ * Replaces v7's validate / gate / release-check / status.
  */
+
+"use strict";
 
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+
 const {
-  PROJECT_CORE_ARTIFACT_DIRS,
-  PROJECT_CORE_ARTIFACT_FILES,
-  PROJECT_OPTIONAL_ARTIFACT_DIRS,
-  PROJECT_OPTIONAL_ARTIFACT_FILES,
-  detectInstallProfileName,
-  detectFrameworkFootprint,
-  getInstallProfile,
+  PROJECT_STATE_ROOT,
+  CORE_FILES,
+  CORE_DIRS,
+  EXTENSION_FILES,
+  EXTENSION_DIRS,
+  SESSION_LOCAL_FILES,
   readFrameworkVersion,
-  listManagedFiles,
-  listSourceManagedFiles,
-  readInstalledMeta,
-  parseCliArgs,
-  resolveTargetDir,
-  createReporter,
-  resolveProjectLane,
-  resolveDeliveryPath,
-  formatDeliveryPath,
+  readPackageJson,
+  readMetadata,
+  getArtifactPaths,
+  fail,
+  fileExists,
 } = require("./shared");
-const {
-  readMissionFile,
-  readBaselineLogFile,
-} = require("./project-state");
 
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
+function printHelp() {
+  process.stdout.write(`create-ai-os doctor — Check artifact completeness
 
-const parsed = parseCliArgs(process.argv, {
-  booleanFlags: ["--strict"],
-  valuedFlags: ["--lane"],
-});
-if (parsed.flags.help) {
-  process.stdout.write(`Usage:
-  ai-os-doctor [target-dir] [--strict] [--lane <lane-id>]
-
-Check the health of an AI-OS enabled project.
+Usage:
+  create-ai-os doctor [target-dir]
 
 Options:
-  --strict          Also validate project-local delivery artifacts
-  --lane <lane-id>  Check delivery artifacts for the specified lane
-  -h, --help        Show this help message
+  --json            Output JSON for CI integration
+  --strict          Exit non-zero on warnings (not just errors)
+  -h, --help        Show this help
+
+Exit codes:
+  0  All checks passed (no errors; warnings allowed unless --strict)
+  1  At least one error (missing core artifact, constitution violation)
+  2  Target is not an AI-OS project (no .ai-os/ found)
 `);
-  process.exit(0);
 }
 
-const strict = parsed.flags.strict;
-const targetDir = resolveTargetDir(parsed.positional);
-const laneResolution = resolveProjectLane(targetDir, { laneId: parsed.flags.lane });
-if (!laneResolution.ok && laneResolution.code !== "no-delivery-model") {
-  process.stderr.write(`Error: ${laneResolution.message}\n`);
-  process.exit(1);
-}
-const laneId = laneResolution.ok ? laneResolution.laneId : null;
-const getArtifactPath = (dir, relPath) => resolveDeliveryPath(dir, relPath, { laneId });
-const formatArtifactPath = (relPath) => formatDeliveryPath(relPath, { laneId });
-
-// ---------------------------------------------------------------------------
-// Checks
-// ---------------------------------------------------------------------------
-
-const reporter = createReporter();
-const { report } = reporter;
-
-const frameworkVersion = readFrameworkVersion();
-const mission = readMissionFile(targetDir, { artifactPathResolver: getArtifactPath });
-const baselineLog = readBaselineLogFile(targetDir, { artifactPathResolver: getArtifactPath });
-
-process.stdout.write(`\nAI-OS Doctor — ${targetDir}\n`);
-process.stdout.write(`Source framework version: ${frameworkVersion}\n\n`);
-if (laneId) {
-  process.stdout.write(`Delivery model: ${laneResolution.model} (lane: ${laneId})\n\n`);
-} else if (laneResolution.ok && laneResolution.isLegacyFallback) {
-  process.stdout.write("Delivery model: legacy single-delivery\n\n");
-}
-
-if (laneResolution.ok && laneResolution.lane) {
-  const selectedLane = laneResolution.lane;
-  const allLanes = laneResolution.layout && Array.isArray(laneResolution.layout.lanes)
-    ? laneResolution.layout.lanes
-    : [];
-  const activeCount = allLanes.filter((lane) => lane.isActive).length;
-  const draftCount = allLanes.filter((lane) => lane.status === "draft").length;
-  const archivedCount = allLanes.filter((lane) => lane.status === "archived").length;
-
-  process.stdout.write("Lane metadata:\n");
-  process.stdout.write(`- path: ${selectedLane.relativePath}/\n`);
-  process.stdout.write(`- status: ${selectedLane.status || "unknown"}\n`);
-  process.stdout.write(`- baseline: ${selectedLane.baselineId || "missing"}\n`);
-  process.stdout.write(`- quality tier: ${selectedLane.qualityTier || "missing"}\n`);
-  process.stdout.write(`- risk tier: ${selectedLane.riskTier || "missing"}${selectedLane.hasExplicitRiskTier ? "" : " (derived from quality tier)"}\n`);
-  process.stdout.write(`- owner: ${selectedLane.owner || "missing"}\n`);
-  if (selectedLane.status === "archived") {
-    process.stdout.write(`- archive outcome: ${selectedLane.archiveOutcome || "missing"}\n`);
-    process.stdout.write(`- archived at: ${selectedLane.archivedAt || "missing"}\n`);
-    process.stdout.write(`- archive reason: ${selectedLane.archiveReason || "missing"}\n`);
-    process.stdout.write(`- memory sync: ${selectedLane.memorySync || "missing"}\n`);
-    process.stdout.write(`- conventions sync: ${selectedLane.conventionsSync || "missing"}\n`);
-    process.stdout.write(`- problem-ledger sync: ${selectedLane.problemLedgerSync || "missing"}\n`);
+function parseArgs(argv) {
+  const opts = { target: "", json: false, strict: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "-h" || arg === "--help") { printHelp(); process.exit(0); }
+    if (arg === "--json") { opts.json = true; continue; }
+    if (arg === "--strict") { opts.strict = true; continue; }
+    if (arg.startsWith("-")) fail(`unknown option: ${arg}`);
+    if (opts.target) fail(`unexpected argument: ${arg}`);
+    opts.target = arg;
   }
-  if (allLanes.length > 1) {
-    process.stdout.write(`- topology: ${activeCount} active / ${draftCount} draft / ${archivedCount} archived\n`);
+  return opts;
+}
+
+function checkMetadata(meta, version) {
+  const issues = [];
+  if (!meta) {
+    issues.push({ level: "error", code: "E001", message: `Missing .ai-os/framework.toml. This does not look like an AI-OS project.` });
+    return issues;
   }
-  process.stdout.write("\n");
-}
-
-// 1. Metadata
-const meta = readInstalledMeta(targetDir);
-const installedManagedFiles = listManagedFiles(targetDir);
-if (meta.exists) {
-  report(true, ".ai-os/framework.toml exists");
-} else if (installedManagedFiles.length > 0) {
-  report(
-    false,
-    ".ai-os/framework.toml missing; install metadata will be inferred from framework files",
-    { warnOnly: true }
-  );
-} else {
-  report(false, ".ai-os/framework.toml exists");
-}
-
-if (meta.exists) {
-  const versionMatch = meta.version === frameworkVersion;
-  report(
-    versionMatch,
-    `Framework version: ${meta.version}${versionMatch ? "" : ` (source is ${frameworkVersion})`}`,
-    { warnOnly: !versionMatch }
-  );
-}
-
-let installedProfile = null;
-try {
-  installedProfile = getInstallProfile(detectInstallProfileName(targetDir, { meta }));
-  if (installedManagedFiles.length > 0 || meta.exists) {
-    process.stdout.write(`Install profile: ${installedProfile.name}${meta.exists ? "" : " (inferred)"}\n`);
-  }
-} catch (error) {
-  report(false, `Unknown install profile in metadata: ${meta.installProfile || error.message}`, {
-    warnOnly: true,
-  });
-}
-
-const frameworkFootprint = detectFrameworkFootprint(targetDir, {
-  meta,
-  managedFiles: installedManagedFiles,
-});
-if (installedManagedFiles.length > 0) {
-  process.stdout.write(
-    `Framework footprint: ${frameworkFootprint}${meta.exists ? "" : " (inferred)"}\n`
-  );
-}
-
-// 2. AGENTS.md
-report(
-  fs.existsSync(path.join(targetDir, "AGENTS.md")),
-  "AGENTS.md exists"
-);
-
-// 3. .agents/skills/
-const skillsDir = path.join(targetDir, ".agents", "skills");
-const skillsOk = fs.existsSync(skillsDir) &&
-  fs.readdirSync(skillsDir).filter((e) => e !== ".DS_Store").length > 0;
-report(skillsOk, ".agents/skills/ exists and is not empty");
-
-// 4. .agents/workflows/
-const workflowsDir = path.join(targetDir, ".agents", "workflows");
-const workflowsOk = fs.existsSync(workflowsDir) &&
-  fs.readdirSync(workflowsDir).filter((e) => e !== ".DS_Store").length > 0;
-report(workflowsOk, ".agents/workflows/ exists and is not empty");
-
-// 5. Managed files integrity
-const sourceManaged = listSourceManagedFiles({ frameworkFootprint });
-const missingFiles = [];
-for (const rel of sourceManaged) {
-  if (!fs.existsSync(path.join(targetDir, rel))) {
-    missingFiles.push(rel);
-  }
-}
-
-if (missingFiles.length === 0) {
-  report(
-    true,
-    `All ${sourceManaged.length} framework-managed files present${frameworkFootprint === "lite" ? " for lite footprint" : ""}`
-  );
-} else {
-  report(false, `${missingFiles.length} framework-managed file(s) missing`, { details: missingFiles });
-}
-
-// 6. Project state files (warn only)
-process.stdout.write(`\n  Core project state files:\n`);
-const coreProjectFiles = [
-  ...PROJECT_CORE_ARTIFACT_FILES.map((relPath) => ({
-    path: getArtifactPath(targetDir, relPath),
-    label: formatArtifactPath(relPath),
-  })),
-  ...PROJECT_CORE_ARTIFACT_DIRS.map((relPath) => ({
-    path: getArtifactPath(targetDir, relPath),
-    label: `${formatArtifactPath(relPath)}/`,
-    isDir: true,
-  })),
-];
-
-let projectArtifactsPresent = false;
-
-for (const pf of coreProjectFiles) {
-  const fullPath = pf.path;
-  const exists = pf.isDir
-    ? fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()
-    : fs.existsSync(fullPath);
-  if (exists) {
-    projectArtifactsPresent = true;
-    report(true, pf.label);
-    continue;
-  }
-  if (installedProfile && !installedProfile.includeProjectFiles) {
-    report(true, `${pf.label} (optional in core profile)`);
-    continue;
-  }
-  report(false, pf.label, { warnOnly: true });
-}
-
-const optionalProjectFiles = [
-  ...PROJECT_OPTIONAL_ARTIFACT_FILES.map((relPath) => ({
-    path: getArtifactPath(targetDir, relPath),
-    label: formatArtifactPath(relPath),
-  })),
-  ...PROJECT_OPTIONAL_ARTIFACT_DIRS.map((relPath) => ({
-    path: getArtifactPath(targetDir, relPath),
-    label: `${formatArtifactPath(relPath)}/`,
-    isDir: true,
-  })),
-];
-
-const existingOptional = optionalProjectFiles.filter((pf) => {
-  if (pf.isDir) {
-    return fs.existsSync(pf.path) && fs.statSync(pf.path).isDirectory();
-  }
-  return fs.existsSync(pf.path);
-});
-
-if (existingOptional.length > 0) {
-  process.stdout.write(`\n  Optional project state files:\n`);
-  for (const pf of existingOptional) {
-    report(true, pf.label, { warnOnly: true });
-  }
-}
-
-if (mission.exists || baselineLog.exists) {
-  process.stdout.write(`\n  Baseline summary:\n`);
-  process.stdout.write(`  - Mission 当前基线 ID: ${mission.currentBaselineId || "未记录"}\n`);
-  if (baselineLog.latestConfirmed) {
-    process.stdout.write(`  - Latest confirmed baseline: ${baselineLog.latestConfirmed.id}\n`);
-    process.stdout.write(`  - Summary: ${baselineLog.latestConfirmed.summary || "未记录"}\n`);
-  } else if (baselineLog.exists) {
-    process.stdout.write("  - Latest confirmed baseline: 未记录\n");
-  }
-}
-
-if (laneResolution.ok && laneResolution.lane) {
-  const selectedLane = laneResolution.lane;
-  report(selectedLane.metadataExists, `${selectedLane.metadataRelativePath} exists`, {
-    warnOnly: !selectedLane.metadataExists,
-  });
-  report(
-    selectedLane.qualityTierValid,
-    `Lane quality tier is valid${selectedLane.qualityTier ? `: ${selectedLane.qualityTier}` : ""}`,
-    { warnOnly: !selectedLane.qualityTierValid }
-  );
-  report(
-    selectedLane.riskTierValid,
-    `Lane risk tier is valid${selectedLane.riskTier ? `: ${selectedLane.riskTier}` : ""}`,
-    { warnOnly: !selectedLane.riskTierValid }
-  );
-  const warnOnMissingOwner = laneResolution.layout && Array.isArray(laneResolution.layout.lanes) && laneResolution.layout.lanes.length > 1;
-  report(
-    Boolean(selectedLane.owner),
-    selectedLane.owner ? `Lane owner recorded: ${selectedLane.owner}` : "Lane owner missing from lane.toml",
-    { warnOnly: warnOnMissingOwner || !selectedLane.owner }
-  );
-  if (selectedLane.status === "archived") {
-    report(Boolean(selectedLane.archiveOutcome), "Archived lane records archive outcome", {
-      warnOnly: !selectedLane.archiveOutcome,
-    });
-    report(Boolean(selectedLane.archiveReason), "Archived lane records archive reason", {
-      warnOnly: !selectedLane.archiveReason,
-    });
-    report(Boolean(selectedLane.archivedAt), "Archived lane records archived_at", {
-      warnOnly: !selectedLane.archivedAt,
-    });
-    report(
-      selectedLane.memorySyncValid,
-      `Archived lane memory sync is valid${selectedLane.memorySync ? `: ${selectedLane.memorySync}` : ""}`,
-      { warnOnly: !selectedLane.memorySyncValid || selectedLane.memorySync === "pending" }
-    );
-    report(
-      selectedLane.conventionsSyncValid,
-      `Archived lane CONVENTIONS sync is valid${selectedLane.conventionsSync ? `: ${selectedLane.conventionsSync}` : ""}`,
-      { warnOnly: !selectedLane.conventionsSyncValid || selectedLane.conventionsSync === "pending" }
-    );
-    report(
-      selectedLane.problemLedgerSyncValid,
-      `Archived lane problem-ledger sync is valid${selectedLane.problemLedgerSync ? `: ${selectedLane.problemLedgerSync}` : ""}`,
-      { warnOnly: !selectedLane.problemLedgerSyncValid || selectedLane.problemLedgerSync === "pending" }
-    );
-  }
-}
-
-if (strict) {
-  process.stdout.write(`\n  Strict validation:\n`);
-  const shouldValidateProjectArtifacts =
-    !installedProfile || installedProfile.includeProjectFiles || projectArtifactsPresent;
-
-  if (!shouldValidateProjectArtifacts) {
-    process.stdout.write("  skipped: project artifacts were not installed by this profile\n");
+  if (!meta.framework_version) {
+    issues.push({ level: "warning", code: "W001", message: `framework.toml has no framework_version field.` });
   } else {
-    const validateArgs = [path.join(__dirname, "ai-os-validate.js"), targetDir];
-    if (laneId) {
-      validateArgs.push("--lane", laneId);
-    }
-    const validateResult = spawnSync(
-      process.execPath,
-      validateArgs,
-      { stdio: "inherit" }
-    );
-    if (validateResult.status !== 0) {
-      reporter.markFailure();
+    const installedMajor = parseInt(meta.framework_version.split(".")[0], 10);
+    const currentMajor = parseInt(version.split(".")[0], 10);
+    if (Number.isFinite(installedMajor) && Number.isFinite(currentMajor) && installedMajor < currentMajor) {
+      issues.push({
+        level: "warning",
+        code: "W002",
+        message: `Installed framework v${meta.framework_version} is older than current v${version}. Consider running: create-ai-os upgrade .`,
+      });
     }
   }
+  if (meta.schema_version && meta.schema_version !== "8") {
+    issues.push({
+      level: "error",
+      code: "E002",
+      message: `schema_version is "${meta.schema_version}", expected "8". Run: create-ai-os upgrade .`,
+    });
+  }
+  return issues;
 }
 
-// ---------------------------------------------------------------------------
-// Summary
-// ---------------------------------------------------------------------------
+function checkAgentsMd(paths) {
+  const issues = [];
+  if (!fileExists(paths.agentsMd)) {
+    issues.push({ level: "error", code: "E010", message: `Missing AGENTS.md at project root. This is the delivery constitution.` });
+    return issues;
+  }
+  const content = fs.readFileSync(paths.agentsMd, "utf8");
+  const lineCount = content.split(/\r?\n/).length;
+  if (lineCount > 200) {
+    issues.push({
+      level: "warning",
+      code: "W010",
+      message: `AGENTS.md is ${lineCount} lines (v8 target: ≤150). Consider trimming.`,
+    });
+  }
+  const requiredSections = ["五条核心要求", "绝对禁止"];
+  for (const section of requiredSections) {
+    if (!content.includes(section)) {
+      issues.push({
+        level: "warning",
+        code: "W011",
+        message: `AGENTS.md missing expected section marker: "${section}". May be a custom or pre-v8 file.`,
+      });
+    }
+  }
+  return issues;
+}
 
-process.stdout.write("\n");
-if (reporter.hasFailure) {
-  process.stdout.write("Result: UNHEALTHY — some checks failed.\n");
-  process.stdout.write("Run `create-ai-os upgrade` to fix framework file issues.\n\n");
-  process.exit(1);
-} else {
-  process.stdout.write("Result: HEALTHY\n\n");
+function checkArtifact(absPath, { required, type, label, category = "extension" }) {
+  const issues = [];
+  const exists = fileExists(absPath);
+  if (!exists) {
+    if (category === "session") {
+      issues.push({
+        level: "info",
+        code: "I020",
+        message: `${label} absent. Session-local file; will be (re)created on first session.`,
+      });
+    } else if (required) {
+      issues.push({
+        level: "error",
+        code: "E020",
+        message: `Missing core ${type}: ${label}`,
+      });
+    } else {
+      issues.push({
+        level: "warning",
+        code: "W020",
+        message: `Missing extension ${type}: ${label}`,
+      });
+    }
+    return issues;
+  }
+  if (type === "file") {
+    const stat = fs.statSync(absPath);
+    if (stat.size === 0) {
+      issues.push({
+        level: "warning",
+        code: "W021",
+        message: `${label} exists but is empty.`,
+      });
+    }
+  } else if (type === "dir") {
+    if (!fs.statSync(absPath).isDirectory()) {
+      issues.push({
+        level: "error",
+        code: "E022",
+        message: `${label} exists but is not a directory.`,
+      });
+    }
+  }
+  return issues;
+}
+
+function checkArtifacts(paths) {
+  const issues = [];
+  const aiOsDir = paths.aiOsDir;
+  const rel = (f) => path.posix.join(PROJECT_STATE_ROOT, f);
+
+  for (const f of CORE_FILES) {
+    const isSession = SESSION_LOCAL_FILES.includes(f);
+    issues.push(...checkArtifact(path.join(aiOsDir, f), {
+      required: !isSession,
+      type: "file",
+      label: rel(f),
+      category: isSession ? "session" : "core",
+    }));
+  }
+  for (const d of CORE_DIRS) {
+    issues.push(...checkArtifact(path.join(aiOsDir, d), {
+      required: true, type: "dir", label: rel(d),
+    }));
+  }
+  for (const f of EXTENSION_FILES) {
+    issues.push(...checkArtifact(path.join(aiOsDir, f), {
+      required: false, type: "file", label: rel(f),
+    }));
+  }
+  for (const d of EXTENSION_DIRS) {
+    issues.push(...checkArtifact(path.join(aiOsDir, d), {
+      required: false, type: "dir", label: rel(d),
+    }));
+  }
+
+  return issues;
+}
+
+function checkBaselineLog(paths) {
+  const issues = [];
+  if (!fileExists(paths.baselineLog)) return issues;
+  const entries = fs.readdirSync(paths.baselineLog).filter((n) => n.endsWith(".md"));
+  if (entries.length === 0) {
+    issues.push({
+      level: "warning",
+      code: "W030",
+      message: `baseline-log/ is empty. Expected at least one baseline record.`,
+    });
+  }
+  for (const entry of entries) {
+    const m = /^(CR|BL)-\d{8}-\d{6}-/.test(entry);
+    if (!m && entry !== "BL-template.md") {
+      issues.push({
+        level: "warning",
+        code: "W031",
+        message: `baseline-log/${entry} does not follow "CR-YYYYMMDD-HHMMSS-<slug>.md" or "BL-YYYYMMDD-HHMMSS-<slug>.md" naming.`,
+      });
+    }
+  }
+  return issues;
+}
+
+function checkGitignore(targetDir) {
+  const issues = [];
+  const gitignorePath = path.join(targetDir, ".gitignore");
+  if (!fileExists(gitignorePath)) {
+    issues.push({
+      level: "warning",
+      code: "W040",
+      message: `.gitignore not found. AI-OS STATE.md should be session-local.`,
+    });
+    return issues;
+  }
+  const content = fs.readFileSync(gitignorePath, "utf8");
+  const expected = `${PROJECT_STATE_ROOT}/STATE.md`;
+  if (!content.includes(expected)) {
+    issues.push({
+      level: "warning",
+      code: "W041",
+      message: `.gitignore does not contain "${expected}". STATE.md may be accidentally committed.`,
+    });
+  }
+  return issues;
+}
+
+function checkLanes(paths) {
+  const issues = [];
+  if (!fileExists(paths.lanes)) return issues;
+  if (!fs.statSync(paths.lanes).isDirectory()) {
+    issues.push({
+      level: "error",
+      code: "E050",
+      message: `.ai-os/lanes exists but is not a directory.`,
+    });
+    return issues;
+  }
+  const laneDirs = fs.readdirSync(paths.lanes, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+  for (const laneId of laneDirs) {
+    const lanePath = path.join(paths.lanes, laneId);
+    const laneToml = path.join(lanePath, "lane.toml");
+    if (!fileExists(laneToml)) {
+      issues.push({
+        level: "warning",
+        code: "W050",
+        message: `Lane "${laneId}" is missing lane.toml. Consider removing or completing it.`,
+      });
+    }
+  }
+  return issues;
+}
+
+function formatReport(issues) {
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+  const infos = issues.filter((i) => i.level === "info");
+  if (errors.length === 0 && warnings.length === 0 && infos.length === 0) {
+    return "All checks passed. AI-OS v8 project looks healthy.\n";
+  }
+  const lines = [];
+  lines.push(`Found ${errors.length} error(s), ${warnings.length} warning(s), ${infos.length} info:`);
+  lines.push("");
+  for (const issue of issues) {
+    const icon = issue.level === "error" ? "ERROR"
+      : issue.level === "warning" ? "WARN "
+      : "INFO ";
+    lines.push(`  ${icon} [${issue.code}] ${issue.message}`);
+  }
+  return lines.join("\n") + "\n";
+}
+
+function main() {
+  const argv = process.argv.slice(2);
+  const opts = parseArgs(argv);
+  const targetDir = path.resolve(opts.target || ".");
+
+  const aiOsDir = path.join(targetDir, PROJECT_STATE_ROOT);
+  if (!fileExists(aiOsDir)) {
+    if (opts.json) {
+      process.stdout.write(JSON.stringify({ ok: false, reason: "not-an-ai-os-project", targetDir }, null, 2) + "\n");
+    } else {
+      process.stderr.write(`Not an AI-OS project: ${targetDir} has no .ai-os/ directory.\n`);
+      process.stderr.write(`Run: create-ai-os ${targetDir}\n`);
+    }
+    process.exit(2);
+  }
+
+  const version = readFrameworkVersion();
+  const pkg = readPackageJson();
+  const paths = getArtifactPaths(targetDir);
+  const meta = readMetadata(targetDir);
+
+  const issues = [];
+  issues.push(...checkMetadata(meta, version));
+  issues.push(...checkAgentsMd(paths));
+  issues.push(...checkArtifacts(paths));
+  issues.push(...checkBaselineLog(paths));
+  issues.push(...checkGitignore(targetDir));
+  issues.push(...checkLanes(paths));
+
+  const errors = issues.filter((i) => i.level === "error");
+  const warnings = issues.filter((i) => i.level === "warning");
+
+  if (opts.json) {
+    process.stdout.write(JSON.stringify({
+      ok: errors.length === 0 && (!opts.strict || warnings.length === 0),
+      version,
+      package: `${pkg.name}@${pkg.version}`,
+      targetDir,
+      installedVersion: meta ? meta.framework_version : null,
+      issues,
+    }, null, 2) + "\n");
+  } else {
+    process.stdout.write(`AI-OS doctor for ${targetDir}\n`);
+    process.stdout.write(`Framework: ${pkg.name}@${pkg.version}\n`);
+    if (meta && meta.framework_version) {
+      process.stdout.write(`Installed: v${meta.framework_version}\n`);
+    }
+    process.stdout.write("\n");
+    process.stdout.write(formatReport(issues));
+  }
+
+  if (errors.length > 0) process.exit(1);
+  if (opts.strict && warnings.length > 0) process.exit(1);
   process.exit(0);
 }
+
+main();

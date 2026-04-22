@@ -1,89 +1,101 @@
-# Maintainers
+# AI-OS 仓库维护指南
 
-维护 AI-OS 时，优先看：
+本文件只用于指导 AI-OS 这个仓库自身的开发。分发给用户项目的交付宪法位于根 `AGENTS.md`。
 
-- `PROJECT_PURPOSE.md`
-- `AGENTS.md`
-- `docs/problem-ledger.md`
-- `docs/change-evaluation-template.md`
+## 产品方向对齐
 
-## 维护判断标准
+- `PROJECT_PURPOSE.md` 是 AI-OS 核心要求的主定义位置
+- AI-OS 根层只认 5 条核心要求：目标与用户确认优先、关键设计与逻辑先锁定、自适应治理、证据化完成、可恢复的项目记忆
+- 当用户提出产品想法、README 改造、模板变更、定位变化时，先判断它是否直接提升这 5 条中的至少一条
+- 如果一个需求不能稳定映射到这 5 条核心要求之一，默认不进入根层治理
 
-每个变更都先问：
+## 如何判断是否该改 AI-OS
 
-1. 它是不是在提升“高质量完成项目”
-2. 它提升的是目标确认、设计锁定、逻辑锁定、证据完成，还是恢复能力
-3. 它更适合落在根层原则、workflow、skill、模板、CLI、示例还是 eval
-4. 它是在减少错误交付，还是只是在增加概念
+每次评估 AI-OS 本身的改动，先回答这 4 个问题：
 
-除此之外，每次维护都补做四件事：
+1. 它是在提升"更快写代码"，还是在提升"更稳定把项目做对"？
+2. 它直接改善的是目标确认、设计锁定、逻辑锁定、证据完成，还是项目恢复能力？
+3. 它最适合进入 `framework/`、CLI、README / 示例、`docs/`，还是明确不纳入？
+4. 它是在减少错误交付，还是只是在叠加新概念？
+
+默认要求：
+
+- 不要把每次用户提到的技巧都直接变成框架规则
+- 来自别的项目的真实问题、失败案例，以及 trace / debug / verify / postmortem 暴露出的稳定失败模式，先登记到 `docs/problem-ledger.md`，再评估应该进入哪里
+- 每次重构、学习进步、模板 / CLI / README 调整时，都要回看相关问题台账条目，确认覆盖没有丢失
+- 边界不清、跨多文件或影响面不明的改动，先做只读分析和覆盖审计，再决定改到 `framework/`、CLI 还是文档
+- CLI 级能力只有在当前已承诺支持的环境都能稳定承接，或至少有明确的等价退化路径时，才进入根层或 CLI
+- 即使决定进入 `framework/`，也优先做重写、合并、替换，而不是继续平铺新增
+- 框架级改动必须解释它如何改善质量结果，而不是只解释它如何增加流程控制
+- 新结构落地时要同步清理旧规则、旧命名、旧模板和旧测试
+
+## 维护时补做四件事
 
 1. 新出现的真实问题先登记到 `docs/problem-ledger.md`
-2. 每次重构、学习进步或规则替换，都在变更评估里写清本次回看了哪些问题条目、覆盖是否变弱
+2. 每次重构、学习进步或规则替换，在变更评估里写清本次回看了哪些问题条目、覆盖是否变弱
 3. 边界不清、跨多文件或影响面不明的改动，先做只读覆盖审计，再进入 framework / CLI / docs 的改写
 4. trace / debug / verify / postmortem 暴露出的稳定 failure mode，不要只停在聊天记录里，要固化到 eval / example / CLI check 或项目工件
 
-## 当前基线 eval
+## 项目概述
 
-- `evals/design-not-locked-before-build.md`
-- `evals/ui-looks-right-but-logic-wrong.md`
-- `evals/logic-right-but-product-shape-wrong.md`
-- `evals/fallback-evidence-used-as-delivery.md`
-- `evals/missing-user-confirmation.md`
-- `evals/feature-visible-but-unusable.md`
-- `evals/cross-layer-change-missed-linkage.md`
-- `evals/interaction-mode-misclassified.md`
-- `evals/sensitive-flow-not-escalated.md`
-- `evals/happy-path-passed-but-null-path-broken.md`
-- `evals/change-request-before-code.md`
-- `evals/debug-overreach-regression.md`
-- `evals/brownfield-infrastructure-audit-missed.md`
-- `evals/configurable-meant-operable-gap.md`
-- `evals/problem-ledger-coverage-regression.md`
-- `evals/read-only-analysis-before-edit.md`
-- `evals/legacy-to-lanes-migration-skipped.md`
-- `evals/lane-archive-without-shared-reflux.md`
-- `evals/shared-layer-side-effect-audit-missed.md`
-- `evals/parity-before-reuse-skipped.md`
-- `evals/fix-complete-but-data-runtime-not-recovered.md`
-- `evals/implicit-cross-layer-contract-undocumented.md`
-- `evals/weak-type-hole-erodes-contract.md`
-- `evals/e2e-journey-broken-by-single-point-pass.md`
-- `evals/cross-module-same-defect-not-escalated.md`
+AI-OS 是一个零依赖的 Node.js CLI 工具，通过 `npx` 将交付宪法和工件模板安装到用户项目中。
+
+## 目录结构约定
+
+- `AGENTS.md` — 根层唯一的 AI 交付宪法（被 CLI 安装到用户项目）
+- `framework/` — 工件模板与 starter 内容
+- `bin/` — CLI 源码，纯 Node.js 内置模块，零外部依赖
+- `docs/` — 内部文档：宪法规范、迁移指南、维护者指南、问题台账
+- `evals/` — AI-OS 母仓库的回归评估样例
+- `examples/` — 示例项目和使用方式
+- `manifests/` — CLI 用到的内部清单
+
+## 编码规范
+
+- 仅使用 Node.js 内置模块，禁止引入 npm 依赖
+- 所有 CLI 脚本放在 `bin/` 下，公共逻辑放在 `bin/shared.js`
+- `PACKAGE_ROOT` 指向仓库根目录
+- `FRAMEWORK_ROOT` 指向 `framework/` 子目录
+- 新增 CLI 命令需同步更新 `package.json` 的 `bin` 字段、`README.md` 和 `docs/cli.md`
+
+## 变更流程
+
+- 改动 `framework/` 下的内容或根 `AGENTS.md` 时，需更新 `VERSION` 和 `package.json`
+- 改动五条核心要求、工件集、CLI 主入口时，视为 major 级变化，应同步补变更说明和旧结构清理范围
+- README、`docs/`、examples、evals、tests 必须一起跟上
+
+## 测试方式
+
+```bash
+npm test
+
+# 预览安装范围
+node bin/create-ai-os.js --help
+
+# 手动在临时目录中测试安装
+node bin/create-ai-os.js /tmp/test-project
+
+# 验证健康检查
+node bin/ai-os-doctor.js /tmp/test-project
+
+# 验证 v7 → v8 迁移
+node bin/ai-os-upgrade.js /tmp/test-project
+```
 
 ## 当前主示例
 
 - `examples/quickstart-todo-cli/`（canonical lane 示例，展示 `shared root + lanes/default`）
 - `examples/multi-lane-team-workspace/`（canonical 团队协作 lane 示例，展示 active / draft / archived 拓扑与 shared memory reflux）
-- `examples/coexist-with-spec-kit.md`（AI-OS × GitHub Spec-Kit 共存的模式 A 最小示例）
-- `examples/greenfield-guided-product.md`（含 `.ai-os/` 骨架）
-- `examples/reverse-spec-admin-console.md`（含 `.ai-os/` 骨架）
-- `examples/brownfield-change-journey.md`（含 `.ai-os/` 骨架）
-- `examples/interaction-mode-chat.md`
-- `examples/high-risk-state-change.md`（含 `.ai-os/` 骨架 + risk-register）
-- `examples/cross-layer-schema-change.md`
-- `examples/degraded-path-verification.md`（含 `.ai-os/` 骨架 + acceptance.yaml）
-- `examples/change-request-baseline-sync.md`（含 `.ai-os/` 骨架）
-- `examples/debug-bounded-fix.md`（含 `.ai-os/` 骨架）
-- `examples/brownfield-infrastructure-audit.md`
-- `examples/config-closure-clarification.md`
-- `examples/failure-mode-eval-closure.md`
-- `examples/legacy-to-lanes-migration.md`
-- `examples/lane-archive-shared-memory-reflux.md`
-
-## 治理问题台账
-
-- PG-001: 新问题没有单独记录，重构时容易把覆盖做丢
-- PG-002: 框架 token 成本占用过高 → `--lite` / `token-budget`
-- PG-003: 框架规则只是建议性的 → CLI validate/doctor 确定性校验
-- PG-004: CLI / 框架能力只在单一 IDE 可用 → 必须写清 Codex / Cursor / Claude Code 等承接路径，否则不纳入 CLI 主能力
-- PG-006: 单工作区单当前基线模型无法承载多人多迭代并行 → 进入 `7.x lanes` 演进规划，当前 CLI 落点见 `bin/ai-os-lane.js`、`bin/ai-os-status.js`、`bin/ai-os-doctor.js`，workflow 进入规则见 `framework/.agents/workflows/AGENTS.md` / `align.md` / `change-request.md` / `verify.md`，lane-aware 修复建议与 worktree 启发式见 `bin/shared.js` / `bin/ai-os-validate.js` / `bin/ai-os-gate.js` / `bin/ai-os-release-check.js`，整体规划见 `docs/evolution/multi-delivery-lanes-proposal.md`、`docs/evolution/multi-delivery-lanes-7.2-backlog.md`、`examples/legacy-to-lanes-migration.md`、`evals/legacy-to-lanes-migration-skipped.md`
-- PG-007: lane 归档只改 status、没有共享记忆回流 → 收口规则见 `bin/ai-os-lane.js` / `bin/shared.js` / `bin/ai-os-status.js` / `bin/ai-os-doctor.js`，workflow 规则见 `framework/.agents/workflows/ship.md` / `postmortem.md` / `AGENTS.md`，canonical example 见 `examples/multi-lane-team-workspace/`、`examples/lane-archive-shared-memory-reflux.md`，回归 eval 见 `evals/lane-archive-without-shared-reflux.md`
+- `examples/coexist-with-spec-kit.md`（AI-OS × GitHub Spec-Kit 共存）
+- `examples/greenfield-guided-product.md`
+- `examples/brownfield-change-journey.md`
+- `examples/debug-bounded-fix.md`
+- `examples/high-risk-state-change.md`
 
 ## 版本纪律
 
 - **patch** (x.y.z)：bugfix、文案修正、文档补全、测试与治理收口
-- **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
+- **minor** (x.y.0)：新增工件模板字段、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
 发版前：
@@ -91,31 +103,13 @@
 1. 同步更新 `VERSION` 和 `package.json` 的 `version`
 2. 在 `CHANGELOG.md` 顶部补充变更记录
 3. 运行 `npm test` 确认全绿
+4. 运行 `npx eslint bin/` 零报错零警告
 
-## 本地开发补充
+## 治理问题台账（概要）
 
-常用本地调用方式：
+- PG-001: 新问题没有单独记录，重构时容易把覆盖做丢 → `docs/problem-ledger.md` 统一登记
+- PG-002: 框架 token 成本占用过高 → v8 极简操作面重构，AGENTS.md ≤150 行
+- PG-003: 框架规则只是建议性的 → CLI doctor 做确定性校验
+- PG-004: CLI / 框架能力只在单一 IDE 可用 → AGENTS.md 作为 agents.md 开放标准跨工具通用
 
-```bash
-node ./bin/create-ai-os.js --help
-node ./bin/create-ai-os.js plan /tmp/test-project --profile project
-node ./bin/create-ai-os.js /tmp/test-project --profile project
-node ./bin/create-ai-os.js lane list /tmp/test-project
-node ./bin/ai-os-doctor.js /tmp/test-project
-node ./bin/ai-os-diff.js /tmp/test-project
-node ./bin/ai-os-upgrade.js /tmp/test-project
-node ./bin/ai-os-release-check.js /tmp/test-project
-node ./bin/ai-os-skill-check.js framework/.agents/skills/project-planner --strict
-```
-
-补充说明：
-
-- `project` 是新项目安装的推荐写法
-- `--with-project-files` 仍保留，作为兼容别名
-- `plan` 可以在真正写文件前先预览安装范围
-
-## Skill 规范参考
-
-- `framework/.agents/skills/references/skill-spec.md`
-- `framework/.agents/skills/references/quality-checklist.md`
-- `framework/.agents/skills/references/anti-patterns.md`
+完整台账见 `docs/problem-ledger.md`。

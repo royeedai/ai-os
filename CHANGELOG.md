@@ -8,6 +8,62 @@
 
 ---
 
+## 8.0.0 (2026-04-22) — Delivery Constitution refactor
+
+**Breaking**. v8 is a positioning-level refactor, not an incremental upgrade. v7 users: see `docs/migrate-v7-to-v8.md`. Run `npx create-ai-os upgrade .` for mechanical migration. Legacy v7 state tagged as `v7-legacy`.
+
+### Positioning
+
+AI-OS repositioned from "Node.js CLI tool with 15 subcommands + 14 slash commands + skills system" to **"AI Delivery Constitution + 12-artifact set + minimal reference CLI"**. Cross-agent (agents.md open standard), full lifecycle, minimal surface. Sits above harnesses, models, native memory — governs delivery, not execution.
+
+### Added
+
+- `AGENTS.md` (≤150 lines) as the sole Delivery Constitution at project root
+- `docs/constitution-spec.md` — AI Delivery Constitution Spec v1.0 for other tools (Kiro, spec-kit, Cursor, Claude Code) to integrate
+- `docs/migrate-v7-to-v8.md` — complete v7→v8 migration guide with slash-command-to-behavior-rule mapping
+- `bin/ai-os-doctor.js` — unified health check (replaces v7 validate / gate / release-check / status)
+- `bin/ai-os-upgrade.js` — mechanical v7→v8 migration: flattens `lanes/default/*` to root, merges CONVENTIONS.md/project.md/acceptance.yaml
+- Lightweight `CLAUDE.md` + `GEMINI.md` IDE pointers (≤30 lines each) instead of full session templates
+
+### Changed
+
+- CLI reduced from 15 subcommands to **3**: `install` (default), `doctor`, `upgrade`
+- `bin/` from 10,026 lines to **1,258 lines** (-87.5%)
+- Artifacts flat under `.ai-os/` by default (no mandatory `lanes/default/`); lanes are optional opt-in for multi-train delivery
+- `acceptance.yaml` merged into `DESIGN.md` §13 (verification standards)
+- `CONVENTIONS.md` merged into `memory.md` (as conventions + cross-layer contract registry sections)
+- `project.md` merged into `MISSION.md` (as "host project context" section)
+- `README.md` first screen: 12 artifacts + 3 commands + 5 core requirements (no feature parade)
+- `PROJECT_PURPOSE.md` updated with 2026 positioning (model self-verification era)
+
+### Removed
+
+- All 12 secondary CLI subcommands: `plan` / `diff` / `lab` / `validate` / `gate` / `skill-check` / `status` / `next` / `resume` / `release-check` / `token-budget` / `cursor-rules` / `lane`
+- All 14 slash commands and `framework/.agents/workflows/`: `/align` `/design` `/plan` `/build` `/verify` `/ship` `/change-request` `/debug` `/review` `/postmortem` `/status` `/next` `/resume` `/auto-advance`. Behavior is now **rule-driven via AGENTS.md**, not command-driven.
+- Skills system (`framework/.agents/skills/*`) — 10+ skills. AGENTS.md carries the same rules more concisely; native agent skill systems (Cursor, Claude) take over where skills provided modular behavior
+- `framework/.agents/policies/`, `framework/.agents/references/`
+- 3 install profiles (`quick` / `core` / `project`) — single default form
+- Complex IDE auto-generation (`.cursor/rules/*.mdc`, `.cursor/skills/`)
+- `manifests/install-profiles.json`
+- v7 test suite (replaced with v8-specific tests)
+- `docs/evolution/`, `docs/workflows.md`, `docs/skill-tiers.md`, `docs/ai-os-v2-customization-guide.md`
+- Most v7 examples (kept 5 canonical narratives: greenfield, brownfield, debug, high-risk, spec-kit coexist)
+
+### Constitution rules carried forward
+
+All five core requirements preserved: **goal confirmation first**, **key design locked first**, **adaptive governance**, **evidence-based completion**, **recoverable project memory**. The constitution delivers the same guarantees via rule-driven behavior instead of command-driven orchestration.
+
+### Migration
+
+```bash
+npx --yes github:royeedai/ai-os upgrade .
+npx --yes github:royeedai/ai-os doctor .
+```
+
+Test suite: 196 assertions passing. Lint: 0 errors, 0 warnings.
+
+---
+
 ## 7.4.0 (2026-04-22)
 
 ### Added

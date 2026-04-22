@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+/**
+ * AI-OS v8 test helpers (simplified from v7).
+ */
+
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -32,8 +36,20 @@ function run(script, args = [], cwd) {
   });
 }
 
+function runInstall(args = [], cwd) {
+  return run("create-ai-os.js", args, cwd);
+}
+
+function runDoctor(args = [], cwd) {
+  return run("ai-os-doctor.js", args, cwd);
+}
+
+function runUpgrade(args = [], cwd) {
+  return run("ai-os-upgrade.js", args, cwd);
+}
+
 function tmpDir() {
-  const dir = path.join(os.tmpdir(), `ai-os-test-${crypto.randomBytes(4).toString("hex")}`);
+  const dir = path.join(os.tmpdir(), `ai-os-v8-test-${crypto.randomBytes(4).toString("hex")}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -42,29 +58,19 @@ function cleanup(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-function listBaselineRecords(projectDir, prefix = "") {
+function readFile(dir, relPath) {
+  const abs = path.join(dir, relPath);
+  return fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : null;
+}
+
+function exists(dir, relPath) {
+  return fs.existsSync(path.join(dir, relPath));
+}
+
+function listBaselineRecords(projectDir) {
   const baselineDir = path.join(projectDir, ".ai-os", "baseline-log");
-  if (!fs.existsSync(baselineDir)) {
-    return [];
-  }
-  return fs.readdirSync(baselineDir)
-    .filter((name) => name.endsWith(".md") && (!prefix || name.startsWith(prefix)))
-    .sort();
-}
-
-function listLaneBaselineRecords(projectDir, laneId, prefix = "") {
-  const baselineDir = path.join(projectDir, ".ai-os", "lanes", laneId, "baseline-log");
-  if (!fs.existsSync(baselineDir)) {
-    return [];
-  }
-  return fs.readdirSync(baselineDir)
-    .filter((name) => name.endsWith(".md") && (!prefix || name.startsWith(prefix)))
-    .sort();
-}
-
-function extractMissionBaselineId(content) {
-  const match = content.match(/^- \*\*当前基线 ID\*\*[:：]\s*(.+)$/m);
-  return match ? match[1].trim() : "";
+  if (!fs.existsSync(baselineDir)) return [];
+  return fs.readdirSync(baselineDir).filter((n) => n.endsWith(".md")).sort();
 }
 
 function section(title) {
@@ -75,11 +81,6 @@ function getSummary() {
   return { passed, failed };
 }
 
-function resetCounters() {
-  passed = 0;
-  failed = 0;
-}
-
 module.exports = {
   BIN,
   NODE,
@@ -87,12 +88,14 @@ module.exports = {
   BASELINE_RECORD_NAME_PATTERN,
   assert,
   run,
+  runInstall,
+  runDoctor,
+  runUpgrade,
   tmpDir,
   cleanup,
+  readFile,
+  exists,
   listBaselineRecords,
-  listLaneBaselineRecords,
-  extractMissionBaselineId,
   section,
   getSummary,
-  resetCounters,
 };
