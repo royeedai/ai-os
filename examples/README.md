@@ -1,6 +1,6 @@
 # Examples
 
-Canonical AI-OS v8 project scenarios. Each example is a **narrative walkthrough** showing how the constitution + 12 artifacts handle a specific project shape. The real canonical example is your own repository after running `create-ai-os .` — these narratives just show what to expect.
+Canonical AI-OS v9 project scenarios. Each example is a **narrative walkthrough** showing how the constitution + canonical lane-first artifacts handle a specific project shape. The real canonical example is your own repository after running `create-ai-os .` — these narratives just show what to expect.
 
 | File | Scenario |
 |---|---|

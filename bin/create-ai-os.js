@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * AI-OS v8 installer
+ * AI-OS v9 installer
  *
  * One default install form. No profiles, no flags for "what to include".
- * All 12 artifacts are always installed.
+ * All artifacts are installed into the v9 canonical layout:
+ * shared root + .ai-os/lanes/default/.
  *
  * Subcommands:
  *   create-ai-os [target-dir]       Default install (the only supported form)
  *   create-ai-os install [target]   Explicit install (same behavior)
  *   create-ai-os doctor  [target]   Check artifact completeness
- *   create-ai-os upgrade [target]   Migrate v7 project to v8
+ *   create-ai-os upgrade [target]   Migrate older AI-OS layouts to v9
  */
 
 "use strict";
@@ -27,32 +28,34 @@ function printHelp(version) {
   process.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
 
 Usage:
-  create-ai-os [target-dir]               Install AI-OS v8 into the target (default: current dir)
+  create-ai-os [target-dir]               Install AI-OS v9 into the target (default: current dir)
   create-ai-os install [target-dir]       Same as above (explicit)
   create-ai-os doctor  [target-dir]       Check artifact completeness
-  create-ai-os upgrade [target-dir]       Migrate a v7 project to v8
+  create-ai-os upgrade [target-dir]       Migrate older AI-OS layouts to v9
 
 Options:
-  --force          Overwrite existing artifacts (AGENTS.md and .ai-os/*)
+  --force          Overwrite existing managed artifacts
   --no-team-config Skip .gitignore / .gitattributes setup
   --no-ide-files   Skip CLAUDE.md / GEMINI.md generation
   -h, --help       Show this help
   -v, --version    Show version
 
 Installed artifacts (always, no profiles):
-  AGENTS.md                     Delivery constitution
-  .ai-os/MISSION.md             Goal + success criteria
-  .ai-os/DESIGN.md              Key design + acceptance
-  .ai-os/STATE.md               Session recovery entry (gitignored)
-  .ai-os/memory.md              Stable decisions + conventions
-  .ai-os/baseline-log/          Change and baseline records
-  .ai-os/specs/                 Local contracts
-  .ai-os/tasks.yaml             Tasks with owners
-  .ai-os/risk-register.md       High-risk register
-  .ai-os/release-plan.md        Release plan
-  .ai-os/verification-matrix.yaml Regression assertions
-  .ai-os/design-pack/           Reverse-spec parity artifacts
-  .ai-os/evals/                 Project-level failure-mode samples
+  AGENTS.md                                   Delivery constitution
+  .ai-os/MISSION.md                           Shared host-project context
+  .ai-os/memory.md                            Shared stable decisions + conventions
+  .ai-os/lanes/default/lane.toml              Default delivery-lane metadata
+  .ai-os/lanes/default/MISSION.md             Current delivery baseline
+  .ai-os/lanes/default/DESIGN.md              Key design + acceptance
+  .ai-os/lanes/default/STATE.md               Session recovery entry (gitignored)
+  .ai-os/lanes/default/baseline-log/          Change and baseline records
+  .ai-os/lanes/default/specs/                 Local contracts
+  .ai-os/lanes/default/tasks.yaml             Tasks with owners
+  .ai-os/lanes/default/risk-register.md       High-risk register
+  .ai-os/lanes/default/release-plan.md        Release plan
+  .ai-os/lanes/default/verification-matrix.yaml Regression assertions
+  .ai-os/lanes/default/design-pack/           Reverse-spec parity artifacts
+  .ai-os/lanes/default/evals/                 Project-level failure-mode samples
 
 Docs: https://github.com/royeedai/ai-os
 `);
@@ -73,6 +76,7 @@ function runInstall(argv) {
     installIdeFiles,
     appendGitignoreEntries,
     appendGitattributesEntries,
+    LAYOUT_MODE_DEFAULT,
   } = require("./shared");
 
   let targetArg = "";
@@ -102,7 +106,7 @@ function runInstall(argv) {
 
   const agentsInstalled = installAgentsMd(targetDir, { overwrite: force });
   const { installed, baseline } = installArtifacts(targetDir, { overwrite: force });
-  writeMetadata(targetDir, { version });
+  writeMetadata(targetDir, { version, layoutMode: LAYOUT_MODE_DEFAULT });
   writeManagedFilesManifest(targetDir);
 
   let ideInstalled = [];
@@ -123,6 +127,7 @@ Installation complete.
   Framework: ${pkg.name}@${version}
   Target:    ${targetDir}
   Baseline:  ${baseline.id}
+  Layout:    shared-root + .ai-os/lanes/default/
 
   AGENTS.md:       ${agentsInstalled ? "installed" : "already present (use --force to overwrite)"}
   Artifacts:       ${installed.length} file(s) written under .ai-os/
@@ -132,12 +137,13 @@ Installation complete.
 
 Next steps:
   1. Read AGENTS.md (≤150 lines) — the delivery constitution
-  2. Fill in .ai-os/MISSION.md — your delivery goal and success criteria
-  3. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
+  2. Fill in .ai-os/MISSION.md — your shared host-project context
+  3. Fill in .ai-os/lanes/default/MISSION.md — your current delivery baseline
+  4. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
 
 Commands:
   create-ai-os doctor    Check artifact completeness
-  create-ai-os upgrade   Migrate a v7 project to v8
+  create-ai-os upgrade   Migrate older AI-OS layouts to v9
 `);
 }
 

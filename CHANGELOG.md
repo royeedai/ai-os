@@ -8,6 +8,39 @@
 
 ---
 
+## 9.0.0 (2026-04-22) — Default lane reset
+
+**Breaking**. v9 makes **shared root + `.ai-os/lanes/default/`** the only canonical layout. Older root-only or hybrid layouts should run `npx create-ai-os upgrade .`.
+
+### Added
+
+- `docs/migrate-to-v9.md` as the new migration entrypoint
+- `doctor --json` layout fields: `layout_version`, `layout_mode`
+- AI-OS self-hosted `.ai-os/` updated to the same canonical layout it distributes
+
+### Changed
+
+- Default install now creates:
+  - shared root `.ai-os/MISSION.md`
+  - shared root `.ai-os/memory.md`
+  - `.ai-os/lanes/default/` full current-delivery artifact set
+- `doctor` now treats root-only v8 as `root-only-legacy` and root+lane overlap as `hybrid-drift`
+- `upgrade` now normalizes v7 legacy, v8 root-only, and v8 hybrid layouts to v9
+- `AGENTS.md`, `README.md`, `docs/artifacts.md`, `docs/constitution-spec.md`, `docs/cli.md`, `docs/getting-started.md`, `docs/maintainers.md`, examples, and tests now all point to the same canonical layout
+- `PROJECT_PURPOSE.md` current phase updated from v8 to v9
+
+### Removed
+
+- v8 默认 root-only 布局叙事
+- `docs/problem-ledger.md` 中已删除 workflow / skill / legacy 命令的“当前覆盖锚点”地位
+
+### Migration
+
+```bash
+npx --yes github:royeedai/ai-os upgrade .
+npx --yes github:royeedai/ai-os doctor .
+```
+
 ## 8.0.0 (2026-04-22) — Delivery Constitution refactor
 
 **Breaking**. v8 is a positioning-level refactor, not an incremental upgrade. v7 users: see `docs/migrate-v7-to-v8.md`. Run `npx create-ai-os upgrade .` for mechanical migration. Legacy v7 state tagged as `v7-legacy`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Upgrade tests: v7 -> v8 mechanical migration.
+ * Upgrade tests: legacy layouts -> v9 canonical layout.
  */
 
 const fs = require("fs");
@@ -27,12 +27,11 @@ function write(dir, rel, content) {
   fs.writeFileSync(abs, content);
 }
 
-section("upgrade: mock v7 project gets flattened and merged");
+section("upgrade: v7-style lane project is normalized to v9");
 
 {
   const dir = tmpDir();
 
-  // Build a minimal v7 mock
   write(dir, "AGENTS.md", "# Old v7 constitution\n");
   mkdir(dir, ".agents/workflows");
   write(dir, ".agents/workflows/align.md", "# v7 align workflow\n");
@@ -41,8 +40,8 @@ section("upgrade: mock v7 project gets flattened and merged");
   mkdir(dir, ".agents/policies");
   write(dir, ".agents/policies/approval-policy.md", "# v7 policy\n");
   mkdir(dir, ".ai-os/lanes/default/baseline-log");
-  write(dir, ".ai-os/lanes/default/MISSION.md", "# User-authored mission (must preserve)\n");
-  write(dir, ".ai-os/lanes/default/DESIGN.md", "# User-authored design\n");
+  write(dir, ".ai-os/lanes/default/MISSION.md", "# User-authored lane mission\n");
+  write(dir, ".ai-os/lanes/default/DESIGN.md", "# User-authored lane design\n");
   write(dir, ".ai-os/lanes/default/lane.toml", "id = \"default\"\n");
   write(dir, ".ai-os/lanes/default/acceptance.yaml", "quality_tier: standard\n");
   write(dir, ".ai-os/CONVENTIONS.md", "# User conventions\n");
@@ -56,41 +55,115 @@ section("upgrade: mock v7 project gets flattened and merged");
   assert(result.status === 0, "upgrade exits 0");
   assert(result.stdout.includes("Upgrade complete"), "stdout reports completion");
 
-  // Old v7 structure removed
   assert(!exists(dir, ".agents"), ".agents/ removed");
-  assert(!exists(dir, ".ai-os/lanes"), "lanes/ flattened away");
   assert(!exists(dir, ".ai-os/CONVENTIONS.md"), "CONVENTIONS.md merged and removed");
   assert(!exists(dir, ".ai-os/project.md"), "project.md merged and removed");
-  assert(!exists(dir, ".ai-os/acceptance.yaml"), "acceptance.yaml merged and removed");
+  assert(!exists(dir, ".ai-os/lanes/default/acceptance.yaml"), "lane acceptance.yaml merged and removed");
   assert(!exists(dir, ".cursor/rules"), ".cursor/rules removed");
   assert(!exists(dir, ".cursor/skills"), ".cursor/skills removed");
 
-  // v8 structure present
-  assert(exists(dir, ".ai-os/MISSION.md"), "MISSION.md at root");
-  assert(exists(dir, ".ai-os/DESIGN.md"), "DESIGN.md at root");
-  assert(exists(dir, ".ai-os/baseline-log"), "baseline-log at root");
-  assert(exists(dir, ".ai-os/memory.md"), "memory.md exists (base from CONVENTIONS)");
+  assert(exists(dir, ".ai-os/MISSION.md"), "shared root MISSION.md exists");
+  assert(exists(dir, ".ai-os/memory.md"), "shared root memory.md exists");
+  assert(exists(dir, ".ai-os/lanes/default/MISSION.md"), "lane MISSION.md exists");
+  assert(exists(dir, ".ai-os/lanes/default/DESIGN.md"), "lane DESIGN.md exists");
   assert(exists(dir, ".ai-os/framework.toml"), "framework.toml regenerated");
 
-  // User content preserved
-  const mission = readFile(dir, ".ai-os/MISSION.md");
-  assert(mission && mission.includes("User-authored mission (must preserve)"), "user mission content preserved");
-  assert(mission && mission.includes("宿主项目上下文"), "project.md merged as a section");
+  const sharedMission = readFile(dir, ".ai-os/MISSION.md");
+  assert(sharedMission && sharedMission.includes("Project context"), "project.md merged into shared mission");
 
   const memory = readFile(dir, ".ai-os/memory.md");
-  assert(memory && memory.includes("User conventions"), "CONVENTIONS.md content preserved in memory.md");
+  assert(memory && memory.includes("User conventions"), "CONVENTIONS.md merged into memory.md");
 
-  const design = readFile(dir, ".ai-os/DESIGN.md");
-  assert(design && design.includes("User-authored design"), "user design content preserved");
-  assert(design && design.includes("验收标准"), "acceptance.yaml merged as a section");
+  const design = readFile(dir, ".ai-os/lanes/default/DESIGN.md");
+  assert(design && design.includes("User-authored lane design"), "user lane design preserved");
+  assert(design && design.includes("验收标准"), "acceptance.yaml merged into lane design");
 
-  // AGENTS.md replaced with v8
   const agents = readFile(dir, "AGENTS.md");
-  assert(agents && agents.includes("AI 交付宪法"), "AGENTS.md replaced with v8");
+  assert(agents && agents.includes("AI 交付宪法"), "AGENTS.md replaced with v9");
 
-  // Doctor should pass (with possibly some infos)
-  const doc = runDoctor([dir]);
-  assert(doc.status === 0, "doctor passes after upgrade");
+  const doctor = runDoctor([dir]);
+  assert(doctor.status === 0, "doctor passes after upgrade");
+
+  cleanup(dir);
+}
+
+section("upgrade: v8 root-only project migrates into default lane");
+
+{
+  const dir = tmpDir();
+
+  write(dir, "AGENTS.md", "# old root-only v8\n");
+  write(dir, ".ai-os/MISSION.md", "# Root-only mission\n\n- **当前基线 ID**：BL-20260422-120000-root-only\n");
+  write(dir, ".ai-os/DESIGN.md", "# Root-only design\n");
+  write(dir, ".ai-os/STATE.md", "# Root-only state\n");
+  mkdir(dir, ".ai-os/baseline-log");
+  write(dir, ".ai-os/baseline-log/CR-20260422-120000-root-only.md", "# legacy baseline\n");
+  mkdir(dir, ".ai-os/specs");
+  write(dir, ".ai-os/specs/example.spec.md", "# legacy spec\n");
+  write(dir, ".ai-os/tasks.yaml", "version: 3\n");
+  write(dir, ".ai-os/risk-register.md", "# root risk\n");
+  write(dir, ".ai-os/release-plan.md", "# root release\n");
+  write(dir, ".ai-os/verification-matrix.yaml", "failure_modes: []\n");
+  write(dir, ".ai-os/memory.md", "# root memory\n");
+  write(dir, ".ai-os/framework.toml", 'schema_version = "8"\nlayout_mode = "root-only-legacy"\nframework_version = "8.0.0"\n');
+
+  const result = runUpgrade([dir]);
+  assert(result.status === 0, "upgrade exits 0 for v8 root-only");
+
+  assert(exists(dir, ".ai-os/MISSION.md"), "shared root mission recreated");
+  assert(exists(dir, ".ai-os/memory.md"), "shared root memory kept");
+  assert(exists(dir, ".ai-os/lanes/default/MISSION.md"), "root mission migrated to lane mission");
+  assert(exists(dir, ".ai-os/lanes/default/DESIGN.md"), "root design migrated to lane design");
+  assert(exists(dir, ".ai-os/lanes/default/STATE.md"), "root state migrated to lane state");
+  assert(exists(dir, ".ai-os/lanes/default/baseline-log/CR-20260422-120000-root-only.md"), "root baseline-log migrated to lane");
+  assert(exists(dir, ".ai-os/lanes/default/tasks.yaml"), "root tasks migrated to lane");
+  assert(exists(dir, ".ai-os/lanes/default/lane.toml"), "lane.toml created");
+
+  const sharedMission = readFile(dir, ".ai-os/MISSION.md");
+  assert(sharedMission && sharedMission.includes("Root-only mission"), "legacy root mission content preserved in shared mission appendix");
+
+  const laneMission = readFile(dir, ".ai-os/lanes/default/MISSION.md");
+  assert(laneMission && laneMission.includes("Root-only mission"), "legacy root mission preserved as lane mission");
+
+  const laneToml = readFile(dir, ".ai-os/lanes/default/lane.toml");
+  assert(laneToml && laneToml.includes('baseline_id = "BL-20260422-120000-root-only"'), "lane.toml baseline_id normalized from legacy mission");
+
+  const doctor = runDoctor([dir]);
+  assert(doctor.status === 0, "doctor passes after root-only migration");
+
+  cleanup(dir);
+}
+
+section("upgrade: v8 hybrid keeps lane truth and appends root legacy");
+
+{
+  const dir = tmpDir();
+
+  write(dir, "AGENTS.md", "# hybrid\n");
+  write(dir, ".ai-os/MISSION.md", "# Root legacy mission\n");
+  write(dir, ".ai-os/DESIGN.md", "# Root legacy design\n");
+  write(dir, ".ai-os/memory.md", "# shared memory\n");
+  write(dir, ".ai-os/framework.toml", 'schema_version = "8"\nlayout_mode = "hybrid-drift"\nframework_version = "8.0.0"\n');
+  mkdir(dir, ".ai-os/lanes/default/baseline-log");
+  write(dir, ".ai-os/lanes/default/MISSION.md", "# Lane mission truth\n");
+  write(dir, ".ai-os/lanes/default/DESIGN.md", "# Lane design truth\n");
+  write(dir, ".ai-os/lanes/default/lane.toml", 'id = "default"\n');
+
+  const result = runUpgrade([dir]);
+  assert(result.status === 0, "upgrade exits 0 for hybrid layout");
+
+  assert(!exists(dir, ".ai-os/DESIGN.md"), "root legacy design removed after merge");
+
+  const laneMission = readFile(dir, ".ai-os/lanes/default/MISSION.md");
+  assert(laneMission && laneMission.includes("Lane mission truth"), "lane mission remains primary");
+  assert(laneMission && laneMission.includes("legacy root MISSION"), "root mission appended as migration appendix");
+
+  const laneDesign = readFile(dir, ".ai-os/lanes/default/DESIGN.md");
+  assert(laneDesign && laneDesign.includes("Lane design truth"), "lane design remains primary");
+  assert(laneDesign && laneDesign.includes("legacy root DESIGN"), "root design appended as migration appendix");
+
+  const doctor = runDoctor([dir]);
+  assert(doctor.status === 0, "doctor passes after hybrid normalization");
 
   cleanup(dir);
 }
@@ -99,46 +172,18 @@ section("upgrade: dry-run does not modify anything");
 
 {
   const dir = tmpDir();
-  write(dir, "AGENTS.md", "# v7 original\n");
-  write(dir, ".ai-os/CONVENTIONS.md", "# preserved\n");
-  mkdir(dir, ".agents/workflows");
-  write(dir, ".agents/workflows/align.md", "# v7 workflow\n");
+  write(dir, "AGENTS.md", "# original\n");
+  write(dir, ".ai-os/MISSION.md", "# legacy mission\n");
+  write(dir, ".ai-os/memory.md", "# memory\n");
 
   const result = runUpgrade([dir, "--dry-run"]);
   assert(result.status === 0, "dry-run exits 0");
   assert(result.stdout.includes("[dry-run]"), "dry-run prefix shown");
   assert(result.stdout.includes("Dry-run complete"), "dry-run finish message shown");
 
-  // Nothing changed
   const agents = readFile(dir, "AGENTS.md");
-  assert(agents === "# v7 original\n", "AGENTS.md untouched in dry-run");
-  assert(exists(dir, ".ai-os/CONVENTIONS.md"), "CONVENTIONS.md untouched in dry-run");
-  assert(exists(dir, ".agents/workflows"), ".agents/ untouched in dry-run");
-
-  cleanup(dir);
-}
-
-section("upgrade: fills in missing v8 starter artifacts");
-
-{
-  const dir = tmpDir();
-  // Minimal v7 project without DESIGN/tasks/etc
-  write(dir, "AGENTS.md", "# old\n");
-  write(dir, ".ai-os/framework.toml", 'framework_version = "7.4.0"\n');
-  mkdir(dir, ".ai-os/lanes/default");
-  write(dir, ".ai-os/lanes/default/MISSION.md", "# user mission\n");
-
-  runUpgrade([dir]);
-
-  // Missing v8 starter filled in
-  assert(exists(dir, ".ai-os/DESIGN.md"), "DESIGN.md starter filled");
-  assert(exists(dir, ".ai-os/tasks.yaml"), "tasks.yaml starter filled");
-  assert(exists(dir, ".ai-os/risk-register.md"), "risk-register.md starter filled");
-  assert(exists(dir, ".ai-os/specs"), "specs/ starter filled");
-
-  // User content preserved
-  const mission = readFile(dir, ".ai-os/MISSION.md");
-  assert(mission && mission.includes("user mission"), "user mission preserved through fill-in");
+  assert(agents === "# original\n", "AGENTS.md untouched in dry-run");
+  assert(exists(dir, ".ai-os/MISSION.md"), "legacy mission untouched in dry-run");
 
   cleanup(dir);
 }

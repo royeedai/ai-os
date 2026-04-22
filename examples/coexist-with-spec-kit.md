@@ -36,11 +36,11 @@ Code lands. Feature is functionally complete. Now you want quality governance.
 npx --yes github:royeedai/ai-os .
 ```
 
-Result: `AGENTS.md` at root + `.ai-os/` with 12 artifacts (starter templates).
+Result: `AGENTS.md` at root + shared root `.ai-os/` + `.ai-os/lanes/default/` starter templates.
 
 ## 3. Connect AI-OS MISSION to Spec-Kit spec
 
-Edit `.ai-os/MISSION.md`:
+Edit `.ai-os/lanes/default/MISSION.md`:
 
 ```markdown
 # Mission: Photo Sharing App
@@ -70,9 +70,9 @@ AI agent (reading AGENTS.md):
 2. Runs project-native static check (`pnpm build`, `pnpm test`)
 3. Cross-references every REQ in spec.md against actual implementation
 4. Runs edge-case verification (empty photos, network failure, permission denied, large uploads)
-5. Writes `.ai-os/verification-matrix.yaml` with real `failure_modes`
+5. Writes `.ai-os/lanes/default/verification-matrix.yaml` with real `failure_modes`
 6. Reports: code state / data state / runtime state separately
-7. Produces `.ai-os/release-plan.md` with rollback conditions
+7. Produces `.ai-os/lanes/default/release-plan.md` with rollback conditions
 
 ## 5. AI-OS handles change management
 
@@ -83,9 +83,9 @@ Two weeks later, product says "Add photo tagging."
 Agent (per AGENTS.md change-request rule):
 
 1. Does NOT call `/speckit.specify` (that would create a parallel truth source)
-2. Writes `.ai-os/baseline-log/CR-20260506-093000-photo-tagging.md` with:
+2. Writes `.ai-os/lanes/default/baseline-log/CR-20260506-093000-photo-tagging.md` with:
    - Impact analysis on existing spec
-   - New REQ-008 in `.ai-os/specs/photo-tagging.spec.md`
+   - New REQ-008 in `.ai-os/lanes/default/specs/photo-tagging.spec.md`
    - Reference back to Spec-Kit spec.md for original requirements
 3. Waits for your confirmation on the new baseline
 
@@ -96,9 +96,9 @@ Next day, different agent, fresh session.
 Agent opens the repo, reads:
 
 1. `AGENTS.md` — constitution
-2. `.ai-os/STATE.md` — where things left off yesterday
-3. `.ai-os/MISSION.md` — references Spec-Kit spec as requirement truth
-4. `.ai-os/baseline-log/` latest file — the CR from yesterday
+2. `.ai-os/lanes/default/STATE.md` — where things left off yesterday
+3. `.ai-os/lanes/default/MISSION.md` — references Spec-Kit spec as requirement truth
+4. `.ai-os/lanes/default/baseline-log/` latest file — the CR from yesterday
 
 Agent knows: "Spec-Kit owns original requirements. AI-OS owns verification, change management, and delivery. New request for photo tagging is at CR-20260506 baseline." No confusion about which artifact to trust.
 

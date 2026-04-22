@@ -17,10 +17,10 @@ Hard triggers:
 
 Agent automatically escalates governance to **high-risk tier**:
 
-1. In `.ai-os/tasks.yaml`, every task has `approval_required: true`
-2. `.ai-os/risk-register.md` becomes mandatory
-3. `.ai-os/release-plan.md` becomes mandatory
-4. `.ai-os/verification-matrix.yaml` must include at least one real `failure_modes` guard
+1. In `.ai-os/lanes/default/tasks.yaml`, every task has `approval_required: true`
+2. `.ai-os/lanes/default/risk-register.md` becomes mandatory
+3. `.ai-os/lanes/default/release-plan.md` becomes mandatory
+4. `.ai-os/lanes/default/verification-matrix.yaml` must include at least one real `failure_modes` guard
 5. No auto-advance
 
 ## 3. Mission + risk register
@@ -45,7 +45,7 @@ Agent stops and asks: "All three approvers needed before we plan implementation.
 
 ## 4. Release plan (before code)
 
-`.ai-os/release-plan.md`:
+`.ai-os/lanes/default/release-plan.md`:
 
 1. Phase 1: Dual-auth window (both systems active, reads from old, writes to both)
 2. Phase 2: Migration batch (1k users / hour with verification after each batch)
@@ -61,7 +61,7 @@ Agent lists exactly which steps are "AI done" (writing migration code, writing t
 
 ## 5. Verification matrix with real failure-mode guard
 
-`.ai-os/verification-matrix.yaml`:
+`.ai-os/lanes/default/verification-matrix.yaml`:
 
 ```yaml
 failure_modes:
@@ -100,7 +100,7 @@ Human runs each batch. Between batches, AI analyzes the run's logs and flags ano
 
 ## 8. Delivery handoff
 
-`.ai-os/release-plan.md` final delivery split:
+`.ai-os/lanes/default/release-plan.md` final delivery split:
 
 - **AI completed**: migration code, test harness, rollback script, verification dashboard
 - **Human required**: executed each batch, reviewed each verification pass, signed off after 30 days

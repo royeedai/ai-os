@@ -1,6 +1,6 @@
 # AI-OS × Spec-Kit coexistence
 
-> GitHub's [Spec-Kit](https://github.com/github/spec-kit) is the de-facto standard for spec-driven 0→1 kickoff. AI-OS v8 complements it by covering **everything after implementation lands**: change management, evidence-based verification, delivery handoff, debug scoping, and cross-session recovery.
+> GitHub's [Spec-Kit](https://github.com/github/spec-kit) is the de-facto standard for spec-driven 0→1 kickoff. AI-OS v9 complements it by covering **everything after implementation lands**: change management, evidence-based verification, delivery handoff, debug scoping, and cross-session recovery.
 
 ## TL;DR
 
@@ -25,7 +25,7 @@ Phase 1 (Spec-Kit):
 
 Phase 2 (AI-OS takes over):
   npx --yes github:royeedai/ai-os .
-  → AI-OS v8 constitution governs verification, shipping, change, debug, recovery
+  → AI-OS v9 constitution governs verification, shipping, change, debug, recovery
 ```
 
 ### Artifact coexistence
@@ -35,10 +35,10 @@ Keep Spec-Kit as requirement source-of-truth. AI-OS artifacts are minimal:
 | Spec-Kit artifact | AI-OS mapping |
 |---|---|
 | `.specify/memory/constitution.md` | Referenced from AI-OS `memory.md` (no duplicate) |
-| `.specify/specs/<id>/spec.md` | Referenced from AI-OS `MISSION.md` and `.ai-os/specs/` |
+| `.specify/specs/<id>/spec.md` | Referenced from AI-OS lane `MISSION.md` and `.ai-os/lanes/default/specs/` |
 | `.specify/specs/<id>/plan.md` | Not duplicated in AI-OS |
-| `.specify/specs/<id>/tasks.md` | Not duplicated; new tasks post-Spec-Kit land in `.ai-os/tasks.yaml` |
-| — | AI-OS `STATE.md`, `baseline-log/`, `memory.md`, `verification-matrix.yaml`, `release-plan.md` (unique to AI-OS) |
+| `.specify/specs/<id>/tasks.md` | Not duplicated; new tasks post-Spec-Kit land in `.ai-os/lanes/default/tasks.yaml` |
+| — | AI-OS lane `STATE.md`, `baseline-log/`, `verification-matrix.yaml`, `release-plan.md` + root `memory.md` (unique to AI-OS) |
 
 ### Sample `MISSION.md` header for Mode A
 
@@ -80,14 +80,14 @@ See [../getting-started.md](../getting-started.md).
 
 ## What AI-OS uniquely provides
 
-| Capability | Spec-Kit | AI-OS v8 |
+| Capability | Spec-Kit | AI-OS v9 |
 |---|---|---|
 | Cross-session recovery (`STATE.md`) | — | yes |
 | Change management (`baseline-log/`) | — | yes |
 | Debug scoping (behavior rule: root cause + scope before write) | — | yes |
 | Evidence-based verification (4 gates + parity) | — | yes |
 | Cross-layer contract registry (`memory.md`) | — | yes |
-| Multi-lane model (optional) | — | yes (opt-in) |
+| Default lane model | — | yes |
 | CLI integrity check (`doctor`) | — | yes |
 | Reverse-spec parity artifact | — | yes |
 

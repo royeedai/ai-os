@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * AI-OS v8 test helpers (simplified from v7).
+ * AI-OS v9 test helpers.
  */
 
 const fs = require("fs");
@@ -49,7 +49,7 @@ function runUpgrade(args = [], cwd) {
 }
 
 function tmpDir() {
-  const dir = path.join(os.tmpdir(), `ai-os-v8-test-${crypto.randomBytes(4).toString("hex")}`);
+  const dir = path.join(os.tmpdir(), `ai-os-v9-test-${crypto.randomBytes(4).toString("hex")}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -68,7 +68,7 @@ function exists(dir, relPath) {
 }
 
 function listBaselineRecords(projectDir) {
-  const baselineDir = path.join(projectDir, ".ai-os", "baseline-log");
+  const baselineDir = path.join(projectDir, ".ai-os", "lanes", "default", "baseline-log");
   if (!fs.existsSync(baselineDir)) return [];
   return fs.readdirSync(baselineDir).filter((n) => n.endsWith(".md")).sort();
 }

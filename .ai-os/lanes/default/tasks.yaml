@@ -1,0 +1,84 @@
+version: 3
+baseline_id: "CR-20260422-203000-v9-default-lane-reset"
+scope:
+  mode: "change"
+  focus: "v9-default-lane-reset"
+  baseline_source: "lane MISSION.md + DESIGN.md"
+  quality_tier: "standard"
+
+milestones:
+  - id: M1
+    title: "Canonical Layout Locked"
+    goal: "模板、CLI 和仓库自托管结构统一到 v9"
+    scope: "framework, bin, .ai-os"
+    acceptance_goal: "install / upgrade / doctor 契约收敛"
+    target_window: "2026-04-22"
+  - id: M2
+    title: "Docs and Tests Closed"
+    goal: "docs/examples/problem-ledger/tests 全部对齐"
+    scope: "docs, examples, test"
+    acceptance_goal: "README、schema、help、tests 一致"
+    target_window: "2026-04-22"
+
+tasks:
+  - id: TASK-AI-001
+    title: "重写 shared-root + lane 模板与 CLI 共享路径"
+    milestone: M1
+    status: in_progress
+    owner: AI
+    priority: P0
+    wave: 1
+    approval_required: "user_confirms_plan"
+    depends_on: []
+    requirement_refs:
+      - "REQ-001"
+    acceptance_refs:
+      - "AC-001"
+    impact_tags:
+      - "entrypoint"
+      - "schema"
+    evidence_required:
+      - "code-diff"
+      - "install-test"
+  - id: TASK-AI-002
+    title: "重写 doctor / upgrade 以支持 v9 canonical layout"
+    milestone: M1
+    status: in_progress
+    owner: AI
+    priority: P0
+    wave: 1
+    approval_required: "user_confirms_plan"
+    depends_on: []
+    requirement_refs:
+      - "REQ-002"
+      - "REQ-003"
+    acceptance_refs:
+      - "AC-002"
+      - "AC-003"
+    impact_tags:
+      - "transport"
+      - "mapping"
+    evidence_required:
+      - "doctor-test"
+      - "upgrade-test"
+  - id: TASK-AI-003
+    title: "统一 docs / examples / problem-ledger / tests"
+    milestone: M2
+    status: todo
+    owner: AI
+    priority: P0
+    wave: 2
+    approval_required: "user_confirms_plan"
+    depends_on:
+      - "TASK-AI-001"
+      - "TASK-AI-002"
+    requirement_refs:
+      - "REQ-004"
+    acceptance_refs:
+      - "AC-004"
+    impact_tags:
+      - "docs"
+      - "verification"
+    evidence_required:
+      - "docs-test"
+      - "changelog-update"

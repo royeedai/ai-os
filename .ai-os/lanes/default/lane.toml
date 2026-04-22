@@ -1,0 +1,6 @@
+id = "default"
+title = "默认交付线"
+status = "active"
+baseline_id = "CR-20260422-203000-v9-default-lane-reset"
+quality_tier = "standard"
+risk_tier = "medium"

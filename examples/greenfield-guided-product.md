@@ -9,7 +9,7 @@ npx --yes github:royeedai/ai-os my-nature-photos
 cd my-nature-photos
 ```
 
-You now have: `AGENTS.md` + `.ai-os/` with all 12 artifacts as starter templates.
+You now have: `AGENTS.md` + shared root `.ai-os/` + `.ai-os/lanes/default/` starter templates.
 
 ## 1. Alignment (agent reads AGENTS.md; no slash command needed)
 
@@ -18,13 +18,13 @@ You now have: `AGENTS.md` + `.ai-os/` with all 12 artifacts as starter templates
 **Agent behavior (per AGENTS.md §3, new-project rule)**:
 
 1. Doesn't write code
-2. Opens `.ai-os/MISSION.md` starter and proposes a filled-in version:
+2. Opens `.ai-os/lanes/default/MISSION.md` starter and proposes a filled-in version:
    - Target user: hobbyist nature photographers
    - Key scenario: weekly photo posts + seasonal albums + lightweight community
    - Explicitly out of scope: stock-photo marketplace, pro workflows
    - Success criteria: first 100 beta users can upload and share within 60 seconds
-3. Writes `.ai-os/baseline-log/CR-20260422-101500-initial-alignment.md` capturing what it asked vs. what you answered
-4. Stops. Asks: "Confirm this MISSION.md reflects your intent? (Reply 'confirmed' to proceed.)"
+3. Writes `.ai-os/lanes/default/baseline-log/CR-20260422-101500-initial-alignment.md` capturing what it asked vs. what you answered
+4. Stops. Asks: "Confirm this lane MISSION.md reflects your intent? (Reply 'confirmed' to proceed.)"
 
 **You**: "Confirmed."
 
@@ -32,7 +32,7 @@ You now have: `AGENTS.md` + `.ai-os/` with all 12 artifacts as starter templates
 
 Agent rule: key design must be confirmed before broad implementation.
 
-1. Opens `.ai-os/DESIGN.md` and fills in:
+1. Opens `.ai-os/lanes/default/DESIGN.md` and fills in:
    - Information architecture: Home / Gallery / Album / Settings
    - Key screens + key interactions + visual direction
    - Section 7: shared-layer side-effects (empty — greenfield)
@@ -45,7 +45,7 @@ Agent rule: key design must be confirmed before broad implementation.
 
 ## 3. Planning
 
-1. Agent writes `.ai-os/tasks.yaml` with waves W1 (foundation) → W2 (core features) → W3 (verification)
+1. Agent writes `.ai-os/lanes/default/tasks.yaml` with waves W1 (foundation) → W2 (core features) → W3 (verification)
 2. Each task has `owner`, `acceptance_refs`, `measurable_outcome`, `edge_cases`
 3. Agent asks for task/acceptance confirmation
 
@@ -58,7 +58,7 @@ Agent rule: key design must be confirmed before broad implementation.
 
 ## 5. Ship
 
-Agent produces `.ai-os/release-plan.md`:
+Agent produces `.ai-os/lanes/default/release-plan.md`:
 
 - Implemented: REQ-001...REQ-007
 - NOT included: pro workflows (explicitly out-of-scope)

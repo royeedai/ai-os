@@ -1,0 +1,14 @@
+impact_rules:
+  - when: "shared-layer-change"
+    run:
+      - "[project-native static check]"
+      - "[targeted regression]"
+
+failure_modes:
+  - id: FM-001
+    scenario: "[稳定失败模式]"
+    expected: "[期望行为]"
+    guard: "[测试 / smoke / review note]"
+
+guards:
+  - "[evidence path or eval reference]"

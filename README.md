@@ -1,6 +1,6 @@
-# AI-OS v8
+# AI-OS v9
 
-> AI Delivery Constitution + 12-artifact set + reference CLI. Cross-agent. Full lifecycle. Minimal surface.
+> AI Delivery Constitution + canonical lane-first artifact layout + reference CLI.
 
 ```bash
 # Install into a new project
@@ -12,53 +12,60 @@ npx --yes github:royeedai/ai-os .
 # Check health
 npx --yes github:royeedai/ai-os doctor .
 
-# Migrate from v7
+# Migrate older layouts to v9
 npx --yes github:royeedai/ai-os upgrade .
 ```
 
 ## What AI-OS is
 
-In 2026, AI coding is no longer bottlenecked by "can the model write code" — frontier models (Opus 4.7, GPT-5.4, Kimi K2.6) pass SWE-bench Verified at 85–90%, run autonomously for 25–52 hours, and self-verify before reporting. The new bottleneck is:
+AI-OS is a cross-agent delivery constitution for projects that already use AI coding, but need the AI to more reliably do the **right** work:
 
-- Has the goal been clearly defined?
-- Has the key design been locked?
-- Is "completion" proven by evidence, not assertion?
-- Can another session pick up where this one left off?
+- clarify the real goal
+- lock key design before scaling out implementation
+- prove completion with project-level evidence
+- recover context across sessions without depending on chat history
 
-**AI-OS is a cross-agent delivery constitution** that answers those four questions. It is intentionally not an IDE, not a harness, not a skill library, and not an orchestration layer.
+It is intentionally **not** an IDE, harness, orchestration layer, or code generator.
 
-## 5-second model
+## Canonical layout
 
-One file (`AGENTS.md`) + twelve artifacts (`.ai-os/...`) + three CLI commands.
+v9 has one default layout only:
 
-```
-<your-project>/
-  AGENTS.md                          # Delivery constitution (≤150 lines)
-  CLAUDE.md, GEMINI.md               # Lightweight pointers (≤30 lines)
+```text
+<project-root>/
+  AGENTS.md
   .ai-os/
-    MISSION.md                       # Goal + success criteria
-    DESIGN.md                        # Key design + acceptance
-    STATE.md                         # Session recovery (gitignored)
-    memory.md                        # Stable decisions + conventions
-    baseline-log/                    # Change and baseline records
-    specs/                           # Local contracts
-    tasks.yaml                       # Tasks with owners
-    risk-register.md                 # High-risk register
-    release-plan.md                  # Release plan
-    verification-matrix.yaml         # Regression assertions
-    design-pack/                     # Reverse-spec parity artifacts
-    evals/                           # Project-level failure-mode samples
+    MISSION.md
+    memory.md
+    framework.toml
+    managed-files.tsv
+    lanes/
+      default/
+        lane.toml
+        MISSION.md
+        DESIGN.md
+        STATE.md
+        baseline-log/
+        specs/
+        tasks.yaml
+        risk-register.md
+        release-plan.md
+        verification-matrix.yaml
+        design-pack/
+          parity-map.md
+        evals/
 ```
 
-All twelve artifacts are always installed. No profiles. No selection. Agents use only what the task needs.
+Root `.ai-os/MISSION.md` is the **shared host-project context**.  
+`.ai-os/lanes/default/MISSION.md` is the **current delivery baseline**.
 
-## Five core requirements (the constitution)
+## Five core requirements
 
-1. **Goal and user confirmation first** — serve the user's real goal, not the tool's defaults
-2. **Key design locked before scaling out** — modeling, flows, shared-layer side effects all locked before broad implementation
-3. **Adaptive governance** — P0 / P1 / P2 by risk; artifact depth scales with risk, not project type
-4. **Evidence-based completion** — four gates (design / logic / implementation / delivery) + parity-gate for reverse-spec
-5. **Recoverable project memory** — any session can be resumed from artifacts alone
+1. Goal and user confirmation first
+2. Key design and logic locked before scale-out
+3. Adaptive governance by risk and ambiguity
+4. Evidence-based completion
+5. Recoverable project memory
 
 Full text: [AGENTS.md](AGENTS.md)
 
@@ -66,100 +73,77 @@ Full text: [AGENTS.md](AGENTS.md)
 
 | Command | Purpose |
 |---|---|
-| `create-ai-os [dir]` | Install all 12 artifacts + AGENTS.md into the target |
-| `create-ai-os doctor [dir]` | Check artifact completeness and constitution compliance |
-| `create-ai-os upgrade [dir]` | Migrate a v7 AI-OS project to v8 |
+| `create-ai-os [dir]` | Install AI-OS v9 canonical layout |
+| `create-ai-os doctor [dir]` | Check layout health and constitution compliance |
+| `create-ai-os upgrade [dir]` | Migrate legacy AI-OS layouts to v9 |
 
-No slash commands. No profile flags. No skill system. Behavior is rule-driven via `AGENTS.md`. See [docs/cli.md](docs/cli.md).
+No slash commands. No profile flags. No skill system.
 
 ## How agents use AI-OS
 
-There are no slash commands in v8. When an AI agent opens a project with `AGENTS.md`, it reads the constitution and **routes work by task type**:
+There are no slash commands in v9. When an AI agent opens a repo with `AGENTS.md`, it should:
 
-| User says | Agent (per constitution) does |
+- read `AGENTS.md`
+- read `.ai-os/lanes/default/STATE.md` first for current recovery
+- read `.ai-os/lanes/default/MISSION.md` for the active delivery baseline
+- read `.ai-os/MISSION.md` for shared host-project context
+
+Behavior is rule-driven by task type:
+
+| User says | Agent should do |
 |---|---|
-| "Build me a new feature" | Produces `MISSION.md` + `baseline-log/CR-*.md`, waits for confirmation |
-| "The requirement changed" | Writes `baseline-log/CR-*.md` impact analysis, updates MISSION/DESIGN, waits for confirmation |
-| "Fix this bug" | States root cause + reproduction + files to change, waits for "go" |
-| "Is it done?" | Runs project-native static check + regression + evidence checklist; never accepts ReadLints alone |
-| "I'm back after a break" | Reads `STATE.md`, reconstructs if missing |
+| “Build a new feature” | produce / update lane `MISSION.md`, then stop for confirmation |
+| “The requirement changed” | write lane `baseline-log/CR-*.md` before code changes |
+| “Fix this bug” | state root cause + scope + files first, then wait for go |
+| “Is it done?” | run project-native static check + regression + evidence review |
+| “I’m back” | resume from lane `STATE.md` first |
 
-Full behavior rules: [AGENTS.md §3](AGENTS.md).
+## Why v9 changed the layout
 
-## How this compares
+v8 kept the right governance ideas, but drifted on the default layout:
 
-| | Vibe coding | Spec-Kit | Kiro | Cursor long-running | Claude Code MEMORY | **AI-OS v8** |
-|---|---|---|---|---|---|---|
-| Goal alignment | — | yes | yes | — | — | yes (constitution) |
-| Design lock | — | yes | yes | — | — | yes (constitution) |
-| Change management | — | — | — | — | — | yes (`baseline-log/`) |
-| Evidence gates | — | — | — | — | — | yes (4 gates + parity) |
-| Cross-session recovery | — | — | partial | — | partial | yes (`STATE.md`) |
-| Cross-agent | — | yes | no (IDE-bound) | no | no | yes (agents.md standard) |
-| Full lifecycle | — | 0→1 only | 0→1 mostly | execution only | memory only | yes (all phases) |
+- some docs described `lanes/default/` as canonical
+- the installer wrote root-only `.ai-os/*`
+- maintenance docs and problem coverage still pointed at removed legacy anchors
 
-AI-OS occupies a deliberate gap: a cross-agent, full-lifecycle, minimal-surface delivery constitution. It does not compete with harnesses, models, IDEs, or native memory systems — it sits above them.
+v9 resolves that by making **shared root + default lane** the only canonical truth across:
 
-## When to use each role
+- installer output
+- doctor health checks
+- upgrade migration
+- docs and examples
+- repo self-hosting
 
-- **Fresh project**: install → agent reads AGENTS.md → guides you through MISSION.md → locks DESIGN.md → implements with tasks.yaml → verifies with evidence
-- **Existing project**: install → agent reads AGENTS.md + your code → proposes MISSION.md that reflects current state → you confirm → continue
-- **Requirement change**: agent writes `baseline-log/CR-*.md` before any code change
-- **Bug fix**: agent states root cause + impact before first write
-- **Team**: `tasks.yaml` owners + `baseline-log/` timestamp naming + `memory.md` union merge
-- **High-risk work**: `risk-register.md` + `release-plan.md` + `verification-matrix.yaml` with real failure-mode guards
+## When to use lanes
 
-## Reverse-spec projects
+You always get `lanes/default/`. Most projects will only ever use that lane.
 
-When you are replicating an existing product, API, or design, populate `.ai-os/design-pack/parity-map.md`. The fifth gate (parity) requires every referenced field, behavior, and contract to have a matching entry.
+Create more lanes only when you truly have separate long-lived delivery lines, release trains, or teams working in parallel with different current baselines.
 
-## Team collaboration
-
-Install auto-configures `.gitignore` and `.gitattributes`:
-
-- `STATE.md` is session-local (gitignored)
-- `memory.md` uses union merge
-- `baseline-log/` uses per-record timestamp filenames to avoid merge conflicts
-
-Skip team config with `--no-team-config` if you are the only maintainer.
-
-## Multiple parallel delivery lines
-
-If a single project has multiple parallel delivery trains (e.g., separate release cadences), create `lanes/`:
-
-```
-.ai-os/
-  memory.md              # shared across lanes
-  lanes/
-    payments/            # manually created lane
-      MISSION.md
-      DESIGN.md
-      ...
-```
-
-Manually create the `lanes/` directory when the second train starts. AI-OS v8 does not provide a `lane add` command — lanes are just directories with `lane.toml`. Default single-lane projects do not use `lanes/` at all.
-
-## Migration from v7
-
-v7 is a different design (slash commands, skills, workflows, 15 CLI subcommands, 3 profiles). v8 replaces all of it with rule-driven behavior and 3 CLI commands.
+## Migration
 
 ```bash
 npx --yes github:royeedai/ai-os upgrade .
 ```
 
-See [docs/migrate-v7-to-v8.md](docs/migrate-v7-to-v8.md) for the full mapping.
+`upgrade` now normalizes legacy layouts to v9:
 
-v7 users who prefer the command-driven model can stay on the `v7-legacy` branch.
+- v7 legacy
+- v8 root-only
+- v8 hybrid root+lane drift
+
+See [docs/migrate-to-v9.md](docs/migrate-to-v9.md).
 
 ## Further reading
 
-- [AGENTS.md](AGENTS.md) — the constitution (≤150 lines)
-- [PROJECT_PURPOSE.md](PROJECT_PURPOSE.md) — positioning and non-goals
-- [docs/constitution-spec.md](docs/constitution-spec.md) — AI Delivery Constitution Spec v1.0
-- [docs/artifacts.md](docs/artifacts.md) — 12-artifact schema
-- [docs/migrate-v7-to-v8.md](docs/migrate-v7-to-v8.md) — v7 → v8 guide
-- [docs/cli.md](docs/cli.md) — CLI reference
-- [docs/maintainers.md](docs/maintainers.md) — AI-OS repo maintenance guide
+- [AGENTS.md](AGENTS.md)
+- [PROJECT_PURPOSE.md](PROJECT_PURPOSE.md)
+- [docs/artifacts.md](docs/artifacts.md)
+- [docs/cli.md](docs/cli.md)
+- [docs/constitution-spec.md](docs/constitution-spec.md)
+- [docs/getting-started.md](docs/getting-started.md)
+- [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
+- [docs/maintainers.md](docs/maintainers.md)
 
 ## License
 

@@ -1,0 +1,21 @@
+impact_rules:
+  - when: "layout-change"
+    run:
+      - "npm test"
+      - "npm run lint"
+
+failure_modes:
+  - id: FM-001
+    scenario: "规范文档与 install / doctor / upgrade 表达的默认布局不一致"
+    expected: "docs tests 失败并阻断发布"
+    guard: "test/docs.test.js"
+  - id: FM-002
+    scenario: "root-only v8 布局被 doctor 误判为健康"
+    expected: "doctor 返回非健康并提示 upgrade"
+    guard: "test/doctor.test.js"
+
+guards:
+  - "test/install.test.js"
+  - "test/doctor.test.js"
+  - "test/upgrade.test.js"
+  - "test/docs.test.js"

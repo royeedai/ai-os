@@ -40,7 +40,7 @@ Agent then runs `curl /api/categories` in the terminal (or asks you to) and find
 
 ## 4. Agent flags this as P1, not P2
 
-Because the fix touches shared infrastructure (wrapper) and multiple modules, it's no longer a single-point P2 debug. Agent escalates to P1 and adds the wrapper contract registry to `.ai-os/memory.md` (cross-layer contract § 8.1):
+Because the fix touches shared infrastructure (wrapper) and multiple modules, it's no longer a single-point P2 debug. Agent escalates to P1 and adds the wrapper contract registry to root `.ai-os/memory.md` (cross-layer contract § 8.1):
 
 ```
 | Wire field | Defined in | Consumers | Change requires |
@@ -52,7 +52,7 @@ Because the fix touches shared infrastructure (wrapper) and multiple modules, it
 
 **You**: "Go with (B), update all frontend consumers."
 
-Agent writes a `change_scope` in `.ai-os/tasks.yaml`:
+Agent writes a `change_scope` in `.ai-os/lanes/default/tasks.yaml`:
 
 - Only these 5 files will be edited
 - `out_of_scope_guard`: "Do not refactor, rename, or touch unrelated code"
@@ -69,7 +69,7 @@ Agent writes a `change_scope` in `.ai-os/tasks.yaml`:
 
 ## 7. Stable failure mode guard
 
-The wrapper name drift is a stable failure pattern. Agent adds to `.ai-os/verification-matrix.yaml`:
+The wrapper name drift is a stable failure pattern. Agent adds to `.ai-os/lanes/default/verification-matrix.yaml`:
 
 ```yaml
 failure_modes:
@@ -80,7 +80,7 @@ failure_modes:
       - "memory.md §8.1 row must be updated before wrapper changes"
 ```
 
-Future agents reading AGENTS.md + `verification-matrix.yaml` will check this automatically.
+Future agents reading AGENTS.md + lane `verification-matrix.yaml` will check this automatically.
 
 ## What the agent NEVER did
 

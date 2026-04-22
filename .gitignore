@@ -1,3 +1,8 @@
 .DS_Store
 node_modules/
 npm-debug.log*
+
+# AI-OS v9 managed (session-local and generated files)
+.ai-os/lanes/*/STATE.md
+.ai-os/framework.toml
+.ai-os/managed-files.tsv

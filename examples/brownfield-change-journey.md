@@ -18,7 +18,7 @@ The agent now reads `AGENTS.md` on every session.
 **Agent behavior (per AGENTS.md §3, requirement-change rule)**:
 
 1. Does NOT immediately start coding
-2. Creates `.ai-os/baseline-log/CR-20260422-141000-csv-bulk-import.md` with:
+2. Creates `.ai-os/lanes/default/baseline-log/CR-20260422-141000-csv-bulk-import.md` with:
    - Impact analysis: what this changes in MISSION (catalog module scope expansion)
    - Files likely affected (controllers, services, db migrations, UI modal)
    - What sits on the boundary of shared infrastructure (request wrapper, validation pipeline, audit log)
@@ -32,7 +32,7 @@ Per AGENTS.md §2, brownfield changes must audit shared infrastructure before im
 Agent:
 
 1. Scans the repo for request wrappers, response adapters, audit-log middleware, validation pipelines
-2. Writes findings into `.ai-os/DESIGN.md` §7 (shared-layer side-effects clause)
+2. Writes findings into `.ai-os/lanes/default/DESIGN.md` §7 (shared-layer side-effects clause)
 3. Identifies: "Your existing `ImportPipeline` already handles CSV for the customers module. Propose reusing it for products."
 4. Asks: "Reuse existing `ImportPipeline` or write a product-specific pipeline? Trade-offs listed."
 
@@ -66,7 +66,7 @@ Agent runs:
 - Project-native static check (`pnpm build`, `pnpm typecheck`)
 - Regression: all existing tests still pass (no new failures introduced)
 - Edge cases: empty CSV, malformed CSV, duplicate SKUs, 10k+ rows, permission denied
-- Writes results to `.ai-os/verification-matrix.yaml` with failure-mode guards
+- Writes results to `.ai-os/lanes/default/verification-matrix.yaml` with failure-mode guards
 
 ## 6. Ship
 

@@ -89,14 +89,14 @@ AI-OS 的产品不是一堆 CLI 命令，是**一份可跨 agent 通用的 AI �
 
 **默认答案是"不纳入"**。AI 生态每 2 个月变一次，AI-OS 的内核必须比生态更稳。
 
-## 6. 当前阶段重点（v8）
+## 6. 当前阶段重点（v9）
 
 现阶段 AI-OS 优先推进：
 
-- 从"工具形态"重构到"宪法 + 工件 + 参考实现"形态
-- 从"15 CLI + 14 slash + skills"砍到"3 CLI + 行为规则驱动"
-- 保持内核表面积最小，吃模型指令字面化红利
-- 明确与 spec-kit / Kiro / Claude Code 原生能力的共存边界
-- 保持 12 组工件的完整能力，不牺牲难场景的可靠性
+- 用 shared-root + `lanes/default/` 固定 canonical layout
+- 让 install / doctor / upgrade / docs / examples / tests 只表达一套默认真相
+- 保持内核表面积最小，同时提升多人协作和跨 session 恢复的一致性
+- 明确根层共享工件与当前 lane 工件的职责边界
+- 保持 12 组工件的完整能力，不牺牲 brownfield / high-risk / reverse-spec 的可靠性
 
-更多见 `docs/migrate-v7-to-v8.md` 和 `docs/constitution-spec.md`。
+更多见 `docs/migrate-to-v9.md` 和 `docs/constitution-spec.md`。
