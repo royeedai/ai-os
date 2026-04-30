@@ -110,7 +110,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.1.0", `version is 9.1.0 (got ${version})`);
+  assert(version === "9.1.1", `version is 9.1.1 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");

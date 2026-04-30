@@ -17,18 +17,18 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `logic-confirmation` 不得通过
+- 逻辑确认门未通过不得进入交付
 - 必须要求 contract / state-flow 证据
-- reverse-spec 项目不能只做 UI 对照
+- reverse-spec 项目不能只做 UI 对照，必须走 parity 门
 
 ## 最低证据
 
-- spec 中的状态流转
-- acceptance 的 logic gate
+- lane `specs/*.spec.md` 中的状态流转
+- lane `verification-matrix.yaml` 中的逻辑 guard
 - API / 行为对照证据
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/workflows/verify.md`
-- `framework/.agents/skills/spec-validator/SKILL.md`
-- `framework/.agents/skills/acceptance-gate/SKILL.md`
+- `AGENTS.md`（五条核心要求 §4 四道门；reverse-spec parity-gate）
+- `framework/.agents/templates/lane/verification-matrix.yaml`
+- `framework/.agents/templates/lane/specs/example.spec.md`

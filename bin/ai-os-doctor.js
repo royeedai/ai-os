@@ -284,89 +284,90 @@ function checkLanes(paths) {
   return issues;
 }
 
-function checkSemanticConsistency(paths) {
+// W070: lane MISSION.md 的 "当前基线 ID" 必须能在 baseline-log/ 找到对应文件
+function checkBaselineConsistency(paths) {
   const issues = [];
+  if (!fileExists(paths.laneMission) || !isDirectory(paths.laneBaselineLog)) return issues;
+  const missionContent = fs.readFileSync(paths.laneMission, "utf8");
+  const baselineId = parseMissionBaselineId(missionContent);
+  if (!baselineId) return issues;
+  const expectedFile = path.join(paths.laneBaselineLog, `${baselineId}.md`);
+  if (!fileExists(expectedFile)) {
+    issues.push(issue("warning", "W070",
+      `lane MISSION.md references baseline_id "${baselineId}" but ${PROJECT_STATE_ROOT}/lanes/default/baseline-log/${baselineId}.md does not exist.`));
+  }
+  return issues;
+}
 
-  // W070: lane MISSION.md 的 "当前基线 ID" 必须能在 baseline-log/ 找到对应文件
-  if (fileExists(paths.laneMission) && isDirectory(paths.laneBaselineLog)) {
-    const missionContent = fs.readFileSync(paths.laneMission, "utf8");
-    const baselineId = parseMissionBaselineId(missionContent);
-    if (baselineId) {
-      const expectedFile = path.join(paths.laneBaselineLog, `${baselineId}.md`);
-      if (!fileExists(expectedFile)) {
-        issues.push(issue("warning", "W070",
-          `lane MISSION.md references baseline_id "${baselineId}" but ${PROJECT_STATE_ROOT}/lanes/default/baseline-log/${baselineId}.md does not exist.`));
+// W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
+function checkTaskOwners(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneTasks)) return issues;
+  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
+  const lines = tasksContent.split(/\r?\n/);
+  const tasksWithoutOwner = [];
+  let inTasks = false;
+  let currentTaskId = null;
+  let currentTaskHasOwner = false;
+  let currentTaskIndent = -1;
+  const closeTask = () => {
+    if (currentTaskId && !currentTaskHasOwner) tasksWithoutOwner.push(currentTaskId);
+    currentTaskId = null;
+    currentTaskHasOwner = false;
+    currentTaskIndent = -1;
+  };
+  for (const line of lines) {
+    const topLevel = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*$/);
+    if (topLevel) {
+      closeTask();
+      inTasks = topLevel[1] === "tasks";
+      continue;
+    }
+    if (!inTasks) continue;
+    const idMatch = line.match(/^(\s+)-\s*id:\s*(\S+)/);
+    if (idMatch) {
+      closeTask();
+      currentTaskId = idMatch[2];
+      currentTaskIndent = idMatch[1].length;
+      continue;
+    }
+    if (currentTaskId !== null) {
+      const ownerMatch = line.match(/^(\s+)owner:\s*(\S+)/);
+      if (ownerMatch && ownerMatch[1].length > currentTaskIndent) {
+        currentTaskHasOwner = true;
       }
     }
   }
-
-  // W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
-  if (fileExists(paths.laneTasks)) {
-    const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
-    const lines = tasksContent.split(/\r?\n/);
-    const tasksWithoutOwner = [];
-    let inTasks = false;
-    let currentTaskId = null;
-    let currentTaskHasOwner = false;
-    let currentTaskIndent = -1;
-    const closeTask = () => {
-      if (currentTaskId && !currentTaskHasOwner) tasksWithoutOwner.push(currentTaskId);
-      currentTaskId = null;
-      currentTaskHasOwner = false;
-      currentTaskIndent = -1;
-    };
-    for (const line of lines) {
-      const topLevel = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*$/);
-      if (topLevel) {
-        closeTask();
-        inTasks = topLevel[1] === "tasks";
-        continue;
-      }
-      if (!inTasks) continue;
-      const idMatch = line.match(/^(\s+)-\s*id:\s*(\S+)/);
-      if (idMatch) {
-        closeTask();
-        currentTaskId = idMatch[2];
-        currentTaskIndent = idMatch[1].length;
-        continue;
-      }
-      if (currentTaskId !== null) {
-        const ownerMatch = line.match(/^(\s+)owner:\s*(\S+)/);
-        if (ownerMatch && ownerMatch[1].length > currentTaskIndent) {
-          currentTaskHasOwner = true;
-        }
-      }
-    }
-    closeTask();
-    if (tasksWithoutOwner.length > 0) {
-      issues.push(issue("warning", "W071",
-        `tasks.yaml has ${tasksWithoutOwner.length} task(s) without an owner field: ${tasksWithoutOwner.join(", ")}`));
-    }
+  closeTask();
+  if (tasksWithoutOwner.length > 0) {
+    issues.push(issue("warning", "W071",
+      `tasks.yaml has ${tasksWithoutOwner.length} task(s) without an owner field: ${tasksWithoutOwner.join(", ")}`));
   }
+  return issues;
+}
 
-  // W072: lane DESIGN.md 已填的 AC 必须至少有一项被 verification-matrix.yaml 引用
-  if (fileExists(paths.laneDesign) && fileExists(paths.laneVerificationMatrix)) {
-    const designContent = fs.readFileSync(paths.laneDesign, "utf8");
-    const matrixContent = fs.readFileSync(paths.laneVerificationMatrix, "utf8");
-    const acIds = [];
-    for (const line of designContent.split(/\r?\n/)) {
-      if (!line.startsWith("|")) continue;
-      const cells = line.split("|").slice(1, -1).map((c) => c.trim());
-      if (cells.length < 3) continue;
-      if (!/^AC-\d+/.test(cells[0])) continue;
-      const desc = cells[2] || "";
-      if (!desc || desc.includes("[")) continue; // skip placeholder / template rows
-      acIds.push(cells[0]);
-    }
-    if (acIds.length > 0) {
-      const referenced = acIds.filter((id) => matrixContent.includes(id));
-      if (referenced.length === 0) {
-        issues.push(issue("warning", "W072",
-          `verification-matrix.yaml does not reference any of the ${acIds.length} non-placeholder acceptance criteria from DESIGN.md (${acIds.join(", ")}).`));
-      }
-    }
+// W072: lane DESIGN.md 已填的 AC 必须至少有一项被 verification-matrix.yaml 引用
+function checkAcceptanceCoverage(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneDesign) || !fileExists(paths.laneVerificationMatrix)) return issues;
+  const designContent = fs.readFileSync(paths.laneDesign, "utf8");
+  const matrixContent = fs.readFileSync(paths.laneVerificationMatrix, "utf8");
+  const acIds = [];
+  for (const line of designContent.split(/\r?\n/)) {
+    if (!line.startsWith("|")) continue;
+    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    if (cells.length < 3) continue;
+    if (!/^AC-\d+/.test(cells[0])) continue;
+    const desc = cells[2] || "";
+    if (!desc || desc.includes("[")) continue; // skip placeholder / template rows
+    acIds.push(cells[0]);
   }
-
+  if (acIds.length === 0) return issues;
+  const referenced = acIds.filter((id) => matrixContent.includes(id));
+  if (referenced.length === 0) {
+    issues.push(issue("warning", "W072",
+      `verification-matrix.yaml does not reference any of the ${acIds.length} non-placeholder acceptance criteria from DESIGN.md (${acIds.join(", ")}).`));
+  }
   return issues;
 }
 
@@ -429,12 +430,12 @@ function main() {
     issues.push(...checkDefaultLane(paths));
     issues.push(...checkBaselineLog(paths.laneBaselineLog, ".ai-os/lanes/default/baseline-log"));
     issues.push(...checkLanes(paths));
-    issues.push(...checkSemanticConsistency(paths));
-  } else if (layoutMode === LAYOUT_MODE_ROOT_ONLY) {
-    if (fileExists(paths.rootBaselineLog)) {
-      issues.push(...checkBaselineLog(paths.rootBaselineLog, ".ai-os/baseline-log"));
-    }
+    issues.push(...checkBaselineConsistency(paths));
+    issues.push(...checkTaskOwners(paths));
+    issues.push(...checkAcceptanceCoverage(paths));
   }
+  // LAYOUT_MODE_ROOT_ONLY already triggered E060 above; further per-artifact
+  // checks are intentionally skipped because the only safe action is upgrade.
   issues.push(...checkGitignore(targetDir));
 
   const errors = issues.filter((item) => item.level === "error");

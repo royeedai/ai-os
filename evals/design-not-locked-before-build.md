@@ -17,20 +17,19 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- 必须先停在 `/align` 或 `/design`
-- `acceptance.yaml` 的 `design-confirmation` 不能通过
-- `/auto-advance` 不应进入大规模实现
+- 必须先停在对齐或关键设计阶段
+- lane `DESIGN.md` 的设计确认门未通过前不得进入实现
+- 用户未明确确认时不得自行推进阶段或跨过审批停点
 
 ## 最低证据
 
-- `.ai-os/MISSION.md`
-- `.ai-os/DESIGN.md`
-- `.ai-os/acceptance.yaml`
-- `.ai-os/STATE.md`
+- `.ai-os/lanes/default/MISSION.md`
+- `.ai-os/lanes/default/DESIGN.md`
+- `.ai-os/lanes/default/verification-matrix.yaml`
+- `.ai-os/lanes/default/STATE.md`
 
 ## 若需改 framework，优先检查
 
-- `framework/AGENTS.md`
-- `framework/.agents/workflows/design.md`
-- `framework/.agents/workflows/build.md`
-- `framework/.agents/skills/acceptance-gate/SKILL.md`
+- `AGENTS.md`（五条核心要求 §2；绝对禁止 §1、§11；行为规则节"关键设计未锁"和"实现阶段"）
+- `framework/.agents/templates/lane/DESIGN.md`
+- `framework/.agents/templates/lane/verification-matrix.yaml`

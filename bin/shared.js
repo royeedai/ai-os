@@ -15,7 +15,7 @@ const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const FRAMEWORK_ROOT = path.join(PACKAGE_ROOT, "framework");
 const SHARED_ROOT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "shared-root");
 const LANE_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "lane");
-const LEGACY_PROJECT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "project");
+const IDE_POINTERS_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "ide-pointers");
 const ROOT_AGENTS_FILE = path.join(PACKAGE_ROOT, "AGENTS.md");
 
 const PROJECT_STATE_ROOT = ".ai-os";
@@ -132,26 +132,6 @@ function fileExists(absPath) {
 
 function isDirectory(absPath) {
   return fileExists(absPath) && fs.statSync(absPath).isDirectory();
-}
-
-function copyFile(src, dest) {
-  ensureDir(path.dirname(dest));
-  fs.copyFileSync(src, dest);
-}
-
-function copyDirRecursive(srcDir, destDir) {
-  if (!fileExists(srcDir)) return;
-  ensureDir(destDir);
-  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(srcDir, entry.name);
-    const destPath = path.join(destDir, entry.name);
-    if (entry.isDirectory()) {
-      copyDirRecursive(srcPath, destPath);
-    } else if (entry.isFile()) {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
 }
 
 function readText(absPath) {
@@ -348,43 +328,19 @@ function writeManagedFilesManifest(targetDir, { laneId = DEFAULT_LANE_ID } = {})
 // IDE adapter files (lightweight pointers to AGENTS.md)
 // ---------------------------------------------------------------------------
 
-// v9.1: thin stubs only. Do NOT duplicate constitution rules here — drift risk.
-// The full constitution lives in AGENTS.md. These files exist only because some
-// agents (e.g. Claude Code as of 2026-03) do not yet auto-load AGENTS.md.
-const CLAUDE_POINTER = `# Claude Code
-
-This project follows AI-OS v9. See [AGENTS.md](AGENTS.md) for the delivery constitution.
-
-Read in order on every session:
-
-1. [AGENTS.md](AGENTS.md)
-2. [.ai-os/lanes/default/STATE.md](.ai-os/lanes/default/STATE.md)
-3. [.ai-os/lanes/default/MISSION.md](.ai-os/lanes/default/MISSION.md)
-4. [.ai-os/MISSION.md](.ai-os/MISSION.md)
-`;
-
-const GEMINI_POINTER = `# Gemini CLI / Antigravity
-
-This project follows AI-OS v9. See [AGENTS.md](AGENTS.md) for the delivery constitution.
-
-Read in order on every session:
-
-1. [AGENTS.md](AGENTS.md)
-2. [.ai-os/lanes/default/STATE.md](.ai-os/lanes/default/STATE.md)
-3. [.ai-os/lanes/default/MISSION.md](.ai-os/lanes/default/MISSION.md)
-4. [.ai-os/MISSION.md](.ai-os/MISSION.md)
-`;
-
+// v9.1: thin stubs only. Do NOT duplicate constitution rules in these templates
+// — drift risk. The full constitution lives in AGENTS.md. These files exist
+// only because some agents (e.g. Claude Code as of 2026-03) do not yet
+// auto-load AGENTS.md.
 function installIdeFiles(targetDir, { overwrite = false } = {}) {
-  const files = [
-    { name: "CLAUDE.md", content: CLAUDE_POINTER },
-    { name: "GEMINI.md", content: GEMINI_POINTER },
-  ];
   const installed = [];
-  for (const { name, content } of files) {
+  for (const name of IDE_POINTER_FILES) {
+    const src = path.join(IDE_POINTERS_TEMPLATE_ROOT, name);
+    if (!fileExists(src)) continue;
     const dest = path.join(targetDir, name);
     if (fileExists(dest) && !overwrite) continue;
-    fs.writeFileSync(dest, content);
+    ensureDir(path.dirname(dest));
+    fs.copyFileSync(src, dest);
     installed.push(name);
   }
   return installed;
@@ -546,16 +502,6 @@ function getArtifactPaths(targetDir) {
     lanes: path.join(aiOsDir, LANES_ROOT),
     metadata: path.join(aiOsDir, METADATA_FILE),
     managedFiles: path.join(aiOsDir, MANAGED_FILES_MANIFEST),
-    rootDesign: path.join(aiOsDir, "DESIGN.md"),
-    rootState: path.join(aiOsDir, "STATE.md"),
-    rootBaselineLog: path.join(aiOsDir, "baseline-log"),
-    rootSpecs: path.join(aiOsDir, "specs"),
-    rootTasks: path.join(aiOsDir, "tasks.yaml"),
-    rootRiskRegister: path.join(aiOsDir, "risk-register.md"),
-    rootReleasePlan: path.join(aiOsDir, "release-plan.md"),
-    rootVerificationMatrix: path.join(aiOsDir, "verification-matrix.yaml"),
-    rootDesignPack: path.join(aiOsDir, "design-pack"),
-    rootEvals: path.join(aiOsDir, "evals"),
   };
 }
 
@@ -569,7 +515,7 @@ module.exports = {
   FRAMEWORK_ROOT,
   SHARED_ROOT_TEMPLATE_ROOT,
   LANE_TEMPLATE_ROOT,
-  LEGACY_PROJECT_TEMPLATE_ROOT,
+  IDE_POINTERS_TEMPLATE_ROOT,
   ROOT_AGENTS_FILE,
   PROJECT_STATE_ROOT,
   LANES_ROOT,
@@ -603,8 +549,6 @@ module.exports = {
   ensureDir,
   fileExists,
   isDirectory,
-  copyFile,
-  copyDirRecursive,
   readText,
   // baseline
   formatTimestamp,

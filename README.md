@@ -98,22 +98,6 @@ Behavior is rule-driven by task type:
 | “Is it done?” | run project-native static check + regression + evidence review |
 | “I’m back” | resume from lane `STATE.md` first |
 
-## Why v9 changed the layout
-
-v8 kept the right governance ideas, but drifted on the default layout:
-
-- some docs described `lanes/default/` as canonical
-- the installer wrote root-only `.ai-os/*`
-- maintenance docs and problem coverage still pointed at removed legacy anchors
-
-v9 resolves that by making **shared root + default lane** the only canonical truth across:
-
-- installer output
-- doctor health checks
-- upgrade migration
-- docs and examples
-- repo self-hosting
-
 ## When to use lanes
 
 You always get `lanes/default/`. Most projects will only ever use that lane.

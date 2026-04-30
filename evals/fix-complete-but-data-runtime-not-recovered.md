@@ -17,21 +17,19 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `/debug` 必须优先追共享包装层，并在结论中显式拆开代码状态 / 数据状态 / 运行状态
-- `/build` 对跨层或共享改动执行 step validation，不要把所有验证后置到最后
-- `/verify` / `/ship` 不得把待补 SQL、待重启服务、待刷新会话写成“AI 已全部完成”
+- 修复 bug 阶段必须优先追共享包装层，并在结论中显式拆开代码状态 / 数据状态 / 运行状态
+- 实现阶段对跨层或共享改动执行 step validation，不要把所有验证后置到最后
+- 验证和交付收口不得把待补 SQL、待重启服务、待刷新会话写成"AI 已全部完成"，必须按双清单"AI 已完成 vs 需人工执行"显式拆分
 
 ## 最低证据
 
-- debug 输出中的代码状态 / 数据状态 / 运行状态三分诊断
-- tasks 中的 `step_validation`
-- acceptance / release 证据中的 `state-triage-note` 或等价记录
+- 修复 bug 输出中的代码状态 / 数据状态 / 运行状态三分诊断
+- lane `tasks.yaml` 中的 `step_validation`
+- lane `verification-matrix.yaml` / `release-plan.md` 中的 `state-triage-note` 或等价记录
 
 ## 若需改 framework，优先检查
 
-- `framework/AGENTS.md`
-- `framework/.agents/workflows/build.md`
-- `framework/.agents/workflows/debug.md`
-- `framework/.agents/workflows/verify.md`
-- `framework/.agents/templates/project/tasks.yaml`
-- `framework/.agents/templates/project/acceptance.yaml`
+- `AGENTS.md`（五条核心要求 §4"代码状态 / 数据状态 / 运行状态"三段拆分；行为规则节"修复 bug"、"实现阶段"、"验证阶段"、"交付收口"）
+- `framework/.agents/templates/lane/tasks.yaml`
+- `framework/.agents/templates/lane/verification-matrix.yaml`
+- `framework/.agents/templates/lane/release-plan.md`

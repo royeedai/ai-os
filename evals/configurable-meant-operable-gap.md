@@ -17,18 +17,17 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `/align` 和 `/change-request` 遇到“配置 / 设置 / 选项”必须轻量追问操作闭环
-- `MISSION.md` 必须把结论写进澄清问题清单或范围说明
-- 未完成这一步前，不能把“可配置”直接等价成某一种实现方式
+- 对齐阶段和变更请求遇到"配置 / 设置 / 选项"等歧义词必须轻量追问操作闭环
+- lane `MISSION.md` 必须把结论写进澄清问题清单或范围说明
+- 未完成这一步前，不能把"可配置"直接等价成某一种实现方式
 
 ## 最低证据
 
-- `MISSION.md` 中关于配置闭环的澄清记录
-- align / change-request 输出里的轻量追问
-- plan / build 产物与已确认闭环一致
+- lane `MISSION.md` 中关于配置闭环的澄清记录
+- 对齐阶段或 lane `baseline-log/CR-*.md` 输出里的轻量追问
+- 任务拆解 / 实现产物与已确认闭环一致
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/workflows/align.md`
-- `framework/.agents/workflows/change-request.md`
-- `framework/.agents/templates/project/MISSION.md`
+- `AGENTS.md`（五条核心要求 §1 关于"配置 / 选项 / 设置"歧义词的澄清要求）
+- `framework/.agents/templates/lane/MISSION.md`

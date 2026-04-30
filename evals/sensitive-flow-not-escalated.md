@@ -19,18 +19,21 @@ first_baseline_id: ""
 ## AI-OS 预期行为
 
 - 命中高风险触发词族时，必须自动升级为 `high-risk`
-- `/plan` 必须补风险登记、发布计划和专项审查要求
-- `/ship` / `release-check` 必须拦截缺少授权 / 并发 / degraded-path 证据的交付
+- 任务拆解必须补风险登记、发布计划和专项审查要求
+- 交付收口必须拦截缺少授权 / 并发 / degraded-path 证据的交付
+- 没有审批结论不得自动推进
 
 ## 最低证据
 
-- acceptance 中的 `quality_tier` 和 `required_special_reviews`
-- risk-register / release-plan / verification-matrix
-- tasks 中的 `risk_triggers` 和 `approval_required`
+- lane `lane.toml` 的 `risk_tier = "high"` 和 `quality_tier = "high-risk"`
+- lane `risk-register.md` / `release-plan.md` / `verification-matrix.yaml`
+- lane `tasks.yaml` 中高风险任务的 `approval_required: true`
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/references/risk-triggers.md`
-- `framework/.agents/skills/project-planner/SKILL.md`
-- `framework/.agents/skills/acceptance-gate/SKILL.md`
-- `bin/ai-os-release-check.js`
+- `AGENTS.md`（高风险动作节；五条核心要求 §3 自适应治理；绝对禁止 §11）
+- `framework/.agents/templates/lane/lane.toml`
+- `framework/.agents/templates/lane/risk-register.md`
+- `framework/.agents/templates/lane/release-plan.md`
+- `framework/.agents/templates/lane/tasks.yaml`
+- `bin/ai-os-doctor.js`（W071 task owner 与 high-risk 治理对接）

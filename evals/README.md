@@ -74,4 +74,4 @@ Grouped by the five core requirements they enforce.
 ## Notes
 
 - v8 removed evals tied to v7 lane machinery (`legacy-to-lanes-migration-skipped`, `lane-archive-without-shared-reflux`) since lanes are now optional and non-automated.
-- Internal references to `framework/.agents/workflows/*.md` in older evals are stale. In v8, the equivalent rules all live in the root `AGENTS.md` behavior-rules section. Those evals remain valid as failure-mode descriptions; only the "where to fix" pointer has moved.
+- v9.1.1 realigned every eval's "若需改 framework，优先检查" pointers to the v9 surface: rules live in root `AGENTS.md` behavior-rule sections; per-lane structure lives under `framework/.agents/templates/lane/`; shared root structure lives under `framework/.agents/templates/shared-root/`. No eval should still reference `framework/.agents/workflows/*` or `framework/.agents/skills/*` (those were the v7 surface).

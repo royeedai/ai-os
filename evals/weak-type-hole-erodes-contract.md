@@ -20,8 +20,8 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `code-review-guard` Step 1.5 把"弱类型洞扫描"作为硬检查项，命中即视为实现质量门未通过：
-  - 禁止 `Map<String, ?>` / `JSONObject` / `dict` / 自由对象作为契约载体（仅透传 / 动态字段 / 第三方回调允许，需注释 + memory.md 技术债登记）
+- 验证阶段必须把"弱类型洞扫描"作为硬检查项，命中即视为实现质量门未通过：
+  - 禁止 `Map<String, ?>` / `JSONObject` / `dict` / 自由对象作为契约载体（仅透传 / 动态字段 / 第三方回调允许，需注释 + `.ai-os/memory.md` 技术债登记）
   - 禁止前端裸字符串动词无 method × path × DTO 四元组校验
   - 禁止 `catch (Exception)` + 笼统业务码包装不带 cause、不 log 堆栈
   - DTO 所有字段必须有 service 层使用点或显式保留注释
@@ -29,18 +29,17 @@ first_baseline_id: ""
   - 业务关键字段使用带默认 max/min/精度/格式化的 UI 控件时必须显式覆盖默认值
   - ID 类字段（Long/BIGINT/Snowflake）禁止使用会走 JS Number 的输入控件
   - 用户自由文本字段（SQL/表达式/JSON）必须在 DTO 或 service 入口声明归一化 owner
-- `derived-rules.md` 4.4 节追加禁令：禁止弱类型洞作为契约载体
-- 项目特定的具体类型选择（用什么类型替代 Map / 用什么控件替代 input-number / 用什么异常基类）留给项目 CONVENTIONS.md，框架只锁定通用反模式禁令
+- 项目特定的具体类型选择（用什么类型替代 Map / 用什么控件替代 input-number / 用什么异常基类）留给项目 `.ai-os/memory.md`，框架只锁定通用反模式禁令
 
 ## 最低证据
 
-- `code-review-guard` 验收报告中包含"弱类型洞扫描"逐项结论
-- 若存在豁免（如必须用 Map 透传第三方回调），代码注释 + spec + memory.md 技术债条目同时存在
-- `.ai-os/CONVENTIONS.md` 中"禁止模式"节明确登记本项目的反模式选择
+- 验证阶段产出物（lane `verification-matrix.yaml` failure_modes / 评审记录）中包含"弱类型洞扫描"逐项结论
+- 若存在豁免（如必须用 Map 透传第三方回调），代码注释 + lane `specs/*.spec.md` + `.ai-os/memory.md` 技术债条目同时存在
+- `.ai-os/memory.md` 中"禁止模式"节明确登记本项目的反模式选择
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/skills/code-review-guard/SKILL.md`（Step 1.5b、Step 0 C）
-- `framework/.agents/references/derived-rules.md`（4.4 节追加）
-- `framework/.agents/templates/project/CONVENTIONS.md`（禁止模式节）
+- `AGENTS.md`（五条核心要求 §4 证据化完成；行为规则节"验证阶段"）
+- `framework/.agents/templates/shared-root/memory.md`（禁止模式节）
+- `framework/.agents/templates/lane/verification-matrix.yaml`
 - `docs/problem-ledger.md`（PL-034）

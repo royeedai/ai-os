@@ -17,20 +17,20 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `/plan` 必须根据 spec 的 `集成触点` 派生 `context_files`、`impact_tags`、`derived_checks`
-- `/build` 和 `/verify` 必须按联动矩阵补查入口、映射、运行态影响
-- `verification-matrix.yaml` 必须支持 `impact_rules`
+- 任务拆解必须根据 lane `specs/*.spec.md` 的 `集成触点` 派生 `context_files`、`impact_tags`、`derived_checks`
+- 实现和验证阶段必须按联动矩阵补查入口、映射、运行态影响
+- lane `verification-matrix.yaml` 必须支持 `impact_rules`
 
 ## 最低证据
 
-- spec 中的 `集成触点`
-- tasks 中的 `impact_tags` / `derived_checks`
-- verification-matrix 中的 `impact_rules`
+- lane `specs/*.spec.md` 中的 `集成触点`
+- lane `tasks.yaml` 中的 `impact_tags` / `derived_checks`
+- lane `verification-matrix.yaml` 中的 `impact_rules`
 - contract / degraded-path 证据
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/skills/task-orchestrator/SKILL.md`
-- `framework/.agents/skills/fullstack-dev-checklist/SKILL.md`
-- `framework/.agents/templates/project/tasks.yaml`
-- `framework/.agents/templates/project/verification-matrix.yaml`
+- `AGENTS.md`（行为规则节"任务拆解"和"验证阶段"）
+- `framework/.agents/templates/lane/tasks.yaml`
+- `framework/.agents/templates/lane/verification-matrix.yaml`
+- `framework/.agents/templates/lane/specs/example.spec.md`

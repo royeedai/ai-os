@@ -17,18 +17,18 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `spec-validator` 必须先判断 `sync` / `streaming` / `async-job` / `event-driven`
-- `/plan` 前必须把交互模式和选择理由写进 spec
-- `/build` 不得跳过已确定的交互模式
+- 关键设计阶段必须先判断 `sync` / `streaming` / `async-job` / `event-driven`
+- 任务拆解前必须把交互模式和选择理由写进 lane `DESIGN.md` 或 `specs/*.spec.md`
+- 实现阶段不得跳过已确定的交互模式
 
 ## 最低证据
 
-- spec 中的 `交互模式`
+- lane `specs/*.spec.md` 中的 `交互模式`
 - `推荐模式理由`
 - `拒绝的交互模式`
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/skills/spec-validator/SKILL.md`
-- `framework/.agents/workflows/plan.md`
-- `framework/.agents/templates/project/specs/example.spec.md`
+- `AGENTS.md`（五条核心要求 §2 关键设计与逻辑先锁定）
+- `framework/.agents/templates/lane/specs/example.spec.md`
+- `framework/.agents/templates/lane/DESIGN.md`

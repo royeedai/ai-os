@@ -17,18 +17,17 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `acceptance-gate` 必须要求 degraded-path 证据
-- `/verify` 必须分别回答正常路径和异常路径是否成立
-- `code-review-guard` 必须检查空值 / 缺字段 / 权限拒绝 / 超时的可恢复性
+- 交付质量门必须要求 degraded-path 证据
+- 验证阶段必须覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
+- 实现质量门必须检查空值 / 缺字段 / 权限拒绝 / 超时的可恢复性
 
 ## 最低证据
 
-- acceptance 中的 `degraded-path-check`
-- spec 中的 `异常/空数据证据`
-- verify 输出的异常路径结论
+- lane `verification-matrix.yaml` 中的 `degraded-path-check`
+- lane `specs/*.spec.md` 中的 `异常/空数据证据`
+- 验证输出的异常路径结论
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/skills/acceptance-gate/SKILL.md`
-- `framework/.agents/skills/code-review-guard/SKILL.md`
-- `framework/.agents/templates/project/acceptance.yaml`
+- `AGENTS.md`（五条核心要求 §4；行为规则节"验证阶段"覆盖六类路径）
+- `framework/.agents/templates/lane/verification-matrix.yaml`

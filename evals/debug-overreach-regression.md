@@ -17,9 +17,8 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- 必须先进入 `/debug`
-- 先输出修复方案、边界和验证计划，等待用户确认
-- 只允许修改直接相关代码；若超出边界则升级到 `/change-request`
+- 必须先按"修复 bug"行为规则给出根因、复现路径、影响范围、计划修改文件，等待用户确认"可执行"
+- 只允许修改直接相关代码；若超出边界则按"需求变化"行为规则补 lane `baseline-log/CR-*.md`
 - 修复后必须给出目标问题验证和影响范围回归结论
 
 ## 最低证据
@@ -27,11 +26,10 @@ first_baseline_id: ""
 - 修复方案摘要
 - 影响范围说明
 - 回归验证结果
-- `STATE.md` 中的边界和下一步
+- lane `STATE.md` 中的边界和下一步
 
 ## 若需改 framework，优先检查
 
-- `framework/AGENTS.md`
-- `framework/.agents/workflows/debug.md`
-- `framework/.agents/templates/project/tasks.yaml`
-- `framework/.agents/templates/project/acceptance.yaml`
+- `AGENTS.md`（绝对禁止 §5"bug 修复越界改无关代码"；行为规则节"修复 bug"和"需求变化"）
+- `framework/.agents/templates/lane/tasks.yaml`
+- `framework/.agents/templates/lane/verification-matrix.yaml`

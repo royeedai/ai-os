@@ -17,20 +17,19 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `/design`、`/plan`、`/build` 必须先输出副作用影响清单，再进入实现
-- `DESIGN.md` / spec / acceptance 必须留下 shared layer 影响面的结构化锚点
-- `/verify` 必须回查副作用清单与真实受影响范围是否一致
+- 关键设计、任务拆解、实现阶段必须先输出副作用影响清单，再进入实现
+- lane `DESIGN.md` / `specs/*.spec.md` / `verification-matrix.yaml` 必须留下 shared layer 影响面的结构化锚点
+- 验证阶段必须回查副作用清单与真实受影响范围是否一致
 
 ## 最低证据
 
-- `DESIGN.md` 中的 shared layer / 通用抽象副作用清单
-- spec 中的 shared layer / 包装层副作用审计
-- acceptance / verify 中的 `shared-impact-check` 证据或等价记录
+- lane `DESIGN.md` 中的 shared layer / 通用抽象副作用清单
+- lane `specs/*.spec.md` 中的 shared layer / 包装层副作用审计
+- lane `verification-matrix.yaml` 中的 `shared-impact-check` 证据或等价记录
 
 ## 若需改 framework，优先检查
 
-- `framework/AGENTS.md`
-- `framework/.agents/workflows/design.md`
-- `framework/.agents/workflows/plan.md`
-- `framework/.agents/workflows/build.md`
-- `framework/.agents/workflows/verify.md`
+- `AGENTS.md`（绝对禁止 §7"共享层改动没有副作用影响清单就进入实现"）
+- `AGENTS.md`（行为规则节"关键设计未锁"、"任务拆解"、"实现阶段"、"验证阶段"）
+- `framework/.agents/templates/lane/DESIGN.md`
+- `framework/.agents/templates/lane/verification-matrix.yaml`

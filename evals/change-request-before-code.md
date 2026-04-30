@@ -17,20 +17,21 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- 必须先进入 `/change-request`
-- 先分析影响范围，再更新 `MISSION.md` / 相关 spec / `STATE.md`
+- 任何需求变化必须先写 lane `baseline-log/CR-*.md`
+- 先分析影响范围，再更新 lane `MISSION.md` / `DESIGN.md` / `specs/` / `STATE.md`
 - 向用户输出整合后的最新核心需求、影响范围和风险，等待确认后再执行
 
 ## 最低证据
 
-- 更新后的 `MISSION.md`
-- 更新后的 spec
-- `STATE.md` 中的确认停点
+- 新增的 lane `baseline-log/CR-YYYYMMDD-HHMMSS-<slug>.md`
+- 更新后的 lane `MISSION.md`
+- 更新后的 lane `specs/*.spec.md`
+- lane `STATE.md` 中的确认停点
 - 变更影响说明
 
 ## 若需改 framework，优先检查
 
-- `framework/AGENTS.md`
-- `framework/.agents/workflows/change-request.md`
-- `framework/.agents/templates/project/MISSION.md`
-- `framework/.agents/templates/project/STATE.md`
+- `AGENTS.md`（绝对禁止 §4；行为规则节"需求变化"）
+- `framework/.agents/templates/lane/MISSION.md`
+- `framework/.agents/templates/lane/STATE.md`
+- `framework/.agents/templates/lane/baseline-log/BL-template.md`

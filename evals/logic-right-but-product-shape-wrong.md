@@ -17,18 +17,17 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `design-confirmation` 不得放行
-- `verify` 必须检查 Design 对照
-- `fullstack-dev-checklist` 必须覆盖页面结构和交互
+- 设计确认门不得放行
+- 验证阶段必须检查 Design 对照
+- 验证必须覆盖页面结构、信息架构和关键交互，而不只是接口测试
 
 ## 最低证据
 
-- `.ai-os/DESIGN.md`
+- `.ai-os/lanes/default/DESIGN.md`
 - 设计确认记录
 - 页面对照证据
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/workflows/design.md`
-- `framework/.agents/workflows/verify.md`
-- `framework/.agents/skills/fullstack-dev-checklist/SKILL.md`
+- `AGENTS.md`（五条核心要求 §2、§4；行为规则节"关键设计未锁"和"验证阶段"）
+- `framework/.agents/templates/lane/DESIGN.md`

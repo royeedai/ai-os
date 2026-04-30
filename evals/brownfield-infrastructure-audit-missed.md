@@ -17,19 +17,19 @@ first_baseline_id: ""
 
 ## AI-OS 预期行为
 
-- `/design` 和 `/debug` 必须先审计共享基础设施约定，再锁局部契约
-- `DESIGN.md` 或 spec 必须留下共享包装层 / 转换层 / 样式基准的记录
-- 自审和 verify 必须把共享基础设施影响纳入检查，而不是只看局部实现
+- 关键设计和修复 bug 阶段必须先审计共享基础设施约定，再锁局部契约
+- lane `DESIGN.md` 或 `specs/*.spec.md` 必须留下共享包装层 / 转换层 / 样式基准的记录
+- 自审和验证必须把共享基础设施影响纳入检查，而不是只看局部实现
 
 ## 最低证据
 
-- `DESIGN.md` 中的共享基础设施约定记录
-- debug / review 输出中的基础设施审计结论
-- verify / review 结果中对 request wrapper、DTO / adapter、样式基准等的核对
+- lane `DESIGN.md` 中的共享基础设施约定记录
+- 修复 bug 输出中的基础设施审计结论
+- 验证结果中对 request wrapper、DTO / adapter、样式基准等的核对
 
 ## 若需改 framework，优先检查
 
-- `framework/.agents/workflows/design.md`
-- `framework/.agents/workflows/debug.md`
-- `framework/.agents/skills/systematic-debugging/SKILL.md`
-- `framework/.agents/skills/fullstack-dev-checklist/SKILL.md`
+- `AGENTS.md`（五条核心要求 §2 brownfield / change / reverse-spec 必须先审计共享基础设施约定）
+- `AGENTS.md`（行为规则节"关键设计未锁"和"修复 bug"）
+- `framework/.agents/templates/lane/DESIGN.md`
+- `framework/skills/ai-os-delivery/SKILL.md`
