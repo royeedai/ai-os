@@ -8,6 +8,47 @@
 
 ---
 
+## 9.1.0 (2026-04-30) — Open standards alignment
+
+**Minor, fully backward compatible**. v9.1 keeps the canonical layout and three CLI commands intact. It adds open-standard interop (agentskills.io, MCP resources, AGENTS.md/Linux Foundation) and tightens the constitution at three points without growing the operating surface.
+
+### Added
+
+- `framework/skills/ai-os-delivery/SKILL.md` — AI-OS as an [agentskills.io spec v1.0](https://agentskills.io/specification)-compliant skill so any of the 27+ compatible agents (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...) can load AI-OS behavior without per-tool adapters
+- `docs/interop/mcp-resources.md` — `aios://` URI scheme covering all 12 artifacts plus a ≤50-line zero-dependency reference MCP server (default install does not start any server)
+- `docs/interop/claude-code.md` — coexistence with Claude Code via thin `CLAUDE.md` stub or skill loading
+- `docs/interop/cursor.md` — coexistence with Cursor `.cursor/rules/*.mdc` and `.cursor/skills/`
+- `docs/interop/kiro.md` — coexistence with Kiro steering + EARS-notation specs
+- `docs/interop/openspec.md` — coexistence with OpenSpec delta markers
+- `docs/interop/eu-ai-act.md` — engineering-narrative mapping of `baseline-log/` + `tasks.yaml` + `verification-matrix.yaml` + `risk-register.md` to EU AI Act Articles 12 / 14 / 17 (non-legal advice)
+- `examples/multi-tool-coexistence.md` — Cursor + Claude Code + AI-OS daily flow narrative
+- Three new doctor semantic-consistency warnings (W070/W071/W072) and `--strict` upgrades them to errors
+- `doctor --json` adds `semantic_warnings[]` field
+- Two new problem-ledger entries: PL-008 (cross-tool truth-source confusion), PL-009 (agents reloading artifacts without progressive disclosure)
+- Eval frontmatter `trigger_source` + `first_baseline_id` so promoted-from-verification-matrix failure modes can be distinguished from hand-authored ones
+
+### Changed
+
+- `AGENTS.md` (still ≤150 lines) adds two rules: progressive-disclosure layering (L1/L2/L3) under §5; failure-mode promotion threshold (≥3 root-cause hits) in behavior rules
+- `docs/artifacts.md` declares `layer` (L1/L2/L3) for every artifact and adds a "progressive disclosure" reference section
+- `docs/constitution-spec.md` bumped to v1.2 with non-breaking additions: layer field, agentskills.io wrapping, MCP URI scheme, failure-mode promotion, EU AI Act mapping
+- `CLAUDE.md` and `GEMINI.md` IDE pointers thinned to ≤10-line stubs that link to `AGENTS.md` instead of duplicating constitution text (drift-resistant)
+- `README.md` first screen adds two short pointers: agentskills.io install and MCP integration; everything else stays minimal
+
+### Tests
+
+- 375 assertions passing (was 245 in v9.0.0). New coverage: artifact layer declarations, SKILL.md spec compliance, MCP URI scheme completeness, doctor W070/W071/W072 trigger conditions, eval frontmatter, interop doc presence, CLAUDE/GEMINI stub-only invariant.
+
+### Migration
+
+None required. v9.0.x → v9.1.0 is additive. Existing repos benefit from the new doctor warnings as soon as they upgrade:
+
+```bash
+npx --yes github:royeedai/ai-os doctor . --strict
+```
+
+---
+
 ## 9.0.0 (2026-04-22) — Default lane reset
 
 **Breaking**. v9 makes **shared root + `.ai-os/lanes/default/`** the only canonical layout. Older root-only or hybrid layouts should run `npx create-ai-os upgrade .`.

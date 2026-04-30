@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Shared Layer Side-Effect Audit Missed
 
 ## 场景

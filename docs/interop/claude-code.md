@@ -1,0 +1,105 @@
+# AI-OS × Claude Code
+
+> Claude Code is Anthropic's terminal-native agent. As of March 2026 it does **not** auto-load `AGENTS.md`; it reads `CLAUDE.md` plus `agentskills.io`-format skills under `.claude/skills/` or `~/.claude/skills/`. AI-OS v9 keeps the constitution open via `AGENTS.md`, plus a thin `CLAUDE.md` stub and the official [`ai-os-delivery` skill](../../framework/skills/ai-os-delivery/SKILL.md) so Claude Code can pick it up natively.
+
+## TL;DR
+
+| Project shape | Recommended setup |
+|---|---|
+| Single-tool repo, Claude Code is the only agent | Mode A (CLAUDE.md stub only) |
+| Multi-tool repo, Claude Code + Cursor/Codex/Gemini | Mode B (AGENTS.md + lightweight CLAUDE.md stub) |
+| Want full progressive disclosure | Mode C (Mode B + install AI-OS skill) |
+
+## Mode A: CLAUDE.md as the only entry
+
+If Claude Code is the only agent, the constitution still lives in `AGENTS.md` for portability, and `CLAUDE.md` is a thin stub:
+
+```markdown
+# Claude Code session guide
+
+This project uses AI-OS v9. The full delivery constitution is in `AGENTS.md`.
+
+Before any work:
+
+1. Read `AGENTS.md`
+2. Read `.ai-os/lanes/default/STATE.md`
+3. Read `.ai-os/lanes/default/MISSION.md`
+4. Read `.ai-os/MISSION.md`
+
+Behavior is rule-driven. No slash commands.
+```
+
+`create-ai-os` writes this `CLAUDE.md` stub by default; remove it with `--no-ide-files` if you don't use Claude Code.
+
+## Mode B: AGENTS.md + CLAUDE.md stub (cross-tool)
+
+For repos where Claude Code coexists with Cursor / Codex / Gemini CLI / VS Code Copilot:
+
+- `AGENTS.md` — single source of truth (read by everyone except Claude Code as of March 2026)
+- `CLAUDE.md` — thin stub pointing back to `AGENTS.md`; do NOT duplicate constitution content here
+- `.ai-os/` — full artifact set per [docs/artifacts.md](../artifacts.md)
+
+When Anthropic ships native `AGENTS.md` support (open feature request), the `CLAUDE.md` stub becomes optional.
+
+## Mode C: install AI-OS as a Claude Code skill
+
+`framework/skills/ai-os-delivery/SKILL.md` follows the [agentskills.io spec v1.0](https://agentskills.io/specification). Install it project-locally:
+
+```bash
+mkdir -p .claude/skills
+cp -R node_modules/create-ai-os/framework/skills/ai-os-delivery .claude/skills/
+```
+
+Or globally with a tool like `npx skills add github:royeedai/ai-os` once your skill manager supports it.
+
+When the skill is active, Claude Code:
+
+1. Pre-loads only the `name` + `description` (~100 tokens) at startup
+2. Loads the full SKILL body when a task matches the description
+3. Pulls in artifact-specific files (MISSION, DESIGN, STATE, ...) only as needed via `bash` / `Read`
+
+This is the closest thing to "AI-OS as a runtime extension" without giving up portability.
+
+## Artifact coexistence
+
+| Claude Code surface | AI-OS artifact | Notes |
+|---|---|---|
+| `CLAUDE.md` | references `AGENTS.md` | stub only; no duplicate constitution |
+| `.claude/skills/ai-os-delivery/SKILL.md` | mirrors AI-OS rules in `agentskills.io` format | Mode C only |
+| `.claude/commands/<x>.md` | n/a | repo-specific user commands stay separate; do not encode AI-OS rules here |
+| Memory mode (`/memory`) | references `.ai-os/memory.md` | session-level Anthropic memory complements project-level AI-OS memory |
+| Subagents | `.ai-os/lanes/<lane>/MISSION.md` per agent | one subagent per lane is fine for parallel deliveries |
+
+## Anti-patterns
+
+1. **Copying constitution text into `CLAUDE.md`** — any drift becomes silent. Always link back to `AGENTS.md`.
+2. **Letting Claude `/memory` replace lane `STATE.md`** — Claude memory is session-local; `STATE.md` is the cross-session recovery anchor. Keep both.
+3. **Encoding AI-OS rules into `.claude/commands/`** — slash commands are imperative; AI-OS is rule-driven. Use the skill or `AGENTS.md`.
+4. **Running Claude Code skill plus `.cursor/rules/` plus a Codex `AGENTS.override.md` with three different versions of the rules** — pick `AGENTS.md` as the trunk and have all surfaces link, not duplicate.
+
+## What AI-OS adds that Claude Code does not
+
+| Capability | Claude Code | AI-OS |
+|---|---|---|
+| Session-level memory | yes (`/memory`) | — |
+| Tool restrictions per skill | yes (`allowed-tools`) | — |
+| Cross-session recovery anchor | partial (memory) | yes (`STATE.md`) |
+| Change-management baseline-log | — | yes |
+| Verification matrix + parity gate | — | yes |
+| Cross-IDE portability | — | yes (`AGENTS.md` + `agentskills.io`) |
+| Multi-lane delivery model | — | yes |
+| Default `doctor` health check | — | yes |
+
+## When the v9 install changes
+
+`create-ai-os` writes `CLAUDE.md` as a lightweight pointer by default. v9.1 keeps the same default but the stub content is **shorter** (≤10 lines, no rule duplication) so it remains pure routing. To skip:
+
+```bash
+npx --yes github:royeedai/ai-os --no-ide-files
+```
+
+## See also
+
+- [Skill source](../../framework/skills/ai-os-delivery/SKILL.md)
+- [MCP resources](mcp-resources.md) for protocol-level access (when remote/non-filesystem agents read AI-OS artifacts)
+- [spec-kit coexistence](spec-kit-coexistence.md) for 0→1 followed by AI-OS governance

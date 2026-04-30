@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Configurable Meant Operable Gap
 
 ## 场景

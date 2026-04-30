@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Parity Before Reuse Skipped
 
 ## 场景

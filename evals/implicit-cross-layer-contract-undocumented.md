@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Implicit Cross-Layer Contract Undocumented
 
 ## 场景

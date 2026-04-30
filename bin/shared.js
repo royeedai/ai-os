@@ -348,41 +348,31 @@ function writeManagedFilesManifest(targetDir, { laneId = DEFAULT_LANE_ID } = {})
 // IDE adapter files (lightweight pointers to AGENTS.md)
 // ---------------------------------------------------------------------------
 
-const CLAUDE_POINTER = `# Claude Code session guide
+// v9.1: thin stubs only. Do NOT duplicate constitution rules here — drift risk.
+// The full constitution lives in AGENTS.md. These files exist only because some
+// agents (e.g. Claude Code as of 2026-03) do not yet auto-load AGENTS.md.
+const CLAUDE_POINTER = `# Claude Code
 
-This project uses AI-OS v9 for delivery governance. The full constitution is in \`AGENTS.md\`.
+This project follows AI-OS v9. See [AGENTS.md](AGENTS.md) for the delivery constitution.
 
-Before starting any work:
+Read in order on every session:
 
-1. Read \`AGENTS.md\` — the delivery constitution
-2. Read \`.ai-os/lanes/default/STATE.md\` — current lane session position (may be empty on first run)
-3. Read \`.ai-os/lanes/default/MISSION.md\` — current delivery baseline
-4. Read \`.ai-os/MISSION.md\` — shared host-project context
-
-Key rules summarized:
-
-- Do not write business code before user-confirmed mission and design
-- Follow the behavior rules in \`AGENTS.md\` for task routing (new project / change / debug / verify / ship)
-- Provide project-native static-check evidence for verification (not just ReadLints)
-- Stop at confirmation points and wait for explicit user approval
+1. [AGENTS.md](AGENTS.md)
+2. [.ai-os/lanes/default/STATE.md](.ai-os/lanes/default/STATE.md)
+3. [.ai-os/lanes/default/MISSION.md](.ai-os/lanes/default/MISSION.md)
+4. [.ai-os/MISSION.md](.ai-os/MISSION.md)
 `;
 
-const GEMINI_POINTER = `# Gemini / Antigravity session guide
+const GEMINI_POINTER = `# Gemini CLI / Antigravity
 
-This project uses AI-OS v9 for delivery governance. The full constitution is in \`AGENTS.md\`.
+This project follows AI-OS v9. See [AGENTS.md](AGENTS.md) for the delivery constitution.
 
-Before starting any work:
+Read in order on every session:
 
-1. Read \`AGENTS.md\` — the delivery constitution
-2. Read \`.ai-os/lanes/default/STATE.md\` — current lane session position
-3. Read \`.ai-os/lanes/default/MISSION.md\` — current delivery baseline
-4. Read \`.ai-os/MISSION.md\` — shared host-project context
-
-Key rules summarized:
-
-- Behavior is rule-driven. There are no slash commands; task routing comes from \`AGENTS.md\`
-- Stop at confirmation points and wait for explicit user approval
-- Provide project-native static-check evidence for verification
+1. [AGENTS.md](AGENTS.md)
+2. [.ai-os/lanes/default/STATE.md](.ai-os/lanes/default/STATE.md)
+3. [.ai-os/lanes/default/MISSION.md](.ai-os/lanes/default/MISSION.md)
+4. [.ai-os/MISSION.md](.ai-os/MISSION.md)
 `;
 
 function installIdeFiles(targetDir, { overwrite = false } = {}) {

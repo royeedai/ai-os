@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Feature Visible But Unusable
 
 ## 场景

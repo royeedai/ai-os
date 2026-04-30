@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.0.0", "JSON reports version 9.0.0");
+  assert(parsed && parsed.version === "9.1.0", "JSON reports version 9.1.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -135,5 +135,72 @@ section("doctor: hybrid drift is unhealthy");
   const result = runDoctor([dir]);
   assert(result.status === 1, "doctor exits 1 for hybrid drift");
   assert(result.stdout.includes("E061"), "doctor reports hybrid drift error");
+  cleanup(dir);
+}
+
+section("doctor: W070 fires when MISSION baseline_id has no record");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const missionPath = path.join(dir, ".ai-os", "lanes", "default", "MISSION.md");
+  let mission = fs.readFileSync(missionPath, "utf8");
+  mission = mission.replace(/BL-\d{8}-\d{6}-initial-baseline/, "CR-20260430-000000-orphan");
+  fs.writeFileSync(missionPath, mission);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w070 = parsed.semantic_warnings.find((it) => it.code === "W070");
+  assert(!!w070, "doctor surfaces W070 for orphan baseline reference");
+  assert(parsed.semantic_warnings.length >= 1, "semantic_warnings field populated");
+  const strict = runDoctor([dir, "--strict"]);
+  assert(strict.status === 1, "doctor --strict treats W070 as failure");
+  cleanup(dir);
+}
+
+section("doctor: W071 fires when a task has no owner");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const tasksPath = path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml");
+  const corrupt = `tasks:\n  - id: TASK-AI-099\n    title: "missing owner"\n    status: todo\n`;
+  fs.writeFileSync(tasksPath, corrupt);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w071 = parsed.semantic_warnings.find((it) => it.code === "W071");
+  assert(!!w071, "doctor surfaces W071 for owner-less task");
+  assert(w071 && w071.message.includes("TASK-AI-099"), "W071 names the offending task id");
+  cleanup(dir);
+}
+
+section("doctor: W072 fires when DESIGN AC is not referenced in verification-matrix");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const designPath = path.join(dir, ".ai-os", "lanes", "default", "DESIGN.md");
+  let design = fs.readFileSync(designPath, "utf8");
+  design = design.replace(
+    /\| \[页面名\] \| \[目标\] \| \[关键元素\] \| \[关键操作\] \| yes \/ no \| pending \|/,
+    "| Settings page | persist locale | locale dropdown | save click | yes | confirmed |",
+  );
+  design = design.replace(
+    /\| AC-001 \| REQ-001 \| \[验收描述\] \| 自动化 \/ 手动 \/ 运行时观察 \| \[证据文件\] \|/,
+    "| AC-001 | REQ-001 | locale survives reload | automated | evidence/locale.spec |",
+  );
+  fs.writeFileSync(designPath, design);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w072 = parsed.semantic_warnings.find((it) => it.code === "W072");
+  assert(!!w072, "doctor surfaces W072 when AC is not referenced in matrix");
+  assert(w072 && w072.message.includes("AC-001"), "W072 cites AC-001");
+  const matrixPath = path.join(dir, ".ai-os", "lanes", "default", "verification-matrix.yaml");
+  let matrix = fs.readFileSync(matrixPath, "utf8");
+  matrix += `\n  - id: FM-002\n    scenario: "locale broken on reload"\n    expected: "AC-001 holds"\n    guard: "evidence/locale.spec"\n`;
+  fs.writeFileSync(matrixPath, matrix);
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w072After = parsedAfter.semantic_warnings.find((it) => it.code === "W072");
+  assert(!w072After, "W072 clears once verification-matrix references the AC id");
   cleanup(dir);
 }

@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Happy Path Passed But Null Path Broken
 
 ## 场景

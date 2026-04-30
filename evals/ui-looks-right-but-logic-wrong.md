@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: UI Looks Right But Logic Wrong
 
 ## 场景

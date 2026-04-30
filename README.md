@@ -134,6 +134,20 @@ npx --yes github:royeedai/ai-os upgrade .
 
 See [docs/migrate-to-v9.md](docs/migrate-to-v9.md).
 
+## Cross-agent loading via the `agentskills.io` standard
+
+For agents that prefer the [agentskills.io](https://agentskills.io/specification) skill format (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...), AI-OS publishes an official wrapper:
+
+```bash
+npx skills add github:royeedai/ai-os
+```
+
+This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the constitution into the open standard. It does not introduce a new command surface — it is a thin wrapper so any spec-compliant agent can pick AI-OS up without per-tool adapters.
+
+## MCP integration
+
+AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI scheme. See [docs/interop/mcp-resources.md](docs/interop/mcp-resources.md). The default install does not start an MCP server; the integration is purely a contract document plus a reference implementation.
+
 ## Further reading
 
 - [AGENTS.md](AGENTS.md)
@@ -144,6 +158,7 @@ See [docs/migrate-to-v9.md](docs/migrate-to-v9.md).
 - [docs/getting-started.md](docs/getting-started.md)
 - [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
 - [docs/maintainers.md](docs/maintainers.md)
+- [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, MCP, EU AI Act
 
 ## License
 

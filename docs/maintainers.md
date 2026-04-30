@@ -56,3 +56,4 @@ npm run lint
 - `examples/debug-bounded-fix.md`
 - `examples/high-risk-state-change.md`
 - `examples/coexist-with-spec-kit.md`
+- `examples/multi-tool-coexistence.md`

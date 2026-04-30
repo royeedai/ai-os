@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Cross-Module Same-Defect Not Escalated
 
 ## 场景

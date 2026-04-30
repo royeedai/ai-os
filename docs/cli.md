@@ -42,6 +42,21 @@ Checks:
 - `.gitignore` contains lane `STATE.md` and generated file ignores
 - layout mode is canonical, legacy, or drift
 
+### Semantic consistency warnings (v9.1+)
+
+In addition to layout health, doctor emits warnings when artifacts drift apart in meaning. These are warnings (non-blocking) by default; `--strict` upgrades them to errors.
+
+- **W070** — lane `MISSION.md` references a `当前基线 ID` that has no matching file in `baseline-log/`
+- **W071** — `tasks.yaml` has tasks under the top-level `tasks:` block without an `owner` field
+- **W072** — `DESIGN.md` lists non-placeholder acceptance criteria (AC ids) that are not referenced anywhere in `verification-matrix.yaml`
+
+These are skipped on a clean default install (template placeholders are detected and ignored).
+
+### Options
+
+- `--json` — machine-readable output for CI
+- `--strict` — exit non-zero on warnings as well as errors
+
 ### JSON output
 
 `doctor --json` returns:
@@ -49,6 +64,7 @@ Checks:
 - `layout_version`
 - `layout_mode`
 - `issues[]`
+- `semantic_warnings[]` — convenience filter of `issues[]` containing only the W070/W071/W072 codes
 
 ## `create-ai-os upgrade [target-dir]`
 

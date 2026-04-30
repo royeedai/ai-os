@@ -1,9 +1,14 @@
-# AI Delivery Constitution Spec v1.1
+# AI Delivery Constitution Spec v1.2
 
 Status: Stable  
-Version: 1.1  
-Last updated: 2026-04-22  
+Version: 1.2  
+Last updated: 2026-04-30  
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
+
+## Changelog
+
+- 1.2 (2026-04-30) — non-breaking additions: artifact `layer` field (L1/L2/L3 progressive disclosure), `agentskills.io` cross-agent skill wrapping, `aios://` MCP resources URI scheme, failure-mode promotion rule, EU AI Act audit-trail mapping
+- 1.1 (2026-04-22) — shared-root + lanes/default canonical layout
 
 ## 1. 目的
 
@@ -100,3 +105,31 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 - agent 原生记忆负责会话级记忆
 - AI-OS 工件负责项目级共享真理源
 - spec-kit / Kiro 等可与 AI-OS 并存，但 AI-OS 负责全生命周期治理
+
+## 9. 工件加载分层（v1.2）
+
+每个工件应声明加载层级：
+
+- **L1**：入口元数据，每次会话先读（`STATE.md` / `lane.toml` / `framework.toml`）
+- **L2**：核心文档，进入对齐 / 设计 / 验证阶段时升级（`MISSION.md` / `DESIGN.md` / `memory.md` / `tasks.yaml` / `verification-matrix.yaml` / `risk-register.md` / `release-plan.md` / `AGENTS.md`）
+- **L3**：详细资源，按需引用（`baseline-log/*` / `specs/*` / `design-pack/*` / `evals/*` / `managed-files.tsv`）
+
+## 10. agentskills.io 兼容包装（v1.2）
+
+实现可选地提供一份符合 [agentskills.io spec v1.0](https://agentskills.io/specification) 的 `SKILL.md`，让任何兼容 agent（Claude Code、Cursor、Codex、Gemini CLI、ADK、Hermes 等）通过 skill 标准加载本 spec 行为。包装本身不是新规范，只是开放标准的 wire-format。
+
+## 11. MCP resources URI scheme（v1.2）
+
+实现可选地通过 MCP server 暴露 AI-OS 工件，URI 用以下 scheme：
+
+- `aios://shared/{artifact}` — 根层共享工件
+- `aios://lane/{laneId}/{artifact}` — lane 工件
+- `aios://lane/{laneId}/{collection}/{id}` — lane 集合（baseline-log / specs / evals）
+
+## 12. failure mode 升格规则（v1.2）
+
+稳定失败模式：首次发现登记到 lane `verification-matrix.yaml`；同一 root cause 命中 ≥3 次时必须升格到 `evals/<name>.md`，记录 `trigger_source: promoted-from-verification-matrix` 与 `first_baseline_id`。
+
+## 13. EU AI Act audit-trail 映射（v1.2，非合规承诺）
+
+`baseline-log/` + `tasks.yaml` (owner / approval_required) + `verification-matrix.yaml` + `risk-register.md` 同时承担 EU AI Act 第 12 / 14 / 17 条要求的工程层 record-keeping。具体映射见参考实现 `docs/interop/eu-ai-act.md`。本节是 spec 层叙事，不构成合规建议。

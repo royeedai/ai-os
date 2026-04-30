@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Brownfield Infrastructure Audit Missed
 
 ## 场景

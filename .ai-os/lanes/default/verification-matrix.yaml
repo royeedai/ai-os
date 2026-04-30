@@ -9,10 +9,21 @@ failure_modes:
     scenario: "规范文档与 install / doctor / upgrade 表达的默认布局不一致"
     expected: "docs tests 失败并阻断发布"
     guard: "test/docs.test.js"
+    acceptance_refs:
+      - AC-001
+      - AC-004
   - id: FM-002
     scenario: "root-only v8 布局被 doctor 误判为健康"
     expected: "doctor 返回非健康并提示 upgrade"
     guard: "test/doctor.test.js"
+    acceptance_refs:
+      - AC-002
+  - id: FM-003
+    scenario: "v7 / v8 root-only / v8 hybrid 升级路径在 v9 中失败"
+    expected: "upgrade tests 失败"
+    guard: "test/upgrade.test.js"
+    acceptance_refs:
+      - AC-003
 
 guards:
   - "test/install.test.js"

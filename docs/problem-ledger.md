@@ -39,6 +39,18 @@
 - **AI-OS 必须保证**：install、doctor、upgrade、README、schema、tests 只表达一套 canonical layout
 - **当前覆盖锚点**：`README.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`bin/create-ai-os.js`、`bin/ai-os-doctor.js`、`bin/ai-os-upgrade.js`、`test/docs.test.js`
 
+### PL-008 跨工具真理源混乱
+
+- **场景**：项目同时引入 Spec-Kit、AI-OS、Cursor rules、Kiro steering、OpenSpec 等多套工件，每套都自称"真理源"，导致需求 / 设计 / 变更记录在多处独立漂移
+- **AI-OS 必须保证**：每个工件类别只承认一个真理源；其他工具的工件以 reference 形式接入，不再独立维护同语义内容
+- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/kiro.md`、`docs/interop/openspec.md`、`AGENTS.md`（绝对禁止 §13）
+
+### PL-009 反复全量加载工件，浪费 session context
+
+- **场景**：agent 在长 session 中没有先读 L1 入口（`STATE.md` / `lane.toml` / `framework.toml`），而是直接全量加载所有 12 工件，导致 token 浪费且行为漂移
+- **AI-OS 必须保证**：工件按 L1 / L2 / L3 渐进式加载；除非用户切换阶段，不重复升级层级
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §5）、`docs/artifacts.md`（"加载分层" 章节）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/interop/mcp-resources.md`（resource priority annotations）
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试

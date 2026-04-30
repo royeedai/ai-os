@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Logic Right But Product Shape Wrong
 
 ## 场景

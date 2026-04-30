@@ -4,7 +4,18 @@ Failure-mode samples used to regression-test AI-OS itself. Each entry describes 
 
 ## Structure of each eval
 
-Every eval answers 5 questions:
+Every eval starts with YAML frontmatter:
+
+```yaml
+---
+trigger_source: manual                  # or: promoted-from-verification-matrix
+first_baseline_id: ""                   # baseline-log/CR-* id when promoted
+---
+```
+
+`trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` failure-mode-harvest rule: same root cause hit ≥3 times → promote here).
+
+After the frontmatter, every eval answers 5 questions:
 
 1. **Scenario**: what input situation triggers this failure mode
 2. **Wrong delivery**: what the bad outcome looks like

@@ -38,6 +38,7 @@
 - 当前交付基线在 `.ai-os/lanes/default/MISSION.md`
 - 当前会话恢复入口在 `.ai-os/lanes/default/STATE.md`
 - `.ai-os/memory.md` 记录稳定决策、约定、坑点和技术债
+- 工件按 L1/L2/L3 渐进式加载：L1 入口 (`STATE.md` 与 `lane.toml`) → L2 全文 (`MISSION.md` / `DESIGN.md` / `memory.md` / `tasks.yaml` / `verification-matrix.yaml`) → L3 详细资源 (`baseline-log/` / `specs/` / `design-pack/` / `evals/`)，长 session 中除非用户切换阶段不重复升级
 
 ## 12 组工件
 
@@ -67,7 +68,7 @@
 - **验证阶段**：逐项对照根层共享上下文和当前 lane 工件，覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
 - **交付收口**：输出“已实现 / 未纳入 / 验证结果 / 回滚条件 / AI 已完成 vs 需人工执行”双清单
 - **Session 恢复**：先读 `.ai-os/lanes/default/STATE.md`，再扩展到 lane `MISSION.md`、最新 baseline-log 和根层 `.ai-os/MISSION.md`
-- **稳定失败模式**：必须同步到当前 lane `verification-matrix.yaml` 或 `evals/`
+- **稳定失败模式**：首次发现登记到当前 lane `verification-matrix.yaml`；同一 root cause 命中 ≥3 次时必须升格到 `evals/`，记录 `trigger_source` 与首次出现的 baseline-log ID
 
 ## 绝对禁止
 

@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: E2E Journey Broken By Single-Point Pass
 
 ## 场景

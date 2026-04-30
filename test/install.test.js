@@ -29,6 +29,13 @@ section("install: default install into fresh dir");
   assert(exists(dir, "AGENTS.md"), "AGENTS.md installed at root");
   assert(exists(dir, "CLAUDE.md"), "CLAUDE.md pointer installed");
   assert(exists(dir, "GEMINI.md"), "GEMINI.md pointer installed");
+  // v9.1: pointers must be thin stubs (no constitution duplication, <=15 lines incl. blank lines)
+  const claude = readFile(dir, "CLAUDE.md");
+  assert(claude && claude.split("\n").length <= 15, `CLAUDE.md is a thin stub (<=15 lines, got ${claude.split("\n").length})`);
+  assert(claude && !claude.includes("Behavior is rule-driven") && !claude.includes("Key rules summarized"), "CLAUDE.md does not duplicate constitution rules");
+  const gemini = readFile(dir, "GEMINI.md");
+  assert(gemini && gemini.split("\n").length <= 15, `GEMINI.md is a thin stub (<=15 lines, got ${gemini.split("\n").length})`);
+  assert(gemini && !gemini.includes("Behavior is rule-driven") && !gemini.includes("Key rules summarized"), "GEMINI.md does not duplicate constitution rules");
   assert(exists(dir, ".gitignore"), ".gitignore created");
   assert(exists(dir, ".gitattributes"), ".gitattributes created");
 
@@ -68,7 +75,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "9.0.0"'), "framework.toml has version 9.0.0");
+  assert(toml && toml.includes('framework_version = "9.1.0"'), "framework.toml has version 9.1.0");
 
   cleanup(dir);
 }
@@ -136,5 +143,5 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "9.0.0", `--version outputs 9.0.0 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "9.1.0", `--version outputs 9.1.0 (got ${result.stdout.trim()})`);
 }

@@ -42,6 +42,12 @@ section("docs: key documentation files exist");
     "docs/problem-ledger.md",
     "docs/change-evaluation-template.md",
     "docs/interop/spec-kit-coexistence.md",
+    "docs/interop/claude-code.md",
+    "docs/interop/cursor.md",
+    "docs/interop/kiro.md",
+    "docs/interop/openspec.md",
+    "docs/interop/mcp-resources.md",
+    "docs/interop/eu-ai-act.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -104,7 +110,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.0.0", `version is 9.0.0 (got ${version})`);
+  assert(version === "9.1.0", `version is 9.1.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -132,8 +138,11 @@ section("docs: problem-ledger current coverage only references existing files");
   const content = read("docs/problem-ledger.md");
   const current = content.split("## 历史归档")[0];
   const refs = [...current.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+  // Session-local files are gitignored by design; doctor recreates them.
+  const sessionLocalSuffixes = ["lanes/default/STATE.md"];
   for (const ref of refs) {
     if (!ref.includes("/") || ref.includes("*")) continue;
+    if (sessionLocalSuffixes.some((suffix) => ref.endsWith(suffix))) continue;
     assert(fs.existsSync(path.join(repoRoot, ref)), `${ref} exists`);
   }
 }
@@ -143,4 +152,106 @@ section("docs: legacy migration doc points to migrate-to-v9");
 {
   const legacy = read("docs/migrate-v7-to-v8.md");
   assert(legacy.includes("migrate-to-v9.md"), "legacy migration doc points to migrate-to-v9");
+}
+
+section("docs: artifacts.md declares progressive-disclosure layers");
+
+{
+  const content = read("docs/artifacts.md");
+  assert(content.includes("加载层级"), "artifacts.md declares loading layer for each artifact");
+  assert(content.includes("加载分层（progressive disclosure）"), "artifacts.md has progressive disclosure section");
+  for (const layer of ["L1", "L2", "L3"]) {
+    assert(content.includes(`### ${layer} —`), `artifacts.md describes ${layer} loading tier`);
+  }
+}
+
+section("docs: AGENTS.md declares progressive-disclosure rule");
+
+{
+  const content = read("AGENTS.md");
+  assert(content.includes("L1/L2/L3"), "AGENTS.md mentions L1/L2/L3 progressive disclosure");
+  assert(content.includes("trigger_source"), "AGENTS.md cites failure-mode trigger_source field");
+}
+
+section("docs: every eval has trigger_source frontmatter");
+
+{
+  const evalsDir = path.join(repoRoot, "evals");
+  const files = fs.readdirSync(evalsDir).filter((f) => f.endsWith(".md") && f !== "README.md");
+  assert(files.length >= 20, `evals/ has at least 20 failure-mode samples (found ${files.length})`);
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(evalsDir, file), "utf8");
+    assert(content.startsWith("---\n"), `${file} starts with YAML frontmatter`);
+    assert(/trigger_source:\s*(manual|promoted-from-verification-matrix)/.test(content), `${file} declares valid trigger_source`);
+    assert(content.includes("first_baseline_id:"), `${file} declares first_baseline_id field`);
+  }
+}
+
+section("docs: interop folder has cross-tool coexistence docs");
+
+{
+  const required = [
+    "docs/interop/spec-kit-coexistence.md",
+    "docs/interop/claude-code.md",
+    "docs/interop/cursor.md",
+    "docs/interop/kiro.md",
+    "docs/interop/openspec.md",
+    "docs/interop/mcp-resources.md",
+  ];
+  for (const rel of required) {
+    const content = read(rel);
+    const lines = content.split(/\r?\n/).length;
+    assert(lines <= 200, `${rel} stays within 200 lines (got ${lines})`);
+  }
+}
+
+section("docs: MCP resources URI scheme covers all 12 artifacts");
+
+{
+  const content = read("docs/interop/mcp-resources.md");
+  const requiredUris = [
+    "aios://shared/MISSION",
+    "aios://shared/memory",
+    "aios://shared/framework",
+    "aios://shared/managed-files",
+    "aios://lane/{laneId}/lane-toml",
+    "aios://lane/{laneId}/MISSION",
+    "aios://lane/{laneId}/DESIGN",
+    "aios://lane/{laneId}/STATE",
+    "aios://lane/{laneId}/tasks",
+    "aios://lane/{laneId}/verification-matrix",
+    "aios://lane/{laneId}/risk-register",
+    "aios://lane/{laneId}/release-plan",
+    "aios://lane/{laneId}/parity-map",
+    "aios://lane/{laneId}/baseline-log/{id}",
+    "aios://lane/{laneId}/spec/{slug}",
+    "aios://lane/{laneId}/eval/{slug}",
+  ];
+  for (const uri of requiredUris) {
+    assert(content.includes(uri), `mcp-resources.md declares ${uri}`);
+  }
+  assert(content.includes("Reference implementation"), "mcp-resources.md ships a reference implementation block");
+}
+
+section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");
+
+{
+  const skillPath = path.join(repoRoot, "framework/skills/ai-os-delivery/SKILL.md");
+  assert(fs.existsSync(skillPath), "framework/skills/ai-os-delivery/SKILL.md exists");
+  const content = fs.readFileSync(skillPath, "utf8");
+  assert(content.startsWith("---\n"), "SKILL.md starts with YAML frontmatter");
+  const fmEnd = content.indexOf("\n---\n", 4);
+  assert(fmEnd > 0, "SKILL.md frontmatter has closing ---");
+  const fm = content.slice(4, fmEnd);
+  const nameMatch = fm.match(/^name:\s*(\S+)\s*$/m);
+  assert(nameMatch && nameMatch[1] === "ai-os-delivery", "SKILL.md name equals parent dir 'ai-os-delivery'");
+  assert(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(nameMatch[1]), "SKILL.md name uses lowercase a-z, 0-9, hyphens only");
+  assert(!nameMatch[1].includes("--"), "SKILL.md name has no consecutive hyphens");
+  assert(nameMatch[1].length <= 64, "SKILL.md name <=64 chars");
+  const descMatch = fm.match(/^description:\s*(.*)$/m);
+  assert(descMatch, "SKILL.md declares description");
+  assert(descMatch[1].length <= 1024, `SKILL.md description <=1024 chars (got ${descMatch[1].length})`);
+  const body = content.slice(fmEnd + 5);
+  const bodyLines = body.split(/\r?\n/).length;
+  assert(bodyLines <= 500, `SKILL.md body within 500 lines (got ${bodyLines})`);
 }

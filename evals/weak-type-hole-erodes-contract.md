@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Weak-Type Hole Erodes Contract
 
 ## 场景

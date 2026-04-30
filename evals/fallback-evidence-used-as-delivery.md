@@ -1,3 +1,8 @@
+---
+trigger_source: manual
+first_baseline_id: ""
+---
+
 # Eval: Fallback Evidence Used As Delivery
 
 ## 场景
