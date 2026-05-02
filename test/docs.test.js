@@ -38,6 +38,7 @@ section("docs: key documentation files exist");
     "docs/migrate-v7-to-v8.md",
     "docs/maintainers.md",
     "docs/getting-started.md",
+    "docs/reverse-spec-url-intake.md",
     "docs/problems.md",
     "docs/problem-ledger.md",
     "docs/change-evaluation-template.md",
@@ -104,13 +105,72 @@ section("docs: framework templates contain shared-root and lane starters");
   assert(fs.existsSync(path.join(lane, "design-pack", "parity-map.md")), "lane design-pack template exists");
 }
 
+section("docs: URL reverse-spec intake protocol is documented");
+
+{
+  const intake = read("docs/reverse-spec-url-intake.md");
+  const requiredTerms = [
+    "1440px",
+    "768px",
+    "390px",
+    "DOM topology",
+    "Computed CSS",
+    "Network/API",
+    "API Observation Record",
+    "Backend Behavior Record",
+    "observed",
+    "inferred",
+    "unknown",
+  ];
+  for (const term of requiredTerms) {
+    assert(intake.includes(term), `reverse-spec intake doc includes ${term}`);
+  }
+  assert(intake.includes("AI-OS does not run the browser"), "reverse-spec intake doc preserves no-runtime boundary");
+}
+
+section("docs: URL reverse-spec fields are present in lane templates");
+
+{
+  const spec = read("framework/.agents/templates/lane/specs/example.spec.md");
+  const parity = read("framework/.agents/templates/lane/design-pack/parity-map.md");
+  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
+
+  for (const term of [
+    "Reverse-spec evidence sources",
+    "API observation records",
+    "Backend behavior records",
+    "auth_signal",
+    "evidence_source",
+    "implementation_requirement",
+    "observed / inferred / unknown",
+  ]) {
+    assert(spec.includes(term), `example spec includes ${term}`);
+  }
+
+  for (const term of [
+    "URL reverse-spec capture manifest",
+    "Visual parity",
+    "Interaction parity",
+    "API / interface parity",
+    "Backend behavior parity",
+    "Error paths",
+    "Confidence",
+  ]) {
+    assert(parity.includes(term), `parity-map template includes ${term}`);
+  }
+
+  assert(matrix.includes("url-reverse-spec-intake"), "verification matrix includes URL reverse-spec impact rule");
+  assert(matrix.includes("Network/API observation review"), "verification matrix includes Network/API guard");
+  assert(matrix.includes("backend behavior confidence review"), "verification matrix includes backend behavior confidence guard");
+}
+
 section("docs: VERSION and package.json are in sync");
 
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.1.1", `version is 9.1.1 (got ${version})`);
+  assert(version === "9.2.0", `version is 9.2.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -185,6 +245,10 @@ section("docs: every eval has trigger_source frontmatter");
     assert(/trigger_source:\s*(manual|promoted-from-verification-matrix)/.test(content), `${file} declares valid trigger_source`);
     assert(content.includes("first_baseline_id:"), `${file} declares first_baseline_id field`);
   }
+  const urlEval = read("evals/url-reverse-spec-backend-hallucination.md");
+  assert(urlEval.includes("CR-20260502-204346-url-reverse-spec-intake"), "URL reverse-spec eval references its baseline CR");
+  assert(urlEval.includes("API observation record"), "URL reverse-spec eval checks API observation records");
+  assert(urlEval.includes("Backend behavior record"), "URL reverse-spec eval checks backend behavior records");
 }
 
 section("docs: interop folder has cross-tool coexistence docs");

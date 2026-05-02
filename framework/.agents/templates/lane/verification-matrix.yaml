@@ -3,12 +3,26 @@ impact_rules:
     run:
       - "[project-native static check]"
       - "[targeted regression]"
+  - when: "url-reverse-spec-intake"
+    run:
+      - "[visual parity check at 1440/768/390]"
+      - "[interaction sweep: scroll/click/hover/time]"
+      - "[Network/API observation review]"
+      - "[backend behavior confidence review]"
 
 failure_modes:
   - id: FM-001
     scenario: "[稳定失败模式]"
     expected: "[期望行为]"
     guard: "[测试 / smoke / review note]"
+  - id: FM-URL-001
+    scenario: "URL reverse-spec 只凭截图复刻，未记录 DOM / computed CSS / interaction / Network 证据"
+    expected: "parity-map 和 spec 缺证据时不得进入实现"
+    guard: "docs/reverse-spec-url-intake.md + design-pack/parity-map.md"
+  - id: FM-URL-002
+    scenario: "无 Network 证据的后端规则被写成 confirmed AC"
+    expected: "该规则必须标为 inferred 或 unknown，并进入假设或待确认项"
+    guard: "specs/*.spec.md backend behavior confidence review"
 
 guards:
   - "[evidence path or eval reference]"

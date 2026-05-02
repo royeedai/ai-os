@@ -1,6 +1,6 @@
 ---
 name: ai-os-delivery
-description: AI Delivery Constitution governance skill. Use when working in a repository that contains both `AGENTS.md` at the project root and a `.ai-os/` directory. The skill enforces five core requirements (confirm goal first, lock key design before implementation, adapt governance by risk and ambiguity, gate completion on project-native evidence, recover memory across sessions). Triggers on tasks such as starting a new feature, requirement changes, bug fixes, verification before shipping, session recovery, or high-risk escalation. References the 12-artifact set under `.ai-os/lanes/default/` with progressive disclosure (L1/L2/L3).
+description: AI Delivery Constitution governance skill. Use when working in a repository that contains both `AGENTS.md` at the project root and a `.ai-os/` directory. The skill enforces five core requirements (confirm goal first, lock key design before implementation, adapt governance by risk and ambiguity, gate completion on project-native evidence, recover memory across sessions). Triggers on tasks such as starting a new feature, URL reverse-spec intake, requirement changes, bug fixes, verification before shipping, session recovery, or high-risk escalation. References the 12-artifact set under `.ai-os/lanes/default/` with progressive disclosure (L1/L2/L3).
 license: MIT
 metadata:
   author: AI-OS maintainers
@@ -19,7 +19,7 @@ Apply this skill on any repository where **all** the following hold:
 
 - The project root contains `AGENTS.md`
 - The project root contains a `.ai-os/` directory
-- The user task is one of: aligning a new feature, designing a module, reacting to a requirement change, fixing a bug, verifying delivery, recovering from a different session, or escalating high-risk work
+- The user task is one of: aligning a new feature, URL reverse-spec intake, designing a module, reacting to a requirement change, fixing a bug, verifying delivery, recovering from a different session, or escalating high-risk work
 
 If the repo only has `AGENTS.md` without `.ai-os/`, fall back to native `AGENTS.md` rules without invoking artifact-specific routing.
 
@@ -68,6 +68,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 | New project / new module / vague requirement | Produce / update root `.ai-os/MISSION.md` + lane `MISSION.md` summary; list pending confirmations; **stop and wait for user confirmation** |
 | Lock key design | Produce lane `DESIGN.md` with key trade-offs and shared-layer side-effect list; **stop and wait** |
 | Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / evidence requirements |
+| URL reverse-spec intake | Capture URL, screenshots, DOM/CSS, interactions, Network/API observations, backend behavior confidence, and unknowns into `design-pack/parity-map.md` + `specs/*.spec.md`; **do not invent backend internals** |
 | Implement | Only act inside confirmed scope; cross-file or unclear boundary → read-only analysis first |
 | Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/` |
 | Fix a bug | State root cause + reproduction path + impact scope + planned files; **stop and wait for "go"** |
@@ -115,6 +116,7 @@ Any user-asset write, permission / identity change, irreversible state transitio
 
 - Full constitution: `AGENTS.md` (≤150 lines, single source of truth)
 - Artifact schema with layer assignments: `docs/artifacts.md`
+- URL reverse-spec intake protocol: `docs/reverse-spec-url-intake.md`
 - Constitution spec for cross-tool integration: `docs/constitution-spec.md`
 - MCP resources URI scheme: `docs/interop/mcp-resources.md`
 - Coexistence with other tools: `docs/interop/`

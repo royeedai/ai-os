@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v1.2
+# AI Delivery Constitution Spec v1.3
 
-Status: Stable  
-Version: 1.2  
-Last updated: 2026-04-30  
+Status: Stable
+Version: 1.3
+Last updated: 2026-05-02
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 1.3 (2026-05-02) — non-breaking addition: URL reverse-spec intake protocol with visual / interaction / API / backend behavior evidence and `observed` / `inferred` / `unknown` confidence
 - 1.2 (2026-04-30) — non-breaking additions: artifact `layer` field (L1/L2/L3 progressive disclosure), `agentskills.io` cross-agent skill wrapping, `aios://` MCP resources URI scheme, failure-mode promotion rule, EU AI Act audit-trail mapping
 - 1.1 (2026-04-22) — shared-root + lanes/default canonical layout
 
@@ -133,3 +134,17 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 ## 13. EU AI Act audit-trail 映射（v1.2，非合规承诺）
 
 `baseline-log/` + `tasks.yaml` (owner / approval_required) + `verification-matrix.yaml` + `risk-register.md` 同时承担 EU AI Act 第 12 / 14 / 17 条要求的工程层 record-keeping。具体映射见参考实现 `docs/interop/eu-ai-act.md`。本节是 spec 层叙事，不构成合规建议。
+
+## 14. URL reverse-spec intake（v1.3）
+
+当用户给出可访问 URL 并要求复刻需求、截图、接口或行为时，实现不得把截图观察直接当作完整需求。兼容实现应把采集结果写入现有 lane 工件：
+
+- `design-pack/parity-map.md`：capture manifest、visual parity、interaction parity、API / interface parity、backend behavior parity
+- `specs/*.spec.md`：API observation records、backend behavior records、confidence、unknowns、验收映射
+- `verification-matrix.yaml`：视觉、交互、接口、后端行为信心等级和异常路径 guard
+
+API observation record 最低字段：`id`、`trigger`、`method`、`url_pattern`、`request_shape`、`response_shape`、`status_codes`、`auth_signal`、`error_paths`、`evidence_source`、`confidence`。
+
+Backend behavior record 最低字段：`rule_id`、`behavior`、`observed_from`、`positive_cases`、`negative_cases`、`unknowns`、`confidence`、`implementation_requirement`。
+
+`confidence` 只允许 `observed`、`inferred`、`unknown`。只有 `observed` 可进入 confirmed acceptance criteria；`inferred` 必须标注假设；`unknown` 必须进入待确认项或非目标。

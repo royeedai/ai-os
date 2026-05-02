@@ -101,7 +101,7 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 - **risk-register / release-plan**：high-risk 风险与发布计划（**L2**）
 - **verification-matrix**：回归 guard 和 failure mode（**L2**）
-- **design-pack/parity-map**：reverse-spec 对照（**L3**）
+- **design-pack/parity-map**：reverse-spec 对照；URL intake 时记录截图、DOM/CSS、交互、API 和后端行为 parity（**L3**）
 - **evals/**：项目级失败模式样例（**L3**）
 
 ## 关键语义约束
@@ -146,9 +146,19 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 - lane `baseline-log/CR-*.md` / `BL-*.md`
 - lane `specs/*.spec.md`
-- lane `design-pack/parity-map.md`
+- lane `design-pack/parity-map.md`（reverse-spec / URL intake 对照）
 - lane `evals/*.md`
 - 根 `managed-files.tsv`
+
+## URL Reverse-Spec Intake（v9.2）
+
+当用户提供可访问网站 URL 并要求复刻需求、截图、接口或行为时，AI-OS 不新增 CLI 或运行时抓取器，而是要求 agent 把采集证据写入现有 lane 工件：
+
+- `design-pack/parity-map.md`：capture manifest、visual parity、interaction parity、API / interface parity、backend behavior parity
+- `specs/*.spec.md`：API observation records、backend behavior records、confidence、unknowns、验收映射
+- `verification-matrix.yaml`：视觉、交互、接口、后端行为信心等级和异常路径 guard
+
+后端行为只代表浏览器可观察行为。`confidence` 必须是 `observed` / `inferred` / `unknown`；只有 `observed` 可进入 confirmed acceptance criteria。
 
 ### 加载顺序约定
 

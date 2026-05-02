@@ -1,84 +1,107 @@
 version: 3
-baseline_id: "CR-20260422-203000-v9-default-lane-reset"
+baseline_id: "CR-20260502-204346-url-reverse-spec-intake"
 scope:
-  mode: "change"
-  focus: "v9-default-lane-reset"
-  baseline_source: "lane MISSION.md + DESIGN.md"
+  mode: "change+reverse-spec"
+  focus: "url-reverse-spec-intake"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260502-204346-url-reverse-spec-intake"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Canonical Layout Locked"
-    goal: "模板、CLI 和仓库自托管结构统一到 v9"
-    scope: "framework, bin, .ai-os"
-    acceptance_goal: "install / upgrade / doctor 契约收敛"
-    target_window: "2026-04-22"
+    title: "URL Intake Contract Locked"
+    goal: "URL reverse-spec evidence model is documented and reflected in templates"
+    scope: "docs, framework templates, skill wrapper"
+    acceptance_goal: "URL intake fields and confidence model are stable"
+    target_window: "2026-05-02"
   - id: M2
-    title: "Docs and Tests Closed"
-    goal: "docs/examples/problem-ledger/tests 全部对齐"
-    scope: "docs, examples, test"
-    acceptance_goal: "README、schema、help、tests 一致"
-    target_window: "2026-04-22"
+    title: "Regression Guards Closed"
+    goal: "Failure mode and tests prevent screenshot-only or hallucinated backend intake"
+    scope: "evals, tests, changelog, version"
+    acceptance_goal: "npm test and npm run lint pass"
+    target_window: "2026-05-02"
 
 tasks:
-  - id: TASK-AI-001
-    title: "重写 shared-root + lane 模板与 CLI 共享路径"
+  - id: TASK-AI-101
+    title: "新增 URL reverse-spec intake 文档"
     milestone: M1
-    status: in_progress
+    status: done
     owner: AI
-    priority: P0
+    priority: P1
     wave: 1
-    approval_required: "user_confirms_plan"
+    approval_required: "plan_confirmed"
     depends_on: []
     requirement_refs:
       - "REQ-001"
     acceptance_refs:
       - "AC-001"
     impact_tags:
-      - "entrypoint"
-      - "schema"
+      - "docs"
+      - "reverse-spec"
     evidence_required:
-      - "code-diff"
-      - "install-test"
-  - id: TASK-AI-002
-    title: "重写 doctor / upgrade 以支持 v9 canonical layout"
+      - "docs-test"
+  - id: TASK-AI-102
+    title: "增强 lane reverse-spec 模板"
     milestone: M1
-    status: in_progress
+    status: done
     owner: AI
-    priority: P0
+    priority: P1
     wave: 1
-    approval_required: "user_confirms_plan"
-    depends_on: []
+    approval_required: "plan_confirmed"
+    depends_on:
+      - "TASK-AI-101"
     requirement_refs:
       - "REQ-002"
-      - "REQ-003"
     acceptance_refs:
       - "AC-002"
-      - "AC-003"
     impact_tags:
-      - "transport"
-      - "mapping"
+      - "template"
+      - "parity"
+      - "verification"
     evidence_required:
-      - "doctor-test"
-      - "upgrade-test"
-  - id: TASK-AI-003
-    title: "统一 docs / examples / problem-ledger / tests"
-    milestone: M2
-    status: todo
+      - "install-test"
+      - "docs-test"
+  - id: TASK-AI-103
+    title: "更新 skill wrapper、README、schema 文档和版本"
+    milestone: M1
+    status: done
     owner: AI
-    priority: P0
+    priority: P1
     wave: 2
-    approval_required: "user_confirms_plan"
+    approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-001"
-      - "TASK-AI-002"
+      - "TASK-AI-101"
+      - "TASK-AI-102"
     requirement_refs:
+      - "REQ-003"
       - "REQ-004"
     acceptance_refs:
+      - "AC-003"
       - "AC-004"
     impact_tags:
       - "docs"
-      - "verification"
+      - "skill"
+      - "version"
     evidence_required:
       - "docs-test"
-      - "changelog-update"
+      - "lint"
+  - id: TASK-AI-104
+    title: "新增 URL reverse-spec 后端脑补 eval 与测试断言"
+    milestone: M2
+    status: done
+    owner: AI
+    priority: P1
+    wave: 2
+    approval_required: "plan_confirmed"
+    depends_on:
+      - "TASK-AI-102"
+    requirement_refs:
+      - "REQ-005"
+    acceptance_refs:
+      - "AC-001"
+      - "AC-002"
+    impact_tags:
+      - "eval"
+      - "verification"
+    evidence_required:
+      - "npm-test"
+      - "lint"

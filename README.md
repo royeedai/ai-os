@@ -22,6 +22,7 @@ AI-OS is a cross-agent delivery constitution for projects that already use AI co
 
 - clarify the real goal
 - lock key design before scaling out implementation
+- reverse-spec accessible websites into auditable evidence before rebuild work
 - prove completion with project-level evidence
 - recover context across sessions without depending on chat history
 
@@ -94,6 +95,7 @@ Behavior is rule-driven by task type:
 |---|---|
 | “Build a new feature” | produce / update lane `MISSION.md`, then stop for confirmation |
 | “The requirement changed” | write lane `baseline-log/CR-*.md` before code changes |
+| “Reverse-spec this URL” | capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior into lane artifacts |
 | “Fix this bug” | state root cause + scope + files first, then wait for go |
 | “Is it done?” | run project-native static check + regression + evidence review |
 | “I’m back” | resume from lane `STATE.md` first |
@@ -140,6 +142,7 @@ AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI s
 - [docs/cli.md](docs/cli.md)
 - [docs/constitution-spec.md](docs/constitution-spec.md)
 - [docs/getting-started.md](docs/getting-started.md)
+- [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
 - [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
 - [docs/maintainers.md](docs/maintainers.md)
 - [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, MCP, EU AI Act

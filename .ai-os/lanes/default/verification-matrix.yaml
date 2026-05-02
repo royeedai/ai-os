@@ -1,32 +1,34 @@
 impact_rules:
-  - when: "layout-change"
+  - when: "url-reverse-spec-intake"
     run:
       - "npm test"
       - "npm run lint"
 
 failure_modes:
-  - id: FM-001
-    scenario: "规范文档与 install / doctor / upgrade 表达的默认布局不一致"
-    expected: "docs tests 失败并阻断发布"
+  - id: FM-URL-001
+    scenario: "URL reverse-spec 只凭截图复刻，未记录 DOM / computed CSS / interaction / Network 证据"
+    expected: "docs/templates tests fail or review blocks implementation"
     guard: "test/docs.test.js"
     acceptance_refs:
       - AC-001
-      - AC-004
-  - id: FM-002
-    scenario: "root-only v8 布局被 doctor 误判为健康"
-    expected: "doctor 返回非健康并提示 upgrade"
-    guard: "test/doctor.test.js"
-    acceptance_refs:
       - AC-002
-  - id: FM-003
-    scenario: "v7 / v8 root-only / v8 hybrid 升级路径在 v9 中失败"
-    expected: "upgrade tests 失败"
-    guard: "test/upgrade.test.js"
+  - id: FM-URL-002
+    scenario: "无 Network 证据的后端规则被写成 confirmed AC"
+    expected: "backend behavior confidence must be inferred or unknown, not confirmed"
+    guard: "evals/url-reverse-spec-backend-hallucination.md"
+    acceptance_refs:
+      - AC-001
+      - AC-002
+  - id: FM-URL-003
+    scenario: "URL intake 被实现成新 CLI / runtime crawler，突破 AI-OS 最小操作面"
+    expected: "bin count and package bin tests remain unchanged"
+    guard: "test/docs.test.js"
     acceptance_refs:
       - AC-003
 
 guards:
+  - "test/docs.test.js"
   - "test/install.test.js"
   - "test/doctor.test.js"
-  - "test/upgrade.test.js"
-  - "test/docs.test.js"
+  - "test/shared.test.js"
+  - "evals/url-reverse-spec-backend-hallucination.md"

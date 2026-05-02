@@ -6,7 +6,34 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file only tracks v8 and v9 releases (the supported lines as of v9.1). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file only tracks v8 and v9 releases (the supported lines as of v9.2). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 9.2.0 (2026-05-02) — URL reverse-spec intake
+
+**Minor, fully backward compatible**. v9.2 keeps the canonical layout and three CLI commands intact. It adds an artifact-first intake protocol for accessible website URLs so agents can capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior before implementation.
+
+### Added
+
+- `docs/reverse-spec-url-intake.md` — official URL intake protocol covering authorization boundaries, screenshot matrix, DOM topology, computed CSS, assets, interaction sweep, Network/API observations, backend behavior records, and confidence levels.
+- `evals/url-reverse-spec-backend-hallucination.md` — regression case for agents that invent backend behavior without browser-observable evidence.
+- URL intake guards in `framework/.agents/templates/lane/verification-matrix.yaml`.
+
+### Changed
+
+- `framework/.agents/templates/lane/design-pack/parity-map.md` now includes capture manifest, visual parity, interaction parity, API / interface parity, and backend behavior parity tables.
+- `framework/.agents/templates/lane/specs/example.spec.md` now includes reverse-spec evidence sources, API observation records, backend behavior records, unknowns, and the `observed` / `inferred` / `unknown` confidence model.
+- `framework/skills/ai-os-delivery/SKILL.md` recognizes URL reverse-spec intake while still routing work through AI-OS artifacts instead of adding a command surface.
+- `docs/artifacts.md`, `docs/constitution-spec.md`, and `README.md` document the URL intake flow.
+
+### Tests
+
+- Documentation tests now assert the URL intake protocol, template fields, eval frontmatter, unchanged CLI script surface, and version string.
+
+### Migration
+
+None. Existing projects can adopt the new protocol by updating their lane templates or copying the documented fields into current reverse-spec artifacts.
 
 ---
 

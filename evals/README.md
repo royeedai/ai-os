@@ -1,4 +1,4 @@
-# AI-OS v8 regression evals
+# AI-OS regression evals
 
 Failure-mode samples used to regression-test AI-OS itself. Each entry describes a real project failure mode AI-OS is designed to intercept — not a "does the CLI run" check, but a "does the constitution actually prevent wrong delivery" check.
 
@@ -44,6 +44,7 @@ Grouped by the five core requirements they enforce.
 - `parity-before-reuse-skipped.md` — Abstraction reused without parity check
 - `implicit-cross-layer-contract-undocumented.md` — Cross-layer contract not registered in `memory.md`
 - `weak-type-hole-erodes-contract.md` — Map/Any/untyped catch erodes contract
+- `url-reverse-spec-backend-hallucination.md` — URL reverse-spec invents backend behavior without evidence
 
 ### R3: Adaptive governance
 
