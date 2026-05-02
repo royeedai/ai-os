@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: "CR-20260502-204346-url-reverse-spec-intake"
+risk_source: delivery-governance
+failure_mode: url-reverse-spec-backend-hallucination
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: URL Reverse-Spec Backend Hallucination

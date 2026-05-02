@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: sensitive-flow-not-escalated
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Sensitive Flow Not Escalated

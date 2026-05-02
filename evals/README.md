@@ -10,10 +10,16 @@ Every eval starts with YAML frontmatter:
 ---
 trigger_source: manual                  # or: promoted-from-verification-matrix
 first_baseline_id: ""                   # baseline-log/CR-* id when promoted
+risk_source: delivery-governance        # stable taxonomy source
+failure_mode: missing-user-confirmation # short failure-mode slug
+harm: wrong-work                        # likely delivery harm
+artifact_gate: MISSION                  # artifact gate that should catch it
 ---
 ```
 
 `trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` failure-mode-harvest rule: same root cause hit ≥3 times → promote here).
+
+The taxonomy fields are optional for external adopters but used by this repo's own evals. They make the sample set searchable by risk source, failure pattern, harm, and the artifact gate that should intercept the issue.
 
 After the frontmatter, every eval answers 5 questions:
 

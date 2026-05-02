@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: fix-complete-but-data-runtime-not-recovered
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Fix Complete But Data / Runtime Not Recovered

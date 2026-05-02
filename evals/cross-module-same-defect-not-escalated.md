@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: cross-module-same-defect-not-escalated
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Cross-Module Same-Defect Not Escalated

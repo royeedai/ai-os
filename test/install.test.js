@@ -75,7 +75,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "9.2.0"'), "framework.toml has version 9.2.0");
+  assert(toml && toml.includes('framework_version = "9.3.0"'), "framework.toml has version 9.3.0");
 
   cleanup(dir);
 }
@@ -134,6 +134,8 @@ section("install: help flag");
   const result = runInstall(["--help"]);
   assert(result.status === 0, "--help exits 0");
   assert(result.stdout.includes("Usage:"), "--help shows usage");
+  assert(result.stdout.includes("Explicit install alias"), "--help identifies install as an alias");
+  assert(result.stdout.includes("Primary operations:"), "--help labels primary operations");
   assert(result.stdout.includes("create-ai-os doctor"), "--help lists doctor subcommand");
   assert(result.stdout.includes("create-ai-os upgrade"), "--help lists upgrade subcommand");
 }
@@ -143,5 +145,5 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "9.2.0", `--version outputs 9.2.0 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "9.3.0", `--version outputs 9.3.0 (got ${result.stdout.trim()})`);
 }

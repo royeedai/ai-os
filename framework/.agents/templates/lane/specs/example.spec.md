@@ -5,6 +5,7 @@
 - **目标闭环**：
 - **主要输入**：
 - **主要输出**：
+- **Spec route**：feature / bugfix / reverse-spec / high-risk
 - **Reverse-spec source**（如适用）：URL / screenshot / DOM / Network / docs
 - **授权边界**（如适用）：public / user-authorized / authenticated-by-user / unknown
 
@@ -19,6 +20,18 @@
 | Source ID | Evidence type | Path / URL | Captured state | Confidence | Notes |
 |---|---|---|---|---|---|
 | SRC-001 | screenshot / DOM / computed CSS / Network / manual observation | [path or URL] | 1440 / 768 / 390, public / logged-in | observed / inferred / unknown | [notes] |
+
+### Evidence package adaptation（URL reverse-spec 如适用）
+
+| Package kind | Accepted source | Must redact | Maps to | Confidence rule |
+|---|---|---|---|---|
+| trace.zip | Playwright trace or equivalent | cookies, tokens, form values | screenshots, DOM, Network, console | observed if captured directly |
+| network log / HAR | browser DevTools or proxy export | auth headers, query secrets, PII payloads | API observation records | observed for captured requests |
+| screenshots | desktop / tablet / mobile captures | private user data | visual parity | observed for visible state only |
+| DOM snapshots | browser DOM export | hidden secrets and user data | DOM topology and component boundaries | observed for captured DOM |
+| rawHtml | crawler or browser HTML export | secrets, inline personal data | content hierarchy and metadata | observed / inferred by source quality |
+| markdown | crawler markdown extraction | private content | content inventory | inferred unless backed by DOM/screenshot |
+| structured JSON | crawler / API / tool output | secrets and personal data | assets, forms, links, metadata | observed if source is direct, otherwise inferred |
 
 ## 4. 契约基准
 

@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: shared-layer-side-effect-audit-missed
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Shared Layer Side-Effect Audit Missed

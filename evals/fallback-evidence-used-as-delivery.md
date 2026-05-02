@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: fallback-evidence-used-as-delivery
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Fallback Evidence Used As Delivery

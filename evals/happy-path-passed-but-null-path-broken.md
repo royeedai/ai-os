@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: happy-path-passed-but-null-path-broken
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Happy Path Passed But Null Path Broken

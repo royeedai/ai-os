@@ -93,8 +93,8 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 ### 11. `.ai-os/lanes/default/baseline-log/` + `specs/` + `tasks.yaml`
 
-- **`baseline-log/`**：变更请求与基线升格记录（**L3**）
-- **`specs/`**：大型项目切分 DESIGN 的局部契约（**L3**）
+- **`baseline-log/`**：变更请求与基线升格记录（**L3**）；`CR-*` 记录必须说明 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Close/archive condition
+- **`specs/`**：大型项目切分 DESIGN 的局部契约（**L3**）；默认包含 generic example 和 bugfix spec route
 - **`tasks.yaml`**：任务、owner、依赖、approval、证据要求（**L2**）
 
 ### 12. `.ai-os/lanes/default/risk-register.md` + `release-plan.md` + `verification-matrix.yaml` + `design-pack/parity-map.md` + `evals/`
@@ -159,6 +159,14 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 - `verification-matrix.yaml`：视觉、交互、接口、后端行为信心等级和异常路径 guard
 
 后端行为只代表浏览器可观察行为。`confidence` 必须是 `observed` / `inferred` / `unknown`；只有 `observed` 可进入 confirmed acceptance criteria。
+
+### Evidence package adaptation（v9.3）
+
+URL reverse-spec 可接受 `trace.zip`、network log / HAR、screenshots、DOM snapshots、rawHtml、markdown、structured JSON 等证据包。所有证据写入工件前必须脱敏 cookies、tokens、auth headers、PII 和私密用户数据，并映射到 `observed` / `inferred` / `unknown`。
+
+### Bugfix spec route（v9.3）
+
+Bug 修复可使用 `specs/bugfix.spec.md` 模板，必须锁定 root cause、reproduction、blast radius、planned files、regression guard，并在交付时拆分 code / data / runtime 状态。
 
 ### 加载顺序约定
 

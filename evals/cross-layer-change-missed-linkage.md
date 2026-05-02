@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: cross-layer-change-missed-linkage
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Cross-Layer Change Missed Linkage

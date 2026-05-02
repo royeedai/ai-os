@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: logic-right-but-product-shape-wrong
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Logic Right But Product Shape Wrong

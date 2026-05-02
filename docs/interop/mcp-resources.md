@@ -4,8 +4,8 @@
 
 ## Status
 
-- AI-OS itself does **not** ship an MCP server in the default install. v9 keeps the CLI to three commands (`install` / `doctor` / `upgrade`) and zero runtime dependencies.
-- This document is the **wire-level contract**. Anyone can implement it: a 50-line Node script (below), an official SDK server, or a remote HTTP gateway.
+- AI-OS itself does **not** ship or start an MCP server in the default install. v9 keeps the CLI to three primary product operations (`install` / `doctor` / `upgrade`) and zero runtime dependencies.
+- This document is the **wire-level contract**. Anyone can implement it: adapt the illustrative Node snippet below, use an official SDK server, or expose the same URI map through a remote HTTP gateway.
 - Reading is enough for most agents. AI-OS artifacts are mostly read-only resources; writes go through the user-supervised constitution flow, not through `tools/call`.
 
 ## URI scheme
@@ -65,18 +65,21 @@ A server exposing AI-OS resources should declare:
 
 ## Resource annotations
 
-Each resource should carry MCP annotations so progressive-disclosure-aware clients can prefer the right files:
+Each resource should carry MCP annotations so progressive-disclosure-aware clients can prefer the right files. `lastModified` should be derived from the backing file mtime when the server can provide it; omit it rather than inventing a timestamp.
 
-| URI prefix | `audience` | `priority` | Note |
-|---|---|---|---|
-| `aios://lane/{l}/STATE` | `["assistant"]` | 1.0 | always read first on session start |
-| `aios://shared/MISSION`, `aios://lane/{l}/MISSION`, `aios://lane/{l}/DESIGN` | `["assistant"]` | 0.8 | core L2 |
-| `aios://shared/memory`, `aios://lane/{l}/tasks`, `aios://lane/{l}/verification-matrix` | `["assistant"]` | 0.7 | extended L2 |
-| `aios://lane/{l}/baseline-log/{id}`, `aios://lane/{l}/spec/{slug}`, `aios://lane/{l}/eval/{slug}` | `["assistant"]` | 0.4 | L3, on demand |
+| URI prefix | `audience` | `priority` | `lastModified` | Note |
+|---|---|---|---|---|
+| `aios://lane/{l}/STATE` | `["assistant"]` | 1.0 | file mtime | always read first on session start; good `subscribe` target |
+| `aios://shared/framework`, `aios://lane/{l}/lane-toml` | `["assistant"]` | 0.9 | file mtime | L1 metadata for layout/version routing |
+| `aios://shared/MISSION`, `aios://lane/{l}/MISSION`, `aios://lane/{l}/DESIGN` | `["assistant"]` | 0.8 | file mtime | core L2 |
+| `aios://shared/memory`, `aios://lane/{l}/tasks`, `aios://lane/{l}/verification-matrix` | `["assistant"]` | 0.7 | file mtime | extended L2 |
+| `aios://lane/{l}/baseline-log/{id}`, `aios://lane/{l}/spec/{slug}`, `aios://lane/{l}/eval/{slug}` | `["assistant"]` | 0.4 | file mtime | L3, on demand; publish `listChanged` when entries appear |
 
-## Reference implementation (≤50 lines, zero dependencies)
+`subscribe` is most useful for `STATE.md` and active lane artifacts during a long session. `listChanged` is most useful when new `baseline-log/`, `specs/`, or `evals/` entries are created.
 
-The following Node.js script maps AI-OS artifacts to `aios://` URIs and serves them over a minimal newline-delimited JSON-RPC stdio loop. **Production deployments should use the official MCP SDK**; this is just enough to verify the URI contract end-to-end.
+## Illustrative reference snippet (≤50 lines, zero dependencies)
+
+The following Node.js script maps AI-OS artifacts to `aios://` URIs and serves them over a minimal newline-delimited JSON-RPC stdio loop. It is a documentation example, not a packaged AI-OS server. **Production deployments should use the official MCP SDK**; this is just enough to verify the URI contract end-to-end.
 
 ```js
 // reference: ai-os-mcp.js — wire-level demo only
@@ -113,7 +116,7 @@ function build() {
 const send = (m) => process.stdout.write(JSON.stringify(m) + "\n");
 let buf = "";
 process.stdin.on("data", (c) => { buf += c; let i; while ((i = buf.indexOf("\n")) >= 0) { const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); const r = build();
-  if (m.method === "initialize") send({ jsonrpc: "2.0", id: m.id, result: { capabilities: { resources: { listChanged: true } }, serverInfo: { name: "ai-os-mcp-ref", version: "0.1.0" } } });
+  if (m.method === "initialize") send({ jsonrpc: "2.0", id: m.id, result: { capabilities: { resources: { subscribe: true, listChanged: true } }, serverInfo: { name: "ai-os-mcp-ref", version: "0.1.0" } } });
   else if (m.method === "resources/list") send({ jsonrpc: "2.0", id: m.id, result: { resources: r.map(({ file: _, ...x }) => x) } });
   else if (m.method === "resources/read") { const hit = r.find((x) => x.uri === m.params.uri); send({ jsonrpc: "2.0", id: m.id, result: hit ? { contents: [{ uri: hit.uri, mimeType: hit.mimeType, text: fs.readFileSync(hit.file, "utf8") }] } : { contents: [] } }); }
 } });
@@ -121,9 +124,9 @@ process.stdin.on("data", (c) => { buf += c; let i; while ((i = buf.indexOf("\n")
 
 ## Why this is not in the default CLI
 
-- AI-OS v9 keeps the operating surface to **3 CLI subcommands** to avoid bloat
+- AI-OS v9 keeps the operating surface to **3 primary product operations** to avoid bloat
 - MCP server lifecycle (auth, transport, OAuth 2.1, audit logging) is large; embedding it would conflict with "zero runtime dependencies"
-- The contract here is enough: any team that wants MCP exposure can drop the snippet above into their stack, or wrap a richer MCP SDK around the same URI map
+- The contract here is enough: any team that wants MCP exposure can adapt the snippet above, or wrap a richer MCP SDK around the same URI map
 
 ## Anti-patterns
 

@@ -70,15 +70,15 @@ Root `.ai-os/MISSION.md` is the **shared host-project context**.
 
 Full text: [AGENTS.md](AGENTS.md)
 
-## Three CLI commands
+## Three primary operations
 
-| Command | Purpose |
+| Operation | CLI entrypoint | Purpose |
 |---|---|
-| `create-ai-os [dir]` | Install AI-OS v9 canonical layout |
-| `create-ai-os doctor [dir]` | Check layout health and constitution compliance |
-| `create-ai-os upgrade [dir]` | Migrate legacy AI-OS layouts to v9 |
+| install | `create-ai-os [dir]` or `create-ai-os install [dir]` | Install AI-OS v9 canonical layout |
+| doctor | `create-ai-os doctor [dir]` | Check layout health and constitution compliance |
+| upgrade | `create-ai-os upgrade [dir]` | Migrate legacy AI-OS layouts to v9 |
 
-No slash commands. No profile flags. No skill system.
+No slash commands. No profile flags. No proprietary AI-OS skill system; the `agentskills.io` wrapper below is an open-standard adapter, not a separate operating surface.
 
 ## How agents use AI-OS
 
@@ -132,7 +132,7 @@ This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the consti
 
 ## MCP integration
 
-AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI scheme. See [docs/interop/mcp-resources.md](docs/interop/mcp-resources.md). The default install does not start an MCP server; the integration is purely a contract document plus a reference implementation.
+AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI scheme. See [docs/interop/mcp-resources.md](docs/interop/mcp-resources.md). The default install does not ship or start an MCP server; the integration is a contract document plus an illustrative reference snippet.
 
 ## Further reading
 

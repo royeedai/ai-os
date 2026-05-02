@@ -11,6 +11,19 @@
 | Source ID | Source kind | URL / path | Captured at | Viewport / auth state | Evidence path | Confidence |
 |---|---|---|---|---|---|---|
 | SRC-001 | docs / repo reference | external references reviewed during planning | 2026-05-02 | public | docs/reverse-spec-url-intake.md | observed |
+| SRC-002 | docs / repo reference | external learning fusion plan | 2026-05-02 | public | .ai-os/lanes/default/baseline-log/CR-20260502-210628-external-learning-fusion.md | observed |
+
+## Evidence package adaptation matrix
+
+| Package kind | Accepted source | Must redact | Maps to | Confidence rule |
+|---|---|---|---|---|
+| trace.zip | Playwright trace / browser trace | cookies, tokens, form values | screenshots, DOM, Network, console | observed if captured directly |
+| network log / HAR | DevTools / proxy / browser export | auth headers, query secrets, PII payloads | API observation records | observed for captured requests |
+| screenshots | 1440 / 768 / 390 captures | private user data | visual parity | observed for visible state only |
+| DOM snapshots | browser DOM export | hidden secrets and user data | DOM topology | observed for captured DOM |
+| rawHtml | browser / crawler HTML export | secrets and inline personal data | content hierarchy | observed / inferred by source quality |
+| markdown | crawler markdown extraction | private content | content inventory | inferred unless backed by DOM/screenshot |
+| structured JSON | crawler / API / tool output | secrets and personal data | assets, forms, links, metadata | observed if source is direct, otherwise inferred |
 
 ## Visual parity
 

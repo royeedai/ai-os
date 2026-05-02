@@ -22,7 +22,23 @@ Capture enough evidence that implementation does not depend on memory or guessin
 - **Interactions**: scroll, click, hover, focus, time-driven changes, loading, empty, error, disabled, modal, dropdown, tab, carousel, and responsive states.
 - **Network/API**: REST, GraphQL, SSE, WebSocket, form submissions, query params, status codes, auth signals, retries, cache behavior, and error paths.
 
-## 3. Required Artifacts
+## 3. Evidence Package Adaptation Matrix
+
+Capture tools differ. AI-OS accepts tool-specific outputs only after they are normalized into artifact evidence, redacted, and mapped to `observed` / `inferred` / `unknown`.
+
+| Package kind | Accepted source | Must redact | Maps to | Confidence rule |
+|---|---|---|---|---|
+| `trace.zip` | Playwright trace or browser trace package | cookies, tokens, form values, PII | screenshots, DOM, Network, console, timing | `observed` if captured directly from the authorized session |
+| network log / HAR | DevTools export, browser protocol log, proxy capture | auth headers, query secrets, request/response PII | API observation records | `observed` for captured requests; missing endpoints remain `unknown` |
+| screenshots | desktop 1440px, tablet 768px, mobile 390px, section/state shots | private user data | visual parity and state inventory | `observed` for visible state only |
+| DOM snapshots | browser DOM export or inspected node tree | hidden secrets, user data, tokens in attributes | DOM topology and component boundaries | `observed` for captured DOM |
+| rawHtml | browser save, crawler HTML, rendered HTML export | inline personal data, secrets, tracking tokens | content hierarchy, metadata, forms, links | `observed` only when source is direct; otherwise `inferred` |
+| markdown | crawler markdown extraction | private content | content inventory and hierarchy hints | `inferred` unless backed by screenshot/DOM evidence |
+| structured JSON | crawler, API, browser tool, or extraction output | secrets, personal data, internal IDs where not needed | assets, routes, forms, metadata, API shapes | `observed` if direct capture; otherwise `inferred` |
+
+Do not store raw credentials, session cookies, bearer tokens, private user data, or payment/identity fields in AI-OS artifacts. Replace them with shape-level notes such as `cookie present`, `token header present`, or `redacted string field`.
+
+## 4. Required Artifacts
 
 Write the captured evidence into lane artifacts before development:
 
@@ -30,9 +46,9 @@ Write the captured evidence into lane artifacts before development:
 - `specs/*.spec.md`: user journey, interface map, backend behavior records, confidence, unknowns, and acceptance mapping.
 - `DESIGN.md`: product shape, information architecture, key interactions, API / data model summary, and shared-layer side effects.
 - `tasks.yaml`: implementation tasks with owner, dependency, approval, and evidence requirements.
-- `verification-matrix.yaml`: guards for visual parity, interaction parity, API parity, backend behavior confidence, and regression.
+- `verification-matrix.yaml`: guards for visual parity, interaction parity, API parity, backend behavior confidence, evidence package redaction, and regression.
 
-## 4. API Observation Record
+## 5. API Observation Record
 
 Each observed interface must include these fields:
 
@@ -50,7 +66,7 @@ Each observed interface must include these fields:
 | `evidence_source` | Screenshot, HAR, DevTools note, Network export, or trace |
 | `confidence` | `observed`, `inferred`, or `unknown` |
 
-## 5. Backend Behavior Record
+## 6. Backend Behavior Record
 
 Backend behavior means externally observable behavior, not the target system's real implementation. Each rule must include:
 
@@ -67,7 +83,7 @@ Backend behavior means externally observable behavior, not the target system's r
 
 Only `observed` behavior can become confirmed acceptance criteria. `inferred` behavior stays as an assumption. `unknown` behavior becomes a pending confirmation or explicit non-goal.
 
-## 6. Handoff to Implementation
+## 7. Handoff to Implementation
 
 After intake, AI-OS continues with the normal delivery flow:
 

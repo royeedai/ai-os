@@ -61,11 +61,14 @@ Add to your CI:
 npx --yes github:royeedai/ai-os doctor . --strict
 ```
 
-`--strict` upgrades W070/W071/W072 to errors, which catches:
+`--strict` upgrades semantic warnings to errors, which catches:
 
 - W070: orphan baseline references in `MISSION.md` (Article 12 record integrity)
 - W071: tasks without owner (Article 14 human-oversight attribution)
 - W072: acceptance criteria not covered by verification matrix (Article 17 verification completeness)
+- W073: CR records without explicit delta lifecycle fields (Article 12 record integrity)
+- W074: high-risk work without risk / release / guard artifacts (Article 14 oversight + Article 17 quality management)
+- W075: URL evidence without confidence classification (Article 17 evidence quality)
 
 Recommended additional, non-AI-OS checks:
 

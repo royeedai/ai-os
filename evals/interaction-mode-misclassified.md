@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: interaction-mode-misclassified
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Interaction Mode Misclassified

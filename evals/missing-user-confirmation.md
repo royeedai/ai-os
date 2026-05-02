@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: missing-user-confirmation
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Missing User Confirmation

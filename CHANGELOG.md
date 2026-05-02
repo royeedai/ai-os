@@ -6,13 +6,43 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file only tracks v8 and v9 releases (the supported lines as of v9.2). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file only tracks v8 and v9 releases (the supported lines as of v9.3). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 9.3.0 (2026-05-02) — External learning fusion
+
+**Minor, fully backward compatible**. v9.3 keeps the canonical layout, three primary product operations, and zero runtime dependencies intact. It fuses external spec-driven, MCP resource, browser-evidence, and eval-taxonomy practices into AI-OS artifacts and `doctor --strict` checks.
+
+### Added
+
+- `framework/.agents/templates/lane/specs/bugfix.spec.md` — bugfix route covering root cause, reproduction, blast radius, planned files, regression guard, and code / data / runtime completion status.
+- URL evidence package adaptation matrix for `trace.zip`, network log / HAR, screenshots, DOM snapshots, rawHtml, markdown, and structured JSON, including redaction and confidence mapping.
+- MCP resource annotation guidance for `audience`, `priority`, `lastModified`, `subscribe`, and `listChanged`.
+- Eval taxonomy frontmatter fields: `risk_source`, `failure_mode`, `harm`, and `artifact_gate`.
+- Doctor semantic warnings W073-W075 for CR delta fields, high-risk artifact completeness, and URL evidence confidence.
+
+### Changed
+
+- W072 now checks each non-placeholder AC from `DESIGN.md`, not just whether at least one AC is referenced by `verification-matrix.yaml`.
+- Baseline-log guidance now requires CR records to include Current behavior, Proposed delta, Affected artifacts, Acceptance delta, and Close/archive condition.
+- `docs/constitution-spec.md` bumped to v1.4 with the external learning fusion contracts.
+- Public docs now describe install as one operation with a default entrypoint and an explicit alias, clarify that the `agentskills.io` wrapper is an open-standard adapter rather than a proprietary AI-OS skill system, and describe the MCP sample as an illustrative reference snippet rather than a shipped server.
+
+### Tests
+
+- Documentation tests now assert the bugfix spec route, evidence package matrix, MCP annotation guidance, eval taxonomy frontmatter, unchanged CLI script surface, product-surface wording, and version string.
+- Doctor tests now cover W072 per-AC mapping plus W073/W074/W075 strict-mode behavior.
+
+### Migration
+
+None. Existing projects can adopt the stricter checks gradually; warnings remain non-blocking unless `--strict` is used.
 
 ---
 
 ## 9.2.0 (2026-05-02) — URL reverse-spec intake
 
-**Minor, fully backward compatible**. v9.2 keeps the canonical layout and three CLI commands intact. It adds an artifact-first intake protocol for accessible website URLs so agents can capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior before implementation.
+**Minor, fully backward compatible**. v9.2 keeps the canonical layout and three primary product operations intact. It adds an artifact-first intake protocol for accessible website URLs so agents can capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior before implementation.
 
 ### Added
 
@@ -74,12 +104,12 @@ None. Drop-in replacement for v9.1.0.
 
 ## 9.1.0 (2026-04-30) — Open standards alignment
 
-**Minor, fully backward compatible**. v9.1 keeps the canonical layout and three CLI commands intact. It adds open-standard interop (agentskills.io, MCP resources, AGENTS.md/Linux Foundation) and tightens the constitution at three points without growing the operating surface.
+**Minor, fully backward compatible**. v9.1 keeps the canonical layout and three primary product operations intact. It adds open-standard interop (agentskills.io, MCP resources, AGENTS.md/Linux Foundation) and tightens the constitution at three points without growing the operating surface.
 
 ### Added
 
 - `framework/skills/ai-os-delivery/SKILL.md` — AI-OS as an [agentskills.io spec v1.0](https://agentskills.io/specification)-compliant skill so any of the 27+ compatible agents (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...) can load AI-OS behavior without per-tool adapters
-- `docs/interop/mcp-resources.md` — `aios://` URI scheme covering all 12 artifacts plus a ≤50-line zero-dependency reference MCP server (default install does not start any server)
+- `docs/interop/mcp-resources.md` — `aios://` URI scheme covering all 12 artifacts plus a ≤50-line zero-dependency illustrative reference snippet (default install does not ship or start any server)
 - `docs/interop/claude-code.md` — coexistence with Claude Code via thin `CLAUDE.md` stub or skill loading
 - `docs/interop/cursor.md` — coexistence with Cursor `.cursor/rules/*.mdc` and `.cursor/skills/`
 - `docs/interop/kiro.md` — coexistence with Kiro steering + EARS-notation specs
@@ -171,7 +201,7 @@ AI-OS repositioned from "Node.js CLI tool with 15 subcommands + 14 slash command
 - `acceptance.yaml` merged into `DESIGN.md` §13 (verification standards)
 - `CONVENTIONS.md` merged into `memory.md` (as conventions + cross-layer contract registry sections)
 - `project.md` merged into `MISSION.md` (as "host project context" section)
-- `README.md` first screen: 12 artifacts + 3 commands + 5 core requirements (no feature parade)
+- `README.md` first screen: 12 artifacts + 3 primary operations + 5 core requirements (no feature parade)
 - `PROJECT_PURPOSE.md` updated with 2026 positioning (model self-verification era)
 
 ### Removed

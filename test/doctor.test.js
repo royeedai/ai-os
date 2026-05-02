@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.2.0", "JSON reports version 9.2.0");
+  assert(parsed && parsed.version === "9.3.0", "JSON reports version 9.3.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -173,7 +173,7 @@ section("doctor: W071 fires when a task has no owner");
   cleanup(dir);
 }
 
-section("doctor: W072 fires when DESIGN AC is not referenced in verification-matrix");
+section("doctor: W072 fires when any DESIGN AC is not referenced in verification-matrix");
 
 {
   const dir = tmpDir();
@@ -186,21 +186,85 @@ section("doctor: W072 fires when DESIGN AC is not referenced in verification-mat
   );
   design = design.replace(
     /\| AC-001 \| REQ-001 \| \[验收描述\] \| 自动化 \/ 手动 \/ 运行时观察 \| \[证据文件\] \|/,
-    "| AC-001 | REQ-001 | locale survives reload | automated | evidence/locale.spec |",
+    "| AC-001 | REQ-001 | locale survives reload | automated | evidence/locale.spec |\n| AC-002 | REQ-002 | locale rejects invalid option | automated | evidence/locale.spec |",
   );
   fs.writeFileSync(designPath, design);
-  const result = runDoctor([dir, "--json"]);
-  const parsed = JSON.parse(result.stdout);
-  const w072 = parsed.semantic_warnings.find((it) => it.code === "W072");
-  assert(!!w072, "doctor surfaces W072 when AC is not referenced in matrix");
-  assert(w072 && w072.message.includes("AC-001"), "W072 cites AC-001");
   const matrixPath = path.join(dir, ".ai-os", "lanes", "default", "verification-matrix.yaml");
   let matrix = fs.readFileSync(matrixPath, "utf8");
   matrix += `\n  - id: FM-002\n    scenario: "locale broken on reload"\n    expected: "AC-001 holds"\n    guard: "evidence/locale.spec"\n`;
   fs.writeFileSync(matrixPath, matrix);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w072 = parsed.semantic_warnings.find((it) => it.code === "W072");
+  assert(!!w072, "doctor surfaces W072 when any AC is not referenced in matrix");
+  assert(w072 && w072.message.includes("AC-002"), "W072 cites missing AC-002");
+  matrix = fs.readFileSync(matrixPath, "utf8");
+  matrix += `\n  - id: FM-003\n    scenario: "locale accepts invalid option"\n    expected: "AC-002 holds"\n    guard: "evidence/locale.spec"\n`;
+  fs.writeFileSync(matrixPath, matrix);
   const after = runDoctor([dir, "--json"]);
   const parsedAfter = JSON.parse(after.stdout);
   const w072After = parsedAfter.semantic_warnings.find((it) => it.code === "W072");
-  assert(!w072After, "W072 clears once verification-matrix references the AC id");
+  assert(!w072After, "W072 clears once verification-matrix references every AC id");
+  cleanup(dir);
+}
+
+section("doctor: W073 fires when CR baseline record lacks delta fields");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  write(dir, ".ai-os/lanes/default/baseline-log/CR-20260502-000000-missing-delta.md", "# CR missing delta\n\n## Current behavior\n\n- old\n");
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w073 = parsed.semantic_warnings.find((it) => it.code === "W073");
+  assert(!!w073, "doctor surfaces W073 for incomplete CR delta");
+  assert(w073 && w073.message.includes("Proposed delta"), "W073 names missing delta section");
+  const strict = runDoctor([dir, "--strict"]);
+  assert(strict.status === 1, "doctor --strict treats W073 as failure");
+  cleanup(dir);
+}
+
+section("doctor: W074 fires when high-risk lane lacks populated risk artifacts");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const laneTomlPath = path.join(dir, ".ai-os", "lanes", "default", "lane.toml");
+  let laneToml = fs.readFileSync(laneTomlPath, "utf8");
+  laneToml = laneToml.replace('risk_tier = "medium"', 'risk_tier = "high"');
+  fs.writeFileSync(laneTomlPath, laneToml);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w074 = parsed.semantic_warnings.find((it) => it.code === "W074");
+  assert(!!w074, "doctor surfaces W074 for high-risk placeholder artifacts");
+  assert(w074 && w074.message.includes("risk-register.md"), "W074 names missing risk register");
+  assert(w074 && w074.message.includes("release-plan.md"), "W074 names missing release plan");
+
+  write(dir, ".ai-os/lanes/default/risk-register.md", "# 风险登记\n\n| 风险 ID | 描述 | 影响范围 | 触发条件 | 规避措施 | 监测入口 | 审批结论 |\n|---|---|---|---|---|---|---|\n| R-001 | state transition risk | user data | submit | backup | logs | approved |\n");
+  write(dir, ".ai-os/lanes/default/release-plan.md", "# 发布计划\n\n## 发布策略\n\n- **策略**：manual\n\n## 回滚条件\n\n- verification fails\n\n## 回滚步骤\n\n1. revert release\n");
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w074After = parsedAfter.semantic_warnings.find((it) => it.code === "W074");
+  assert(!w074After, "W074 clears after risk and release artifacts are populated");
+  cleanup(dir);
+}
+
+section("doctor: W075 fires when URL evidence row has no confidence");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const parityPath = path.join(dir, ".ai-os", "lanes", "default", "design-pack", "parity-map.md");
+  let parity = fs.readFileSync(parityPath, "utf8");
+  parity = parity.replace(
+    "| SRC-001 | url / screenshot / DOM / Network / docs | [URL or file] | [ISO timestamp] | 1440 / 768 / 390, public / logged-in | [artifact path] | observed / inferred / unknown |",
+    "| SRC-999 | screenshot | https://example.test | 2026-05-02T00:00:00Z | 1440 public | evidence/home.png | missing |",
+  );
+  fs.writeFileSync(parityPath, parity);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w075 = parsed.semantic_warnings.find((it) => it.code === "W075");
+  assert(!!w075, "doctor surfaces W075 for URL evidence without confidence");
+  assert(w075 && w075.message.includes("SRC-999"), "W075 names the offending evidence row");
   cleanup(dir);
 }

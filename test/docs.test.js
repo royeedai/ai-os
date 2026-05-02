@@ -116,6 +116,13 @@ section("docs: URL reverse-spec intake protocol is documented");
     "DOM topology",
     "Computed CSS",
     "Network/API",
+    "Evidence Package Adaptation Matrix",
+    "trace.zip",
+    "network log / HAR",
+    "DOM snapshots",
+    "rawHtml",
+    "structured JSON",
+    "Must redact",
     "API Observation Record",
     "Backend Behavior Record",
     "observed",
@@ -132,11 +139,16 @@ section("docs: URL reverse-spec fields are present in lane templates");
 
 {
   const spec = read("framework/.agents/templates/lane/specs/example.spec.md");
+  const bugfixSpec = read("framework/.agents/templates/lane/specs/bugfix.spec.md");
+  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
   const parity = read("framework/.agents/templates/lane/design-pack/parity-map.md");
   const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
 
   for (const term of [
+    "Spec route",
     "Reverse-spec evidence sources",
+    "Evidence package adaptation",
+    "trace.zip",
     "API observation records",
     "Backend behavior records",
     "auth_signal",
@@ -148,7 +160,32 @@ section("docs: URL reverse-spec fields are present in lane templates");
   }
 
   for (const term of [
+    "Bugfix Spec",
+    "Root cause",
+    "Reproduction",
+    "Blast radius",
+    "Planned files",
+    "Regression guard",
+    "Code status",
+    "Data status",
+    "Runtime status",
+  ]) {
+    assert(bugfixSpec.toLowerCase().includes(term.toLowerCase()), `bugfix spec includes ${term}`);
+  }
+
+  for (const term of [
+    "Current behavior",
+    "Proposed delta",
+    "Affected artifacts",
+    "Acceptance delta",
+    "Close/archive condition",
+  ]) {
+    assert(baselineTemplate.includes(term), `baseline template includes CR delta field ${term}`);
+  }
+
+  for (const term of [
     "URL reverse-spec capture manifest",
+    "Evidence package adaptation matrix",
     "Visual parity",
     "Interaction parity",
     "API / interface parity",
@@ -162,6 +199,7 @@ section("docs: URL reverse-spec fields are present in lane templates");
   assert(matrix.includes("url-reverse-spec-intake"), "verification matrix includes URL reverse-spec impact rule");
   assert(matrix.includes("Network/API observation review"), "verification matrix includes Network/API guard");
   assert(matrix.includes("backend behavior confidence review"), "verification matrix includes backend behavior confidence guard");
+  assert(matrix.includes("evidence package redaction + confidence review"), "verification matrix includes evidence package guard");
 }
 
 section("docs: VERSION and package.json are in sync");
@@ -170,7 +208,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.2.0", `version is 9.2.0 (got ${version})`);
+  assert(version === "9.3.0", `version is 9.3.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -180,6 +218,34 @@ section("docs: package.json bin field is minimal");
   const binKeys = Object.keys(pkg.bin || {});
   assert(binKeys.length === 1, `package.json has exactly 1 bin entry (got ${binKeys.length})`);
   assert(binKeys[0] === "create-ai-os", `package.json bin key is create-ai-os (got ${binKeys[0]})`);
+}
+
+section("docs: product surface wording stays precise");
+
+{
+  const readme = read("README.md");
+  const cli = read("docs/cli.md");
+  const mcp = read("docs/interop/mcp-resources.md");
+  const changelog = read("CHANGELOG.md");
+
+  assert(readme.includes("Three primary operations"), "README describes product operations, not command count");
+  assert(readme.includes("No proprietary AI-OS skill system"), "README distinguishes proprietary skill systems from open adapters");
+  assert(readme.includes("open-standard adapter"), "README describes agentskills.io wrapper as an open-standard adapter");
+  assert(!readme.includes("No skill system."), "README does not imply the agentskills.io wrapper is forbidden");
+
+  assert(cli.includes("3 primary product operations"), "CLI docs describe 3 primary product operations");
+  assert(cli.includes("explicit alias"), "CLI docs identify create-ai-os install as an alias");
+  assert(cli.includes("does not add a fourth product operation"), "CLI docs prevent install alias from becoming a fourth operation");
+
+  assert(mcp.includes("does **not** ship or start an MCP server"), "MCP docs preserve default serverless boundary");
+  assert(mcp.includes("Illustrative reference snippet"), "MCP docs describe the Node sample as an illustrative snippet");
+  assert(mcp.includes("not a packaged AI-OS server"), "MCP docs clarify the sample is not shipped runtime surface");
+  assert(!mcp.includes("Reference implementation"), "MCP docs avoid implying a packaged reference implementation");
+  assert(!mcp.includes("reference MCP server"), "MCP docs avoid implying a shipped reference MCP server");
+
+  assert(changelog.includes("three primary product operations"), "CHANGELOG uses primary product operation wording");
+  assert(changelog.includes("open-standard adapter"), "CHANGELOG records skill wrapper wording");
+  assert(changelog.includes("illustrative reference snippet"), "CHANGELOG records MCP snippet wording");
 }
 
 section("docs: maintainers guide only references existing examples");
@@ -244,6 +310,10 @@ section("docs: every eval has trigger_source frontmatter");
     assert(content.startsWith("---\n"), `${file} starts with YAML frontmatter`);
     assert(/trigger_source:\s*(manual|promoted-from-verification-matrix)/.test(content), `${file} declares valid trigger_source`);
     assert(content.includes("first_baseline_id:"), `${file} declares first_baseline_id field`);
+    assert(content.includes("risk_source:"), `${file} declares risk_source field`);
+    assert(content.includes("failure_mode:"), `${file} declares failure_mode field`);
+    assert(content.includes("harm:"), `${file} declares harm field`);
+    assert(content.includes("artifact_gate:"), `${file} declares artifact_gate field`);
   }
   const urlEval = read("evals/url-reverse-spec-backend-hallucination.md");
   assert(urlEval.includes("CR-20260502-204346-url-reverse-spec-intake"), "URL reverse-spec eval references its baseline CR");
@@ -294,7 +364,10 @@ section("docs: MCP resources URI scheme covers all 12 artifacts");
   for (const uri of requiredUris) {
     assert(content.includes(uri), `mcp-resources.md declares ${uri}`);
   }
-  assert(content.includes("Reference implementation"), "mcp-resources.md ships a reference implementation block");
+  assert(content.includes("Illustrative reference snippet"), "mcp-resources.md documents an illustrative reference snippet");
+  assert(content.includes("lastModified"), "mcp-resources.md documents lastModified annotations");
+  assert(content.includes('"subscribe": true'), "mcp-resources.md declares resource subscribe capability");
+  assert(content.includes('"listChanged": true'), "mcp-resources.md declares resource listChanged capability");
 }
 
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");

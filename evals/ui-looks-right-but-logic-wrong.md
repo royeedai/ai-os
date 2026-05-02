@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: ui-looks-right-but-logic-wrong
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: UI Looks Right But Logic Wrong

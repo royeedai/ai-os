@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v1.3
+# AI Delivery Constitution Spec v1.4
 
 Status: Stable
-Version: 1.3
+Version: 1.4
 Last updated: 2026-05-02
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 1.4 (2026-05-02) — non-breaking additions: CR delta lifecycle fields, bugfix spec route, URL evidence package adaptation matrix, MCP resource annotation recommendations, eval taxonomy frontmatter, and stricter doctor semantic warnings
 - 1.3 (2026-05-02) — non-breaking addition: URL reverse-spec intake protocol with visual / interaction / API / backend behavior evidence and `observed` / `inferred` / `unknown` confidence
 - 1.2 (2026-04-30) — non-breaking additions: artifact `layer` field (L1/L2/L3 progressive disclosure), `agentskills.io` cross-agent skill wrapping, `aios://` MCP resources URI scheme, failure-mode promotion rule, EU AI Act audit-trail mapping
 - 1.1 (2026-04-22) — shared-root + lanes/default canonical layout
@@ -148,3 +149,14 @@ API observation record 最低字段：`id`、`trigger`、`method`、`url_pattern
 Backend behavior record 最低字段：`rule_id`、`behavior`、`observed_from`、`positive_cases`、`negative_cases`、`unknowns`、`confidence`、`implementation_requirement`。
 
 `confidence` 只允许 `observed`、`inferred`、`unknown`。只有 `observed` 可进入 confirmed acceptance criteria；`inferred` 必须标注假设；`unknown` 必须进入待确认项或非目标。
+
+## 15. External learning fusion contracts（v1.4）
+
+兼容实现应保持 `AGENTS.md` 极简，把更细的可靠性要求落实到工件和机械检查：
+
+- `CR-*` baseline records 应包含 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Close/archive condition。
+- bugfix specs 应锁定 root cause、reproduction、blast radius、planned files、regression guard。
+- URL intake 可接收 `trace.zip`、network log / HAR、screenshots、DOM snapshots、rawHtml、markdown、structured JSON 等证据包；写入工件前必须脱敏 secrets / PII，并映射到 `observed` / `inferred` / `unknown`。
+- MCP resource annotations 建议包含 `audience`、`priority`、真实文件 `lastModified`；server 可对 `STATE.md` 支持 `subscribe`，对 lane collections 支持 `listChanged`。
+- eval frontmatter 可增加 `risk_source`、`failure_mode`、`harm`、`artifact_gate`，便于把失败样例从列表升级为 taxonomy。
+- doctor 可用 warnings 检查 baseline delta、AC-to-verification mapping、high-risk 工件完整性和 URL evidence confidence；`--strict` 可在 CI 中升级为失败。

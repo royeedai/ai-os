@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: problem-ledger-coverage-regression
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Problem Ledger Coverage Regression

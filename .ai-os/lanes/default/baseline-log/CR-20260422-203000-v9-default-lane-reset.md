@@ -27,6 +27,26 @@ User requested a full project reset and confirmed executing the v9 default-lane 
 | Current delivery baseline | `.ai-os/MISSION.md` | `.ai-os/lanes/default/MISSION.md` |
 | Session recovery | `.ai-os/STATE.md` | `.ai-os/lanes/default/STATE.md` |
 
+## Current behavior
+
+- v8 implementation and docs split between root-only `.ai-os/*` and lane-default schema language.
+
+## Proposed delta
+
+- Make shared root + `.ai-os/lanes/default/` the only canonical layout.
+
+## Affected artifacts
+
+- `.ai-os/`, framework templates, CLI install/doctor/upgrade logic, docs, examples, tests, version metadata.
+
+## Acceptance delta
+
+- Install, doctor, upgrade, schema docs, README, AGENTS, tests, and examples all point to the same default-lane layout.
+
+## Close/archive condition
+
+- Close when `doctor` passes after install and after supported legacy layout upgrades.
+
 ## Rollback path
 
 - Revert to the v8.0.0 baseline if upgrade compatibility or docs consistency regresses

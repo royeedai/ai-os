@@ -63,7 +63,7 @@ Cursor supports hooks via `hooks.json`. Add a `pre-commit`-style hook to run AI-
 }
 ```
 
-This catches W070 / W071 / W072 semantic drift before commits land.
+This catches W070-W075 semantic drift before commits land.
 
 ## Artifact coexistence
 

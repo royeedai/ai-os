@@ -7,9 +7,9 @@
  * All artifacts are installed into the v9 canonical layout:
  * shared root + .ai-os/lanes/default/.
  *
- * Subcommands:
+ * Primary operations:
  *   create-ai-os [target-dir]       Default install (the only supported form)
- *   create-ai-os install [target]   Explicit install (same behavior)
+ *   create-ai-os install [target]   Explicit install alias (same behavior)
  *   create-ai-os doctor  [target]   Check artifact completeness
  *   create-ai-os upgrade [target]   Migrate older AI-OS layouts to v9
  */
@@ -29,9 +29,14 @@ function printHelp(version) {
 
 Usage:
   create-ai-os [target-dir]               Install AI-OS v9 into the target (default: current dir)
-  create-ai-os install [target-dir]       Same as above (explicit)
-  create-ai-os doctor  [target-dir]       Check artifact completeness
+  create-ai-os install [target-dir]       Explicit install alias (same behavior)
+  create-ai-os doctor  [target-dir]       Check layout health and constitution compliance
   create-ai-os upgrade [target-dir]       Migrate older AI-OS layouts to v9
+
+Primary operations:
+  install   Default entrypoint plus explicit alias
+  doctor    Layout health and constitution compliance checks
+  upgrade   Legacy layout migration to v9
 
 Options:
   --force          Overwrite existing managed artifacts
@@ -141,7 +146,9 @@ Next steps:
   3. Fill in .ai-os/lanes/default/MISSION.md — your current delivery baseline
   4. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
 
-Commands:
+Primary operations:
+  create-ai-os            Install AI-OS v9 (default entrypoint)
+  create-ai-os install    Install AI-OS v9 (explicit alias)
   create-ai-os doctor    Check artifact completeness
   create-ai-os upgrade   Migrate older AI-OS layouts to v9
 `);

@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: implicit-cross-layer-contract-undocumented
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Implicit Cross-Layer Contract Undocumented

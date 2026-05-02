@@ -1,61 +1,63 @@
-# AI-OS v9.2 URL Reverse-Spec Intake Mission
+# AI-OS v9.3 External Learning Fusion Mission
 
 ## 1. 当前交付基线摘要
 
-- **当前交付主题**：URL reverse-spec intake
-- **当前交付目标**：为“给定可访问网站 URL，反推需求、截图、交互、接口和后端行为规格”补齐 AI-OS artifact-first 前半段
-- **成功标准**：官方文档、lane 模板、skill wrapper、eval、tests 全部表达同一套 URL intake 协议，且不新增 CLI / slash command / runtime dependency
-- **项目模式**：change + reverse-spec
+- **当前交付主题**：external learning fusion
+- **当前交付目标**：把外部 spec-driven、MCP resource、浏览器证据包和 eval taxonomy 的可靠实践融合进 AI-OS，同时保持零运行时依赖和最小 CLI surface
+- **成功标准**：CR delta lifecycle、bugfix spec route、URL evidence package matrix、MCP annotations、eval taxonomy、doctor semantic warnings 和产品 surface 口径全部进入 docs/templates/tests
+- **项目模式**：change + brownfield
 - **当前交付档位**：standard
 - **当前治理档位**：P1
-- **当前基线 ID**：CR-20260502-204346-url-reverse-spec-intake
+- **当前基线 ID**：CR-20260502-210628-external-learning-fusion
 
 ## 2. 用户与闭环场景
 
-- **目标用户**：需要从现有网站反推需求并让 AI-OS 接管完整开发闭环的 AI coding 用户
-- **关键场景**：用户提供 URL → agent 捕获截图、DOM/CSS、交互、Network/API 和后端行为证据 → AI-OS 生成 MISSION / DESIGN / specs / tasks / verification → 实现并对照原站验收
-- **当前最小可行闭环**：URL intake 产生可审计 artifact，后续开发仍走现有 AI-OS 设计锁定、任务拆解、实现与验证门
-- **明确后续迭代项**：真实浏览器采集脚本、自动视觉 diff、HAR schema、跨工具 MCP capture server
+- **目标用户**：需要让 AI coding agent 在长期项目中更可靠交付的个人开发者和小团队
+- **关键场景**：用户提出变更 / bugfix / URL reverse-spec / 高风险任务 → agent 用 lane 工件明确 delta、证据、风险和验收映射 → doctor 在 `--strict` 下捕捉跨工件漂移
+- **当前最小可行闭环**：不新增命令或 runtime；通过文档、模板和 doctor 检查把可靠性前移到工件契约
+- **明确后续迭代项**：可选 MCP server 实现、真实浏览器 evidence adapter、eval runner 仍保持范围外
 
 ## 3. 已确认约束与关键决策
 
-- **已确认技术栈与关键选型**：继续使用零依赖 Node.js CLI；URL intake 只扩展文档、模板和 skill wrapper
-- **已确认目标运行态 / 部署约束**：默认安装不启动浏览器、crawler、sandbox 或外部服务
-- **已确认质量优先级**：证据可审计 > 不脑补后端 > 与现有 reverse-spec parity 对齐 > 操作面最小
-- **已确认核心设计决策**：新入口是 AI-OS 工件流程，不是新 CLI 子命令
-- **已确认核心逻辑决策**：后端行为只能是浏览器可观察行为规格，必须标注 `observed` / `inferred` / `unknown`
+- **已确认技术栈与关键选型**：继续使用零依赖 Node.js CLI；可靠性增强优先进入 templates、docs、doctor 和 tests
+- **已确认目标运行态 / 部署约束**：默认安装不启动浏览器、crawler、MCP server、hooks、sandbox 或外部服务
+- **已确认质量优先级**：机械检查 > 文档叙事；工件交叉引用 > agent 记忆；证据可审计 > 工具专有能力
+- **已确认核心设计决策**：保持 `AGENTS.md` 极简，把新增约束放进 lane 工件和 `doctor --strict`
+- **已确认核心逻辑决策**：CR、AC、high-risk、URL evidence 和 eval taxonomy 必须能被测试覆盖
 
 ## 4. 范围边界与非目标
 
 ### 范围内
 
-- `docs/reverse-spec-url-intake.md`
-- lane 模板中的 parity-map、example spec、verification matrix
-- `framework/skills/ai-os-delivery/SKILL.md` 触发描述
-- URL reverse-spec failure-mode eval
-- docs/tests/version/changelog 对齐到 v9.2.0
+- `bin/ai-os-doctor.js` 新增语义 warning
+- lane 模板中的 CR delta、bugfix spec、verification、parity/evidence 字段
+- URL reverse-spec evidence package matrix
+- MCP resources annotation vNext 文档
+- eval taxonomy frontmatter 和 docs tests
+- docs/tests/version/changelog 对齐到 v9.3.0
+- release polish：统一 install 默认入口 / 显式 alias、open-standard skill wrapper、MCP illustrative snippet 的公开口径
 
 ### 范围外
 
-- 新增 `create-ai-os` CLI 子命令
-- 引入 Firecrawl / Playwright / Browser Use runtime dependency
-- 自动下载资产、运行浏览器、视觉 diff 服务或沙箱生成器
-- 声称能获得目标网站真实后端源码或内部数据库规则
+- 新增 CLI 命令、slash command、IDE hook、Spec Kit command 或 Kiro hook
+- 引入 Firecrawl / Playwright / Chrome DevTools / MCP SDK 运行时依赖
+- 默认启动 browser、crawler、visual diff、sandbox、MCP server 或 eval runner
+- 升级到 v9.4、改变安装布局、改变 CLI 行为或新增运行时能力
 
 ### 非目标
 
-- 把 AI-OS 变成网站克隆器、IDE 插件、crawler 或代码生成器
-- 让截图相似度替代接口、状态流转和后端行为证据
+- 把 AI-OS 变成 spec executor、代码生成器、浏览器采集器或任务编排器
+- 扩大 `AGENTS.md` 成长篇操作手册
 
 ## 5. 宿主项目相关上下文
 
-- **本轮依赖的宿主项目事实**：AI-OS 已有 reverse-spec parity gate，但缺少 URL intake 的结构化前置证据协议
-- **必须保持的共享基础设施约束**：README、schema、skill wrapper、templates、tests 不得暗示新增 CLI 或运行时依赖
+- **本轮依赖的宿主项目事实**：AI-OS 已有 v9 canonical layout、v9.2 URL intake、W070-W075 doctor checks、eval frontmatter
+- **必须保持的共享基础设施约束**：README、schema、skill wrapper、templates、tests、CLI help 必须表达同一套最小 surface
 - **与其他 lane 的边界**：当前仓库继续使用 `default` lane
 
 ## 6. 稳定风险与外部依赖
 
-- **外部依赖**：无新增运行时依赖；真实项目可选择使用当前 agent 可用的浏览器 / crawler 工具
-- **稳定风险**：agent 把推断后端规则当成 confirmed AC；模板过度膨胀导致默认安装心智负担增加
+- **外部依赖**：无新增运行时依赖；外部研究只转化为工具无关契约
+- **稳定风险**：doctor warnings 过严导致旧项目噪声；模板字段过多导致用户心智负担增加；公开文案把 install alias、skill wrapper 或 MCP snippet 误读为新增 product surface
 - **高风险触发因素**：不涉及用户资产写入、身份权限变更、跨用户数据或外部副作用，不升 high-risk
-- **审批点**：用户于 2026-05-02 确认实施 URL Reverse-Spec Intake plan
+- **审批点**：用户于 2026-05-02 确认实施外部学习融合路线图

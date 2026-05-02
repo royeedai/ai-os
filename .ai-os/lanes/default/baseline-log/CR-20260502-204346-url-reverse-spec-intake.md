@@ -28,6 +28,26 @@ User requested implementation of the URL Reverse-Spec Intake plan. The selected 
 | CLI surface | 3 commands | unchanged |
 | Runtime dependencies | zero runtime dependencies | unchanged |
 
+## Current behavior
+
+- Reverse-spec parity exists, but URL-provided sites do not yet have a structured pre-implementation intake protocol.
+
+## Proposed delta
+
+- Add URL-specific evidence capture records for visual, DOM/CSS, interaction, Network/API, backend behavior, and confidence.
+
+## Affected artifacts
+
+- Lane templates, ai-os-delivery skill wrapper, docs, evals, tests, changelog, version metadata.
+
+## Acceptance delta
+
+- Templates and docs require URL intake evidence before implementation, and tests assert the protocol without adding CLI or runtime surface.
+
+## Close/archive condition
+
+- Close when URL intake docs/templates/eval/version tests pass and the three-command CLI invariant remains unchanged.
+
 ## Rollback path
 
 - Revert the v9.2.0 docs/template/test/version changes if the protocol bloats the default operating surface or weakens the three-command CLI invariant.

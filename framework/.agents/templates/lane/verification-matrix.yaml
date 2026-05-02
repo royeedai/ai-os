@@ -9,6 +9,7 @@ impact_rules:
       - "[interaction sweep: scroll/click/hover/time]"
       - "[Network/API observation review]"
       - "[backend behavior confidence review]"
+      - "[evidence package redaction + confidence review]"
 
 failure_modes:
   - id: FM-001
@@ -23,6 +24,10 @@ failure_modes:
     scenario: "无 Network 证据的后端规则被写成 confirmed AC"
     expected: "该规则必须标为 inferred 或 unknown，并进入假设或待确认项"
     guard: "specs/*.spec.md backend behavior confidence review"
+  - id: FM-URL-003
+    scenario: "URL evidence package 记录了 trace / HAR / DOM / rawHtml / markdown / structured JSON，但未标注 confidence 或脱敏要求"
+    expected: "证据包必须映射到 observed / inferred / unknown，并记录 secrets / PII 脱敏要求"
+    guard: "design-pack/parity-map.md evidence package adaptation matrix"
 
 guards:
   - "[evidence path or eval reference]"

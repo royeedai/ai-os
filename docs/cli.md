@@ -1,6 +1,8 @@
 # CLI Reference
 
-AI-OS v9 provides **3 commands**.
+AI-OS v9 provides **3 primary product operations**: install, doctor, and upgrade.
+
+Install has two equivalent entrypoints: the default positional form (`create-ai-os [target-dir]`) and the explicit alias (`create-ai-os install [target-dir]`). The alias does not add a fourth product operation.
 
 ## Quick reference
 
@@ -13,7 +15,7 @@ create-ai-os -h | --help
 create-ai-os -v | --version
 ```
 
-## `create-ai-os [target-dir]`
+## Install: `create-ai-os [target-dir]` / `create-ai-os install [target-dir]`
 
 Installs the v9 canonical layout:
 
@@ -48,7 +50,10 @@ In addition to layout health, doctor emits warnings when artifacts drift apart i
 
 - **W070** — lane `MISSION.md` references a `当前基线 ID` that has no matching file in `baseline-log/`
 - **W071** — `tasks.yaml` has tasks under the top-level `tasks:` block without an `owner` field
-- **W072** — `DESIGN.md` lists non-placeholder acceptance criteria (AC ids) that are not referenced anywhere in `verification-matrix.yaml`
+- **W072** — each non-placeholder AC in `DESIGN.md` must be referenced in `verification-matrix.yaml`
+- **W073** — each `CR-*` baseline record should include Current behavior, Proposed delta, Affected artifacts, Acceptance delta, and Close/archive condition
+- **W074** — high-risk lanes or tasks must have populated `risk-register.md`, `release-plan.md`, and a real verification guard
+- **W075** — URL reverse-spec evidence rows must include `observed` / `inferred` / `unknown` confidence
 
 These are skipped on a clean default install (template placeholders are detected and ignored).
 
@@ -64,7 +69,7 @@ These are skipped on a clean default install (template placeholders are detected
 - `layout_version`
 - `layout_mode`
 - `issues[]`
-- `semantic_warnings[]` — convenience filter of `issues[]` containing only the W070/W071/W072 codes
+- `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W075 semantic warning codes
 
 ## `create-ai-os upgrade [target-dir]`
 

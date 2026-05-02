@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: design-not-locked-before-build
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Design Not Locked Before Build

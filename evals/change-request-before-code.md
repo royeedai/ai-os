@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: change-request-before-code
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Change Request Before Code

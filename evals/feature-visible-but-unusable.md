@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: feature-visible-but-unusable
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Feature Visible But Unusable

@@ -12,6 +12,14 @@
 - **确认来源**：2026-04-22 用户确认执行 v9 计划
 - **日期**：2026-04-22
 
+#### DD-002: v9.3 以后可靠性增强优先进入 doctor 与 lane 工件契约
+
+- **决策**：保持 `AGENTS.md` 极简；外部 spec-driven、MCP、browser evidence、eval taxonomy 的可靠实践优先沉淀为 lane 模板字段、docs、eval frontmatter 和 `doctor --strict` semantic warnings
+- **原因**：AI-OS 的长期定位是跨 agent 交付宪法，不是运行时编排器；机械检查比扩展提示词更能防止跨工件漂移
+- **影响范围**：doctor、baseline-log、specs、verification-matrix、reverse-spec intake、MCP resources、evals、tests
+- **确认来源**：2026-05-02 用户确认执行外部学习融合路线图
+- **日期**：2026-05-02
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

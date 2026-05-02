@@ -1,28 +1,34 @@
 version: 3
-baseline_id: "CR-20260502-204346-url-reverse-spec-intake"
+baseline_id: "CR-20260502-210628-external-learning-fusion"
 scope:
-  mode: "change+reverse-spec"
-  focus: "url-reverse-spec-intake"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260502-204346-url-reverse-spec-intake"
+  mode: "change+brownfield"
+  focus: "external-learning-fusion"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260502-210628-external-learning-fusion"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "URL Intake Contract Locked"
-    goal: "URL reverse-spec evidence model is documented and reflected in templates"
-    scope: "docs, framework templates, skill wrapper"
-    acceptance_goal: "URL intake fields and confidence model are stable"
+    title: "Artifact Contracts Locked"
+    goal: "外部可靠实践被转化为 AI-OS 工件契约"
+    scope: "docs, framework templates, eval taxonomy"
+    acceptance_goal: "CR delta、bugfix route、evidence matrix、MCP annotations、eval taxonomy 均有模板与文档"
     target_window: "2026-05-02"
   - id: M2
-    title: "Regression Guards Closed"
-    goal: "Failure mode and tests prevent screenshot-only or hallucinated backend intake"
-    scope: "evals, tests, changelog, version"
-    acceptance_goal: "npm test and npm run lint pass"
+    title: "Semantic Guards Closed"
+    goal: "doctor 和 tests 固化新增契约"
+    scope: "doctor, docs tests, version, changelog"
+    acceptance_goal: "npm test、npm run lint、doctor --json --strict 通过"
+    target_window: "2026-05-02"
+  - id: M3
+    title: "Release Polish Closed"
+    goal: "发布前产品 surface 口径不再暗示新增能力"
+    scope: "README, CLI docs, MCP docs, changelog, docs tests, CLI help"
+    acceptance_goal: "install alias、open-standard skill wrapper、MCP illustrative snippet 口径被测试固化"
     target_window: "2026-05-02"
 
 tasks:
-  - id: TASK-AI-101
-    title: "新增 URL reverse-spec intake 文档"
+  - id: TASK-AI-201
+    title: "建立 v9.3 变更基线与 spec delta 契约"
     milestone: M1
     status: done
     owner: AI
@@ -32,15 +38,19 @@ tasks:
     depends_on: []
     requirement_refs:
       - "REQ-001"
+      - "REQ-002"
     acceptance_refs:
       - "AC-001"
+      - "AC-002"
     impact_tags:
-      - "docs"
-      - "reverse-spec"
+      - "baseline-log"
+      - "template"
+      - "doctor"
     evidence_required:
       - "docs-test"
-  - id: TASK-AI-102
-    title: "增强 lane reverse-spec 模板"
+      - "doctor-strict"
+  - id: TASK-AI-202
+    title: "补齐 bugfix spec route 与 URL evidence package matrix"
     milestone: M1
     status: done
     owner: AI
@@ -48,44 +58,43 @@ tasks:
     wave: 1
     approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-101"
+      - "TASK-AI-201"
     requirement_refs:
       - "REQ-002"
+      - "REQ-003"
     acceptance_refs:
       - "AC-002"
+      - "AC-003"
     impact_tags:
-      - "template"
-      - "parity"
-      - "verification"
+      - "spec"
+      - "reverse-spec"
+      - "evidence"
     evidence_required:
-      - "install-test"
       - "docs-test"
-  - id: TASK-AI-103
-    title: "更新 skill wrapper、README、schema 文档和版本"
+  - id: TASK-AI-203
+    title: "增强 MCP annotations 与 eval taxonomy"
     milestone: M1
     status: done
     owner: AI
-    priority: P1
+    priority: P2
     wave: 2
     approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-101"
-      - "TASK-AI-102"
+      - "TASK-AI-201"
     requirement_refs:
-      - "REQ-003"
       - "REQ-004"
+      - "REQ-005"
     acceptance_refs:
-      - "AC-003"
       - "AC-004"
+      - "AC-005"
     impact_tags:
-      - "docs"
-      - "skill"
-      - "version"
+      - "mcp"
+      - "eval"
+      - "interop"
     evidence_required:
       - "docs-test"
-      - "lint"
-  - id: TASK-AI-104
-    title: "新增 URL reverse-spec 后端脑补 eval 与测试断言"
+  - id: TASK-AI-204
+    title: "新增 doctor semantic warnings 与回归测试"
     milestone: M2
     status: done
     owner: AI
@@ -93,15 +102,45 @@ tasks:
     wave: 2
     approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-102"
+      - "TASK-AI-201"
+      - "TASK-AI-202"
+      - "TASK-AI-203"
     requirement_refs:
-      - "REQ-005"
+      - "REQ-001"
+      - "REQ-006"
     acceptance_refs:
       - "AC-001"
-      - "AC-002"
+      - "AC-006"
     impact_tags:
-      - "eval"
-      - "verification"
+      - "doctor"
+      - "test"
+      - "version"
     evidence_required:
       - "npm-test"
       - "lint"
+      - "doctor-strict"
+  - id: TASK-AI-205
+    title: "统一 v9.3 release product surface 口径"
+    milestone: M3
+    status: done
+    owner: AI
+    priority: P1
+    wave: 3
+    approval_required: "plan_confirmed"
+    depends_on:
+      - "TASK-AI-204"
+    requirement_refs:
+      - "REQ-006"
+    acceptance_refs:
+      - "AC-006"
+    impact_tags:
+      - "docs"
+      - "cli-help"
+      - "mcp"
+      - "skill-wrapper"
+      - "test"
+    evidence_required:
+      - "npm-test"
+      - "lint"
+      - "doctor-strict"
+      - "help-output-review"

@@ -17,6 +17,26 @@ User asked whether frontier-model progress required AI-OS to change direction an
 - Operational surface dropped to 3 CLI commands
 - Five core requirements and 12 artifact capabilities were preserved
 
+## Current behavior
+
+- v7 shipped command-driven workflows, slash commands, skills, policies, and many CLI subcommands.
+
+## Proposed delta
+
+- Reframe AI-OS as a delivery constitution with 12 artifacts and a minimal reference CLI.
+
+## Affected artifacts
+
+- `AGENTS.md`, CLI scripts, framework workflows / skills, docs, examples, tests, version metadata.
+
+## Acceptance delta
+
+- The five core requirements remain expressible through rule-driven behavior and the CLI surface drops to three commands.
+
+## Close/archive condition
+
+- Close when v8 docs, tests, and version metadata align with the constitution-first positioning.
+
 ## Execution summary
 
 - Rewrote root constitution and major docs

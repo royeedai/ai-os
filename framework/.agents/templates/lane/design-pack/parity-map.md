@@ -10,6 +10,18 @@
 |---|---|---|---|---|---|---|
 | SRC-001 | url / screenshot / DOM / Network / docs | [URL or file] | [ISO timestamp] | 1440 / 768 / 390, public / logged-in | [artifact path] | observed / inferred / unknown |
 
+## Evidence package adaptation matrix
+
+| Package kind | Accepted source | Must redact | Maps to | Confidence rule |
+|---|---|---|---|---|
+| trace.zip | Playwright trace / browser trace | cookies, tokens, form values | screenshots, DOM, Network, console | observed if captured directly |
+| network log / HAR | DevTools / proxy / browser export | auth headers, query secrets, PII payloads | API observation records | observed for captured requests |
+| screenshots | 1440 / 768 / 390 captures | private user data | visual parity | observed for visible state only |
+| DOM snapshots | browser DOM export | hidden secrets and user data | DOM topology | observed for captured DOM |
+| rawHtml | browser / crawler HTML export | secrets and inline personal data | content hierarchy | observed / inferred by source quality |
+| markdown | crawler markdown extraction | private content | content inventory | inferred unless backed by DOM/screenshot |
+| structured JSON | crawler / API / tool output | secrets and personal data | assets, forms, links, metadata | observed if source is direct, otherwise inferred |
+
 ## Visual parity
 
 | Section / state | Reference evidence | Target implementation | Difference | Conclusion |

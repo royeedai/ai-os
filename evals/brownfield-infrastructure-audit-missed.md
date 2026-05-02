@@ -1,6 +1,10 @@
 ---
 trigger_source: manual
 first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: brownfield-infrastructure-audit-missed
+harm: delivery-regression
+artifact_gate: constitution-gate
 ---
 
 # Eval: Brownfield Infrastructure Audit Missed

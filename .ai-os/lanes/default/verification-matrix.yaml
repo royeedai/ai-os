@@ -1,34 +1,61 @@
 impact_rules:
-  - when: "url-reverse-spec-intake"
+  - when: "external-learning-fusion"
     run:
       - "npm test"
       - "npm run lint"
+      - "node bin/create-ai-os.js doctor . --json --strict"
+  - when: "release-product-surface-polish"
+    run:
+      - "npm test"
+      - "npm run lint"
+      - "node bin/create-ai-os.js --help"
 
 failure_modes:
-  - id: FM-URL-001
-    scenario: "URL reverse-spec 只凭截图复刻，未记录 DOM / computed CSS / interaction / Network 证据"
-    expected: "docs/templates tests fail or review blocks implementation"
-    guard: "test/docs.test.js"
+  - id: FM-V93-001
+    scenario: "CR 缺少 current behavior / proposed delta / affected artifacts / acceptance delta / close condition"
+    expected: "doctor W073 在 --strict 下阻断"
+    guard: "test/doctor.test.js W073"
     acceptance_refs:
       - AC-001
       - AC-002
-  - id: FM-URL-002
-    scenario: "无 Network 证据的后端规则被写成 confirmed AC"
-    expected: "backend behavior confidence must be inferred or unknown, not confirmed"
-    guard: "evals/url-reverse-spec-backend-hallucination.md"
+  - id: FM-V93-002
+    scenario: "DESIGN.md 的 AC 只部分映射到 verification-matrix"
+    expected: "doctor W072 指出每个缺失 AC id"
+    guard: "test/doctor.test.js W072"
     acceptance_refs:
       - AC-001
-      - AC-002
-  - id: FM-URL-003
-    scenario: "URL intake 被实现成新 CLI / runtime crawler，突破 AI-OS 最小操作面"
-    expected: "bin count and package bin tests remain unchanged"
-    guard: "test/docs.test.js"
+      - AC-006
+  - id: FM-V93-003
+    scenario: "high-risk lane 或 task 缺 risk-register / release-plan / verification guard"
+    expected: "doctor W074 在 --strict 下阻断"
+    guard: "test/doctor.test.js W074"
     acceptance_refs:
+      - AC-001
+  - id: FM-V93-004
+    scenario: "URL evidence row 缺 confidence"
+    expected: "doctor W075 在 --strict 下阻断"
+    guard: "test/doctor.test.js W075"
+    acceptance_refs:
+      - AC-001
       - AC-003
+  - id: FM-V93-005
+    scenario: "MCP annotations 或 eval taxonomy 文档漂移"
+    expected: "docs tests fail"
+    guard: "test/docs.test.js"
+    acceptance_refs:
+      - AC-004
+      - AC-005
+  - id: FM-V93-006
+    scenario: "install alias 被算成第四个产品命令，或 skill wrapper / MCP snippet 被误读为默认新增能力"
+    expected: "docs tests fail，并要求改回 3 primary product operations、open-standard adapter、illustrative reference snippet 口径"
+    guard: "test/docs.test.js product surface wording"
+    acceptance_refs:
+      - AC-006
 
 guards:
   - "test/docs.test.js"
   - "test/install.test.js"
   - "test/doctor.test.js"
   - "test/shared.test.js"
-  - "evals/url-reverse-spec-backend-hallucination.md"
+  - "node bin/create-ai-os.js doctor . --json --strict"
+  - "node bin/create-ai-os.js --help"
