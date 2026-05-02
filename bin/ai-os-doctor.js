@@ -30,7 +30,7 @@ const {
   parseMissionBaselineId,
 } = require("./shared");
 
-const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075"];
+const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075", "W076"];
 
 function printHelp() {
   process.stdout.write(`create-ai-os doctor — Check artifact completeness
@@ -299,23 +299,27 @@ function checkBaselineConsistency(paths) {
   return issues;
 }
 
-// W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
-function checkTaskOwners(paths) {
-  const issues = [];
-  if (!fileExists(paths.laneTasks)) return issues;
-  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
+function normalizeTaskScalar(value) {
+  return String(value || "").trim().replace(/^["']|["']$/g, "");
+}
+
+function collectTopLevelTasks(tasksContent) {
   const lines = tasksContent.split(/\r?\n/);
-  const tasksWithoutOwner = [];
+  const tasks = [];
   let inTasks = false;
-  let currentTaskId = null;
-  let currentTaskHasOwner = false;
+  let currentTask = null;
   let currentTaskIndent = -1;
+  let currentField = null;
+  let currentFieldIndent = -1;
+
   const closeTask = () => {
-    if (currentTaskId && !currentTaskHasOwner) tasksWithoutOwner.push(currentTaskId);
-    currentTaskId = null;
-    currentTaskHasOwner = false;
+    if (currentTask) tasks.push(currentTask);
+    currentTask = null;
     currentTaskIndent = -1;
+    currentField = null;
+    currentFieldIndent = -1;
   };
+
   for (const line of lines) {
     const topLevel = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*$/);
     if (topLevel) {
@@ -324,24 +328,108 @@ function checkTaskOwners(paths) {
       continue;
     }
     if (!inTasks) continue;
-    const idMatch = line.match(/^(\s+)-\s*id:\s*(\S+)/);
+    const idMatch = line.match(/^(\s+)-\s*id:\s*(.+?)\s*$/);
     if (idMatch) {
       closeTask();
-      currentTaskId = idMatch[2];
+      currentTask = {
+        id: normalizeTaskScalar(idMatch[2]),
+        fields: { id: [idMatch[2].trim()] },
+      };
       currentTaskIndent = idMatch[1].length;
       continue;
     }
-    if (currentTaskId !== null) {
-      const ownerMatch = line.match(/^(\s+)owner:\s*(\S+)/);
-      if (ownerMatch && ownerMatch[1].length > currentTaskIndent) {
-        currentTaskHasOwner = true;
-      }
+
+    if (!currentTask) continue;
+    if (/^\s*$/.test(line) || line.trim().startsWith("#")) continue;
+
+    const indent = (line.match(/^(\s*)/) || ["", ""])[1].length;
+    if (indent <= currentTaskIndent) {
+      closeTask();
+      continue;
+    }
+
+    const fieldMatch = line.match(/^(\s+)([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/);
+    if (fieldMatch && fieldMatch[1].length > currentTaskIndent) {
+      currentField = fieldMatch[2];
+      currentFieldIndent = fieldMatch[1].length;
+      if (!currentTask.fields[currentField]) currentTask.fields[currentField] = [];
+      if (fieldMatch[3].trim()) currentTask.fields[currentField].push(fieldMatch[3].trim());
+      continue;
+    }
+
+    if (currentField && indent > currentFieldIndent) {
+      currentTask.fields[currentField].push(line.trim());
     }
   }
   closeTask();
+  return tasks;
+}
+
+function hasMeaningfulTaskField(task, field) {
+  const values = task.fields[field] || [];
+  return values.some((value) => {
+    const normalized = normalizeTaskScalar(value).replace(/^-\s*/, "").trim();
+    if (!normalized || normalized === "[]" || normalized === "{}") return false;
+    if (/^(none|null|n\/a)$/i.test(normalized)) return false;
+    return !normalized.includes("[") && !normalized.includes("]");
+  });
+}
+
+function taskStatus(task) {
+  const values = task.fields.status || [];
+  return normalizeTaskScalar(values[0] || "");
+}
+
+function hasMeaningfulHandoff(task) {
+  return hasMeaningfulTaskField(task, "handoff_to");
+}
+
+// W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
+function checkTaskOwners(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneTasks)) return issues;
+  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
+  const tasksWithoutOwner = [];
+  for (const task of collectTopLevelTasks(tasksContent)) {
+    if (!hasMeaningfulTaskField(task, "owner")) {
+      tasksWithoutOwner.push(task.id);
+    }
+  }
   if (tasksWithoutOwner.length > 0) {
     issues.push(issue("warning", "W071",
       `tasks.yaml has ${tasksWithoutOwner.length} task(s) without an owner field: ${tasksWithoutOwner.join(", ")}`));
+  }
+  return issues;
+}
+
+// W076: tasks should preserve handoff context and close evidence loops.
+function checkTaskEvidenceLoops(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneTasks)) return issues;
+  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
+  const missing = [];
+  for (const task of collectTopLevelTasks(tasksContent)) {
+    if (!hasMeaningfulTaskField(task, "acceptance_refs")) {
+      missing.push(`${task.id}: acceptance_refs`);
+    }
+    if (!hasMeaningfulTaskField(task, "evidence_required")) {
+      missing.push(`${task.id}: evidence_required`);
+    }
+    if (hasMeaningfulHandoff(task)) {
+      if (!hasMeaningfulTaskField(task, "context_refs")) {
+        missing.push(`${task.id}: context_refs`);
+      }
+      if (!hasMeaningfulTaskField(task, "expected_return")) {
+        missing.push(`${task.id}: expected_return`);
+      }
+    }
+    if (/^(done|verified|shipped)$/i.test(taskStatus(task)) && !hasMeaningfulTaskField(task, "evidence_produced")) {
+      missing.push(`${task.id}: evidence_produced`);
+    }
+  }
+  if (missing.length > 0) {
+    issues.push(issue("warning", "W076",
+      `tasks.yaml has incomplete agent handoff / evidence loop field(s): ${missing.join(", ")}.`));
   }
   return issues;
 }
@@ -573,6 +661,7 @@ function main() {
     issues.push(...checkLanes(paths));
     issues.push(...checkBaselineConsistency(paths));
     issues.push(...checkTaskOwners(paths));
+    issues.push(...checkTaskEvidenceLoops(paths));
     issues.push(...checkAcceptanceCoverage(paths));
     issues.push(...checkChangeRequestDelta(paths));
     issues.push(...checkHighRiskArtifacts(paths));

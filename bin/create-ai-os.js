@@ -55,7 +55,7 @@ Installed artifacts (always, no profiles):
   .ai-os/lanes/default/STATE.md               Session recovery entry (gitignored)
   .ai-os/lanes/default/baseline-log/          Change and baseline records
   .ai-os/lanes/default/specs/                 Local contracts
-  .ai-os/lanes/default/tasks.yaml             Tasks with owners
+  .ai-os/lanes/default/tasks.yaml             Tasks with owners + handoff evidence
   .ai-os/lanes/default/risk-register.md       High-risk register
   .ai-os/lanes/default/release-plan.md        Release plan
   .ai-os/lanes/default/verification-matrix.yaml Regression assertions

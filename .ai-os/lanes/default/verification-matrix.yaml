@@ -1,56 +1,49 @@
 impact_rules:
-  - when: "external-learning-fusion"
+  - when: "agent-handoff-evidence-loop"
     run:
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
   - when: "release-product-surface-polish"
     run:
-      - "npm test"
-      - "npm run lint"
       - "node bin/create-ai-os.js --help"
 
 failure_modes:
-  - id: FM-V93-001
-    scenario: "CR 缺少 current behavior / proposed delta / affected artifacts / acceptance delta / close condition"
-    expected: "doctor W073 在 --strict 下阻断"
-    guard: "test/doctor.test.js W073"
+  - id: FM-V94-001
+    scenario: "task 缺少 acceptance_refs 或 evidence_required，导致执行 agent 无法知道验收对象或证据要求"
+    expected: "doctor W076 在 --strict 下阻断"
+    guard: "test/doctor.test.js W076 missing task loop fields"
     acceptance_refs:
       - AC-001
       - AC-002
-  - id: FM-V93-002
-    scenario: "DESIGN.md 的 AC 只部分映射到 verification-matrix"
-    expected: "doctor W072 指出每个缺失 AC id"
-    guard: "test/doctor.test.js W072"
+  - id: FM-V94-002
+    scenario: "task 声明 handoff_to 但缺 context_refs 或 expected_return，导致 IDE/agent 交接只剩口头说明"
+    expected: "doctor W076 指出缺失 context_refs / expected_return"
+    guard: "test/doctor.test.js W076 handoff packet"
     acceptance_refs:
       - AC-001
-      - AC-006
-  - id: FM-V93-003
-    scenario: "high-risk lane 或 task 缺 risk-register / release-plan / verification guard"
-    expected: "doctor W074 在 --strict 下阻断"
-    guard: "test/doctor.test.js W074"
-    acceptance_refs:
-      - AC-001
-  - id: FM-V93-004
-    scenario: "URL evidence row 缺 confidence"
-    expected: "doctor W075 在 --strict 下阻断"
-    guard: "test/doctor.test.js W075"
-    acceptance_refs:
-      - AC-001
+      - AC-002
       - AC-003
-  - id: FM-V93-005
-    scenario: "MCP annotations 或 eval taxonomy 文档漂移"
-    expected: "docs tests fail"
-    guard: "test/docs.test.js"
+  - id: FM-V94-003
+    scenario: "task 标记 done / verified / shipped 但没有 evidence_produced"
+    expected: "doctor W076 在 --strict 下阻断 done-without-evidence"
+    guard: "test/doctor.test.js W076 done evidence"
     acceptance_refs:
+      - AC-002
       - AC-004
-      - AC-005
-  - id: FM-V93-006
-    scenario: "install alias 被算成第四个产品命令，或 skill wrapper / MCP snippet 被误读为默认新增能力"
-    expected: "docs tests fail，并要求改回 3 primary product operations、open-standard adapter、illustrative reference snippet 口径"
-    guard: "test/docs.test.js product surface wording"
+  - id: FM-V94-004
+    scenario: "公开文档把 handoff loop 描述成 AI-OS runner / IDE plugin / orchestrator"
+    expected: "docs tests fail，要求改回 artifact governance 口径"
+    guard: "test/docs.test.js handoff loop product boundary"
     acceptance_refs:
-      - AC-006
+      - AC-003
+      - AC-005
+  - id: FM-V94-005
+    scenario: "版本、changelog、doctor semantic warning range 或 product surface 文案漂移"
+    expected: "docs/install/shared/doctor tests fail"
+    guard: "test/docs.test.js + test/install.test.js + test/shared.test.js"
+    acceptance_refs:
+      - AC-005
 
 guards:
   - "test/docs.test.js"

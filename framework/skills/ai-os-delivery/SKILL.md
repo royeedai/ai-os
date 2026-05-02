@@ -49,7 +49,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 - `.ai-os/memory.md` — stable decisions, cross-layer contracts
 - `.ai-os/lanes/default/MISSION.md` — current delivery baseline
 - `.ai-os/lanes/default/DESIGN.md` — key design + acceptance criteria
-- `.ai-os/lanes/default/tasks.yaml` — tasks with owner / approval / evidence
+- `.ai-os/lanes/default/tasks.yaml` — tasks with owner / approval / handoff / evidence
 - `.ai-os/lanes/default/verification-matrix.yaml` — regression guards
 - `.ai-os/lanes/default/risk-register.md` and `release-plan.md` — high-risk only
 
@@ -67,7 +67,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 |---|---|
 | New project / new module / vague requirement | Produce / update root `.ai-os/MISSION.md` + lane `MISSION.md` summary; list pending confirmations; **stop and wait for user confirmation** |
 | Lock key design | Produce lane `DESIGN.md` with key trade-offs and shared-layer side-effect list; **stop and wait** |
-| Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / evidence requirements |
+| Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / `handoff_to` / `context_refs` / `expected_return` / evidence requirements |
 | URL reverse-spec intake | Capture URL, screenshots, DOM/CSS, interactions, Network/API observations, backend behavior confidence, and unknowns into `design-pack/parity-map.md` + `specs/*.spec.md`; **do not invent backend internals** |
 | Implement | Only act inside confirmed scope; cross-file or unclear boundary → read-only analysis first |
 | Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/` |
@@ -75,6 +75,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 | Verify | Cover normal / abnormal / permission denial / empty / timeout / regression; produce project-native static-check evidence |
 | Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
+| Agent handoff return | Before marking a task done / verified / shipped, record `evidence_produced`; put implementation drift in `deviation_log` or a new CR |
 | Stable failure mode | First occurrence registers in lane `verification-matrix.yaml`; same root cause hit ≥3 times must promote to `evals/<name>.md` with frontmatter `trigger_source: promoted-from-verification-matrix` and `first_baseline_id` |
 
 ## Absolute prohibitions
@@ -132,4 +133,4 @@ When activated by an agent, this skill should:
 4. Apply the matching behavior rule from the routing table above
 5. Stop at confirmation points; do not auto-advance
 
-The skill does **not** introduce new commands, slash invocations, or runtime dependencies. It is purely an open-format wrapper around the AI-OS constitution.
+The skill does **not** introduce new commands, slash invocations, IDE plugins, agent runners, or runtime dependencies. It is purely an open-format wrapper around the AI-OS constitution.

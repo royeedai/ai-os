@@ -1,6 +1,6 @@
 id = "default"
 title = "默认交付线"
 status = "active"
-baseline_id = "CR-20260502-210628-external-learning-fusion"
+baseline_id = "CR-20260502-224147-agent-handoff-evidence-loop"
 quality_tier = "standard"
 risk_tier = "medium"

@@ -95,7 +95,7 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 - **`baseline-log/`**：变更请求与基线升格记录（**L3**）；`CR-*` 记录必须说明 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Close/archive condition
 - **`specs/`**：大型项目切分 DESIGN 的局部契约（**L3**）；默认包含 generic example 和 bugfix spec route
-- **`tasks.yaml`**：任务、owner、依赖、approval、证据要求（**L2**）
+- **`tasks.yaml`**：任务、owner、依赖、approval、agent handoff、证据要求与证据产出（**L2**）
 
 ### 12. `.ai-os/lanes/default/risk-register.md` + `release-plan.md` + `verification-matrix.yaml` + `design-pack/parity-map.md` + `evals/`
 
@@ -167,6 +167,19 @@ URL reverse-spec 可接受 `trace.zip`、network log / HAR、screenshots、DOM s
 ### Bugfix spec route（v9.3）
 
 Bug 修复可使用 `specs/bugfix.spec.md` 模板，必须锁定 root cause、reproduction、blast radius、planned files、regression guard，并在交付时拆分 code / data / runtime 状态。
+
+## Agent Handoff + Evidence Loop（v9.4）
+
+AI-OS 运行在 Cursor、Claude Code、Codex、Copilot 等 IDE / agent 环境内部；它不接管执行，而是让执行结果可审计。任务交接进入 `tasks.yaml`：
+
+- `handoff_to`：接收任务的 AI agent、IDE surface 或 human reviewer
+- `context_refs`：执行任务必须读取的 lane 工件路径
+- `expected_return`：期望返回的 diff、PR、测试日志、review note 或运行证据
+- `evidence_required`：任务关闭前必须证明的内容
+- `evidence_produced`：任务关闭时实际产出的证据
+- `deviation_log`：实现偏离、范围变化、阻塞或需升级为 CR 的记录
+
+`doctor --strict` 可用 W076 捕捉缺失 `acceptance_refs` / `evidence_required`、交接缺上下文 / 期望返回、以及 done / verified / shipped 任务没有 produced evidence 的情况。
 
 ### 加载顺序约定
 

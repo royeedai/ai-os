@@ -6,7 +6,35 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file only tracks v8 and v9 releases (the supported lines as of v9.3). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file only tracks v8 and v9 releases (the supported lines as of v9.4). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 9.4.0 (2026-05-02) — Agent Handoff + Evidence Loop
+
+**Minor, fully backward compatible**. v9.4 keeps the canonical layout, three primary product operations, and zero runtime dependencies intact. It adds a task-level handoff and evidence loop so IDE / agent execution can return auditable proof without AI-OS becoming an IDE, runner, kanban server, or orchestrator.
+
+### Added
+
+- `tasks.yaml` handoff fields: `handoff_to`, `context_refs`, `expected_return`, `evidence_produced`, and `deviation_log`.
+- `verification-matrix.yaml` guard for task handoff context, expected return, and produced evidence before task closure.
+- Doctor semantic warning W076 for incomplete task handoff / evidence loops.
+- Constitution spec v1.5 section for Agent Handoff + Evidence Loop.
+
+### Changed
+
+- Artifact docs now define task handoff as a repo-local governance contract, not an execution layer.
+- The official `ai-os-delivery` skill wrapper now tells compatible agents to record produced evidence before marking tasks done / verified / shipped.
+- Public docs continue to describe install, doctor, and upgrade as the only three primary product operations.
+
+### Tests
+
+- Documentation tests now assert handoff template fields, product-boundary wording, W076 documentation, and version string.
+- Doctor tests cover missing acceptance/evidence fields, handoff without context/expected return, and done-without-produced-evidence.
+
+### Migration
+
+None. Existing projects can adopt the new task fields gradually. W076 is a warning by default and only blocks when `doctor --strict` is used.
 
 ---
 

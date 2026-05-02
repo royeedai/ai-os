@@ -20,6 +20,14 @@
 - **确认来源**：2026-05-02 用户确认执行外部学习融合路线图
 - **日期**：2026-05-02
 
+#### DD-003: Agent handoff 属于任务证据契约，不属于执行层
+
+- **决策**：AI-OS 吸收 Traycer / Task Master / Agent OS / BMAD / PRP 等产品的方法时，只把 agent handoff、context packet、expected return、produced evidence 和 deviation log 落入 `tasks.yaml` / `verification-matrix.yaml` / doctor，不新增 IDE、runner、kanban、MCP task server 或 orchestration runtime
+- **原因**：AI-OS 的使用位置是在 Cursor / Claude Code / Codex / Copilot 等执行环境内部；其价值是让这些执行环境交付可追踪、可恢复、可审计，而不是替代它们
+- **影响范围**：tasks schema、doctor W076、docs、skill wrapper、tests
+- **确认来源**：2026-05-02 用户确认 Agent Handoff + Evidence Loop 融合方向
+- **日期**：2026-05-02
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

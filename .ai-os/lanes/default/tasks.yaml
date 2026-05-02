@@ -1,34 +1,34 @@
 version: 3
-baseline_id: "CR-20260502-210628-external-learning-fusion"
+baseline_id: "CR-20260502-224147-agent-handoff-evidence-loop"
 scope:
   mode: "change+brownfield"
-  focus: "external-learning-fusion"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260502-210628-external-learning-fusion"
+  focus: "agent-handoff-evidence-loop"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260502-224147-agent-handoff-evidence-loop"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Artifact Contracts Locked"
-    goal: "外部可靠实践被转化为 AI-OS 工件契约"
-    scope: "docs, framework templates, eval taxonomy"
-    acceptance_goal: "CR delta、bugfix route、evidence matrix、MCP annotations、eval taxonomy 均有模板与文档"
+    title: "Handoff Contract Locked"
+    goal: "Agent handoff and evidence loop fields are specified in lane artifacts"
+    scope: "MISSION, DESIGN, spec, tasks, verification matrix"
+    acceptance_goal: "task handoff packet and evidence loop semantics are explicit"
     target_window: "2026-05-02"
   - id: M2
-    title: "Semantic Guards Closed"
-    goal: "doctor 和 tests 固化新增契约"
-    scope: "doctor, docs tests, version, changelog"
-    acceptance_goal: "npm test、npm run lint、doctor --json --strict 通过"
+    title: "Mechanical Guard Closed"
+    goal: "doctor and tests catch task handoff / evidence drift"
+    scope: "doctor, templates, docs, tests"
+    acceptance_goal: "W076 and docs tests cover the new contract"
     target_window: "2026-05-02"
   - id: M3
-    title: "Release Polish Closed"
-    goal: "发布前产品 surface 口径不再暗示新增能力"
-    scope: "README, CLI docs, MCP docs, changelog, docs tests, CLI help"
-    acceptance_goal: "install alias、open-standard skill wrapper、MCP illustrative snippet 口径被测试固化"
+    title: "Release Surface Closed"
+    goal: "v9.4 release metadata and public wording stay inside AI-OS product boundary"
+    scope: "version, changelog, docs, skill wrapper"
+    acceptance_goal: "zero runtime dependency and minimal CLI surface remain intact"
     target_window: "2026-05-02"
 
 tasks:
-  - id: TASK-AI-201
-    title: "建立 v9.3 变更基线与 spec delta 契约"
+  - id: TASK-AI-301
+    title: "建立 v9.4 handoff loop 基线与设计契约"
     milestone: M1
     status: done
     owner: AI
@@ -38,19 +38,34 @@ tasks:
     depends_on: []
     requirement_refs:
       - "REQ-001"
-      - "REQ-002"
+      - "REQ-003"
     acceptance_refs:
       - "AC-001"
-      - "AC-002"
+      - "AC-003"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - ".ai-os/lanes/default/STATE.md"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260502-224147-agent-handoff-evidence-loop.md"
+    expected_return:
+      - "updated lane baseline artifacts"
+      - "explicit non-runtime product boundary"
     impact_tags:
       - "baseline-log"
-      - "template"
-      - "doctor"
+      - "design"
+      - "tasks"
     evidence_required:
-      - "docs-test"
-      - "doctor-strict"
-  - id: TASK-AI-202
-    title: "补齐 bugfix spec route 与 URL evidence package matrix"
+      - "design-note"
+      - "spec-update"
+    evidence_produced:
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/lanes/default/specs/agent-handoff-evidence-loop.spec.md"
+    deviation_log:
+      - "none"
+  - id: TASK-AI-302
+    title: "更新 task 模板和 verification guard"
     milestone: M1
     status: done
     owner: AI
@@ -58,43 +73,34 @@ tasks:
     wave: 1
     approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-201"
+      - "TASK-AI-301"
     requirement_refs:
-      - "REQ-002"
-      - "REQ-003"
-    acceptance_refs:
-      - "AC-002"
-      - "AC-003"
-    impact_tags:
-      - "spec"
-      - "reverse-spec"
-      - "evidence"
-    evidence_required:
-      - "docs-test"
-  - id: TASK-AI-203
-    title: "增强 MCP annotations 与 eval taxonomy"
-    milestone: M1
-    status: done
-    owner: AI
-    priority: P2
-    wave: 2
-    approval_required: "plan_confirmed"
-    depends_on:
-      - "TASK-AI-201"
-    requirement_refs:
+      - "REQ-001"
       - "REQ-004"
-      - "REQ-005"
     acceptance_refs:
+      - "AC-001"
       - "AC-004"
-      - "AC-005"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
+    expected_return:
+      - "template task entries include handoff and evidence loop fields"
+      - "verification matrix includes task handoff failure mode"
     impact_tags:
-      - "mcp"
-      - "eval"
-      - "interop"
+      - "template"
+      - "verification"
     evidence_required:
       - "docs-test"
-  - id: TASK-AI-204
-    title: "新增 doctor semantic warnings 与回归测试"
+      - "doctor-strict"
+    evidence_produced:
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
+    deviation_log:
+      - "none"
+  - id: TASK-AI-303
+    title: "新增 doctor W076 与回归测试"
     milestone: M2
     status: done
     owner: AI
@@ -102,25 +108,33 @@ tasks:
     wave: 2
     approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-201"
-      - "TASK-AI-202"
-      - "TASK-AI-203"
+      - "TASK-AI-302"
     requirement_refs:
-      - "REQ-001"
-      - "REQ-006"
+      - "REQ-002"
+      - "REQ-004"
     acceptance_refs:
-      - "AC-001"
-      - "AC-006"
+      - "AC-002"
+      - "AC-004"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - "bin/ai-os-doctor.js"
+      - "test/doctor.test.js"
+    expected_return:
+      - "W076 emitted for incomplete handoff/evidence loop"
+      - "clean install remains strict-clean"
     impact_tags:
       - "doctor"
       - "test"
-      - "version"
     evidence_required:
       - "npm-test"
-      - "lint"
       - "doctor-strict"
-  - id: TASK-AI-205
-    title: "统一 v9.3 release product surface 口径"
+    evidence_produced:
+      - "bin/ai-os-doctor.js"
+      - "test/doctor.test.js"
+    deviation_log:
+      - "none"
+  - id: TASK-AI-304
+    title: "更新 docs / skill / version / changelog"
     milestone: M3
     status: done
     owner: AI
@@ -128,19 +142,38 @@ tasks:
     wave: 3
     approval_required: "plan_confirmed"
     depends_on:
-      - "TASK-AI-204"
+      - "TASK-AI-303"
     requirement_refs:
-      - "REQ-006"
+      - "REQ-003"
+      - "REQ-005"
     acceptance_refs:
-      - "AC-006"
+      - "AC-003"
+      - "AC-005"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - "docs/artifacts.md"
+      - "docs/cli.md"
+      - "docs/constitution-spec.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+      - "CHANGELOG.md"
+    expected_return:
+      - "public wording says handoff loop is artifact governance"
+      - "version metadata says 9.4.0"
     impact_tags:
       - "docs"
-      - "cli-help"
-      - "mcp"
       - "skill-wrapper"
-      - "test"
+      - "version"
     evidence_required:
       - "npm-test"
       - "lint"
-      - "doctor-strict"
       - "help-output-review"
+    evidence_produced:
+      - "docs/artifacts.md"
+      - "docs/cli.md"
+      - "docs/constitution-spec.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+      - "CHANGELOG.md"
+      - "VERSION"
+      - "package.json"
+    deviation_log:
+      - "none"

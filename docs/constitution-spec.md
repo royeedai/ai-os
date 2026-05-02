@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v1.4
+# AI Delivery Constitution Spec v1.5
 
 Status: Stable
-Version: 1.4
+Version: 1.5
 Last updated: 2026-05-02
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 1.5 (2026-05-02) — non-breaking addition: Agent Handoff + Evidence Loop fields in `tasks.yaml` and doctor W076 task evidence-loop warning
 - 1.4 (2026-05-02) — non-breaking additions: CR delta lifecycle fields, bugfix spec route, URL evidence package adaptation matrix, MCP resource annotation recommendations, eval taxonomy frontmatter, and stricter doctor semantic warnings
 - 1.3 (2026-05-02) — non-breaking addition: URL reverse-spec intake protocol with visual / interaction / API / backend behavior evidence and `observed` / `inferred` / `unknown` confidence
 - 1.2 (2026-04-30) — non-breaking additions: artifact `layer` field (L1/L2/L3 progressive disclosure), `agentskills.io` cross-agent skill wrapping, `aios://` MCP resources URI scheme, failure-mode promotion rule, EU AI Act audit-trail mapping
@@ -160,3 +161,18 @@ Backend behavior record 最低字段：`rule_id`、`behavior`、`observed_from`�
 - MCP resource annotations 建议包含 `audience`、`priority`、真实文件 `lastModified`；server 可对 `STATE.md` 支持 `subscribe`，对 lane collections 支持 `listChanged`。
 - eval frontmatter 可增加 `risk_source`、`failure_mode`、`harm`、`artifact_gate`，便于把失败样例从列表升级为 taxonomy。
 - doctor 可用 warnings 检查 baseline delta、AC-to-verification mapping、high-risk 工件完整性和 URL evidence confidence；`--strict` 可在 CI 中升级为失败。
+
+## 16. Agent Handoff + Evidence Loop（v1.5）
+
+兼容实现可在 `tasks.yaml` 中为每个 task 记录 agent handoff packet 与 evidence loop：
+
+- `handoff_to`：接收任务的 AI agent、IDE surface 或 human reviewer
+- `context_refs`：执行该任务必须读取的工件路径
+- `expected_return`：期望返回的 diff、PR、测试日志、review note 或运行证据
+- `evidence_required`：关闭任务前必须满足的证据要求
+- `evidence_produced`：任务标记 done / verified / shipped 时实际产出的证据
+- `deviation_log`：实现偏离、阻塞、范围变化或应升级为 CR 的记录
+
+该 loop 是工件治理层，不是执行层。实现不得因此要求默认 IDE plugin、agent runner、kanban server、MCP task server、worktree manager 或外部 runtime。
+
+doctor 可用 W076 检查 task 缺 `acceptance_refs` / `evidence_required`、声明 handoff 但缺 `context_refs` / `expected_return`、或 done / verified / shipped 时缺 `evidence_produced`。

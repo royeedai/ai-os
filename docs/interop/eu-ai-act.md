@@ -69,6 +69,7 @@ npx --yes github:royeedai/ai-os doctor . --strict
 - W073: CR records without explicit delta lifecycle fields (Article 12 record integrity)
 - W074: high-risk work without risk / release / guard artifacts (Article 14 oversight + Article 17 quality management)
 - W075: URL evidence without confidence classification (Article 17 evidence quality)
+- W076: task handoff / evidence loops without context, expected return, or produced evidence (Article 14 oversight + Article 17 verification completeness)
 
 Recommended additional, non-AI-OS checks:
 

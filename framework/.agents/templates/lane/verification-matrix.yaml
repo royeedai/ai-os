@@ -10,6 +10,11 @@ impact_rules:
       - "[Network/API observation review]"
       - "[backend behavior confidence review]"
       - "[evidence package redaction + confidence review]"
+  - when: "agent-handoff-evidence-loop"
+    run:
+      - "[task handoff context review]"
+      - "[expected return review]"
+      - "[produced evidence review before done]"
 
 failure_modes:
   - id: FM-001
@@ -28,6 +33,10 @@ failure_modes:
     scenario: "URL evidence package 记录了 trace / HAR / DOM / rawHtml / markdown / structured JSON，但未标注 confidence 或脱敏要求"
     expected: "证据包必须映射到 observed / inferred / unknown，并记录 secrets / PII 脱敏要求"
     guard: "design-pack/parity-map.md evidence package adaptation matrix"
+  - id: FM-HANDOFF-001
+    scenario: "task 交给 IDE/agent 执行，但缺 context_refs / expected_return 或 done 时缺 evidence_produced"
+    expected: "任务不得只靠口头交接；必须记录上下文、期望返回物和实际证据"
+    guard: "doctor W076 + tasks.yaml handoff/evidence loop review"
 
 guards:
   - "[evidence path or eval reference]"

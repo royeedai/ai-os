@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.3.0", "JSON reports version 9.3.0");
+  assert(parsed && parsed.version === "9.4.0", "JSON reports version 9.4.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -266,5 +266,69 @@ section("doctor: W075 fires when URL evidence row has no confidence");
   const w075 = parsed.semantic_warnings.find((it) => it.code === "W075");
   assert(!!w075, "doctor surfaces W075 for URL evidence without confidence");
   assert(w075 && w075.message.includes("SRC-999"), "W075 names the offending evidence row");
+  cleanup(dir);
+}
+
+section("doctor: W076 fires when task handoff evidence loop is incomplete");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const tasksPath = path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml");
+  const corrupt = `tasks:
+  - id: TASK-AI-200
+    title: "missing loop fields"
+    status: todo
+    owner: AI
+  - id: TASK-AI-201
+    title: "handoff without context"
+    status: in_progress
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    handoff_to: "Cursor"
+  - id: TASK-AI-202
+    title: "done without evidence"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+`;
+  fs.writeFileSync(tasksPath, corrupt);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w076 = parsed.semantic_warnings.find((it) => it.code === "W076");
+  assert(!!w076, "doctor surfaces W076 for incomplete task evidence loops");
+  assert(w076 && w076.message.includes("TASK-AI-200: acceptance_refs"), "W076 names missing acceptance_refs");
+  assert(w076 && w076.message.includes("TASK-AI-201: context_refs"), "W076 names missing context_refs");
+  assert(w076 && w076.message.includes("TASK-AI-201: expected_return"), "W076 names missing expected_return");
+  assert(w076 && w076.message.includes("TASK-AI-202: evidence_produced"), "W076 names done task without evidence");
+
+  const repaired = `tasks:
+  - id: TASK-AI-200
+    title: "loop complete"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    handoff_to: "Cursor"
+    context_refs:
+      - ".ai-os/lanes/default/MISSION.md"
+    expected_return:
+      - "test log"
+    evidence_produced:
+      - "test/doctor.test.js"
+`;
+  fs.writeFileSync(tasksPath, repaired);
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w076After = parsedAfter.semantic_warnings.find((it) => it.code === "W076");
+  assert(!w076After, "W076 clears once task loop fields are complete");
   cleanup(dir);
 }
