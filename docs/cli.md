@@ -55,6 +55,7 @@ In addition to layout health, doctor emits warnings when artifacts drift apart i
 - **W074** — high-risk lanes or tasks must have populated `risk-register.md`, `release-plan.md`, and a real verification guard
 - **W075** — URL reverse-spec evidence rows must include `observed` / `inferred` / `unknown` confidence
 - **W076** — task handoff / evidence loops should include `acceptance_refs`, `evidence_required`, handoff `context_refs` / `expected_return`, and produced evidence before `done` / `verified` / `shipped`
+- **W077** — tasks in execution / completion should include `fact_state_review`, and closed tasks must not retain unresolved `inferred` / `unknown` entries
 
 These are skipped on a clean default install (template placeholders are detected and ignored).
 
@@ -70,7 +71,7 @@ These are skipped on a clean default install (template placeholders are detected
 - `layout_version`
 - `layout_mode`
 - `issues[]`
-- `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W076 semantic warning codes
+- `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W077 semantic warning codes
 
 ## `create-ai-os upgrade [target-dir]`
 

@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v1.5
+# AI Delivery Constitution Spec v1.6
 
 Status: Stable
-Version: 1.5
-Last updated: 2026-05-02
+Version: 1.6
+Last updated: 2026-05-07
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 1.6 (2026-05-07) — non-breaking addition: Hallucination Guard `fact_state_review` vocabulary and doctor W077 unresolved inference / unknown warning
 - 1.5 (2026-05-02) — non-breaking addition: Agent Handoff + Evidence Loop fields in `tasks.yaml` and doctor W076 task evidence-loop warning
 - 1.4 (2026-05-02) — non-breaking additions: CR delta lifecycle fields, bugfix spec route, URL evidence package adaptation matrix, MCP resource annotation recommendations, eval taxonomy frontmatter, and stricter doctor semantic warnings
 - 1.3 (2026-05-02) — non-breaking addition: URL reverse-spec intake protocol with visual / interaction / API / backend behavior evidence and `observed` / `inferred` / `unknown` confidence
@@ -176,3 +177,16 @@ Backend behavior record 最低字段：`rule_id`、`behavior`、`observed_from`�
 该 loop 是工件治理层，不是执行层。实现不得因此要求默认 IDE plugin、agent runner、kanban server、MCP task server、worktree manager 或外部 runtime。
 
 doctor 可用 W076 检查 task 缺 `acceptance_refs` / `evidence_required`、声明 handoff 但缺 `context_refs` / `expected_return`、或 done / verified / shipped 时缺 `evidence_produced`。
+
+## 17. Hallucination Guard（v1.6）
+
+兼容实现应把 AI 开发中的事实状态显式写入任务或 spec 工件，避免把猜测包装成事实。`tasks.yaml` 可使用 `fact_state_review`：
+
+- `observed`：来自代码、日志、测试、运行、页面、接口或其他实际检查证据
+- `confirmed`：来自用户确认、当前 lane `MISSION.md` / `DESIGN.md` / `specs/*` 或已确认基线
+- `inferred`：agent 推断；必须保留为假设，不得进入 confirmed acceptance criteria
+- `unknown`：未知；必须进入待确认项、非目标、阻塞项或新的 CR
+
+实现进入 execution / completion 阶段时，至少应有 `observed` 或 `confirmed` 的事实来源。任务标记 done / verified / shipped 前，不得保留未解决 `inferred` / `unknown`。
+
+doctor 可用 W077 检查执行 / 完成任务缺 `fact_state_review`，以及关闭任务时仍有未解决 `inferred` / `unknown` 的情况。

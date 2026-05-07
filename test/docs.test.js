@@ -230,7 +230,7 @@ section("docs: agent handoff evidence loop fields are documented and templated")
   assert(matrix.includes("agent-handoff-evidence-loop"), "verification matrix includes agent handoff impact rule");
   assert(matrix.includes("FM-HANDOFF-001"), "verification matrix includes handoff failure mode");
   assert(cli.includes("W076"), "CLI docs include W076");
-  assert(cli.includes("W070-W076"), "CLI docs semantic_warnings range includes W076");
+  assert(cli.includes("W070-W077"), "CLI docs semantic_warnings range includes W077");
   assert(skill.includes("record `evidence_produced`"), "skill wrapper tells agents to record produced evidence");
   assert(artifacts.includes("它不接管执行"), "artifacts docs keep handoff outside execution");
   assert(spec.includes("不是执行层"), "constitution spec keeps handoff outside execution");
@@ -239,13 +239,48 @@ section("docs: agent handoff evidence loop fields are documented and templated")
   assert(changelog.includes("W076"), "CHANGELOG records W076");
 }
 
+section("docs: hallucination guard fact-state vocabulary is documented and checked");
+
+{
+  const agents = read("AGENTS.md");
+  const tasks = read("framework/.agents/templates/lane/tasks.yaml");
+  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
+  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const cli = read("docs/cli.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const changelog = read("CHANGELOG.md");
+
+  for (const term of [
+    "fact_state_review",
+    "observed",
+    "confirmed",
+    "inferred",
+    "unknown",
+  ]) {
+    assert(tasks.includes(term), `tasks template includes ${term}`);
+    assert(baselineTemplate.includes(term), `baseline template explains ${term}`);
+    assert(artifacts.includes(term), `artifacts docs include ${term}`);
+    assert(spec.includes(term), `constitution spec includes ${term}`);
+    assert(skill.includes(term), `skill wrapper includes ${term}`);
+  }
+
+  assert(agents.includes("未观察、未确认、未验证"), "AGENTS.md blocks unverified facts from being presented as facts");
+  assert(matrix.includes("hallucination-guard"), "verification matrix includes hallucination guard impact rule");
+  assert(matrix.includes("FM-HALLUCINATION-001"), "verification matrix includes hallucination failure mode");
+  assert(cli.includes("W077"), "CLI docs include W077");
+  assert(changelog.includes("Hallucination Guard"), "CHANGELOG records hallucination guard release");
+  assert(changelog.includes("W077"), "CHANGELOG records W077");
+}
+
 section("docs: VERSION and package.json are in sync");
 
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.4.0", `version is 9.4.0 (got ${version})`);
+  assert(version === "9.5.0", `version is 9.5.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");

@@ -15,6 +15,11 @@ impact_rules:
       - "[task handoff context review]"
       - "[expected return review]"
       - "[produced evidence review before done]"
+  - when: "hallucination-guard"
+    run:
+      - "[fact_state_review observed / confirmed / inferred / unknown review]"
+      - "[unknowns moved to pending confirmation or non-goals]"
+      - "[doctor W077 before done / verified / shipped]"
 
 failure_modes:
   - id: FM-001
@@ -37,6 +42,10 @@ failure_modes:
     scenario: "task 交给 IDE/agent 执行，但缺 context_refs / expected_return 或 done 时缺 evidence_produced"
     expected: "任务不得只靠口头交接；必须记录上下文、期望返回物和实际证据"
     guard: "doctor W076 + tasks.yaml handoff/evidence loop review"
+  - id: FM-HALLUCINATION-001
+    scenario: "AI 把 inferred / unknown 内容包装成已确认事实并继续实现或收口"
+    expected: "`inferred` 必须标假设，`unknown` 必须进入待确认或非目标；done / verified / shipped 任务不得保留未解决 inferred / unknown"
+    guard: "doctor W077 + tasks.yaml fact_state_review"
 
 guards:
   - "[evidence path or eval reference]"

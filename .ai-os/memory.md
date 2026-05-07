@@ -28,6 +28,14 @@
 - **确认来源**：2026-05-02 用户确认 Agent Handoff + Evidence Loop 融合方向
 - **日期**：2026-05-02
 
+#### DD-004: AI 开发幻觉治理进入任务事实状态，而不是第二套提示词
+
+- **决策**：AI-OS 用 `tasks.yaml` 的 `fact_state_review` 区分 `observed` / `confirmed` / `inferred` / `unknown`，并用 doctor W077 检查执行 / 关闭任务缺事实状态或保留未解决推断 / 未知
+- **原因**：幻觉的工程根因是把猜测包装成事实；把事实状态落入工件和机械检查，比复制热门 prompt 规则更可审计、更跨 agent
+- **影响范围**：AGENTS、tasks schema、verification-matrix、doctor W077、docs、skill wrapper、tests
+- **确认来源**：2026-05-07 用户授权 AI-OS maintainer agent 自主决定并完成 Hallucination Guard
+- **日期**：2026-05-07
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

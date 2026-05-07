@@ -42,6 +42,13 @@ tasks:
       - ".ai-os/lanes/default/specs/example.spec.md"
     expected_return:
       - "[design note / spec delta / review note]"
+    fact_state_review:
+      observed:
+        - "[code / docs / runtime evidence actually inspected]"
+      confirmed:
+        - "[user-confirmed or artifact-confirmed fact]"
+      inferred: []
+      unknown: []
     impact_tags:
       - "entrypoint"
       - "schema"
@@ -73,6 +80,13 @@ tasks:
       - ".ai-os/lanes/default/verification-matrix.yaml"
     expected_return:
       - "[code diff / test log / runtime evidence]"
+    fact_state_review:
+      observed:
+        - "[test / lint / runtime result actually observed]"
+      confirmed:
+        - "[confirmed design / scope / acceptance source]"
+      inferred: []
+      unknown: []
     impact_tags:
       - "transport"
       - "mapping"

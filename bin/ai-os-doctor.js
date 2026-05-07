@@ -30,7 +30,7 @@ const {
   parseMissionBaselineId,
 } = require("./shared");
 
-const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075", "W076"];
+const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075", "W076", "W077"];
 
 function printHelp() {
   process.stdout.write(`create-ai-os doctor — Check artifact completeness
@@ -368,11 +368,15 @@ function collectTopLevelTasks(tasksContent) {
 function hasMeaningfulTaskField(task, field) {
   const values = task.fields[field] || [];
   return values.some((value) => {
-    const normalized = normalizeTaskScalar(value).replace(/^-\s*/, "").trim();
-    if (!normalized || normalized === "[]" || normalized === "{}") return false;
-    if (/^(none|null|n\/a)$/i.test(normalized)) return false;
-    return !normalized.includes("[") && !normalized.includes("]");
+    return hasMeaningfulTaskValue(value);
   });
+}
+
+function hasMeaningfulTaskValue(value) {
+  const normalized = normalizeTaskScalar(value).replace(/^-\s*/, "").trim();
+  if (!normalized || normalized === "[]" || normalized === "{}") return false;
+  if (/^(none|null|n\/a)$/i.test(normalized)) return false;
+  return !normalized.includes("[") && !normalized.includes("]");
 }
 
 function taskStatus(task) {
@@ -382,6 +386,46 @@ function taskStatus(task) {
 
 function hasMeaningfulHandoff(task) {
   return hasMeaningfulTaskField(task, "handoff_to");
+}
+
+function collectNestedTaskFieldValues(task, field, nestedKeys) {
+  const wanted = new Set(nestedKeys);
+  const values = task.fields[field] || [];
+  const found = new Map(nestedKeys.map((key) => [key, []]));
+  let currentKey = "";
+  for (const value of values) {
+    const keyMatch = value.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/);
+    if (keyMatch) {
+      currentKey = wanted.has(keyMatch[1]) ? keyMatch[1] : "";
+      if (currentKey && keyMatch[2].trim()) {
+        found.get(currentKey).push(keyMatch[2].trim());
+      }
+      continue;
+    }
+    if (currentKey) found.get(currentKey).push(value);
+  }
+  if (Object.prototype.hasOwnProperty.call(task.fields, field)) {
+    for (const key of nestedKeys) {
+      for (const value of task.fields[key] || []) {
+        found.get(key).push(value);
+      }
+    }
+  }
+  return found;
+}
+
+function hasFactStateReview(task) {
+  return Object.prototype.hasOwnProperty.call(task.fields, "fact_state_review");
+}
+
+function hasObservedOrConfirmedFactState(task) {
+  const values = collectNestedTaskFieldValues(task, "fact_state_review", ["observed", "confirmed"]);
+  return ["observed", "confirmed"].some((key) => values.get(key).some(hasMeaningfulTaskValue));
+}
+
+function unresolvedFactStateKeys(task) {
+  const values = collectNestedTaskFieldValues(task, "fact_state_review", ["inferred", "unknown"]);
+  return ["inferred", "unknown"].filter((key) => values.get(key).some(hasMeaningfulTaskValue));
 }
 
 // W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
@@ -430,6 +474,35 @@ function checkTaskEvidenceLoops(paths) {
   if (missing.length > 0) {
     issues.push(issue("warning", "W076",
       `tasks.yaml has incomplete agent handoff / evidence loop field(s): ${missing.join(", ")}.`));
+  }
+  return issues;
+}
+
+// W077: tasks in execution / completion need explicit fact-state review.
+function checkTaskHallucinationGuards(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneTasks)) return issues;
+  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
+  const missing = [];
+  const unresolved = [];
+  for (const task of collectTopLevelTasks(tasksContent)) {
+    const status = taskStatus(task);
+    if (/^(in_progress|done|verified|shipped)$/i.test(status)
+      && (!hasFactStateReview(task) || !hasObservedOrConfirmedFactState(task))) {
+      missing.push(`${task.id}: fact_state_review observed/confirmed`);
+    }
+    if (/^(done|verified|shipped)$/i.test(status)) {
+      for (const key of unresolvedFactStateKeys(task)) {
+        unresolved.push(`${task.id}: fact_state_review ${key}`);
+      }
+    }
+  }
+  const details = [];
+  if (missing.length > 0) details.push(`missing source state: ${missing.join(", ")}`);
+  if (unresolved.length > 0) details.push(`unresolved inference/unknown at close: ${unresolved.join(", ")}`);
+  if (details.length > 0) {
+    issues.push(issue("warning", "W077",
+      `tasks.yaml has incomplete hallucination guard review(s): ${details.join("; ")}.`));
   }
   return issues;
 }
@@ -662,6 +735,7 @@ function main() {
     issues.push(...checkBaselineConsistency(paths));
     issues.push(...checkTaskOwners(paths));
     issues.push(...checkTaskEvidenceLoops(paths));
+    issues.push(...checkTaskHallucinationGuards(paths));
     issues.push(...checkAcceptanceCoverage(paths));
     issues.push(...checkChangeRequestDelta(paths));
     issues.push(...checkHighRiskArtifacts(paths));

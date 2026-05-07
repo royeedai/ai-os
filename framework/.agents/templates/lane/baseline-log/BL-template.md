@@ -25,5 +25,6 @@
 - `handoff_to`：接收任务的 AI agent / IDE / human surface
 - `context_refs`：执行任务必须读取的 lane 工件
 - `expected_return`：期望返回的 diff / PR / 测试 / review / 运行证据
+- `fact_state_review`：把任务依据拆成 `observed` / `confirmed` / `inferred` / `unknown`
 - `evidence_produced`：任务关闭时实际产出的证据
 - `deviation_log`：实现偏离、范围变化或需升级为 CR 的记录

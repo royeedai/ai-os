@@ -23,6 +23,7 @@ AI-OS is a cross-agent delivery constitution for projects that already use AI co
 - clarify the real goal
 - lock key design before scaling out implementation
 - reverse-spec accessible websites into auditable evidence before rebuild work
+- separate observed / confirmed facts from inferred / unknown assumptions
 - prove completion with project-level evidence
 - recover context across sessions without depending on chat history
 

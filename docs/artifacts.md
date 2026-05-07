@@ -181,6 +181,17 @@ AI-OS 运行在 Cursor、Claude Code、Codex、Copilot 等 IDE / agent 环境内
 
 `doctor --strict` 可用 W076 捕捉缺失 `acceptance_refs` / `evidence_required`、交接缺上下文 / 期望返回、以及 done / verified / shipped 任务没有 produced evidence 的情况。
 
+## Hallucination Guard（v9.5）
+
+AI-OS 对抗 AI 开发幻觉的方式不是追加第二套提示词，而是把事实来源写进现有任务和验证工件。`tasks.yaml` 可用 `fact_state_review` 区分：
+
+- `observed`：agent 真实读到、运行到或检查到的代码 / 日志 / 测试 / 页面 / 接口证据
+- `confirmed`：用户、当前 lane 工件或已确认设计明确给出的事实
+- `inferred`：agent 推断；必须标为假设，不得冒充 confirmed
+- `unknown`：未知；必须进入待确认项、非目标或后续 CR
+
+`doctor --strict` 可用 W077 捕捉执行 / 完成任务缺 `fact_state_review`，以及 done / verified / shipped 任务仍保留未解决 `inferred` / `unknown` 的情况。
+
 ### 加载顺序约定
 
 1. 任意会话开始：先读 L1 全部 → 决定是否需要 L2

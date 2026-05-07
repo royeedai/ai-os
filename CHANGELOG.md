@@ -6,7 +6,35 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file only tracks v8 and v9 releases (the supported lines as of v9.4). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file only tracks v8 and v9 releases (the supported lines as of v9.5). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 9.5.0 (2026-05-07) — Hallucination Guard
+
+**Minor, fully backward compatible**. v9.5 keeps the canonical layout, three primary product operations, and zero runtime dependencies intact. It turns AI coding hallucination control into a task-level fact-state review instead of adding a second prompt/rules source.
+
+### Added
+
+- `tasks.yaml` `fact_state_review` vocabulary for `observed`, `confirmed`, `inferred`, and `unknown`.
+- `verification-matrix.yaml` hallucination guard failure mode for unresolved assumptions or unknowns entering implementation / closure as facts.
+- Doctor semantic warning W077 for tasks in execution / completion that lack observed/confirmed fact state, or closed tasks that still contain unresolved `inferred` / `unknown` entries.
+- Constitution spec v1.6 section for Hallucination Guard.
+
+### Changed
+
+- `AGENTS.md` now explicitly forbids presenting unobserved, unconfirmed, or unverified information as fact.
+- Artifact docs and the official `ai-os-delivery` skill wrapper now route hallucination control through `fact_state_review`, not through tool-specific prompt copies.
+- Doctor semantic warning range is now W070-W077.
+
+### Tests
+
+- Doctor tests cover missing `fact_state_review`, unresolved inferred assumptions, unresolved unknowns, and the repaired clean path.
+- Documentation tests assert the fact-state vocabulary, W077 docs, template coverage, and version string.
+
+### Migration
+
+None. Existing projects can adopt `fact_state_review` gradually. W077 is a warning by default and only blocks when `doctor --strict` is used.
 
 ---
 

@@ -1,6 +1,6 @@
 id = "default"
 title = "默认交付线"
 status = "active"
-baseline_id = "CR-20260502-224147-agent-handoff-evidence-loop"
+baseline_id = "CR-20260507-092708-hallucination-guard"
 quality_tier = "standard"
 risk_tier = "medium"

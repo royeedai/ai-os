@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.4.0", "JSON reports version 9.4.0");
+  assert(parsed && parsed.version === "9.5.0", "JSON reports version 9.5.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -330,5 +330,91 @@ section("doctor: W076 fires when task handoff evidence loop is incomplete");
   const parsedAfter = JSON.parse(after.stdout);
   const w076After = parsedAfter.semantic_warnings.find((it) => it.code === "W076");
   assert(!w076After, "W076 clears once task loop fields are complete");
+  cleanup(dir);
+}
+
+section("doctor: W077 fires when task fact-state review is incomplete");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const tasksPath = path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml");
+  const corrupt = `tasks:
+  - id: TASK-AI-300
+    title: "in progress without fact state"
+    status: in_progress
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+  - id: TASK-AI-301
+    title: "done with unresolved inference"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    evidence_produced:
+      - "test/doctor.test.js"
+    fact_state_review:
+      observed:
+        - "test reproduced"
+      confirmed: []
+      inferred:
+        - "assumed API shape"
+      unknown: []
+  - id: TASK-AI-302
+    title: "done with unresolved unknown"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    evidence_produced:
+      - "test/doctor.test.js"
+    fact_state_review:
+      observed:
+        - "lint passed"
+      confirmed: []
+      inferred: []
+      unknown:
+        - "runtime status not checked"
+`;
+  fs.writeFileSync(tasksPath, corrupt);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w077 = parsed.semantic_warnings.find((it) => it.code === "W077");
+  assert(!!w077, "doctor surfaces W077 for incomplete fact-state review");
+  assert(w077 && w077.message.includes("TASK-AI-300: fact_state_review observed/confirmed"), "W077 names missing observed/confirmed fact state");
+  assert(w077 && w077.message.includes("TASK-AI-301: fact_state_review inferred"), "W077 names unresolved inferred state");
+  assert(w077 && w077.message.includes("TASK-AI-302: fact_state_review unknown"), "W077 names unresolved unknown state");
+
+  const repaired = `tasks:
+  - id: TASK-AI-300
+    title: "fact state complete"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    evidence_produced:
+      - "test/doctor.test.js"
+    fact_state_review:
+      observed:
+        - "test/doctor.test.js reproduced and verified the guard"
+      confirmed:
+        - "AGENTS.md requires unknowns not to be presented as facts"
+      inferred: []
+      unknown: []
+`;
+  fs.writeFileSync(tasksPath, repaired);
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w077After = parsedAfter.semantic_warnings.find((it) => it.code === "W077");
+  assert(!w077After, "W077 clears once fact states are observed/confirmed and unresolved states are empty");
   cleanup(dir);
 }

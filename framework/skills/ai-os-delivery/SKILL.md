@@ -25,7 +25,7 @@ If the repo only has `AGENTS.md` without `.ai-os/`, fall back to native `AGENTS.
 
 ## Five core requirements (always enforce)
 
-1. **Goal and user confirmation first** — Do not start large changes before the user has confirmed goal, success criteria, scope, and acceptance object. Disambiguate "configurable / option / setting" before implementation.
+1. **Goal and user confirmation first** — Do not start large changes before the user has confirmed goal, success criteria, scope, and acceptance object. Disambiguate "configurable / option / setting" before implementation. Do not present unobserved, unconfirmed, or unverified information as fact.
 2. **Key design and logic locked first** — Do not write business code before the user has confirmed key pages, info architecture, key interactions, key contracts, state transitions, and key error paths. Brownfield / change / reverse-spec must audit shared infrastructure first.
 3. **Adaptive governance** — Pick mode (`greenfield` / `reverse-spec` / `brownfield` / `change`), then tier (`P0` / `P1` / `P2`). Artifact depth follows risk + ambiguity + quality bar, not fixed templates.
 4. **Evidence-based completion** — Completion must pass design / logic / implementation / delivery gates (and parity gate for reverse-spec). At least one project-native static-check evidence is required; IDE diagnostics alone do not count. Always split conclusions into code / data / runtime status.
@@ -76,6 +76,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 | Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
 | Agent handoff return | Before marking a task done / verified / shipped, record `evidence_produced`; put implementation drift in `deviation_log` or a new CR |
+| Hallucination guard | Use `fact_state_review` to separate `observed`, `confirmed`, `inferred`, and `unknown`; unresolved `inferred` / `unknown` cannot close as done / verified / shipped |
 | Stable failure mode | First occurrence registers in lane `verification-matrix.yaml`; same root cause hit ≥3 times must promote to `evals/<name>.md` with frontmatter `trigger_source: promoted-from-verification-matrix` and `first_baseline_id` |
 
 ## Absolute prohibitions

@@ -1,40 +1,40 @@
 version: 3
-baseline_id: "CR-20260502-224147-agent-handoff-evidence-loop"
+baseline_id: "CR-20260507-092708-hallucination-guard"
 scope:
   mode: "change+brownfield"
-  focus: "agent-handoff-evidence-loop"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260502-224147-agent-handoff-evidence-loop"
+  focus: "hallucination-guard"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260507-092708-hallucination-guard"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Handoff Contract Locked"
-    goal: "Agent handoff and evidence loop fields are specified in lane artifacts"
+    title: "Fact-State Contract Locked"
+    goal: "Hallucination guard fact-state vocabulary is specified in lane artifacts"
     scope: "MISSION, DESIGN, spec, tasks, verification matrix"
-    acceptance_goal: "task handoff packet and evidence loop semantics are explicit"
-    target_window: "2026-05-02"
+    acceptance_goal: "observed / confirmed / inferred / unknown semantics are explicit"
+    target_window: "2026-05-07"
   - id: M2
     title: "Mechanical Guard Closed"
-    goal: "doctor and tests catch task handoff / evidence drift"
+    goal: "doctor and tests catch hallucination guard drift"
     scope: "doctor, templates, docs, tests"
-    acceptance_goal: "W076 and docs tests cover the new contract"
-    target_window: "2026-05-02"
+    acceptance_goal: "W077 and docs tests cover the new contract"
+    target_window: "2026-05-07"
   - id: M3
     title: "Release Surface Closed"
-    goal: "v9.4 release metadata and public wording stay inside AI-OS product boundary"
+    goal: "v9.5 release metadata and public wording stay inside AI-OS product boundary"
     scope: "version, changelog, docs, skill wrapper"
     acceptance_goal: "zero runtime dependency and minimal CLI surface remain intact"
-    target_window: "2026-05-02"
+    target_window: "2026-05-07"
 
 tasks:
-  - id: TASK-AI-301
-    title: "建立 v9.4 handoff loop 基线与设计契约"
+  - id: TASK-AI-401
+    title: "建立 v9.5 hallucination guard 基线与设计契约"
     milestone: M1
     status: done
     owner: AI
     priority: P1
     wave: 1
-    approval_required: "plan_confirmed"
+    approval_required: "owner_agent_authorized"
     depends_on: []
     requirement_refs:
       - "REQ-001"
@@ -47,10 +47,17 @@ tasks:
       - ".ai-os/lanes/default/STATE.md"
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/baseline-log/CR-20260502-224147-agent-handoff-evidence-loop.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260507-092708-hallucination-guard.md"
     expected_return:
       - "updated lane baseline artifacts"
-      - "explicit non-runtime product boundary"
+      - "explicit fact-state vocabulary"
+    fact_state_review:
+      observed:
+        - "existing AGENTS.md, v9.4 lane artifacts, and W070-W076 doctor patterns inspected"
+      confirmed:
+        - "user authorized maintainer agent to decide and complete implementation on 2026-05-07"
+      inferred: []
+      unknown: []
     impact_tags:
       - "baseline-log"
       - "design"
@@ -61,57 +68,21 @@ tasks:
     evidence_produced:
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/specs/agent-handoff-evidence-loop.spec.md"
+      - ".ai-os/lanes/default/specs/hallucination-guard.spec.md"
     deviation_log:
       - "none"
-  - id: TASK-AI-302
-    title: "更新 task 模板和 verification guard"
-    milestone: M1
-    status: done
-    owner: AI
-    priority: P1
-    wave: 1
-    approval_required: "plan_confirmed"
-    depends_on:
-      - "TASK-AI-301"
-    requirement_refs:
-      - "REQ-001"
-      - "REQ-004"
-    acceptance_refs:
-      - "AC-001"
-      - "AC-004"
-    handoff_to: "Codex local agent"
-    context_refs:
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-    expected_return:
-      - "template task entries include handoff and evidence loop fields"
-      - "verification matrix includes task handoff failure mode"
-    impact_tags:
-      - "template"
-      - "verification"
-    evidence_required:
-      - "docs-test"
-      - "doctor-strict"
-    evidence_produced:
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - ".ai-os/lanes/default/verification-matrix.yaml"
-    deviation_log:
-      - "none"
-  - id: TASK-AI-303
-    title: "新增 doctor W076 与回归测试"
+  - id: TASK-AI-402
+    title: "新增 doctor W077 与回归测试"
     milestone: M2
     status: done
     owner: AI
     priority: P1
     wave: 2
-    approval_required: "plan_confirmed"
+    approval_required: "owner_agent_authorized"
     depends_on:
-      - "TASK-AI-302"
+      - "TASK-AI-401"
     requirement_refs:
       - "REQ-002"
-      - "REQ-004"
     acceptance_refs:
       - "AC-002"
       - "AC-004"
@@ -120,8 +91,16 @@ tasks:
       - "bin/ai-os-doctor.js"
       - "test/doctor.test.js"
     expected_return:
-      - "W076 emitted for incomplete handoff/evidence loop"
+      - "W077 emitted for missing fact-state review"
+      - "W077 emitted for closed unresolved inferred / unknown"
       - "clean install remains strict-clean"
+    fact_state_review:
+      observed:
+        - "existing W076 task parser and doctor semantic warning structure inspected"
+      confirmed:
+        - "DESIGN.md AC-002 defines W077 behavior"
+      inferred: []
+      unknown: []
     impact_tags:
       - "doctor"
       - "test"
@@ -133,47 +112,111 @@ tasks:
       - "test/doctor.test.js"
     deviation_log:
       - "none"
-  - id: TASK-AI-304
-    title: "更新 docs / skill / version / changelog"
+  - id: TASK-AI-403
+    title: "更新 task 模板、verification guard 与公开文档"
+    milestone: M2
+    status: done
+    owner: AI
+    priority: P1
+    wave: 2
+    approval_required: "owner_agent_authorized"
+    depends_on:
+      - "TASK-AI-402"
+    requirement_refs:
+      - "REQ-001"
+      - "REQ-003"
+    acceptance_refs:
+      - "AC-001"
+      - "AC-003"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
+      - "docs/artifacts.md"
+      - "docs/constitution-spec.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+    expected_return:
+      - "template task entries include fact-state review"
+      - "verification matrix includes hallucination failure mode"
+      - "public wording keeps guard as artifact governance"
+    fact_state_review:
+      observed:
+        - "framework lane task template and verification matrix inspected"
+      confirmed:
+        - "DESIGN.md AC-001 and AC-003 define docs/template behavior"
+      inferred: []
+      unknown: []
+    impact_tags:
+      - "template"
+      - "docs"
+      - "skill-wrapper"
+    evidence_required:
+      - "docs-test"
+      - "doctor-strict"
+    evidence_produced:
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
+      - "framework/.agents/templates/lane/baseline-log/BL-template.md"
+      - "docs/artifacts.md"
+      - "docs/constitution-spec.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+    deviation_log:
+      - "none"
+  - id: TASK-AI-404
+    title: "更新 release metadata、changelog 和验证收口"
     milestone: M3
     status: done
     owner: AI
     priority: P1
     wave: 3
-    approval_required: "plan_confirmed"
+    approval_required: "owner_agent_authorized"
     depends_on:
-      - "TASK-AI-303"
+      - "TASK-AI-403"
     requirement_refs:
-      - "REQ-003"
+      - "REQ-004"
       - "REQ-005"
     acceptance_refs:
-      - "AC-003"
+      - "AC-004"
       - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
-      - "docs/artifacts.md"
-      - "docs/cli.md"
-      - "docs/constitution-spec.md"
-      - "framework/skills/ai-os-delivery/SKILL.md"
-      - "CHANGELOG.md"
-    expected_return:
-      - "public wording says handoff loop is artifact governance"
-      - "version metadata says 9.4.0"
-    impact_tags:
-      - "docs"
-      - "skill-wrapper"
-      - "version"
-    evidence_required:
-      - "npm-test"
-      - "lint"
-      - "help-output-review"
-    evidence_produced:
-      - "docs/artifacts.md"
-      - "docs/cli.md"
-      - "docs/constitution-spec.md"
-      - "framework/skills/ai-os-delivery/SKILL.md"
       - "CHANGELOG.md"
       - "VERSION"
       - "package.json"
+      - "package-lock.json"
+      - "test/docs.test.js"
+      - "test/install.test.js"
+      - "test/shared.test.js"
+    expected_return:
+      - "version metadata says 9.5.0"
+      - "native verification logs"
+      - "commit and push to main"
+    fact_state_review:
+      observed:
+        - "version files and tests inspected before update"
+      confirmed:
+        - "DESIGN.md AC-004 and AC-005 define release and verification behavior"
+      inferred: []
+      unknown: []
+    impact_tags:
+      - "version"
+      - "changelog"
+      - "verification"
+    evidence_required:
+      - "npm-test"
+      - "lint"
+      - "doctor-strict"
+      - "push-result"
+    evidence_produced:
+      - "CHANGELOG.md"
+      - "VERSION"
+      - "package.json"
+      - "package-lock.json"
+      - "test/docs.test.js"
+      - "test/install.test.js"
+      - "test/shared.test.js"
+      - "npm test: 634 passed, 0 failed"
+      - "npm run lint: passed"
+      - "node bin/create-ai-os.js doctor . --json --strict: ok true"
     deviation_log:
       - "none"
