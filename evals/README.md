@@ -50,7 +50,6 @@ Grouped by the five core requirements they enforce.
 - `parity-before-reuse-skipped.md` — Abstraction reused without parity check
 - `implicit-cross-layer-contract-undocumented.md` — Cross-layer contract not registered in `memory.md`
 - `weak-type-hole-erodes-contract.md` — Map/Any/untyped catch erodes contract
-- `url-reverse-spec-backend-hallucination.md` — URL reverse-spec invents backend behavior without evidence
 
 ### R3: Adaptive governance
 
@@ -67,10 +66,18 @@ Grouped by the five core requirements they enforce.
 - `cross-layer-change-missed-linkage.md` — Cross-layer change misses impact surface
 - `fix-complete-but-data-runtime-not-recovered.md` — Code fixed but data/runtime not
 - `e2e-journey-broken-by-single-point-pass.md` — Single endpoints pass, end-to-end journey broken
+- `task-handoff-evidence-not-returned.md` — Task handed off to executor agent but evidence not returned to artifacts (W076)
 
 ### R5: Recoverable project memory
 
 - `problem-ledger-coverage-regression.md` — Problem coverage regresses after refactor
+
+### Cross-cutting: Fact-state explicitness (R1 + R4)
+
+Hallucination guard via `fact_state_review` is enforced before tasks reach execution / closure (R1) and at evidence review (R4). The dedicated cases:
+
+- `inferred-treated-as-fact-into-execution.md` — Inferred / unknown treated as confirmed and carried into execution or closure (W077)
+- `url-reverse-spec-backend-hallucination.md` — URL reverse-spec invents backend behavior without evidence
 
 ## Using evals
 

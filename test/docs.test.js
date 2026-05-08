@@ -274,6 +274,42 @@ section("docs: hallucination guard fact-state vocabulary is documented and check
   assert(changelog.includes("W077"), "CHANGELOG records W077");
 }
 
+section("docs: v9.4/v9.5 governance closure tracked in ledger, maintainers guide, and evals");
+
+{
+  const ledger = read("docs/problem-ledger.md");
+  assert(ledger.includes("PL-010"), "problem-ledger.md registers PL-010 (handoff evidence not returned)");
+  assert(ledger.includes("PL-011"), "problem-ledger.md registers PL-011 (inferred treated as fact)");
+  assert(ledger.includes("fact_state_review"), "problem-ledger.md PL-011 uses fact_state_review vocabulary");
+  assert(ledger.includes("evidence_produced"), "problem-ledger.md PL-010 uses evidence_produced vocabulary");
+
+  const maintainers = read("docs/maintainers.md");
+  assert(maintainers.includes("v9 minor release 能力对照"), "maintainers.md has v9 minor release matrix");
+  assert(maintainers.includes("发布前检查清单（公开口径）"), "maintainers.md has public-facing release checklist");
+  assert(maintainers.includes("Hallucination guard"), "maintainers.md mentions hallucination guard");
+  assert(maintainers.includes("Agent handoff + evidence loop"), "maintainers.md mentions agent handoff + evidence loop");
+  assert(maintainers.includes("URL reverse-spec intake"), "maintainers.md mentions URL reverse-spec intake");
+  assert(maintainers.includes("External learning fusion"), "maintainers.md mentions external learning fusion");
+  assert(maintainers.includes("git tag -a vX.Y.Z"), "maintainers.md release checklist mentions git tag step");
+
+  const evalsReadme = read("evals/README.md");
+  assert(evalsReadme.includes("task-handoff-evidence-not-returned.md"), "evals/README.md lists handoff eval");
+  assert(evalsReadme.includes("inferred-treated-as-fact-into-execution.md"), "evals/README.md lists fact-state eval");
+  assert(evalsReadme.includes("Cross-cutting: Fact-state explicitness"), "evals/README.md groups fact-state evals");
+
+  const handoffEval = read("evals/task-handoff-evidence-not-returned.md");
+  assert(/trigger_source:\s*manual/.test(handoffEval), "handoff eval uses manual trigger_source");
+  assert(handoffEval.includes("CR-20260502-224147-agent-handoff-evidence-loop"), "handoff eval references its baseline CR");
+  assert(handoffEval.includes("evidence_produced"), "handoff eval requires evidence_produced field");
+  assert(handoffEval.includes("W076"), "handoff eval references W076 doctor warning");
+
+  const factEval = read("evals/inferred-treated-as-fact-into-execution.md");
+  assert(/trigger_source:\s*manual/.test(factEval), "fact-state eval uses manual trigger_source");
+  assert(factEval.includes("CR-20260507-092708-hallucination-guard"), "fact-state eval references its baseline CR");
+  assert(factEval.includes("fact_state_review"), "fact-state eval requires fact_state_review");
+  assert(factEval.includes("W077"), "fact-state eval references W077 doctor warning");
+}
+
 section("docs: VERSION and package.json are in sync");
 
 {
