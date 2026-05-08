@@ -51,6 +51,18 @@
 - **AI-OS 必须保证**：工件按 L1 / L2 / L3 渐进式加载；除非用户切换阶段，不重复升级层级
 - **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §5）、`docs/artifacts.md`（"加载分层" 章节）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/interop/mcp-resources.md`（resource priority annotations）
 
+### PL-010 任务交付给执行 agent / IDE 后，证据没回流到工件
+
+- **场景**：AI-OS 把任务 handoff 给 Cursor agent / Claude Code / 本地 runner 执行，执行端完成代码后没有把测试输出、原生静态校验、影响清单等证据写回 lane 工件，导致仓库内只看到代码而看不到完成证据
+- **AI-OS 必须保证**：`tasks.yaml` 在 done / verified / shipped 之前必须有 `acceptance_refs`、`evidence_required`、handoff `context_refs` / `expected_return` 与 `evidence_produced`
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口、绝对禁止 §12）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.5）
+
+### PL-011 agent 把推断 / 未观察的信息当事实进入实现或交付
+
+- **场景**：agent 在没有源码、网络抓包、运行截图、原生校验等证据时，把"应该是这样"的推断、"通常这样"的常识、"AI 默认行为"的偏好直接当作 confirmed 进入 tasks 与 verification
+- **AI-OS 必须保证**：`tasks.yaml` `fact_state_review` 必须把每条事实标为 `observed` / `confirmed` / `inferred` / `unknown`；`inferred` 必须留 assumptions，`unknown` 必须进入待确认或非目标，closed 任务不得保留未解决 `inferred` / `unknown`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.6）
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试
