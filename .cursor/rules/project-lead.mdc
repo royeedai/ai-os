@@ -11,22 +11,25 @@ alwaysApply: true
 
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
-- 当前版本：9.1.1（VERSION + package.json 同步）
-- 最新 git tag：v9.1.0（v9.0.0 当时未单独打 tag，从 v8.0.0 直接演进到 v9.1.0；v9.1.1 是内部清理 patch，发布时再决定是否打 tag）
+- 当前版本：9.5.0（VERSION + package.json + `.ai-os/framework.toml` 同步）
+- 最新 git tag：v9.5.0（本轮收口同时补打）。历史 tag：v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)。v9.0/v9.2/v9.3 当时未单独打 tag
 - 归档 tag：v7-legacy（指向 v7.4.0，用户可 `git checkout v7-legacy` 回退）
 - 分支：main
-- CI：.github/workflows/ci.yml
+- CI：.github/workflows/ci.yml（push/PR 触发 lint + test on Node 18/20/22）
 - 零运行时依赖，devDependencies 仅 eslint
-- 测试：npm test（当前 375 项断言；v9.1 加入 progressive disclosure / SKILL.md / MCP URI / doctor 语义检查 / interop 文档）
+- 测试：npm test（当前 678 项断言；v9.2-v9.5 依次加入 URL reverse-spec、external learning fusion、handoff/evidence loop、hallucination guard 与 doctor W070-W077）
 - 定位：AI Delivery Constitution（AGENTS.md ≤150 行）+ 12 组工件 + 3 个 CLI
-- CLI 子命令共 3 个：install（默认）/ doctor / upgrade
+- CLI 子命令共 3 个：install（默认）/ doctor / upgrade。install 有显式别名 `create-ai-os install`，不算第 4 个 product operation
 - 无 profile / 无 slash commands / 不自造 skill 系统：行为由 AGENTS.md 规则驱动；v9.1 起提供一份符合 agentskills.io 开放标准的官方包装，仅作为开放标准 wire-format，不是新 runtime
 
-## v9.1 核心心智
+## v9.5 核心心智
 
 - 操作面极简（3 CLI + 行为规则），工件面完整（12 组默认全装）
 - 工件按 L1/L2/L3 progressive disclosure 加载（`STATE.md` / `lane.toml` 优先；`MISSION.md` / `DESIGN.md` / `memory.md` 次之；`baseline-log/` / `specs/` / `evals/` 按需）
-- 对接开放标准、不自造体系：agentskills.io（已发布官方 SKILL.md）、MCP（已定义 `aios://` URI scheme）、AGENTS.md（Linux Foundation AAIF 治理标准）
+- 对接开放标准、不自造体系：agentskills.io（已发布官方 SKILL.md）、MCP（已定义 `aios://` URI scheme，不内置 server）、AGENTS.md（Linux Foundation AAIF 治理标准）
+- **事实状态显式化（v9.5）**：`tasks.yaml` 必须区分 `observed` / `confirmed` / `inferred` / `unknown`，由 W077 拦截。`inferred` 留 assumptions，`unknown` 进待确认或非目标，closed 任务不得保留未解决条目
+- **任务 handoff 是仓库内治理契约（v9.4），不是 IDE 执行层**：W076 在 done / verified / shipped 前要求 `acceptance_refs` / `evidence_required` / `context_refs` / `expected_return` / `evidence_produced`；偏离走 `deviation_log`
+- **URL reverse-spec 必须先有证据再进入实现（v9.2-v9.3）**：API observation record + Backend behavior record + parity-map，并按 `observed` / `inferred` / `unknown` 分级
 - 不做模型层 self-verification、harness、记忆 auto-extract、自学习闭环等原生工具或 runtime 已覆盖的事
 - 改动要问：这是否改进"把项目做对"的能力？若只是追加概念，默认不纳入
 - AGENTS.md 是唯一交付宪法，同时也被 install 分发到用户项目
@@ -34,40 +37,43 @@ alwaysApply: true
 
 ## 每次改动必须主动检查
 
-1. **版本号**：改动 framework/ 或 AGENTS.md 下的内容 → 必须升 VERSION + package.json
+1. **版本号**：改动 framework/ 或 AGENTS.md 下的内容 → 必须升 VERSION + package.json；同时核对本机 `.ai-os/framework.toml` 的 `framework_version`（gitignored，本机 dogfood 用，不进提交）
 2. **AGENTS.md 行数**：任何改动后仍须 ≤150 行；超限即重写压缩
 3. **README.md**：新增用户可见功能（命令、flag、工件、行为规则）→ 必须同步更新 README
-4. **docs/cli.md**：新增/修改 CLI 命令 → 必须同步更新 cli.md
+4. **docs/cli.md**：新增/修改 CLI 命令、flag、doctor warning code → 必须同步更新 cli.md
 5. **docs/artifacts.md**：新增/修改工件 schema → 必须同步更新
-6. **docs/constitution-spec.md**：改动会影响 spec 兼容性时，必须 bump spec 版本
+6. **docs/constitution-spec.md**：改动会影响 spec 兼容性时，必须 bump spec 版本（当前 v1.6）
 7. **测试**：npm test 必须全部通过，不能引入回归
 8. **ESLint**：npx eslint bin/ test/ 必须零报错零警告
 9. **PROJECT_PURPOSE.md**：根层原则变化时必须回看 4 个判断问题
-10. **problem-ledger.md**：来自真实项目的问题先登记到台账
-11. **旧结构清理**：新结构落地时同步清理旧规则、旧命名、旧模板、旧测试
+10. **docs/problem-ledger.md**：新引入的稳定 failure mode 必须登记到台账（PL-* 或 PG-*）
+11. **doctor self-check**：`node bin/ai-os-doctor.js .` 必须 0 错 0 警（INFO 级别 STATE.md 缺失允许）
+12. **旧结构清理**：新结构落地时同步清理旧规则、旧命名、旧模板、旧测试
 
 ## 发布到 GitHub 前的完整检查清单
 
 - [ ] npm test 全部通过
 - [ ] npx eslint bin/ test/ 零警告
 - [ ] VERSION 和 package.json 版本一致且已升级
+- [ ] 本地 `.ai-os/framework.toml` 的 `framework_version` 同步到当前 VERSION（该文件 gitignored，仅供本机 doctor self-check 读取，不会进入提交）
 - [ ] AGENTS.md ≤150 行
 - [ ] README.md 首屏清晰，无过时叙事
-- [ ] docs/cli.md 覆盖所有 CLI 变更
-- [ ] docs/ 下相关文档已更新
+- [ ] docs/cli.md 覆盖所有 CLI / doctor warning 变更
+- [ ] docs/ 下相关文档已更新（artifacts、constitution-spec、maintainers、reverse-spec-url-intake、interop/*）
+- [ ] docs/problem-ledger.md 已为新规则补登 PL-* / PG-*
+- [ ] CHANGELOG.md 已写本版本 Added / Changed / Tests / Migration
 - [ ] git status 干净，无遗漏文件
 - [ ] commit message 清晰说明变更类型和内容
-- [ ] 评估是否需要打 git tag（minor/major 版本）
-- [ ] 评估是否需要更新 CHANGELOG.md
-- [ ] 评估是否需要发布 npm（npx 走 GitHub 则可选）
+- [ ] minor / major：push 后 `git tag -a vX.Y.Z -m "..."` 并 `git push origin vX.Y.Z`
+- [ ] 评估是否需要发布 npm（npx 走 GitHub 是主路径，npm 可选）
 
 ## 项目发展视角
 
 每次较大改动完成后，主动思考：
 
-- 这个版本是否该打 tag？
-- examples/ 是否需要配套新示例？（v8 保留 5 个：greenfield / brownfield / debug / high-risk / spec-kit coexist）
-- evals/ 是否需要新增回归场景？
+- 这个版本是否该打 tag？（minor / major 默认要打，patch 视情况）
+- examples/ 是否需要配套新示例？（v8/v9 保留 6 个：greenfield / brownfield / debug / high-risk / spec-kit coexist / multi-tool coexistence）
+- evals/ 是否需要新增回归场景？（≥3 次根因命中必须从 verification-matrix promote 到 evals）
 - docs/problem-ledger.md 是否有条目因本次改动得到覆盖？
 - docs/constitution-spec.md 是否需要 bump？
 - 对外叙事（README 首屏、PROJECT_PURPOSE.md）是否与实际能力匹配？
@@ -85,6 +91,8 @@ v8/v9 定位是"极简操作面 + 完整工件面"。以下属于主动回避：
 - 不新增 CLI 子命令除非满足所有：跨 IDE 稳定承接、无法由 AGENTS.md 规则承载、真实用户问题覆盖
 - 不引入 IDE 专有执行机制（CLAUDE.md / GEMINI.md 仅作 ≤10 行 stub 指针，不复制行为规则）
 - 不把 Opus 4.7 / Cursor / Kiro / spec-kit / Hermes 等具体工具名写进 framework 通用规则
+- **不引入第二套 prompt / rules 真理源（v9.5）**：hallucination 控制走 `fact_state_review` 工件契约，不走 prompt pack
+- **不直接引入第三方仓库（如 Karpathy-style coding rules）作为通用规则源（v9.5）**：外部学习只能融合为工件 / doctor / docs 的契约，不能成为第二真理源
 
 ## 自我维护
 
@@ -95,4 +103,4 @@ v8/v9 定位是"极简操作面 + 完整工件面"。以下属于主动回避：
 - 测试数量显著变化 → 更新测试计数
 - git tag 变化 → 更新最新 tag
 - 发布检查清单需要增减项 → 直接修改
-- 核心心智或定位调整 → 同步更新"v9.1 核心心智"与"守住不扩张的红线"
+- 核心心智或定位调整 → 同步更新"v9.5 核心心智"与"守住不扩张的红线"
