@@ -49,6 +49,7 @@ section("docs: key documentation files exist");
     "docs/interop/openspec.md",
     "docs/interop/mcp-resources.md",
     "docs/interop/eu-ai-act.md",
+    "docs/interop/a2a.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -316,7 +317,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.5.0", `version is 9.5.0 (got ${version})`);
+  assert(version === "9.5.1", `version is 9.5.1 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -439,6 +440,7 @@ section("docs: interop folder has cross-tool coexistence docs");
     "docs/interop/kiro.md",
     "docs/interop/openspec.md",
     "docs/interop/mcp-resources.md",
+    "docs/interop/a2a.md",
   ];
   for (const rel of required) {
     const content = read(rel);
@@ -476,6 +478,67 @@ section("docs: MCP resources URI scheme covers all 12 artifacts");
   assert(content.includes("lastModified"), "mcp-resources.md documents lastModified annotations");
   assert(content.includes('"subscribe": true'), "mcp-resources.md declares resource subscribe capability");
   assert(content.includes('"listChanged": true'), "mcp-resources.md declares resource listChanged capability");
+}
+
+section("docs: A2A interop maps handoff yaml fields without expanding the CLI surface");
+
+{
+  const a2a = read("docs/interop/a2a.md");
+  const readme = read("README.md");
+  const changelog = read("CHANGELOG.md");
+
+  for (const field of [
+    "handoff_to",
+    "context_refs",
+    "expected_return",
+    "evidence_required",
+    "evidence_produced",
+    "deviation_log",
+    "fact_state_review",
+  ]) {
+    assert(a2a.includes(field), `a2a.md maps ${field} to A2A objects`);
+  }
+
+  for (const term of [
+    "Task",
+    "Message",
+    "AgentCard",
+    "Artifact",
+    "Part",
+    "TaskState",
+  ]) {
+    assert(a2a.includes(term), `a2a.md references A2A core term ${term}`);
+  }
+
+  for (const state of [
+    "submitted",
+    "working",
+    "input-required",
+    "completed",
+    "failed",
+    "rejected",
+  ]) {
+    assert(a2a.includes(state), `a2a.md documents TaskState ${state}`);
+  }
+
+  assert(a2a.includes("aios://lane/"), "a2a.md reuses aios:// URI scheme inside A2A messages");
+  assert(a2a.includes("mcp-resources.md"), "a2a.md links back to mcp-resources.md for URI scheme");
+  assert(a2a.includes("does **not** ship or start an A2A server"), "a2a.md preserves no-runtime boundary for A2A");
+  assert(a2a.includes("3 primary product operations"), "a2a.md restates the 3-primary-operation surface");
+  assert(a2a.includes("W076"), "a2a.md routes terminal-state evidence through existing W076, not a new doctor warning");
+  assert(!/W07[89]/.test(a2a) && !/W08\d/.test(a2a), "a2a.md does NOT introduce a new doctor warning code");
+  assert(a2a.includes("Anti-patterns"), "a2a.md declares anti-patterns section");
+  assert(a2a.includes("OAuth 2.1"), "a2a.md security note references OAuth 2.1");
+  assert(a2a.includes("eu-ai-act.md"), "a2a.md security note links to eu-ai-act.md audit framing");
+  assert(a2a.includes("ai-os-delivery-executor"), "a2a.md provides a minimal AgentCard example");
+
+  assert(readme.includes("A2A integration"), "README documents A2A integration section");
+  assert(readme.includes("docs/interop/a2a.md"), "README links to docs/interop/a2a.md");
+  assert(readme.includes("MCP, A2A, EU AI Act"), "README interop index lists A2A alongside MCP and EU AI Act");
+
+  assert(changelog.includes("9.5.1"), "CHANGELOG records 9.5.1");
+  assert(changelog.includes("A2A Interop"), "CHANGELOG names the v9.5.1 release theme");
+  assert(changelog.includes("docs/interop/a2a.md"), "CHANGELOG references the new interop doc by path");
 }
 
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");

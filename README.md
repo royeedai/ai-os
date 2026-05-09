@@ -135,6 +135,10 @@ This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the consti
 
 AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI scheme. See [docs/interop/mcp-resources.md](docs/interop/mcp-resources.md). The default install does not ship or start an MCP server; the integration is a contract document plus an illustrative reference snippet.
 
+## A2A integration
+
+AI-OS v9.4 task handoff fields (and v9.5 `fact_state_review`) map onto the [A2A Protocol v1.0](https://a2a-protocol.org/) `Task` / `Message` / `AgentCard` / `Artifact` objects, so any A2A-compatible runtime can dispatch lane tasks to a remote executor agent without re-inventing field names. See [docs/interop/a2a.md](docs/interop/a2a.md). Same boundary as MCP: AI-OS does not ship or start an A2A server / client.
+
 ## Further reading
 
 - [AGENTS.md](AGENTS.md)
@@ -146,7 +150,7 @@ AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI s
 - [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
 - [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
 - [docs/maintainers.md](docs/maintainers.md)
-- [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, MCP, EU AI Act
+- [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, MCP, A2A, EU AI Act
 
 ## License
 

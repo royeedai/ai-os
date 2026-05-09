@@ -10,6 +10,31 @@ This file only tracks v8 and v9 releases (the supported lines as of v9.5). For v
 
 ---
 
+## 9.5.1 (2026-05-09) — A2A Interop Doc
+
+**Patch, documentation only**. v9.5.1 adds an open-standard interop document mapping AI-OS v9.4 task handoff fields and v9.5 `fact_state_review` onto A2A Protocol v1.0 objects, so any A2A-compatible runtime can dispatch lane tasks without re-inventing field names. No behavior, framework template, doctor, CLI, or constitution-spec change.
+
+### Added
+
+- `docs/interop/a2a.md` — wire-format mapping between AI-OS lane `tasks.yaml` handoff fields (`handoff_to` / `context_refs` / `expected_return` / `evidence_required` / `evidence_produced` / `deviation_log` / `fact_state_review`) and A2A v1.0 objects (`Task`, `Message`, `AgentCard`, `Artifact`, `Part`, `TaskState`); reuses the `aios://` URI scheme defined in `docs/interop/mcp-resources.md`.
+- README "A2A integration" section pointing to the new interop doc.
+- `docs/problem-ledger.md` PL-008 anchor list now includes `docs/interop/a2a.md`.
+
+### Changed
+
+- VERSION and `package.json` bumped to 9.5.1.
+- `docs/interop/` index in README now lists A2A alongside MCP, spec-kit, Claude Code, Cursor, Kiro, OpenSpec, and EU AI Act.
+
+### Tests
+
+- Documentation tests assert the A2A interop doc exists, stays within the 200-line interop budget, declares the handoff field mapping, references A2A core terms, reuses the `aios://` URI scheme, and preserves the no-server boundary.
+
+### Migration
+
+None. Documentation-only addition; no behavior change.
+
+---
+
 ## 9.5.0 (2026-05-07) — Hallucination Guard
 
 **Minor, fully backward compatible**. v9.5 keeps the canonical layout, three primary product operations, and zero runtime dependencies intact. It turns AI coding hallucination control into a task-level fact-state review instead of adding a second prompt/rules source.

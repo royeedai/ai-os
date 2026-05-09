@@ -43,7 +43,7 @@
 
 - **场景**：项目同时引入 Spec-Kit、AI-OS、Cursor rules、Kiro steering、OpenSpec 等多套工件，每套都自称"真理源"，导致需求 / 设计 / 变更记录在多处独立漂移
 - **AI-OS 必须保证**：每个工件类别只承认一个真理源；其他工具的工件以 reference 形式接入，不再独立维护同语义内容
-- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/kiro.md`、`docs/interop/openspec.md`、`AGENTS.md`（绝对禁止 §13）
+- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/kiro.md`、`docs/interop/openspec.md`、`docs/interop/a2a.md`、`AGENTS.md`（绝对禁止 §13）
 
 ### PL-009 反复全量加载工件，浪费 session context
 
