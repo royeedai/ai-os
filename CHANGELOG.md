@@ -10,6 +10,35 @@ This file only tracks v8 and v9 releases (the supported lines as of v9.5). For v
 
 ---
 
+## 9.5.2 (2026-05-09) — Open-standards interop expansion
+
+**Patch, documentation only**. v9.5.2 expands AI-OS's open-standards bindings (Memory Tool, Cursor 2.0+ subagents, BMAD coexistence), repositions `doctor` as the cross-IDE deterministic-guard equivalent of Claude Code hooks, and opens an optional eval frontmatter field for trajectory-aware evaluation harnesses. No behavior, framework template, doctor warning, CLI command, or constitution-spec change.
+
+### Added
+
+- `docs/interop/memory-tool.md` — wire-format mapping between `.ai-os/memory.md` / lane `STATE.md` / lane `MISSION.md` and Anthropic Memory tool `/memories` directory + Memory MCP knowledge-graph projection. Preserves "AI-OS markdown is truth, Memory tool is working notes" boundary.
+- `docs/interop/bmad.md` — coexistence guide with BMAD-METHOD persona pipeline. Mode A (BMAD leads 0→1, AI-OS governs delivery) + Mode B (AI-OS self-contained); persona artifacts mapped onto AI-OS lane fields without duplicating requirements.
+- README "Why deterministic doctor checks instead of prompts" section + `docs/interop/claude-code.md` "Doctor as cross-IDE deterministic guard" section. Anchors `doctor --strict` (W070-W077) as the cross-IDE equivalent of Claude Code deterministic command hooks, surfaces the 2026 hooks-vs-prompts consensus.
+- `docs/interop/cursor.md` "Cursor 2.0+ subagents / cloud agents and AI-OS handoff" section. Maps Cursor 2.0/2.4 subagent / cloud-agent / worktree concepts onto v9.4 `handoff_to / context_refs / expected_return / evidence_produced / deviation_log` fields, with W076 catching PR-without-evidence cases.
+- `evals/README.md` optional `trajectory_signature` frontmatter field for trajectory-aware evaluation harnesses (ATBench / Claw-Eval / AgentRx / HINTBench). Field is **optional**, free-form, and does not break the existing 26 evals.
+
+### Changed
+
+- README "MCP integration" / "A2A integration" / "Memory tool integration" now form a three-section open-standards block; interop index lists BMAD and Memory Tool alongside the existing standards.
+- `docs/problem-ledger.md` PL-008 (cross-tool truth-source confusion) now anchors `docs/interop/memory-tool.md` and `docs/interop/bmad.md`; PL-009 (repeated full-load context waste) now anchors `docs/interop/memory-tool.md` for just-in-time retrieval guidance.
+- VERSION / `package.json` / `package-lock.json` bumped to 9.5.2.
+
+### Tests
+
+- Documentation tests assert the four new / expanded surfaces stay within the 200-line interop budget, declare their key terminology, link back to existing docs (mcp-resources, a2a, eu-ai-act), and preserve the no-runtime / 3-primary-operations boundary.
+- All previously hardcoded 9.5.1 version strings (in `test/shared.test.js`, `test/install.test.js`, `test/doctor.test.js`, `test/docs.test.js`) bumped to 9.5.2.
+
+### Migration
+
+None. Documentation-only patch; no behavior change. `trajectory_signature` is opt-in; existing evals remain valid.
+
+---
+
 ## 9.5.1 (2026-05-09) — A2A Interop Doc
 
 **Patch, documentation only**. v9.5.1 adds an open-standard interop document mapping AI-OS v9.4 task handoff fields and v9.5 `fact_state_review` onto A2A Protocol v1.0 objects, so any A2A-compatible runtime can dispatch lane tasks without re-inventing field names. No behavior, framework template, doctor, CLI, or constitution-spec change.

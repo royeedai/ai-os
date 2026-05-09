@@ -77,6 +77,19 @@ This is the closest thing to "AI-OS as a runtime extension" without giving up po
 3. **Encoding AI-OS rules into `.claude/commands/`** — slash commands are imperative; AI-OS is rule-driven. Use the skill or `AGENTS.md`.
 4. **Running Claude Code skill plus `.cursor/rules/` plus a Codex `AGENTS.override.md` with three different versions of the rules** — pick `AGENTS.md` as the trunk and have all surfaces link, not duplicate.
 
+## Doctor as cross-IDE deterministic guard
+
+Claude Code hooks (especially [deterministic command hooks](https://platform.claude.com/docs/en/agent-sdk/hooks)) are the recommended way to enforce safety boundaries because prompts are advisory and only ~70% reliable in practice (per [RFC #45427](https://github.com/anthropics/claude-code/issues/45427) and the 2026 hooks-vs-prompts consensus). AI-OS `doctor --strict` is the **cross-IDE equivalent**: the same warnings (W070-W077) that Claude Code can wrap as a `pre-tool-use` hook also run as a one-line shell command in Cursor's `hooks.json`, in `lefthook` / `pre-commit`, in GitHub Actions, or simply as a manual check.
+
+| Surface | Setup |
+|---|---|
+| Claude Code | `pre-tool-use` hook calling `npx --yes github:royeedai/ai-os doctor . --strict` |
+| Cursor | `.cursor/hooks.json` with the same command (see [cursor.md](cursor.md)) |
+| Local pre-commit | `lefthook` / `pre-commit` running `npx ... doctor --strict` |
+| CI | GitHub Action step running the same command |
+
+The exit code is the contract; AI-OS does not depend on model self-policing. This sidesteps the [hook-bypass failure modes documented in 2026 RFCs](https://github.com/anthropics/claude-code/issues/45427) (subagent bypass, silent hook failure, model self-modification, alternative tool paths, CLAUDE.md non-compliance).
+
 ## What AI-OS adds that Claude Code does not
 
 | Capability | Claude Code | AI-OS |

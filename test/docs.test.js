@@ -50,6 +50,8 @@ section("docs: key documentation files exist");
     "docs/interop/mcp-resources.md",
     "docs/interop/eu-ai-act.md",
     "docs/interop/a2a.md",
+    "docs/interop/memory-tool.md",
+    "docs/interop/bmad.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -317,7 +319,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.5.1", `version is 9.5.1 (got ${version})`);
+  assert(version === "9.5.2", `version is 9.5.2 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -441,6 +443,8 @@ section("docs: interop folder has cross-tool coexistence docs");
     "docs/interop/openspec.md",
     "docs/interop/mcp-resources.md",
     "docs/interop/a2a.md",
+    "docs/interop/memory-tool.md",
+    "docs/interop/bmad.md",
   ];
   for (const rel of required) {
     const content = read(rel);
@@ -534,11 +538,137 @@ section("docs: A2A interop maps handoff yaml fields without expanding the CLI su
 
   assert(readme.includes("A2A integration"), "README documents A2A integration section");
   assert(readme.includes("docs/interop/a2a.md"), "README links to docs/interop/a2a.md");
-  assert(readme.includes("MCP, A2A, EU AI Act"), "README interop index lists A2A alongside MCP and EU AI Act");
+  for (const term of ["MCP", "A2A", "EU AI Act"]) {
+    assert(readme.includes(term), `README interop index includes ${term}`);
+  }
 
   assert(changelog.includes("9.5.1"), "CHANGELOG records 9.5.1");
   assert(changelog.includes("A2A Interop"), "CHANGELOG names the v9.5.1 release theme");
   assert(changelog.includes("docs/interop/a2a.md"), "CHANGELOG references the new interop doc by path");
+}
+
+section("docs: Memory Tool / Memory MCP interop preserves AI-OS-as-truth boundary");
+
+{
+  const memory = read("docs/interop/memory-tool.md");
+  const readme = read("README.md");
+
+  for (const term of [
+    "Memory tool",
+    "Memory MCP",
+    "/memories",
+    "knowledge graph",
+    "ZDR",
+    "just-in-time",
+  ]) {
+    assert(memory.includes(term), `memory-tool.md references ${term}`);
+  }
+
+  assert(memory.includes("does **not** ship a Memory tool"), "memory-tool.md preserves no-runtime boundary");
+  assert(memory.includes("3 primary product operations"), "memory-tool.md restates the 3-primary-operation surface");
+  assert(memory.includes(".ai-os/memory.md"), "memory-tool.md anchors AI-OS memory.md as truth source");
+  assert(memory.includes("STATE.md"), "memory-tool.md keeps lane STATE.md as session-local recovery anchor");
+  assert(memory.includes("aios://"), "memory-tool.md reuses aios:// URI scheme inside Memory MCP");
+  assert(memory.includes("mcp-resources.md"), "memory-tool.md links back to mcp-resources.md");
+  assert(memory.includes("eu-ai-act.md"), "memory-tool.md security note links to eu-ai-act.md");
+  assert(memory.includes("Anti-patterns"), "memory-tool.md declares anti-patterns section");
+  assert(memory.includes("Read-only mount") || memory.includes("read-only mount") || memory.includes("Always read-only mount"), "memory-tool.md mandates read-only mount semantics");
+
+  assert(readme.includes("Memory tool integration"), "README documents Memory tool integration section");
+  assert(readme.includes("docs/interop/memory-tool.md"), "README links to memory-tool interop doc");
+  assert(readme.includes("Memory Tool"), "README interop index lists Memory Tool");
+}
+
+section("docs: deterministic-guard narrative aligns doctor with cross-IDE hooks");
+
+{
+  const readme = read("README.md");
+  const claude = read("docs/interop/claude-code.md");
+
+  assert(readme.includes("Why deterministic"), "README adds deterministic-guard narrative section");
+  assert(readme.includes("W070-W077"), "README narrative cites the W070-W077 doctor warning range");
+  assert(readme.includes("`pre-tool-use`") || readme.includes("pre-tool-use"), "README narrative shows Claude Code pre-tool-use mapping");
+  assert(readme.includes("45427") || readme.includes("RFC #45427"), "README narrative cites the 2026 hooks-vs-prompts RFC");
+  assert(readme.includes("doctor . --strict") || readme.includes("doctor --strict"), "README narrative uses doctor --strict invocation");
+
+  assert(claude.includes("Doctor as cross-IDE deterministic guard"), "claude-code.md adds doctor-as-deterministic-guard section");
+  assert(claude.includes("subagent bypass") || claude.includes("hook-bypass"), "claude-code.md surfaces 2026 hook-bypass failure modes");
+  assert(claude.includes("W070-W077"), "claude-code.md cites the W070-W077 doctor warning range");
+}
+
+section("docs: Cursor 2.0+ subagent / cloud agent fields align to v9.4 handoff");
+
+{
+  const cursor = read("docs/interop/cursor.md");
+
+  assert(cursor.includes("Cursor 2.0+ subagents"), "cursor.md adds 2.0+ subagent / cloud agent section");
+  for (const field of [
+    "handoff_to",
+    "context_refs",
+    "expected_return",
+    "evidence_produced",
+    "deviation_log",
+    "acceptance_refs",
+  ]) {
+    assert(cursor.includes(field), `cursor.md maps Cursor concept onto ${field}`);
+  }
+  assert(cursor.includes("worktree"), "cursor.md mentions Cursor worktree-based parallel execution");
+  assert(cursor.includes("W076"), "cursor.md routes PR-without-evidence through existing W076");
+  assert(cursor.includes("a2a.md"), "cursor.md links to a2a.md for non-Cursor delegation");
+}
+
+section("docs: BMAD coexistence keeps single-source-of-truth boundary");
+
+{
+  const bmad = read("docs/interop/bmad.md");
+  const readme = read("README.md");
+
+  assert(bmad.includes("BMAD-METHOD"), "bmad.md identifies the BMAD-METHOD framework");
+  for (const persona of ["Analyst", "PM", "Architect", "Developer"]) {
+    assert(bmad.includes(persona), `bmad.md references BMAD persona ${persona}`);
+  }
+  assert(bmad.includes("Mode A"), "bmad.md describes Mode A (BMAD leads, AI-OS governs)");
+  assert(bmad.includes("Mode B"), "bmad.md describes Mode B (AI-OS self-contained)");
+  assert(bmad.includes("doctor"), "bmad.md positions doctor as ongoing artifact-consistency guard");
+  assert(bmad.includes("W076") || bmad.includes("W077"), "bmad.md ties BMAD pipeline outputs to AI-OS evidence gates");
+  assert(bmad.includes("Anti-patterns"), "bmad.md declares anti-patterns section");
+  assert(bmad.includes("spec-kit-coexistence.md"), "bmad.md links to spec-kit-coexistence.md for the pattern family");
+
+  assert(readme.includes("BMAD"), "README interop index lists BMAD");
+}
+
+section("docs: trajectory_signature is opt-in and does not break existing evals");
+
+{
+  const evalsReadme = read("evals/README.md");
+  assert(evalsReadme.includes("trajectory_signature"), "evals/README.md documents the optional trajectory_signature field");
+  assert(evalsReadme.includes("ATBench") || evalsReadme.includes("Claw-Eval") || evalsReadme.includes("AgentRx"), "evals/README.md cites at least one trajectory-aware harness");
+  assert(/optional/i.test(evalsReadme.split("trajectory_signature")[1] || ""), "evals/README.md marks trajectory_signature as optional");
+  assert(/free-form|no enum/i.test(evalsReadme), "evals/README.md states trajectory_signature is free-form");
+
+  const evalsDir = path.join(repoRoot, "evals");
+  const files = fs.readdirSync(evalsDir).filter((f) => f.endsWith(".md") && f !== "README.md");
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(evalsDir, file), "utf8");
+    assert(/trigger_source:\s*(manual|promoted-from-verification-matrix)/.test(content), `${file} still has required trigger_source after trajectory_signature addition`);
+  }
+}
+
+section("docs: 9.5.2 release notes cover all five open-standards expansions");
+
+{
+  const changelog = read("CHANGELOG.md");
+  assert(changelog.includes("9.5.2"), "CHANGELOG records 9.5.2");
+  assert(changelog.includes("Open-standards interop expansion"), "CHANGELOG names the v9.5.2 release theme");
+  for (const ref of [
+    "docs/interop/memory-tool.md",
+    "docs/interop/bmad.md",
+    "Doctor as cross-IDE deterministic guard",
+    "Cursor 2.0+ subagents",
+    "trajectory_signature",
+  ]) {
+    assert(changelog.includes(ref), `CHANGELOG 9.5.2 mentions ${ref}`);
+  }
 }
 
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");

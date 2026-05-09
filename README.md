@@ -81,6 +81,21 @@ Full text: [AGENTS.md](AGENTS.md)
 
 No slash commands. No profile flags. No proprietary AI-OS skill system; the `agentskills.io` wrapper below is an open-standard adapter, not a separate operating surface.
 
+## Why deterministic `doctor` checks instead of prompts
+
+Industry consensus in 2026 (e.g. [anthropics/claude-code RFC #45427](https://github.com/anthropics/claude-code/issues/45427)) is that prompt-style guidance such as `CLAUDE.md` / `.cursor/rules` reaches only ~70% compliance: subagents bypass it, models can rewrite hooks, instructions degrade with context length. Safety-critical boundaries need **deterministic enforcement** — a check whose exit code the model cannot override.
+
+AI-OS uses `doctor` for exactly this. W070-W077 (and `--strict` mode) are deterministic command checks: zero model interpretation, zero prompt re-injection. The same exit code that fails locally fails in pre-commit and in CI:
+
+| Surface | One-line setup |
+|---|---|
+| Claude Code | `pre-tool-use` hook calling `npx --yes github:royeedai/ai-os doctor . --strict` |
+| Cursor | `.cursor/hooks.json` with the same command (see [docs/interop/cursor.md](docs/interop/cursor.md)) |
+| Local pre-commit | `lefthook` / `pre-commit` running `npx ... doctor --strict` |
+| CI | GitHub Action step running the same command |
+
+This makes AI-OS the cross-IDE equivalent of a Claude Code deterministic command hook: same enforcement guarantee (100% or it fails), but portable to Cursor, Codex, Gemini CLI, and any other agent with shell access.
+
 ## How agents use AI-OS
 
 There are no slash commands in v9. When an AI agent opens a repo with `AGENTS.md`, it should:
@@ -139,6 +154,10 @@ AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI s
 
 AI-OS v9.4 task handoff fields (and v9.5 `fact_state_review`) map onto the [A2A Protocol v1.0](https://a2a-protocol.org/) `Task` / `Message` / `AgentCard` / `Artifact` objects, so any A2A-compatible runtime can dispatch lane tasks to a remote executor agent without re-inventing field names. See [docs/interop/a2a.md](docs/interop/a2a.md). Same boundary as MCP: AI-OS does not ship or start an A2A server / client.
 
+## Memory tool integration
+
+`.ai-os/memory.md`, lane `STATE.md`, and lane `MISSION.md` can be mounted (read-only) into Anthropic's [Memory tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) `/memories` directory or projected into a [Memory MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/memory) knowledge graph. AI-OS keeps the markdown as truth source; the memory channel becomes Claude's working notes. See [docs/interop/memory-tool.md](docs/interop/memory-tool.md).
+
 ## Further reading
 
 - [AGENTS.md](AGENTS.md)
@@ -150,7 +169,7 @@ AI-OS v9.4 task handoff fields (and v9.5 `fact_state_review`) map onto the [A2A 
 - [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
 - [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
 - [docs/maintainers.md](docs/maintainers.md)
-- [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, MCP, A2A, EU AI Act
+- [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, BMAD, MCP, A2A, Memory Tool, EU AI Act
 
 ## License
 

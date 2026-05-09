@@ -65,6 +65,23 @@ Cursor supports hooks via `hooks.json`. Add a `pre-commit`-style hook to run AI-
 
 This catches W070-W077 semantic drift before commits land.
 
+## Cursor 2.0+ subagents / cloud agents and AI-OS handoff
+
+Cursor 2.0 (October 2025) introduced cloud agents; 2.4 (January 2026) added subagents with their own context windows; Cursor 3 (April 2026) ships the Agents Window for parallel multi-agent worktree execution. AI-OS v9.4 task handoff fields map cleanly onto these:
+
+| Cursor concept | AI-OS `tasks.yaml` field |
+|---|---|
+| Subagent invocation (foreground / background) | `handoff_to: "[subagent-name]"` (or `AI` if local) |
+| Files / artifacts the subagent should read | `context_refs: [".ai-os/lanes/.../..."]` |
+| Subagent return type (PR / log / artifact) | `expected_return: [...]` |
+| Cloud agent PR with logs / videos / screenshots | `evidence_produced: [...]` (paths to attached evidence) |
+| Plan-mode plan diverged during execution | `deviation_log: [...]` |
+| Parallel worktree task family | one AI-OS task per worktree, all sharing `acceptance_refs` |
+
+Cursor's cloud agent PR is the natural carrier for `evidence_produced` — the agent's PR can attach test logs / screenshots / video, which AI-OS lane reviewers copy or reference under `evidence_produced`. **W076** (introduced in v9.4) catches "PR merged but `evidence_produced` empty" before the lane task can be closed.
+
+For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, Devin, custom A2A executors), see [a2a.md](a2a.md) — the same handoff fields map onto the open A2A wire format.
+
 ## Artifact coexistence
 
 | Cursor surface | AI-OS artifact | Rule |

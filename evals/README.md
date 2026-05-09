@@ -29,6 +29,24 @@ After the frontmatter, every eval answers 5 questions:
 4. **Minimum evidence**: which artifacts should contain proof
 5. **If AI-OS needs changes**: where in `AGENTS.md` to strengthen the rule
 
+### Optional: `trajectory_signature` (added v9.5.2)
+
+Some failure modes are not triggered by a specific input or output shape but by an **execution trajectory** — the order of tool calls, file reads, or agent decisions that lead to the failure. Trajectory-aware evaluation frameworks emerging in 2026 (ATBench, Claw-Eval, AgentRx, HINTBench) consume exactly this signal. For these cases an eval **may** add an optional `trajectory_signature` field describing the minimum trajectory shape that reproduces the failure:
+
+```yaml
+---
+trigger_source: manual
+first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: example
+harm: wrong-work
+artifact_gate: STATE
+trajectory_signature: "session-resume → skip-STATE.md → read-MISSION.md → write-code"
+---
+```
+
+The field is **optional** and free-form (no enum). Existing 26 evals continue to pass without it. AI-OS itself does not run trajectories — it only catalogs the shape so that external trajectory-aware harnesses can ingest the same eval set without forking it. The mandatory frontmatter remains `trigger_source / first_baseline_id / risk_source / failure_mode / harm / artifact_gate`; if you don't have a clear trajectory pattern, omit `trajectory_signature` entirely.
+
 ## Current baseline samples
 
 Grouped by the five core requirements they enforce.
