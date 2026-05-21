@@ -30,7 +30,7 @@ const {
   parseMissionBaselineId,
 } = require("./shared");
 
-const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075", "W076", "W077"];
+const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075", "W076", "W077", "W078"];
 
 function printHelp() {
   process.stdout.write(`create-ai-os doctor — Check artifact completeness
@@ -396,7 +396,14 @@ function collectNestedTaskFieldValues(task, field, nestedKeys) {
   for (const value of values) {
     const keyMatch = value.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/);
     if (keyMatch) {
-      currentKey = wanted.has(keyMatch[1]) ? keyMatch[1] : "";
+      if (wanted.has(keyMatch[1])) {
+        currentKey = keyMatch[1];
+      } else if (currentKey && keyMatch[2].trim()) {
+        found.get(currentKey).push(`${keyMatch[1]}: ${keyMatch[2].trim()}`);
+        continue;
+      } else {
+        currentKey = "";
+      }
       if (currentKey && keyMatch[2].trim()) {
         found.get(currentKey).push(keyMatch[2].trim());
       }
@@ -426,6 +433,59 @@ function hasObservedOrConfirmedFactState(task) {
 function unresolvedFactStateKeys(task) {
   const values = collectNestedTaskFieldValues(task, "fact_state_review", ["inferred", "unknown"]);
   return ["inferred", "unknown"].filter((key) => values.get(key).some(hasMeaningfulTaskValue));
+}
+
+function agentRunReviewValues(task, nestedKeys) {
+  return collectNestedTaskFieldValues(task, "agent_run_review", nestedKeys);
+}
+
+function hasMeaningfulAgentRunReviewField(task, field) {
+  if (agentRunReviewValues(task, [field]).get(field).some(hasMeaningfulTaskValue)) return true;
+  if (field === "run_refs") {
+    return ["branch", "pr", "pull_request", "issue", "external_task_url", "task_url", "agent_session_id", "session_id"]
+      .some((key) => hasMeaningfulTaskField(task, key));
+  }
+  if (field === "write_scope") {
+    return ["owned", "out_of_scope", "owned_files", "owned_modules"]
+      .some((key) => hasMeaningfulTaskField(task, key));
+  }
+  if (field === "return_packet") {
+    return ["summary", "changed_files", "tests", "unresolved_risks", "follow_up_needed"]
+      .some((key) => hasMeaningfulTaskField(task, key));
+  }
+  return false;
+}
+
+function taskFieldValues(task, field) {
+  return (task.fields[field] || []).map(normalizeTaskScalar).filter(Boolean);
+}
+
+function isLongHorizonSurfaceValue(value) {
+  const normalized = normalizeTaskScalar(value).toLowerCase();
+  if (!hasMeaningfulTaskValue(value)) return false;
+  if (normalized === "local_foreground" || normalized === "human") return false;
+  return /\b(cloud_background|external_pr_agent|background|cloud|external|parallel|delegated|subagent)\b/.test(normalized);
+}
+
+function taskDeclaresLongHorizonExecution(task) {
+  const executionSurface = agentRunReviewValues(task, ["execution_surface"]).get("execution_surface");
+  if (executionSurface.some(isLongHorizonSurfaceValue)) return true;
+  return taskFieldValues(task, "handoff_to").some(isLongHorizonSurfaceValue);
+}
+
+function hasExpectedReturn(task) {
+  return hasMeaningfulTaskField(task, "expected_return")
+    || hasMeaningfulAgentRunReviewField(task, "expected_return");
+}
+
+function hasAcceptedHumanReview(task) {
+  const values = agentRunReviewValues(task, ["human_review_status"]).get("human_review_status");
+  return values.some((value) => /^(reviewed|accepted)$/i.test(normalizeTaskScalar(value)));
+}
+
+function hasUnresolvedAgentRunRisk(task) {
+  const values = agentRunReviewValues(task, ["unresolved_risks"]).get("unresolved_risks");
+  return values.some(hasMeaningfulTaskValue);
 }
 
 // W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
@@ -503,6 +563,49 @@ function checkTaskHallucinationGuards(paths) {
   if (details.length > 0) {
     issues.push(issue("warning", "W077",
       `tasks.yaml has incomplete hallucination guard review(s): ${details.join("; ")}.`));
+  }
+  return issues;
+}
+
+// W078: long-horizon / background agent work needs a reviewable return packet.
+function checkLongHorizonAgentRunReviews(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneTasks)) return issues;
+  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
+  const missing = [];
+  const unresolved = [];
+  for (const task of collectTopLevelTasks(tasksContent)) {
+    if (!taskDeclaresLongHorizonExecution(task)) continue;
+    if (!hasMeaningfulAgentRunReviewField(task, "run_refs")) {
+      missing.push(`${task.id}: agent_run_review.run_refs`);
+    }
+    if (!hasMeaningfulAgentRunReviewField(task, "write_scope")) {
+      missing.push(`${task.id}: agent_run_review.write_scope`);
+    }
+    if (!hasExpectedReturn(task)) {
+      missing.push(`${task.id}: expected_return`);
+    }
+    if (/^(done|verified|shipped)$/i.test(taskStatus(task))) {
+      if (!hasMeaningfulTaskField(task, "evidence_produced")) {
+        missing.push(`${task.id}: evidence_produced`);
+      }
+      if (!hasMeaningfulAgentRunReviewField(task, "return_packet")) {
+        missing.push(`${task.id}: agent_run_review.return_packet`);
+      }
+      if (!hasAcceptedHumanReview(task)) {
+        missing.push(`${task.id}: agent_run_review.human_review_status`);
+      }
+      if (hasUnresolvedAgentRunRisk(task)) {
+        unresolved.push(`${task.id}: agent_run_review.return_packet.unresolved_risks`);
+      }
+    }
+  }
+  const details = [];
+  if (missing.length > 0) details.push(`missing long-horizon review field(s): ${missing.join(", ")}`);
+  if (unresolved.length > 0) details.push(`unresolved risk at close: ${unresolved.join(", ")}`);
+  if (details.length > 0) {
+    issues.push(issue("warning", "W078",
+      `tasks.yaml has incomplete long-horizon agent run review(s): ${details.join("; ")}.`));
   }
   return issues;
 }
@@ -736,6 +839,7 @@ function main() {
     issues.push(...checkTaskOwners(paths));
     issues.push(...checkTaskEvidenceLoops(paths));
     issues.push(...checkTaskHallucinationGuards(paths));
+    issues.push(...checkLongHorizonAgentRunReviews(paths));
     issues.push(...checkAcceptanceCoverage(paths));
     issues.push(...checkChangeRequestDelta(paths));
     issues.push(...checkHighRiskArtifacts(paths));

@@ -121,7 +121,7 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 ## 加载分层（progressive disclosure）
 
-工件按 L1 → L2 → L3 渐进式加载，让 agent 在长 session 下减少重复全量读盘。Agent 应只在用户切换阶段时才升级层级。
+工件按 L1 → L2 → L3 渐进式加载，让 agent 在长 session 下减少重复全量读盘。Agent 应先通过 Activation Gate，确认这是 delivery-affecting work 后才加载 lane 工件；普通对话不读取或写入 `.ai-os/lanes/*`。Agent 应只在用户切换阶段时才升级层级。
 
 ### L1 — 入口元数据
 
@@ -149,6 +149,14 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 - lane `design-pack/parity-map.md`（reverse-spec / URL intake 对照）
 - lane `evals/*.md`
 - 根 `managed-files.tsv`
+
+## Activation Gate（v9.5.1）
+
+AI-OS 工件治理只适用于 delivery-affecting work：改代码、改项目文档或工件、实现功能、修 bug、需求变化、验证、发布、恢复交付现场、URL reverse-spec intake 或高风险动作。
+
+普通对话不进入 lane governance，包括需求脑暴、先聊聊、代码解释、方案比较、学习提问、临时命令查询、非仓库交付任务，或用户明确说不要进入 AI-OS / 不要改项目。普通对话只遵守真实目标优先、不得脑补事实、不得伪造验证结果；不写 `MISSION.md` / `DESIGN.md` / `tasks.yaml`，也不进入 debug / plan / verification 流程。
+
+如果用户意图不清，agent 只问一句：“这是先讨论，还是要进入项目交付流程？”确认前不加载 L1 / L2 / L3 lane 工件。
 
 ## URL Reverse-Spec Intake（v9.2）
 
@@ -181,6 +189,21 @@ AI-OS 运行在 Cursor、Claude Code、Codex、Copilot 等 IDE / agent 环境内
 
 `doctor --strict` 可用 W076 捕捉缺失 `acceptance_refs` / `evidence_required`、交接缺上下文 / 期望返回、以及 done / verified / shipped 任务没有 produced evidence 的情况。
 
+## Long-Horizon Agent Reliability Loop（v9.6）
+
+AI-OS 不执行后台任务、不创建 agent runner、不接管 PR 或分支。它只要求长时程、后台、外部 PR agent 或并行 agent 工作在 `tasks.yaml` 中留下可审查的 `agent_run_review`：
+
+- `execution_surface`：`local_foreground` / `cloud_background` / `external_pr_agent` / `human`
+- `run_refs`：branch、PR、issue、外部 task URL、agent session ID 等可追回入口
+- `write_scope`：owned files / modules 与明确 out-of-scope 区域，便于发现并行 agent 重叠修改
+- `progress_checkpoints`：plan accepted、diff produced、tests run、blocker surfaced、review requested
+- `return_packet`：summary、changed files、tests、unresolved risks、follow-up needed
+- `human_review_status`：`pending` / `reviewed` / `rejected` / `accepted`
+
+`agent_run_review` 默认可选；只有 task 明确使用 delegated / background / cloud / external / parallel execution 时才需要。既有 `handoff_to`、`context_refs`、`expected_return`、`evidence_required`、`evidence_produced` 和 `deviation_log` 继续有效；`agent_run_review` 只是补充长时程执行回收证据。
+
+`doctor --strict` 可用 W078 捕捉长时程 task 缺 `run_refs` / `write_scope` / `expected_return`、关闭前缺 `return_packet` / `evidence_produced` / human review，或带 unresolved risks 仍标记 done / verified / shipped 的情况。local foreground 或纯 human task 不触发 W078。
+
 ## Hallucination Guard（v9.5）
 
 AI-OS 对抗 AI 开发幻觉的方式不是追加第二套提示词，而是把事实来源写进现有任务和验证工件。`tasks.yaml` 可用 `fact_state_review` 区分：
@@ -194,7 +217,8 @@ AI-OS 对抗 AI 开发幻觉的方式不是追加第二套提示词，而是把�
 
 ### 加载顺序约定
 
-1. 任意会话开始：先读 L1 全部 → 决定是否需要 L2
-2. 用户进入"对齐 / 设计 / 验证 / 修 bug"等阶段：升级到 L2
-3. 用户引用具体 baseline ID / spec 路径 / failure mode：仅按需读对应 L3
-4. 长 session 持续推进时不重复升级；只有阶段切换才重新评估
+1. 任意会话开始：先读 `AGENTS.md` 并执行 Activation Gate
+2. 只有 delivery-affecting work 才读 L1 全部 → 决定是否需要 L2
+3. 用户进入"对齐 / 设计 / 验证 / 修 bug"等阶段：升级到 L2
+4. 用户引用具体 baseline ID / spec 路径 / failure mode：仅按需读对应 L3
+5. 长 session 持续推进时不重复升级；只有阶段切换才重新评估

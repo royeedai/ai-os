@@ -36,6 +36,22 @@
 - **确认来源**：2026-05-07 用户授权 AI-OS maintainer agent 自主决定并完成 Hallucination Guard
 - **日期**：2026-05-07
 
+#### DD-005: AI-OS 只在 delivery-affecting work 启用工件治理
+
+- **决策**：AI-OS 增加 Activation Gate；只有改代码、改项目工件、实现、修 bug、需求变化、验证、发布、恢复交付现场或高风险动作才进入 lane 工件治理；普通对话、需求脑暴、代码解释、方案比较、学习提问、临时命令和非仓库交付任务不读写 lane 工件
+- **原因**：真实项目中经常需要先聊需求或处理非交付任务；把所有项目内对话都自动识别成 debug / plan / verify 会造成过度治理和上下文浪费
+- **影响范围**：AGENTS、README、docs/artifacts、docs/constitution-spec、official skill wrapper、problem ledger、examples、docs tests
+- **确认来源**：2026-05-21 用户确认“交付任务才介入”和“规则和文档”方案
+- **日期**：2026-05-21
+
+#### DD-006: 长时程 agent 可靠性属于回收审查契约，不属于执行层
+
+- **决策**：AI-OS 用 `tasks.yaml` 的 `agent_run_review` 和 doctor W078 管理后台、云端、外部 PR agent、delegated 或 parallel execution 的 refs、write scope、progress checkpoints、return packet、human review status 和 unresolved risks；不新增 runner、MCP server、IDE hook、agent router、worktree manager 或 vendor adapter
+- **原因**：最新 AI coding 生态正转向长时程、后台、并行、可审查 agent 交付；AI-OS 的价值是让这些执行面返回后可追踪、可验证、可接受，而不是替代执行面本身
+- **影响范围**：tasks schema、verification-matrix、doctor W078、docs、skill wrapper、examples、interop、tests
+- **确认来源**：2026-05-21 用户要求实现 v9.6 Long-Horizon Agent Reliability 方案
+- **日期**：2026-05-21
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

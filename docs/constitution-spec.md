@@ -1,12 +1,14 @@
-# AI Delivery Constitution Spec v1.6
+# AI Delivery Constitution Spec v1.8
 
 Status: Stable
-Version: 1.6
-Last updated: 2026-05-07
+Version: 1.8
+Last updated: 2026-05-21
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 1.8 (2026-05-21) — non-breaking addition: Long-Horizon Agent Reliability Loop `agent_run_review` vocabulary and doctor W078 warning for background / cloud / external / parallel agent work
+- 1.7 (2026-05-21) — non-breaking addition: Activation Gate so AI-OS artifact governance applies only to delivery-affecting work, not ordinary conversation
 - 1.6 (2026-05-07) — non-breaking addition: Hallucination Guard `fact_state_review` vocabulary and doctor W077 unresolved inference / unknown warning
 - 1.5 (2026-05-02) — non-breaking addition: Agent Handoff + Evidence Loop fields in `tasks.yaml` and doctor W076 task evidence-loop warning
 - 1.4 (2026-05-02) — non-breaking additions: CR delta lifecycle fields, bugfix spec route, URL evidence package adaptation matrix, MCP resource annotation recommendations, eval taxonomy frontmatter, and stricter doctor semantic warnings
@@ -82,6 +84,7 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 | 任务类型 | 必须产出 | 停点 |
 |---|---|---|
+| 普通对话 / 需求脑暴 / 代码解释 | 不读写 lane 工件；直接回答 | 不进入 AI-OS 工件治理 |
 | 新项目 / 需求模糊 | 根层共享上下文 + lane `MISSION.md` 摘要 | 等用户确认 |
 | 设计锁定 | lane `DESIGN.md` | 等用户确认 |
 | 任务拆解 | lane `tasks.yaml` | 等用户确认 |
@@ -89,6 +92,14 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 | 修复 bug | 根因 + 范围 + 计划文件 | 等用户确认 |
 | 验证 | 项目原生静态校验证据 + 回归结论 | 失败先同步 |
 | 交付 | 双清单 + 回滚条件 | 等用户确认收口 |
+
+### 5.1 Activation Gate（v1.7）
+
+兼容实现必须先判断用户请求是否属于 delivery-affecting work，再进入 AI-OS 工件治理。触发项包括改代码、改项目文档或工件、实现功能、修 bug、需求变化、验证、发布、恢复交付现场、URL reverse-spec intake 和高风险动作。
+
+普通对话不应读取或写入 `.ai-os/lanes/*`，也不应进入 debug / plan / verification 路由。普通对话包括需求脑暴、先聊聊、代码解释、方案比较、学习提问、临时命令查询、非仓库交付任务，或用户明确说不要进入 AI-OS / 不要改项目。
+
+若意图不清，兼容实现只问一句确认：“这是先讨论，还是要进入项目交付流程？”确认进入交付前，不加载 L1 / L2 / L3 lane 工件。
 
 ## 6. 证据化完成
 
@@ -112,7 +123,7 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## 9. 工件加载分层（v1.2）
 
-每个工件应声明加载层级：
+Activation Gate 通过后，每个工件应声明加载层级：
 
 - **L1**：入口元数据，每次会话先读（`STATE.md` / `lane.toml` / `framework.toml`）
 - **L2**：核心文档，进入对齐 / 设计 / 验证阶段时升级（`MISSION.md` / `DESIGN.md` / `memory.md` / `tasks.yaml` / `verification-matrix.yaml` / `risk-register.md` / `release-plan.md` / `AGENTS.md`）
@@ -190,3 +201,20 @@ doctor 可用 W076 检查 task 缺 `acceptance_refs` / `evidence_required`、声
 实现进入 execution / completion 阶段时，至少应有 `observed` 或 `confirmed` 的事实来源。任务标记 done / verified / shipped 前，不得保留未解决 `inferred` / `unknown`。
 
 doctor 可用 W077 检查执行 / 完成任务缺 `fact_state_review`，以及关闭任务时仍有未解决 `inferred` / `unknown` 的情况。
+
+## 18. Long-Horizon Agent Reliability Loop（v1.8）
+
+兼容实现可在 `tasks.yaml` 中为 delegated / background / cloud / external / parallel agent work 记录 `agent_run_review`。该字段是治理契约，不是执行接口：
+
+- `execution_surface`：`local_foreground` / `cloud_background` / `external_pr_agent` / `human`
+- `run_refs`：branch、PR、issue、external task URL、agent session ID 等可追回入口
+- `write_scope`：owned files / modules 与 explicit out-of-scope 区域
+- `progress_checkpoints`：plan accepted、diff produced、tests run、blocker surfaced、review requested
+- `return_packet`：summary、changed files、tests、unresolved risks、follow-up needed
+- `human_review_status`：`pending` / `reviewed` / `rejected` / `accepted`
+
+`agent_run_review` 默认可选，只有 task 明确声明后台、云端、外部 PR agent、delegated 或 parallel execution 时才需要。既有 `handoff_to`、`context_refs`、`expected_return`、`evidence_required`、`evidence_produced` 和 `deviation_log` 仍然有效；`agent_run_review` 细化长时程执行面的回收审查。
+
+实现不得因此新增 CLI command、flag、profile、runtime runner、MCP server、IDE hook、agent router、默认 worktree manager 或云任务调度器。
+
+doctor 可用 W078 检查长时程 task 缺 `run_refs` / `write_scope` / `expected_return`，关闭前缺 `return_packet` / `evidence_produced` / human review，或带 unresolved risks 仍标记 done / verified / shipped。`local_foreground` 和纯 `human` task 不应触发 W078。

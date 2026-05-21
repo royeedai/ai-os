@@ -42,6 +42,23 @@ tasks:
       - ".ai-os/lanes/default/specs/example.spec.md"
     expected_return:
       - "[design note / spec delta / review note]"
+    agent_run_review:
+      execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
+      run_refs: []
+      write_scope:
+        owned:
+          - "[file or module owned by this run]"
+        out_of_scope:
+          - "[file or module explicitly not owned]"
+      progress_checkpoints:
+        - "[plan accepted / diff produced / tests run / blocker surfaced / review requested]"
+      return_packet:
+        summary: "[what came back from the long-horizon run]"
+        changed_files: []
+        tests: []
+        unresolved_risks: []
+        follow_up_needed: []
+      human_review_status: "pending"
     fact_state_review:
       observed:
         - "[code / docs / runtime evidence actually inspected]"
@@ -80,6 +97,23 @@ tasks:
       - ".ai-os/lanes/default/verification-matrix.yaml"
     expected_return:
       - "[code diff / test log / runtime evidence]"
+    agent_run_review:
+      execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
+      run_refs: []
+      write_scope:
+        owned:
+          - "[file or module owned by this run]"
+        out_of_scope:
+          - "[file or module explicitly not owned]"
+      progress_checkpoints:
+        - "[plan accepted / diff produced / tests run / blocker surfaced / review requested]"
+      return_packet:
+        summary: "[what came back from the long-horizon run]"
+        changed_files: []
+        tests: []
+        unresolved_risks: []
+        follow_up_needed: []
+      human_review_status: "pending"
     fact_state_review:
       observed:
         - "[test / lint / runtime result actually observed]"

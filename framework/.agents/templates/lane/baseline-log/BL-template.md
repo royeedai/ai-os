@@ -26,5 +26,6 @@
 - `context_refs`：执行任务必须读取的 lane 工件
 - `expected_return`：期望返回的 diff / PR / 测试 / review / 运行证据
 - `fact_state_review`：把任务依据拆成 `observed` / `confirmed` / `inferred` / `unknown`
+- `agent_run_review`：长时程 / 后台 / 并行 agent 的执行面、run_refs、write_scope、progress_checkpoints、return_packet 和 human_review_status
 - `evidence_produced`：任务关闭时实际产出的证据
 - `deviation_log`：实现偏离、范围变化或需升级为 CR 的记录

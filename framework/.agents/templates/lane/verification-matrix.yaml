@@ -20,6 +20,12 @@ impact_rules:
       - "[fact_state_review observed / confirmed / inferred / unknown review]"
       - "[unknowns moved to pending confirmation or non-goals]"
       - "[doctor W077 before done / verified / shipped]"
+  - when: "long-horizon-agent-run"
+    run:
+      - "[agent_run_review execution surface + run refs review]"
+      - "[write_scope overlap review across background / parallel agents]"
+      - "[return_packet + human_review_status before done / verified / shipped]"
+      - "[doctor W078 before done / verified / shipped]"
 
 failure_modes:
   - id: FM-001
@@ -46,6 +52,26 @@ failure_modes:
     scenario: "AI 把 inferred / unknown 内容包装成已确认事实并继续实现或收口"
     expected: "`inferred` 必须标假设，`unknown` 必须进入待确认或非目标；done / verified / shipped 任务不得保留未解决 inferred / unknown"
     guard: "doctor W077 + tasks.yaml fact_state_review"
+  - id: FM-LONGRUN-001
+    scenario: "后台 agent run 已启动但没有 run_refs，后续无法找到分支、PR、issue、外部任务 URL 或 session"
+    expected: "delegated / background / parallel work 必须记录 agent_run_review.run_refs"
+    guard: "doctor W078 + tasks.yaml agent_run_review.run_refs"
+  - id: FM-LONGRUN-002
+    scenario: "外部或后台 PR agent 返回 diff，但 human_review_status 仍是 pending 就被标记 done / verified / shipped"
+    expected: "任务关闭前必须有 return_packet、evidence_produced 和 reviewed / accepted 的 human_review_status"
+    guard: "doctor W078 + human review checklist"
+  - id: FM-LONGRUN-003
+    scenario: "委托时的 branch 与返回 diff 已经 drift，或并行 agent 修改了重叠 write_scope"
+    expected: "write_scope 必须列 owned / out_of_scope，并在回收时检查 branch drift 和 scope overlap"
+    guard: "tasks.yaml agent_run_review.write_scope + review note"
+  - id: FM-LONGRUN-004
+    scenario: "长时程 agent 声称完成但没有项目原生测试证据"
+    expected: "return_packet.tests 和 evidence_produced 必须记录 native test / lint / doctor 证据"
+    guard: "doctor W078 + W076"
+  - id: FM-LONGRUN-005
+    scenario: "外部 agent 使用网络、secret 或跨账号能力，但边界没有写清"
+    expected: "write_scope 或 deviation_log 必须标出 network / secrets boundary；不清楚时不能关闭任务"
+    guard: "agent_run_review.write_scope + risk review"
 
 guards:
   - "[evidence path or eval reference]"

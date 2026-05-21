@@ -63,7 +63,7 @@ Cursor supports hooks via `hooks.json`. Add a `pre-commit`-style hook to run AI-
 }
 ```
 
-This catches W070-W077 semantic drift before commits land.
+This catches W070-W078 semantic drift before commits land.
 
 ## Cursor 2.0+ subagents / cloud agents and AI-OS handoff
 

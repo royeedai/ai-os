@@ -6,7 +6,63 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file only tracks v8 and v9 releases (the supported lines as of v9.5). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file only tracks v8 and v9 releases (the supported lines as of v9.6.0). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 9.6.0 (2026-05-21) — Long-Horizon Agent Reliability
+
+**Minor, fully backward compatible**. v9.6 keeps the canonical layout, three primary product operations, zero runtime dependencies, and existing handoff fields intact. It adds a governance loop for long-running, background, external PR, and parallel agent work without turning AI-OS into an execution layer.
+
+### Added
+
+- Optional `tasks.yaml` `agent_run_review` vocabulary for `execution_surface`, `run_refs`, `write_scope`, `progress_checkpoints`, `return_packet`, and `human_review_status`.
+- Doctor semantic warning W078 for long-horizon agent work missing run refs, write scope, expected return, produced evidence, return packet, human review, or closing with unresolved risks.
+- `docs/interop/long-horizon-agents.md` covering Codex, Cursor Background Agents, GitHub Copilot cloud agent, Jules, and Claude Code subagents / hooks as tool-neutral execution surfaces.
+- `examples/background-agent-handoff.md` showing delegation, return review, and closure rules.
+- Problem-ledger entry PL-011 for background / cloud / PR agent work returning without reviewable evidence.
+
+### Changed
+
+- Constitution spec bumped to v1.8 with the Long-Horizon Agent Reliability Loop.
+- Artifact docs, README, official skill wrapper, templates, verification matrix, CLI docs, interop docs, and tests now describe W078 and `agent_run_review`.
+- Version metadata and tests updated to `9.6.0`.
+
+### Tests
+
+- Doctor tests cover missing run refs / write scope, closed tasks without return packet or human review, unresolved returned risks, local foreground bypass, and the clean background path.
+- Documentation tests assert v1.8, `agent_run_review` coverage, interop/example presence, W078 docs, and unchanged product surface.
+
+### Migration
+
+None. Existing projects can adopt `agent_run_review` only for tasks that explicitly use delegated, background, cloud, external, or parallel execution. W078 is a warning by default and only blocks when `doctor --strict` is used.
+
+---
+
+## 9.5.1 (2026-05-21) — Activation Gate
+
+**Patch, fully backward compatible**. v9.5.1 keeps the canonical layout, three primary product operations, zero runtime dependencies, and existing artifact schema intact. It clarifies that AI-OS artifact governance starts only for delivery-affecting work, not for ordinary conversation.
+
+### Added
+
+- Activation Gate in `AGENTS.md`: delivery-affecting work triggers AI-OS governance; ordinary discussion, brainstorming, explanation, temporary commands, and non-repo tasks do not.
+- Official `ai-os-delivery` skill wrapper now runs the Activation Gate before reading L1 lane artifacts.
+- `examples/non-delivery-discussion.md` showing discussion-only flow, the one clarification question, and explicit transition into delivery.
+- Problem-ledger entry PL-010 for non-delivery conversation misactivating AI-OS governance.
+
+### Changed
+
+- README, artifact docs, and constitution spec v1.7 now state that ordinary conversation must not read or write `.ai-os/lanes/*`.
+- Progressive disclosure wording now starts after the Activation Gate passes.
+- Version metadata and tests updated to `9.5.1`.
+
+### Tests
+
+- Documentation tests assert Activation Gate coverage across `AGENTS.md`, README, artifacts docs, spec, skill wrapper, problem ledger, example, changelog, and version metadata.
+
+### Migration
+
+None. Existing projects can adopt the clarified behavior by updating `AGENTS.md` and the official skill wrapper; no CLI flags, config fields, install profiles, or schema changes are required.
 
 ---
 

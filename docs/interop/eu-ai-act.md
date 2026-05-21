@@ -71,6 +71,7 @@ npx --yes github:royeedai/ai-os doctor . --strict
 - W075: URL evidence without confidence classification (Article 17 evidence quality)
 - W076: task handoff / evidence loops without context, expected return, or produced evidence (Article 14 oversight + Article 17 verification completeness)
 - W077: task fact-state review missing or closed with unresolved inferred / unknown content (Article 17 evidence quality)
+- W078: long-horizon / external agent run review missing refs, scope, return packet, evidence, or human review (Article 14 oversight + Article 17 verification completeness)
 
 Recommended additional, non-AI-OS checks:
 

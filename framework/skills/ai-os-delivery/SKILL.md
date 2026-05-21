@@ -1,6 +1,6 @@
 ---
 name: ai-os-delivery
-description: AI Delivery Constitution governance skill. Use when working in a repository that contains both `AGENTS.md` at the project root and a `.ai-os/` directory. The skill enforces five core requirements (confirm goal first, lock key design before implementation, adapt governance by risk and ambiguity, gate completion on project-native evidence, recover memory across sessions). Triggers on tasks such as starting a new feature, URL reverse-spec intake, requirement changes, bug fixes, verification before shipping, session recovery, or high-risk escalation. References the 12-artifact set under `.ai-os/lanes/default/` with progressive disclosure (L1/L2/L3).
+description: AI Delivery Constitution governance skill. Use only for delivery-affecting work in a repository that contains both `AGENTS.md` and `.ai-os/`: code or artifact edits, feature work, URL reverse-spec, requirement changes, bug fixes, verification, shipping, session recovery, or high-risk escalation. Do not invoke lane governance for ordinary conversation, brainstorming, explanation, learning questions, temporary commands, or non-repo tasks.
 license: MIT
 metadata:
   author: AI-OS maintainers
@@ -19,9 +19,18 @@ Apply this skill on any repository where **all** the following hold:
 
 - The project root contains `AGENTS.md`
 - The project root contains a `.ai-os/` directory
-- The user task is one of: aligning a new feature, URL reverse-spec intake, designing a module, reacting to a requirement change, fixing a bug, verifying delivery, recovering from a different session, or escalating high-risk work
+- The user task is delivery-affecting work: code or project artifact edits, feature implementation, URL reverse-spec intake, module design for implementation, requirement change, bug fix, verification, shipping, session recovery, or high-risk work
 
 If the repo only has `AGENTS.md` without `.ai-os/`, fall back to native `AGENTS.md` rules without invoking artifact-specific routing.
+
+Do **not** apply lane governance for ordinary conversation: requirement brainstorming, "let's just discuss", code explanation, option comparison, learning questions, temporary command lookup, non-repo delivery tasks, or any request where the user says not to enter AI-OS / not to change the project. If intent is ambiguous, ask exactly one question before loading lane artifacts: "这是先讨论，还是要进入项目交付流程？"
+
+## Activation Gate
+
+- Delivery-affecting work → activate this skill, then use progressive disclosure.
+- Ordinary conversation → answer directly; do not read or write `.ai-os/lanes/*`, and do not enter debug / plan / verification routing.
+- Ambiguous intent → ask the one confirmation question above, then follow the user's answer.
+- Ordinary conversation still follows the general constraints to serve the user's real goal, avoid invented facts, and avoid false verification claims.
 
 ## Five core requirements (always enforce)
 
@@ -33,9 +42,9 @@ If the repo only has `AGENTS.md` without `.ai-os/`, fall back to native `AGENTS.
 
 ## 12 artifacts with progressive disclosure
 
-Load layers progressively. Do not re-load a higher layer in the same session unless the user changes phase.
+After the Activation Gate passes, load layers progressively. Do not re-load a higher layer in the same session unless the user changes phase.
 
-### L1 — entry metadata (read first on session start)
+### L1 — entry metadata (read first after activation)
 
 - `.ai-os/lanes/default/STATE.md` — current position, pending confirmations, next step
 - `.ai-os/lanes/default/lane.toml` — lane metadata + current `baseline_id`
@@ -65,6 +74,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 
 | User intent | Skill response |
 |---|---|
+| Just discuss / brainstorm / explain | Do **not** read or write lane artifacts; answer directly and ask whether to enter delivery only if intent is ambiguous |
 | New project / new module / vague requirement | Produce / update root `.ai-os/MISSION.md` + lane `MISSION.md` summary; list pending confirmations; **stop and wait for user confirmation** |
 | Lock key design | Produce lane `DESIGN.md` with key trade-offs and shared-layer side-effect list; **stop and wait** |
 | Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / `handoff_to` / `context_refs` / `expected_return` / evidence requirements |
@@ -76,6 +86,7 @@ Load layers progressively. Do not re-load a higher layer in the same session unl
 | Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
 | Agent handoff return | Before marking a task done / verified / shipped, record `evidence_produced`; put implementation drift in `deviation_log` or a new CR |
+| Long-horizon / background agent work | For delegated, cloud, external PR agent, or parallel execution, record `agent_run_review` with `execution_surface`, `run_refs`, `write_scope`, `progress_checkpoints`, `return_packet`, and `human_review_status`; do not close until evidence and human review are present |
 | Hallucination guard | Use `fact_state_review` to separate `observed`, `confirmed`, `inferred`, and `unknown`; unresolved `inferred` / `unknown` cannot close as done / verified / shipped |
 | Stable failure mode | First occurrence registers in lane `verification-matrix.yaml`; same root cause hit ≥3 times must promote to `evals/<name>.md` with frontmatter `trigger_source: promoted-from-verification-matrix` and `first_baseline_id` |
 
@@ -129,9 +140,9 @@ Any user-asset write, permission / identity change, irreversible state transitio
 When activated by an agent, this skill should:
 
 1. Confirm presence of `AGENTS.md` + `.ai-os/` (if missing, decline gracefully)
-2. Read L1 first (`STATE.md` / `lane.toml` / `framework.toml`)
-3. Decide whether the user task is align / design / decompose / implement / change / debug / verify / ship / resume / high-risk
-4. Apply the matching behavior rule from the routing table above
-5. Stop at confirmation points; do not auto-advance
+2. Run the Activation Gate before reading L1; ordinary conversation stops here with no lane artifact access
+3. If activated, read L1 (`STATE.md` / `lane.toml` / `framework.toml`)
+4. Decide whether the delivery task is align / design / decompose / implement / change / debug / verify / ship / resume / high-risk
+5. Apply the matching behavior rule from the routing table above and stop at confirmation points
 
-The skill does **not** introduce new commands, slash invocations, IDE plugins, agent runners, or runtime dependencies. It is purely an open-format wrapper around the AI-OS constitution.
+The skill does **not** introduce new commands, slash invocations, IDE plugins, agent runners, MCP servers, agent routers, worktree managers, or runtime dependencies. It is purely an open-format wrapper around the AI-OS constitution.

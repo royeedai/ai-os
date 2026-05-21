@@ -4,6 +4,13 @@
 
 > 本文件是 AI-OS v9 分发的唯一交付宪法。AI-OS 仓库自身维护指导见 `docs/maintainers.md`，完整工件 schema 见 `docs/artifacts.md`。
 
+## 启用门槛（Activation Gate）
+
+- AI-OS 工件治理只在 delivery-affecting work 启用：改代码、改项目文档或工件、实现功能、修 bug、需求变化、验证、发布、恢复交付现场或高风险动作
+- 普通对话不启用 lane 工件：需求脑暴、先聊聊、代码解释、方案比较、学习提问、临时命令、非仓库交付任务，或用户明确说“先别进入 AI-OS / 不要改项目”
+- 未确定是否进入交付时，只问一句：“这是先讨论，还是要进入项目交付流程？”；确认前不得读取或写入 `.ai-os/lanes/*`，也不得进入 debug / plan / verification 流程
+- 普通对话仍遵守真实目标优先、不得脑补事实、不得伪造验证结果
+
 ## 五条核心要求
 
 ### 1. 目标与用户确认优先
@@ -39,7 +46,7 @@
 - 当前交付基线在 `.ai-os/lanes/default/MISSION.md`
 - 当前会话恢复入口在 `.ai-os/lanes/default/STATE.md`
 - `.ai-os/memory.md` 记录稳定决策、约定、坑点和技术债
-- 工件按 L1/L2/L3 渐进式加载：L1 入口 (`STATE.md` 与 `lane.toml`) → L2 全文 (`MISSION.md` / `DESIGN.md` / `memory.md` / `tasks.yaml` / `verification-matrix.yaml`) → L3 详细资源 (`baseline-log/` / `specs/` / `design-pack/` / `evals/`)，长 session 中除非用户切换阶段不重复升级
+- 启用门槛通过后，工件按 L1/L2/L3 渐进式加载：L1 入口 (`STATE.md` 与 `lane.toml`) → L2 全文 (`MISSION.md` / `DESIGN.md` / `memory.md` / `tasks.yaml` / `verification-matrix.yaml`) → L3 详细资源 (`baseline-log/` / `specs/` / `design-pack/` / `evals/`)，长 session 中除非用户切换阶段不重复升级
 
 ## 12 组工件
 

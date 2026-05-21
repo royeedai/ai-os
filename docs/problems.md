@@ -10,5 +10,7 @@ AI-OS is designed to intercept real delivery failures:
 - session changes and the AI loses the current delivery context
 - shared contracts drift across layers and across sessions
 - multiple contributors collide on the current baseline
+- ordinary discussion is misclassified as delivery work and over-governed
+- background / cloud / PR agent work returns without refs, scope, evidence, or human review
 
 Current traceability lives in [problem-ledger.md](problem-ledger.md).

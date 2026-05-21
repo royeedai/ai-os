@@ -1,201 +1,181 @@
 version: 3
-baseline_id: "CR-20260507-092708-hallucination-guard"
+baseline_id: "CR-20260521-232937-long-horizon-agent-reliability"
 scope:
   mode: "change+brownfield"
-  focus: "hallucination-guard"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260507-092708-hallucination-guard"
+  focus: "long-horizon-agent-reliability"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260521-232937-long-horizon-agent-reliability"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Fact-State Contract Locked"
-    goal: "Hallucination guard fact-state vocabulary is specified in lane artifacts"
-    scope: "MISSION, DESIGN, spec, tasks, verification matrix"
-    acceptance_goal: "observed / confirmed / inferred / unknown semantics are explicit"
-    target_window: "2026-05-07"
+    title: "Long-Horizon Contract Locked"
+    goal: "agent_run_review and W078 behavior are specified without adding an execution layer"
+    scope: "MISSION, DESIGN, CR, problem ledger"
+    acceptance_goal: "field semantics and product boundary are explicit"
+    target_window: "2026-05-21"
   - id: M2
-    title: "Mechanical Guard Closed"
-    goal: "doctor and tests catch hallucination guard drift"
-    scope: "doctor, templates, docs, tests"
-    acceptance_goal: "W077 and docs tests cover the new contract"
-    target_window: "2026-05-07"
+    title: "Templates Docs And Doctor Updated"
+    goal: "public artifacts, templates, interop docs, examples, and doctor checks carry the v9.6 contract"
+    scope: "templates, docs, examples, doctor, tests"
+    acceptance_goal: "W078 and agent_run_review are covered by docs and native tests"
+    target_window: "2026-05-21"
   - id: M3
-    title: "Release Surface Closed"
-    goal: "v9.5 release metadata and public wording stay inside AI-OS product boundary"
-    scope: "version, changelog, docs, skill wrapper"
-    acceptance_goal: "zero runtime dependency and minimal CLI surface remain intact"
-    target_window: "2026-05-07"
+    title: "Release Metadata And Verification Closed"
+    goal: "v9.6.0 metadata and self-hosted lane artifacts are verified"
+    scope: "version, changelog, lane artifacts, verification"
+    acceptance_goal: "npm test, lint, and strict doctor pass"
+    target_window: "2026-05-21"
 
 tasks:
-  - id: TASK-AI-401
-    title: "建立 v9.5 hallucination guard 基线与设计契约"
+  - id: TASK-AI-601
+    title: "建立 v9.6 长时程 agent 可靠性基线"
     milestone: M1
     status: done
     owner: AI
     priority: P1
     wave: 1
-    approval_required: "owner_agent_authorized"
+    approval_required: "user_confirmed_plan"
     depends_on: []
     requirement_refs:
       - "REQ-001"
-      - "REQ-003"
     acceptance_refs:
       - "AC-001"
-      - "AC-003"
+      - "AC-004"
+      - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
-      - ".ai-os/lanes/default/STATE.md"
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/baseline-log/CR-20260507-092708-hallucination-guard.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260521-232937-long-horizon-agent-reliability.md"
     expected_return:
       - "updated lane baseline artifacts"
-      - "explicit fact-state vocabulary"
+      - "long-horizon contract and acceptance criteria"
     fact_state_review:
       observed:
-        - "existing AGENTS.md, v9.4 lane artifacts, and W070-W076 doctor patterns inspected"
+        - "existing W076/W077 doctor patterns, docs tests, templates, README, artifacts docs, skill wrapper, and problem ledger inspected"
       confirmed:
-        - "user authorized maintainer agent to decide and complete implementation on 2026-05-07"
+        - "user requested implementation of v9.6 Long-Horizon Agent Reliability on 2026-05-21"
       inferred: []
       unknown: []
     impact_tags:
       - "baseline-log"
       - "design"
-      - "tasks"
+      - "problem-ledger"
     evidence_required:
-      - "design-note"
-      - "spec-update"
+      - "baseline-record"
+      - "design-update"
     evidence_produced:
+      - ".ai-os/lanes/default/baseline-log/CR-20260521-232937-long-horizon-agent-reliability.md"
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/specs/hallucination-guard.spec.md"
+      - ".ai-os/lanes/default/tasks.yaml"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
     deviation_log:
       - "none"
-  - id: TASK-AI-402
-    title: "新增 doctor W077 与回归测试"
+
+  - id: TASK-AI-602
+    title: "实现 agent_run_review 文档、模板、示例和 W078 doctor 检查"
     milestone: M2
     status: done
     owner: AI
     priority: P1
     wave: 2
-    approval_required: "owner_agent_authorized"
+    approval_required: "user_confirmed_plan"
     depends_on:
-      - "TASK-AI-401"
+      - "TASK-AI-601"
     requirement_refs:
       - "REQ-002"
+      - "REQ-003"
+      - "REQ-004"
     acceptance_refs:
+      - "AC-001"
       - "AC-002"
+      - "AC-003"
       - "AC-004"
+      - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
       - "bin/ai-os-doctor.js"
+      - "docs/artifacts.md"
+      - "docs/constitution-spec.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
       - "test/doctor.test.js"
+      - "test/docs.test.js"
     expected_return:
-      - "W077 emitted for missing fact-state review"
-      - "W077 emitted for closed unresolved inferred / unknown"
-      - "clean install remains strict-clean"
+      - "agent_run_review field documented and templated"
+      - "W078 doctor warning implemented"
+      - "interop doc and example added"
+      - "no new CLI / runtime surface"
     fact_state_review:
       observed:
-        - "existing W076 task parser and doctor semantic warning structure inspected"
+        - "doctor task parser and semantic warning range inspected before adding W078"
+        - "docs tests currently assert W076/W077, Activation Gate, product surface, and version metadata"
       confirmed:
-        - "DESIGN.md AC-002 defines W077 behavior"
+        - "DESIGN.md AC-001 through AC-005 define v9.6 behavior"
       inferred: []
       unknown: []
     impact_tags:
       - "doctor"
-      - "test"
-    evidence_required:
-      - "npm-test"
-      - "doctor-strict"
-    evidence_produced:
-      - "bin/ai-os-doctor.js"
-      - "test/doctor.test.js"
-    deviation_log:
-      - "none"
-  - id: TASK-AI-403
-    title: "更新 task 模板、verification guard 与公开文档"
-    milestone: M2
-    status: done
-    owner: AI
-    priority: P1
-    wave: 2
-    approval_required: "owner_agent_authorized"
-    depends_on:
-      - "TASK-AI-402"
-    requirement_refs:
-      - "REQ-001"
-      - "REQ-003"
-    acceptance_refs:
-      - "AC-001"
-      - "AC-003"
-    handoff_to: "Codex local agent"
-    context_refs:
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "docs/artifacts.md"
-      - "docs/constitution-spec.md"
-      - "framework/skills/ai-os-delivery/SKILL.md"
-    expected_return:
-      - "template task entries include fact-state review"
-      - "verification matrix includes hallucination failure mode"
-      - "public wording keeps guard as artifact governance"
-    fact_state_review:
-      observed:
-        - "framework lane task template and verification matrix inspected"
-      confirmed:
-        - "DESIGN.md AC-001 and AC-003 define docs/template behavior"
-      inferred: []
-      unknown: []
-    impact_tags:
-      - "template"
+      - "templates"
       - "docs"
-      - "skill-wrapper"
+      - "examples"
+      - "tests"
     evidence_required:
+      - "doctor-test"
       - "docs-test"
-      - "doctor-strict"
+      - "product-surface-invariant"
     evidence_produced:
       - "framework/.agents/templates/lane/tasks.yaml"
       - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "framework/.agents/templates/lane/baseline-log/BL-template.md"
+      - "bin/ai-os-doctor.js"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
+      - "docs/cli.md"
+      - "docs/interop/long-horizon-agents.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
+      - "examples/background-agent-handoff.md"
+      - "test/doctor.test.js"
+      - "test/docs.test.js"
     deviation_log:
       - "none"
-  - id: TASK-AI-404
-    title: "更新 release metadata、changelog 和验证收口"
+
+  - id: TASK-AI-603
+    title: "更新版本、changelog 与验证收口"
     milestone: M3
     status: done
     owner: AI
     priority: P1
     wave: 3
-    approval_required: "owner_agent_authorized"
+    approval_required: "user_confirmed_plan"
     depends_on:
-      - "TASK-AI-403"
+      - "TASK-AI-602"
     requirement_refs:
-      - "REQ-004"
       - "REQ-005"
+      - "REQ-006"
     acceptance_refs:
-      - "AC-004"
       - "AC-005"
+      - "AC-006"
     handoff_to: "Codex local agent"
     context_refs:
-      - "CHANGELOG.md"
       - "VERSION"
       - "package.json"
       - "package-lock.json"
-      - "test/docs.test.js"
+      - "CHANGELOG.md"
       - "test/install.test.js"
       - "test/shared.test.js"
+      - "test/doctor.test.js"
+      - ".cursor/rules/project-lead.mdc"
     expected_return:
-      - "version metadata says 9.5.0"
+      - "version metadata says 9.6.0"
       - "native verification logs"
-      - "commit and push to main"
+      - "strict doctor clean"
     fact_state_review:
       observed:
-        - "version files and tests inspected before update"
+        - "version files, package lock, changelog, install tests, shared tests, and doctor version assertion inspected before update"
       confirmed:
-        - "DESIGN.md AC-004 and AC-005 define release and verification behavior"
+        - "DESIGN.md AC-006 defines release and verification behavior"
       inferred: []
       unknown: []
     impact_tags:
@@ -206,17 +186,14 @@ tasks:
       - "npm-test"
       - "lint"
       - "doctor-strict"
-      - "push-result"
     evidence_produced:
-      - "CHANGELOG.md"
       - "VERSION"
       - "package.json"
       - "package-lock.json"
-      - "test/docs.test.js"
-      - "test/install.test.js"
-      - "test/shared.test.js"
-      - "npm test: 634 passed, 0 failed"
+      - "CHANGELOG.md"
+      - ".cursor/rules/project-lead.mdc"
+      - "npm test: 920 passed, 0 failed"
       - "npm run lint: passed"
-      - "node bin/create-ai-os.js doctor . --json --strict: ok true"
+      - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
     deviation_log:
       - "none"

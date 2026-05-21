@@ -63,6 +63,18 @@
 - **AI-OS 必须保证**：`tasks.yaml` `fact_state_review` 必须把每条事实标为 `observed` / `confirmed` / `inferred` / `unknown`；`inferred` 必须留 assumptions，`unknown` 必须进入待确认或非目标，closed 任务不得保留未解决 `inferred` / `unknown`
 - **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.6）
 
+### PL-010 非交付对话误触发治理
+
+- **场景**：用户只是想先聊需求、解释代码、比较方案、问工具用法、运行临时命令或处理非仓库任务，但 agent 因仓库存在 `.ai-os/` 自动进入 debug / plan / verification，读取 lane 工件甚至写入 `MISSION.md` / `DESIGN.md` / `tasks.yaml`
+- **AI-OS 必须保证**：先经过 Activation Gate；只有 delivery-affecting work 才启用 AI-OS artifact governance，普通对话不得读写 lane 工件
+- **当前覆盖锚点**：`AGENTS.md`（启用门槛）、`README.md`（How agents use AI-OS）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`examples/non-delivery-discussion.md`、`test/docs.test.js`
+
+### PL-011 长时程 / 后台 agent 交付回收不可审查
+
+- **场景**：agent 把任务交给后台、云端、外部 PR agent 或并行 subagent 后，只拿到一句“完成了”或一个 diff；缺 branch / PR / session refs、写入范围、测试证据、人工审查和 unresolved risks 记录，导致无法判断是否可接受
+- **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
+- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v1.8）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/long-horizon-agents.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`、`test/doctor.test.js`、`test/docs.test.js`
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试

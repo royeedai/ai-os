@@ -24,10 +24,11 @@ AI-OS is a cross-agent delivery constitution for projects that already use AI co
 - lock key design before scaling out implementation
 - reverse-spec accessible websites into auditable evidence before rebuild work
 - separate observed / confirmed facts from inferred / unknown assumptions
+- review long-running, background, external, or parallel agent work before accepting it
 - prove completion with project-level evidence
 - recover context across sessions without depending on chat history
 
-It is intentionally **not** an IDE, harness, orchestration layer, or code generator.
+It is intentionally **not** an IDE, harness, orchestration layer, runtime runner, agent router, or code generator.
 
 ## Canonical layout
 
@@ -101,17 +102,21 @@ This makes AI-OS the cross-IDE equivalent of a Claude Code deterministic command
 There are no slash commands in v9. When an AI agent opens a repo with `AGENTS.md`, it should:
 
 - read `AGENTS.md`
-- read `.ai-os/lanes/default/STATE.md` first for current recovery
-- read `.ai-os/lanes/default/MISSION.md` for the active delivery baseline
-- read `.ai-os/MISSION.md` for shared host-project context
+- run the Activation Gate before loading lane artifacts
+- for delivery-affecting work, read `.ai-os/lanes/default/STATE.md` first for current recovery
+- then read `.ai-os/lanes/default/MISSION.md` for the active delivery baseline and `.ai-os/MISSION.md` for shared host-project context
+
+AI-OS artifact governance applies to delivery-affecting work: code or project artifact edits, feature work, requirement changes, bug fixes, verification, shipping, session recovery, URL reverse-spec intake, and high-risk actions. It does not apply to ordinary conversation, brainstorming, explanation, learning questions, temporary commands, or non-repo tasks.
 
 Behavior is rule-driven by task type:
 
 | User says | Agent should do |
 |---|---|
+| “Just discuss / brainstorm / explain” | answer directly; do not read or write lane artifacts |
 | “Build a new feature” | produce / update lane `MISSION.md`, then stop for confirmation |
 | “The requirement changed” | write lane `baseline-log/CR-*.md` before code changes |
 | “Reverse-spec this URL” | capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior into lane artifacts |
+| “Delegate this to a background / cloud / PR agent” | record `agent_run_review` run refs, write scope, return packet, evidence, and human review before closing |
 | “Fix this bug” | state root cause + scope + files first, then wait for go |
 | “Is it done?” | run project-native static check + regression + evidence review |
 | “I’m back” | resume from lane `STATE.md` first |

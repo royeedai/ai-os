@@ -11,21 +11,23 @@ alwaysApply: true
 
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
-- 当前版本：9.5.2（VERSION + package.json + `.ai-os/framework.toml` 同步）
-- 最新 git tag：v9.5.2（open-standards interop expansion patch：Memory Tool / BMAD / Cursor subagent / deterministic-guard 叙事 / trajectory_signature 可选字段，建议补打）。历史 tag：v9.5.1、v9.5.0、v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)。v9.0/v9.2/v9.3 当时未单独打 tag
+- 当前版本：9.6.0（VERSION + package.json + `.ai-os/framework.toml` 同步）
+- 最新 git tag：v9.5.2（open-standards interop expansion patch：Memory Tool / BMAD / Cursor subagent / deterministic-guard 叙事 / trajectory_signature 可选字段）。待本轮发布后补 `v9.6.0` tag。历史 tag：v9.5.1、v9.5.0、v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)。v9.0/v9.2/v9.3 当时未单独打 tag
 - 归档 tag：v7-legacy（指向 v7.4.0，用户可 `git checkout v7-legacy` 回退）
 - 分支：main
 - CI：.github/workflows/ci.yml（push/PR 触发 lint + test on Node 18/20/22）
 - 零运行时依赖，devDependencies 仅 eslint
-- 测试：npm test（当前 678 项断言；v9.2-v9.5 依次加入 URL reverse-spec、external learning fusion、handoff/evidence loop、hallucination guard 与 doctor W070-W077）
+- 测试：npm test（当前 920 项断言；覆盖 progressive disclosure / Activation Gate / Long-Horizon Agent Reliability / SKILL.md / MCP URI / doctor 语义检查 / interop 文档）
 - 定位：AI Delivery Constitution（AGENTS.md ≤150 行）+ 12 组工件 + 3 个 CLI
 - CLI 子命令共 3 个：install（默认）/ doctor / upgrade。install 有显式别名 `create-ai-os install`，不算第 4 个 product operation
 - 无 profile / 无 slash commands / 不自造 skill 系统：行为由 AGENTS.md 规则驱动；v9.1 起提供一份符合 agentskills.io 开放标准的官方包装，仅作为开放标准 wire-format，不是新 runtime
 
-## v9.5 核心心智
+## v9.6 核心心智
 
 - 操作面极简（3 CLI + 行为规则），工件面完整（12 组默认全装）
-- 工件按 L1/L2/L3 progressive disclosure 加载（`STATE.md` / `lane.toml` 优先；`MISSION.md` / `DESIGN.md` / `memory.md` 次之；`baseline-log/` / `specs/` / `evals/` 按需）
+- Activation Gate 先于 lane 工件加载：只有 delivery-affecting work 才进入 AI-OS 工件治理，普通对话不读写 `.ai-os/lanes/*`
+- Long-Horizon Agent Reliability 只做回收审查契约：`agent_run_review` + W078 管理后台 / 云端 / 外部 PR / 并行 agent work 的 refs、scope、return packet、evidence 和 human review，不新增 runner 或 vendor adapter
+- 工件按 L1/L2/L3 progressive disclosure 加载（Activation Gate 通过后，`STATE.md` / `lane.toml` 优先；`MISSION.md` / `DESIGN.md` / `memory.md` 次之；`baseline-log/` / `specs/` / `evals/` 按需）
 - 对接开放标准、不自造体系：agentskills.io（已发布官方 SKILL.md）、MCP（已定义 `aios://` URI scheme，不内置 server）、AGENTS.md（Linux Foundation AAIF 治理标准）
 - **事实状态显式化（v9.5）**：`tasks.yaml` 必须区分 `observed` / `confirmed` / `inferred` / `unknown`，由 W077 拦截。`inferred` 留 assumptions，`unknown` 进待确认或非目标，closed 任务不得保留未解决条目
 - **任务 handoff 是仓库内治理契约（v9.4），不是 IDE 执行层**：W076 在 done / verified / shipped 前要求 `acceptance_refs` / `evidence_required` / `context_refs` / `expected_return` / `evidence_produced`；偏离走 `deviation_log`
@@ -42,7 +44,7 @@ alwaysApply: true
 3. **README.md**：新增用户可见功能（命令、flag、工件、行为规则）→ 必须同步更新 README
 4. **docs/cli.md**：新增/修改 CLI 命令、flag、doctor warning code → 必须同步更新 cli.md
 5. **docs/artifacts.md**：新增/修改工件 schema → 必须同步更新
-6. **docs/constitution-spec.md**：改动会影响 spec 兼容性时，必须 bump spec 版本（当前 v1.6）
+6. **docs/constitution-spec.md**：改动会影响 spec 兼容性时，必须 bump spec 版本（当前 v1.8）
 7. **测试**：npm test 必须全部通过，不能引入回归
 8. **ESLint**：npx eslint bin/ test/ 必须零报错零警告
 9. **PROJECT_PURPOSE.md**：根层原则变化时必须回看 4 个判断问题
@@ -103,4 +105,4 @@ v8/v9 定位是"极简操作面 + 完整工件面"。以下属于主动回避：
 - 测试数量显著变化 → 更新测试计数
 - git tag 变化 → 更新最新 tag
 - 发布检查清单需要增减项 → 直接修改
-- 核心心智或定位调整 → 同步更新"v9.5 核心心智"与"守住不扩张的红线"
+- 核心心智或定位调整 → 同步更新"v9.6 核心心智"与"守住不扩张的红线"

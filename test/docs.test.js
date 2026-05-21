@@ -52,6 +52,7 @@ section("docs: key documentation files exist");
     "docs/interop/a2a.md",
     "docs/interop/memory-tool.md",
     "docs/interop/bmad.md",
+    "docs/interop/long-horizon-agents.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -233,7 +234,7 @@ section("docs: agent handoff evidence loop fields are documented and templated")
   assert(matrix.includes("agent-handoff-evidence-loop"), "verification matrix includes agent handoff impact rule");
   assert(matrix.includes("FM-HANDOFF-001"), "verification matrix includes handoff failure mode");
   assert(cli.includes("W076"), "CLI docs include W076");
-  assert(cli.includes("W070-W077"), "CLI docs semantic_warnings range includes W077");
+  assert(cli.includes("W070-W078"), "CLI docs semantic_warnings range includes W078");
   assert(skill.includes("record `evidence_produced`"), "skill wrapper tells agents to record produced evidence");
   assert(artifacts.includes("它不接管执行"), "artifacts docs keep handoff outside execution");
   assert(spec.includes("不是执行层"), "constitution spec keeps handoff outside execution");
@@ -313,13 +314,108 @@ section("docs: v9.4/v9.5 governance closure tracked in ledger, maintainers guide
   assert(factEval.includes("W077"), "fact-state eval references W077 doctor warning");
 }
 
+section("docs: long-horizon agent review is documented and checked");
+
+{
+  const tasks = read("framework/.agents/templates/lane/tasks.yaml");
+  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
+  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const cli = read("docs/cli.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const readme = read("README.md");
+  const interop = read("docs/interop/long-horizon-agents.md");
+  const example = read("examples/background-agent-handoff.md");
+  const ledger = read("docs/problem-ledger.md");
+  const changelog = read("CHANGELOG.md");
+
+  for (const term of [
+    "agent_run_review",
+    "execution_surface",
+    "run_refs",
+    "write_scope",
+    "progress_checkpoints",
+    "return_packet",
+    "human_review_status",
+  ]) {
+    assert(tasks.includes(term), `tasks template includes ${term}`);
+    assert(artifacts.includes(term), `artifacts docs include ${term}`);
+    assert(spec.includes(term), `constitution spec includes ${term}`);
+    assert(skill.includes(term), `skill wrapper includes ${term}`);
+    assert(interop.includes(term), `long-horizon interop includes ${term}`);
+    assert(example.includes(term), `background handoff example includes ${term}`);
+  }
+
+  assert(baselineTemplate.includes("agent_run_review"), "baseline template explains agent_run_review");
+  assert(matrix.includes("long-horizon-agent-run"), "verification matrix includes long-horizon impact rule");
+  assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
+  assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
+  assert(cli.includes("W078"), "CLI docs include W078");
+  assert(spec.includes("Version: 1.8"), "constitution spec bumped to v1.8");
+  assert(spec.includes("Long-Horizon Agent Reliability Loop（v1.8）"), "constitution spec includes v1.8 section");
+  assert(spec.includes("不得因此新增 CLI command"), "constitution spec preserves no-runtime boundary");
+  assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
+  assert(readme.includes("Delegate this to a background / cloud / PR agent"), "README includes background agent routing row");
+  assert(interop.includes("Codex"), "long-horizon interop covers Codex");
+  assert(interop.includes("Cursor Background Agents"), "long-horizon interop covers Cursor Background Agents");
+  assert(interop.includes("GitHub Copilot cloud agent"), "long-horizon interop covers GitHub Copilot cloud agent");
+  assert(interop.includes("Google Jules"), "long-horizon interop covers Jules");
+  assert(interop.includes("Claude Code subagents / hooks"), "long-horizon interop covers Claude Code subagents/hooks");
+  assert(example.includes("doctor --strict emits W078"), "background handoff example names W078 close rule");
+  assert(ledger.includes("PL-011 长时程 / 后台 agent 交付回收不可审查"), "problem ledger tracks long-horizon agent review");
+  assert(changelog.includes("Long-Horizon Agent Reliability"), "CHANGELOG records v9.6 long-horizon release");
+  assert(changelog.includes("W078"), "CHANGELOG records W078");
+}
+
+section("docs: activation gate keeps ordinary conversation outside lane governance");
+
+{
+  const agents = read("AGENTS.md");
+  const readme = read("README.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const ledger = read("docs/problem-ledger.md");
+  const example = read("examples/non-delivery-discussion.md");
+  const changelog = read("CHANGELOG.md");
+
+  assert(agents.includes("Activation Gate"), "AGENTS.md names Activation Gate");
+  assert(agents.includes("delivery-affecting work"), "AGENTS.md gates on delivery-affecting work");
+  assert(agents.includes("确认前不得读取或写入 `.ai-os/lanes/*`"), "AGENTS.md forbids lane access before activation confirmation");
+  assert(agents.includes("这是先讨论，还是要进入项目交付流程？"), "AGENTS.md includes the one confirmation question");
+
+  assert(readme.includes("run the Activation Gate before loading lane artifacts"), "README routes agents through Activation Gate before lane loading");
+  assert(readme.includes("Just discuss / brainstorm / explain"), "README includes ordinary conversation row");
+  assert(readme.includes("do not read or write lane artifacts"), "README tells agents not to touch lane artifacts for discussion");
+
+  assert(artifacts.includes("Activation Gate（v9.5.1）"), "artifacts docs include Activation Gate section");
+  assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
+  assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
+
+  assert(spec.includes("Version: 1.8"), "constitution spec remains at latest v1.8");
+  assert(spec.includes("Activation Gate（v1.7）"), "constitution spec includes Activation Gate section");
+  assert(spec.includes("ordinary conversation"), "constitution spec changelog names ordinary conversation");
+  assert(spec.includes("确认进入交付前，不加载 L1 / L2 / L3 lane 工件"), "constitution spec blocks lane loading before delivery confirmation");
+
+  assert(skill.includes("## Activation Gate"), "skill wrapper includes Activation Gate section");
+  assert(skill.includes("Run the Activation Gate before reading L1"), "skill invocation contract runs gate before L1");
+  assert(skill.includes("ordinary conversation"), "skill wrapper excludes ordinary conversation");
+  assert(skill.includes("do not read or write `.ai-os/lanes/*`"), "skill wrapper blocks lane artifact access for ordinary conversation");
+
+  assert(ledger.includes("PL-010 非交付对话误触发治理"), "problem ledger tracks non-delivery misactivation");
+  assert(example.includes("Does not read `.ai-os/lanes/default/STATE.md`"), "non-delivery example shows no lane read");
+  assert(example.includes("现在进入实现"), "non-delivery example shows explicit transition into delivery");
+  assert(changelog.includes("Activation Gate"), "CHANGELOG records activation gate release");
+}
+
 section("docs: VERSION and package.json are in sync");
 
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.5.2", `version is 9.5.2 (got ${version})`);
+  assert(version === "9.6.0", `version is 9.6.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -445,6 +541,7 @@ section("docs: interop folder has cross-tool coexistence docs");
     "docs/interop/a2a.md",
     "docs/interop/memory-tool.md",
     "docs/interop/bmad.md",
+    "docs/interop/long-horizon-agents.md",
   ];
   for (const rel of required) {
     const content = read(rel);

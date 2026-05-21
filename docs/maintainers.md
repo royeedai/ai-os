@@ -86,3 +86,5 @@ npm run lint
 - `examples/high-risk-state-change.md`
 - `examples/coexist-with-spec-kit.md`
 - `examples/multi-tool-coexistence.md`
+- `examples/non-delivery-discussion.md`
+- `examples/background-agent-handoff.md`

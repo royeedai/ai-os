@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.5.2", "JSON reports version 9.5.2");
+  assert(parsed && parsed.version === "9.6.0", "JSON reports version 9.6.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -416,5 +416,187 @@ section("doctor: W077 fires when task fact-state review is incomplete");
   const parsedAfter = JSON.parse(after.stdout);
   const w077After = parsedAfter.semantic_warnings.find((it) => it.code === "W077");
   assert(!w077After, "W077 clears once fact states are observed/confirmed and unresolved states are empty");
+  cleanup(dir);
+}
+
+section("doctor: W078 fires when long-horizon agent review is incomplete");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const tasksPath = path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml");
+  const corrupt = `tasks:
+  - id: TASK-AI-400
+    title: "cloud task missing refs and scope"
+    status: in_progress
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    expected_return:
+      - "diff and test log"
+    fact_state_review:
+      observed:
+        - "delegation request inspected"
+      confirmed: []
+      inferred: []
+      unknown: []
+    agent_run_review:
+      execution_surface: "cloud_background"
+  - id: TASK-AI-401
+    title: "closed without return review"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    expected_return:
+      - "diff and test log"
+    evidence_produced:
+      - "npm test"
+    fact_state_review:
+      observed:
+        - "diff returned"
+      confirmed: []
+      inferred: []
+      unknown: []
+    agent_run_review:
+      execution_surface: "external_pr_agent"
+      run_refs:
+        - "pr: https://example.test/pull/1"
+      write_scope:
+        owned:
+          - "bin/ai-os-doctor.js"
+        out_of_scope:
+          - "README.md"
+  - id: TASK-AI-402
+    title: "verified with unresolved returned risk"
+    status: verified
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    expected_return:
+      - "diff and test log"
+    evidence_produced:
+      - "npm test"
+    fact_state_review:
+      observed:
+        - "review packet inspected"
+      confirmed: []
+      inferred: []
+      unknown: []
+    agent_run_review:
+      execution_surface: "cloud_background"
+      run_refs:
+        - "branch: codex/w078"
+      write_scope:
+        owned:
+          - "test/doctor.test.js"
+      return_packet:
+        summary: "diff returned"
+        changed_files:
+          - "test/doctor.test.js"
+        tests:
+          - "npm test"
+        unresolved_risks:
+          - "branch drift not checked"
+        follow_up_needed: []
+      human_review_status: "accepted"
+`;
+  fs.writeFileSync(tasksPath, corrupt);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w078 = parsed.semantic_warnings.find((it) => it.code === "W078");
+  assert(!!w078, "doctor surfaces W078 for incomplete long-horizon agent reviews");
+  assert(w078 && w078.message.includes("TASK-AI-400: agent_run_review.run_refs"), "W078 names missing run refs");
+  assert(w078 && w078.message.includes("TASK-AI-400: agent_run_review.write_scope"), "W078 names missing write scope");
+  assert(w078 && w078.message.includes("TASK-AI-401: agent_run_review.return_packet"), "W078 names missing return packet");
+  assert(w078 && w078.message.includes("TASK-AI-401: agent_run_review.human_review_status"), "W078 names missing human review");
+  assert(w078 && w078.message.includes("TASK-AI-402: agent_run_review.return_packet.unresolved_risks"), "W078 names unresolved returned risks");
+
+  const localForeground = `tasks:
+  - id: TASK-AI-403
+    title: "local foreground task does not need long-horizon review"
+    status: done
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      - "test-log"
+    evidence_produced:
+      - "npm test"
+    fact_state_review:
+      observed:
+        - "test passed"
+      confirmed: []
+      inferred: []
+      unknown: []
+    agent_run_review:
+      execution_surface: "local_foreground"
+`;
+  fs.writeFileSync(tasksPath, localForeground);
+  const localAfter = runDoctor([dir, "--json"]);
+  const localParsed = JSON.parse(localAfter.stdout);
+  const localW078 = localParsed.semantic_warnings.find((it) => it.code === "W078");
+  assert(!localW078, "W078 does not fire for clean local foreground work");
+
+  const repaired = `tasks:
+  - id: TASK-AI-404
+    title: "background task has complete return review"
+    status: verified
+    owner: AI
+    acceptance_refs:
+      - "AC-001"
+    handoff_to: "GitHub Copilot cloud agent"
+    context_refs:
+      - ".ai-os/lanes/default/tasks.yaml"
+    expected_return:
+      - "PR diff and test log"
+    evidence_required:
+      - "test-log"
+    evidence_produced:
+      - "npm test"
+    fact_state_review:
+      observed:
+        - "return packet and test log inspected"
+      confirmed: []
+      inferred: []
+      unknown: []
+    agent_run_review:
+      execution_surface: "external_pr_agent"
+      run_refs:
+        - "pr: https://example.test/pull/2"
+        - "issue: https://example.test/issues/2"
+      write_scope:
+        owned:
+          - "bin/ai-os-doctor.js"
+          - "test/doctor.test.js"
+        out_of_scope:
+          - "docs/cli.md"
+      progress_checkpoints:
+        - "plan accepted"
+        - "diff produced"
+        - "tests run"
+        - "review requested"
+      return_packet:
+        summary: "W078 complete"
+        changed_files:
+          - "bin/ai-os-doctor.js"
+          - "test/doctor.test.js"
+        tests:
+          - "npm test"
+        unresolved_risks: []
+        follow_up_needed: []
+      human_review_status: "reviewed"
+`;
+  fs.writeFileSync(tasksPath, repaired);
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w078After = parsedAfter.semantic_warnings.find((it) => it.code === "W078");
+  assert(!w078After, "W078 clears once long-horizon run review is complete");
   cleanup(dir);
 }
