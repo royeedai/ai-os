@@ -51,3 +51,10 @@ User requested a full project reset and confirmed executing the v9 default-lane 
 
 - Revert to the v8.0.0 baseline if upgrade compatibility or docs consistency regresses
 - Keep the legacy project template only as migration aid until migration confidence is sufficient
+
+## Preventability review
+
+- **Preventable**: yes
+- **If yes, root cause**: v8 第一次发布时 README / schema / install / doctor / tests 对默认布局表达不一致（root-only install vs lane-default schema 叙事并存），AI-OS 当时没有"任何 canonical layout 变更必须同步多个文件"的硬约束；本可在 v8 第一次 session 就让 AI 同时改 AGENTS.md / schema / CLI / upgrade / tests 一并 commit。
+- **Maps to**: PT-001（坑点：文档真相与安装真相分叉）
+- **Suggested guard**: 已在 `.ai-os/memory.md` 登记为 PT-001，并在 `docs/maintainers.md` §维护规则 §1 中写明"改动 canonical layout 时必须同步修改 AGENTS / README / schema / CLI / test"。

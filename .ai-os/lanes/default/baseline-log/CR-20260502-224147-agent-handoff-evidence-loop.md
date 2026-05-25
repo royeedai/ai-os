@@ -55,3 +55,10 @@ User confirmed that AI-OS should learn from Traycer, Task Master, Agent OS, BMAD
 
 - Revert W076 and the task handoff template fields while preserving v9.3 CR / evidence / MCP / eval contracts.
 - Keep the concept documented as a future optional extension if task-level checks prove too noisy.
+
+## Preventability review
+
+- **Preventable**: partial
+- **If yes, root cause**: v9.0 第一次设计 `tasks.yaml` schema 时已包含 owner / approval / acceptance_refs / evidence_required，但未把"任务从 AI-OS 交给 IDE/agent 执行后证据如何返回"明确成 handoff packet（context_refs / expected_return / evidence_produced / deviation_log）。本可在 v9.0 schema 设计阶段就预留这些字段，避免后续被 Traycer / Task Master / Agent OS 等产品推着补。
+- **Maps to**: PL-010（任务交付给执行 agent 后证据没回流到工件）
+- **Suggested guard**: 已在 `docs/problem-ledger.md` PL-010 中沉淀；任务 schema 任何扩展必须先回看"AI-OS 交付出去后证据如何回流"。

@@ -47,3 +47,10 @@ User asked whether frontier-model progress required AI-OS to change direction an
 ## Rollback path
 
 - `git checkout v7-legacy`
+
+## Preventability review
+
+- **Preventable**: partial
+- **If yes, root cause**: v7 第一次设计时没有"操作面是否最小化"的判定，被 2025 年 CLI / slash command 风潮带偏，引入 15 个 CLI 子命令 + 14 个 slash command；本可在 v7 第一次 session 就用"操作面极简 + 工件面完整"的取舍框架避免。
+- **Maps to**: unmapped → 后续在 `PROJECT_PURPOSE.md` 的"新需求筛选法"（4 个判断问题）+ 守住不扩张的红线（不新增 slash commands / 不自造 skill 系统）中沉淀
+- **Suggested guard**: 已在 `PROJECT_PURPOSE.md` §5（新需求筛选法）、`docs/maintainers.md` §产品方向（默认答案是"不纳入"）、project-lead 规则的红线列表中落点。

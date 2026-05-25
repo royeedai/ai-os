@@ -71,10 +71,10 @@
 - **关键设计未锁**：产出当前 lane `DESIGN.md`，列关键取舍和共享层副作用清单，等待用户确认
 - **任务拆解**：在当前 lane `tasks.yaml` 中建立 owner、approval_required、证据要求和验收映射
 - **实现阶段**：只做已确认范围内的事；跨多文件或边界不清时先只读分析
-- **需求变化**：先写当前 lane `baseline-log/CR-*.md` 做影响分析，再更新 `MISSION.md` / `DESIGN.md` / `specs/`
+- **需求变化**：先写当前 lane `baseline-log/CR-*.md` 做影响分析，再更新 `MISSION.md` / `DESIGN.md` / `specs/`；CR 关闭前补 `## Preventability review`，标 `yes` / `no` / `partial`
 - **修复 bug**：先给出根因、复现路径、影响范围、计划修改文件，等用户确认“可执行”
 - **验证阶段**：逐项对照根层共享上下文和当前 lane 工件，覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
-- **交付收口**：输出“已实现 / 未纳入 / 验证结果 / 回滚条件 / AI 已完成 vs 需人工执行”双清单
+- **交付收口**：输出“已实现 / 未纳入 / 验证结果 / 回滚条件 / AI 已完成 vs 需人工执行”双清单；lane 关闭前对本 lane 所有 CR 的 Preventability review 做一次 retrospective 聚合
 - **Session 恢复**：先读 `.ai-os/lanes/default/STATE.md`，再扩展到 lane `MISSION.md`、最新 baseline-log 和根层 `.ai-os/MISSION.md`
 - **稳定失败模式**：首次发现登记到当前 lane `verification-matrix.yaml`；同一 root cause 命中 ≥3 次时必须升格到 `evals/`，记录 `trigger_source` 与首次出现的 baseline-log ID
 

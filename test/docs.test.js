@@ -352,8 +352,8 @@ section("docs: long-horizon agent review is documented and checked");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 1.8"), "constitution spec bumped to v1.8");
-  assert(spec.includes("Long-Horizon Agent Reliability Loop（v1.8）"), "constitution spec includes v1.8 section");
+  assert(spec.includes("Version: 1.9"), "constitution spec bumped to v1.9");
+  assert(spec.includes("Long-Horizon Agent Reliability Loop（v1.8）"), "constitution spec keeps v1.8 long-horizon section");
   assert(spec.includes("不得因此新增 CLI command"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
   assert(readme.includes("Delegate this to a background / cloud / PR agent"), "README includes background agent routing row");
@@ -393,7 +393,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
 
-  assert(spec.includes("Version: 1.8"), "constitution spec remains at latest v1.8");
+  assert(spec.includes("Version: 1.9"), "constitution spec remains at latest v1.9");
   assert(spec.includes("Activation Gate（v1.7）"), "constitution spec includes Activation Gate section");
   assert(spec.includes("ordinary conversation"), "constitution spec changelog names ordinary conversation");
   assert(spec.includes("确认进入交付前，不加载 L1 / L2 / L3 lane 工件"), "constitution spec blocks lane loading before delivery confirmation");
@@ -415,7 +415,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.6.0", `version is 9.6.0 (got ${version})`);
+  assert(version === "9.7.0", `version is 9.7.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -766,6 +766,82 @@ section("docs: 9.5.2 release notes cover all five open-standards expansions");
   ]) {
     assert(changelog.includes(ref), `CHANGELOG 9.5.2 mentions ${ref}`);
   }
+}
+
+section("docs: framework feedback loop is documented and templated (v9.7)");
+
+{
+  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
+  const agents = read("AGENTS.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const cli = read("docs/cli.md");
+  const maintainers = read("docs/maintainers.md");
+  const ledger = read("docs/problem-ledger.md");
+  const issueTemplate = read(".github/ISSUE_TEMPLATE/preventable-modification.md");
+  const changelog = read("CHANGELOG.md");
+
+  for (const term of [
+    "Preventability review",
+    "Preventable",
+    "If yes, root cause",
+    "Maps to",
+    "Suggested guard",
+    "BL-YYYYMMDD-HHMMSS-retrospective",
+  ]) {
+    assert(baselineTemplate.includes(term), `BL-template includes ${term}`);
+  }
+
+  assert(agents.includes("Preventability review"), "AGENTS.md behavior rule mentions Preventability review");
+  assert(agents.includes("retrospective"), "AGENTS.md behavior rule mentions retrospective aggregation");
+
+  assert(artifacts.includes("Framework Feedback Loop"), "artifacts.md documents Framework Feedback Loop section");
+  assert(artifacts.includes("Preventability review"), "artifacts.md describes Preventability review schema");
+  assert(artifacts.includes("W079a"), "artifacts.md cites W079a");
+  assert(artifacts.includes("W079b"), "artifacts.md cites W079b");
+
+  assert(spec.includes("Framework feedback loop"), "constitution-spec.md adds Framework feedback loop section");
+  assert(spec.includes("1.9"), "constitution-spec.md bumped to 1.9");
+  assert(spec.includes("Preventability review"), "constitution-spec.md documents Preventability review");
+
+  assert(cli.includes("W079a"), "cli.md documents W079a");
+  assert(cli.includes("W079b"), "cli.md documents W079b");
+  assert(cli.includes("Info-level framework feedback guidance"), "cli.md groups W079 under info-level guidance section");
+  assert(cli.includes("W070-W078"), "cli.md still scopes semantic_warnings to W070-W078");
+
+  assert(maintainers.includes("Framework feedback 复盘"), "maintainers.md adds Framework feedback 复盘 section");
+  assert(maintainers.includes("Framework feedback loop"), "maintainers.md release matrix lists Framework feedback loop");
+  assert(maintainers.includes("Preventable: yes"), "maintainers.md shows git grep example for Preventable: yes");
+  assert(maintainers.includes("framework-feedback"), "maintainers.md mentions framework-feedback issue label");
+
+  assert(ledger.includes("PL-012"), "problem-ledger.md registers PL-012");
+  assert(ledger.includes("Preventability review"), "PL-012 uses Preventability review vocabulary");
+
+  assert(issueTemplate, ".github/ISSUE_TEMPLATE/preventable-modification.md exists");
+  assert(issueTemplate.includes("framework-feedback"), "issue template uses framework-feedback label");
+  assert(issueTemplate.includes("Preventability review"), "issue template asks for Preventability review section");
+
+  assert(changelog.includes("9.7.0"), "CHANGELOG records 9.7.0");
+  assert(changelog.includes("Framework feedback loop") || changelog.includes("Framework Feedback Loop"), "CHANGELOG names the v9.7 release theme");
+  assert(changelog.includes("W079"), "CHANGELOG records W079 info-level guidance");
+  assert(changelog.includes("PL-012"), "CHANGELOG references PL-012");
+}
+
+section("docs: AI-OS self-hosted lane carries Preventability review on every historical CR");
+
+{
+  const baselineDir = path.join(repoRoot, ".ai-os", "lanes", "default", "baseline-log");
+  const files = fs.readdirSync(baselineDir).filter((n) => /^CR-\d{8}-\d{6}-.*\.md$/.test(n));
+  assert(files.length >= 6, `at least 6 historical CRs exist (got ${files.length})`);
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(baselineDir, file), "utf8");
+    assert(/^##\s+Preventability\s+review\s*$/im.test(content), `${file} has ## Preventability review section`);
+    assert(/Preventable\*{0,2}:\s*\*{0,2}(yes|no|partial)/.test(content), `${file} declares Preventable: yes/no/partial`);
+    assert(/Maps to\*{0,2}:/.test(content), `${file} declares Maps to:`);
+  }
+
+  const retrospectiveFiles = fs.readdirSync(baselineDir).filter((n) => /^BL-\d{8}-\d{6}-.*retrospective.*\.md$/i.test(n));
+  assert(retrospectiveFiles.length >= 1, `at least one retrospective baseline-log exists (got ${retrospectiveFiles.length})`);
 }
 
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");

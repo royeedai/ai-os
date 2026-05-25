@@ -75,6 +75,12 @@
 - **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
 - **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v1.8）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/long-horizon-agents.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`、`test/doctor.test.js`、`test/docs.test.js`
 
+### PL-012 AI-OS 第一次开发未拦住本可避免的修改
+
+- **场景**：用户用 AI-OS 完成首轮交付后，又提出一批修改；这些修改的根因其实是 AI-OS 第一次 session 没问的问题、没锁的设计或没让用户确认的范围——本可在第一次就拦掉，却让框架进入了下一轮返工
+- **AI-OS 必须保证**：CR `baseline-log/CR-*.md` 提供 `## Preventability review` 段落（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补一条 `BL-*-retrospective*.md` 聚合本 lane 所有 Preventability findings；AI-OS maintainer 通过 dogfooding `git grep` 与 GitHub `framework-feedback` issue 定期归并到本台账，并按 guard 落点优先级（AGENTS.md > 工件模板 > doctor > docs）在下一个 minor 收紧
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v1.9）、`docs/cli.md`（W079a / W079b）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试

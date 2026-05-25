@@ -17,6 +17,33 @@
 3. `## Affected artifacts`
 4. `## Acceptance delta`
 5. `## Close/archive condition`
+6. `## Preventability review`
+
+## Preventability review 字段说明（v9.7+）
+
+`## Preventability review` 段落是 AI-OS 的 framework feedback 入口。建议每条 CR 关闭前补一段，记录"这次修改在 AI 第一次通过 AI-OS 开发时是否本可避免"。字段：
+
+- `Preventable`: `yes` / `no` / `partial`
+  - `yes`：本可避免，AI-OS 第一次 session 应该拦住
+  - `no`：真实需求变化或外部条件变化，与 AI-OS 框架本身无关
+  - `partial`：AI-OS 部分覆盖但仍漏，最有价值的迭代信号
+- `If yes, root cause`：AI-OS 第一次 session 没让用户做的事、没问的问题或没锁的设计（自由文字）
+- `Maps to`：已有的 `PL-*` / `PG-*` 编号；若框架尚未登记，标 `unmapped`
+- `Suggested guard`：如果要在 AI-OS 框架里防住，应改哪个工件 / 行为规则 / doctor 检查（自由文字）
+
+数据纯本地、入版本控制；AI-OS maintainer 通过 `git grep` 与 dogfooding 通道定时归并到 `docs/problem-ledger.md`，不做任何遥测或上报。
+
+## Lane 关闭 retrospective baseline-log
+
+lane `status` 切到 `closed` 前，建议新增一条 `BL-YYYYMMDD-HHMMSS-retrospective.md`，聚合本 lane 内所有 `Preventability review`：
+
+- `Type`: `retrospective`
+- `Status`: `closed`
+- `## Preventable findings`：列出 `Preventable: yes` / `partial` 的 CR 编号 + 一句话根因
+- `## Unmapped → PL candidates`：标 `unmapped` 但出现 ≥2 次的根因，提议升格为新 `PL-*` / `PG-*`
+- `## Suggested framework changes`：AGENTS.md / 工件模板 / doctor / docs 该改什么
+
+retrospective 文件命名规则与 CR 相同，只是 slug 必须以 `retrospective` 开头或包含 `retrospective`，便于 `git grep` 检索。
 
 ## Agent handoff / evidence loop 提示
 

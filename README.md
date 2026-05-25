@@ -163,6 +163,16 @@ AI-OS v9.4 task handoff fields (and v9.5 `fact_state_review`) map onto the [A2A 
 
 `.ai-os/memory.md`, lane `STATE.md`, and lane `MISSION.md` can be mounted (read-only) into Anthropic's [Memory tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) `/memories` directory or projected into a [Memory MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/memory) knowledge graph. AI-OS keeps the markdown as truth source; the memory channel becomes Claude's working notes. See [docs/interop/memory-tool.md](docs/interop/memory-tool.md).
 
+## Framework feedback loop (v9.7+)
+
+AI-OS itself iterates from "modifications proposed after the first AI-OS delivery that were preventable in the first session". The loop is **artifact + git only**, no telemetry:
+
+- Each `baseline-log/CR-*.md` carries a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard).
+- A lane closing out aggregates findings into a `BL-*-retrospective*.md`.
+- `doctor` emits info-level `W079a` / `W079b` reminders; `--strict` does **not** upgrade them.
+
+Optional feedback path: file an issue with the `framework-feedback` label using [`.github/ISSUE_TEMPLATE/preventable-modification.md`](.github/ISSUE_TEMPLATE/preventable-modification.md) and paste your CR's section verbatim. The AI-OS maintainer merges recurring root causes into [`docs/problem-ledger.md`](docs/problem-ledger.md) (PL-012) and tightens AGENTS.md / artifact templates / doctor in the next minor. See [`docs/maintainers.md`](docs/maintainers.md#framework-feedback-复盘) for the merge flow.
+
 ## Further reading
 
 - [AGENTS.md](AGENTS.md)

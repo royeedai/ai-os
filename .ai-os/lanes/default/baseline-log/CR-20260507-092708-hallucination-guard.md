@@ -69,3 +69,10 @@
 - `npm run lint` passes.
 - `node bin/create-ai-os.js doctor . --json --strict` returns ok.
 - Changes are committed and pushed to `main`.
+
+## Preventability review
+
+- **Preventable**: partial
+- **If yes, root cause**: v9.2 URL reverse-spec intake 已经定义 `observed` / `inferred` / `unknown` 信心等级，但只用于 URL 证据；通用任务事实没有同款词表。AI-OS 第一次在 v9.2 引入这套词表时，本可同步推广到 `tasks.yaml` 形成 `fact_state_review`，而不是等到 v9.5 才补。
+- **Maps to**: PL-011（agent 把推断 / 未观察的信息当事实进入实现或交付）
+- **Suggested guard**: 已在 `docs/problem-ledger.md` PL-011 中沉淀；后续引入新词表（如证据等级、风险等级）时必须评估是否应跨工件统一。

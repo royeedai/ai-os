@@ -57,3 +57,10 @@ Add v9.6 Long-Horizon Agent Reliability as a non-breaking governance layer:
 ## Close/archive condition
 
 Close this CR when `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict` pass with version metadata updated to `9.6.0` and spec updated to `v1.8`.
+
+## Preventability review
+
+- **Preventable**: partial
+- **If yes, root cause**: v9.4 Agent Handoff + Evidence Loop 已经定义 `handoff_to` / `context_refs` / `expected_return` / `evidence_produced` / `deviation_log`，但未把"长时程 / 后台 / 云端 / 外部 PR / 并行执行"作为独立的 execution surface 维度建模。结果当 task 真的被交给 cloud agent / Cursor background / Copilot cloud 时，run refs、write scope、return packet、human review 等回收证据没有专门字段记录。本可在 v9.4 schema 设计时就预留 `agent_run_review`（execution surface + run refs + write scope + return packet + human review），避免 v9.6 才补。
+- **Maps to**: PL-011（长时程 / 后台 agent 交付回收不可审查，本 CR 同步登记）
+- **Suggested guard**: 已在 `framework/.agents/templates/lane/tasks.yaml` `agent_run_review`、`bin/ai-os-doctor.js` W078、`docs/interop/long-horizon-agents.md`、`examples/background-agent-handoff.md` 中沉淀。后续 schema 扩展应同时回看"是否对所有可能的 execution surface 都有回收契约"，避免再次补丁式扩展。

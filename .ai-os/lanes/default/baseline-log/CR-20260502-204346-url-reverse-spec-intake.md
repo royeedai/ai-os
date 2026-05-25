@@ -52,3 +52,10 @@ User requested implementation of the URL Reverse-Spec Intake plan. The selected 
 
 - Revert the v9.2.0 docs/template/test/version changes if the protocol bloats the default operating surface or weakens the three-command CLI invariant.
 - Keep the existing v9.1.1 reverse-spec parity map as the fallback generic artifact.
+
+## Preventability review
+
+- **Preventable**: no
+- **If yes, root cause**: 本次属于真实能力扩展（用户提出"给 URL 让 AI 复刻网站"的新需求场景），不是 AI-OS 第一次 session 本可避免的疏漏；早期 AI-OS 没有理由提前内置 URL 反向规范支持。
+- **Maps to**: n/a
+- **Suggested guard**: AGENTS.md 的"先判断项目模式"已覆盖 reverse-spec 模式；后续在出现网站 URL 时由模式判定自然路由，不需要新增 guard。

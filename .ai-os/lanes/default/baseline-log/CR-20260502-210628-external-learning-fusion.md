@@ -55,3 +55,10 @@ User requested implementation of the approved "AI-OS 外部学习融合路线图
 
 - Revert v9.3 docs/template/test/version changes if the semantic checks create excessive false positives or imply AI-OS owns runtime execution.
 - Keep v9.2 URL reverse-spec intake as the stable fallback protocol.
+
+## Preventability review
+
+- **Preventable**: partial
+- **If yes, root cause**: v8 / v9.0 第一次设计宪法时未与 Spec-Kit / Kiro / Cursor rules / agentskills.io / MCP / Memory Tool 等开放标准做映射对齐；导致后续要补 docs/interop/ 系列、`aios://` URI、SKILL.md 包装等。本可在 v9.0 第一次 session 就建立"与原生工具职责分工"清单，提前留好 interop 锚点。
+- **Maps to**: PL-008（跨工具真理源混乱）
+- **Suggested guard**: 已在 `docs/problem-ledger.md` PL-008 中沉淀；后续新增工具体系时强制走 `docs/interop/` 而不是改宪法。

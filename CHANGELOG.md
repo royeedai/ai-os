@@ -6,7 +6,51 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file only tracks v8 and v9 releases (the supported lines as of v9.6.0). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file only tracks v8 and v9 releases (the supported lines as of v9.7). For v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 9.7.0 (2026-05-25) — Framework feedback loop
+
+**Minor, fully backward compatible**. v9.7 introduces a Framework Feedback Loop so AI-OS itself can iterate from "modifications proposed after the first AI-OS delivery that were preventable in the first session", without telemetry or upload. CR baseline records gain a local `## Preventability review` section; lanes closing out aggregate findings into a retrospective baseline-log; `doctor` adds info-level `W079a` / `W079b` guidance that `--strict` does NOT upgrade. The three primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150-line constraints are preserved. This release is stacked on top of v9.6.0 (Long-Horizon Agent Reliability) and v9.5.1 (Activation Gate); both remain intact.
+
+### Added
+
+- `framework/.agents/templates/lane/baseline-log/BL-template.md` documents a `## Preventability review` section (`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`) and the `BL-YYYYMMDD-HHMMSS-retrospective*.md` aggregation convention.
+- `bin/ai-os-doctor.js` adds `checkPreventabilityReview` (W079a) and `checkLaneRetrospective` (W079b); both emit at **info** level only, are excluded from `SEMANTIC_WARNING_CODES`, and are not upgraded by `--strict`.
+- `docs/maintainers.md` adds a "Framework feedback 复盘" section documenting the dogfooding `git grep` flow, the optional third-party `framework-feedback` issue label, the merge criteria (same root cause ≥2 times → new PL-* / PG-*), and the guard-landing priority (AGENTS.md > artifact template > doctor > docs).
+- `docs/problem-ledger.md` registers `PL-012` for "AI-OS first delivery failed to prevent a modification that was preventable".
+- `docs/constitution-spec.md` bumps to **v1.9** with a Framework feedback loop section (non-breaking optional section).
+- `docs/artifacts.md` adds a Framework Feedback Loop section without introducing a 13th artifact category.
+- `.github/ISSUE_TEMPLATE/preventable-modification.md` is a new optional intake for users to paste their CR's `## Preventability review` section under the `framework-feedback` label.
+- `.ai-os/lanes/default/baseline-log/BL-20260525-140000-retrospective-v9-recap.md` aggregates the 6 historical CRs (v8-constitution-refactor through hallucination-guard) as the dogfooding starting data set; every historical CR is backfilled with `## Preventability review`.
+- `.ai-os/lanes/default/baseline-log/CR-20260525-141500-framework-feedback-loop.md` records this v9.7 change with its own `## Preventability review`.
+
+### Changed
+
+- `AGENTS.md` behavior rules for "需求变化" and "交付收口" each gain one line referencing the Preventability review section and lane-closure retrospective aggregation. AGENTS.md stays within the ≤150-line ceiling.
+- `docs/cli.md` declares an "Info-level framework feedback guidance (v9.7+)" subsection for W079a / W079b and keeps `semantic_warnings` scoped to W070-W078 (W079 info codes are excluded).
+- VERSION / `package.json` / `package-lock.json` / `.ai-os/framework.toml` bumped to 9.7.0.
+
+### Tests
+
+- `test/docs.test.js` adds two new sections: "framework feedback loop is documented and templated (v9.7)" and "AI-OS self-hosted lane carries Preventability review on every historical CR".
+- `test/doctor.test.js` adds three new sections covering W079a fires + clears, W079b fires + clears, and clean install reports no W079a / W079b.
+- `test/install.test.js` adds "BL-template ships framework feedback loop schema (v9.7)".
+- All previously hardcoded 9.6.0 version strings (in `test/shared.test.js`, `test/install.test.js`, `test/doctor.test.js`, `test/docs.test.js`) bumped to 9.7.0.
+
+### Migration
+
+None required. The new section is opt-in:
+
+- Existing CRs without `## Preventability review` continue to pass `doctor --strict`; W079a is info-level only.
+- Closing a lane without a retrospective baseline-log continues to pass `doctor --strict`; W079b is info-level only.
+- Existing AI-OS installs (v9.0 – v9.6) keep working; `upgrade` will refresh the lane templates so future CRs come with the new schema.
+
+### Anti-patterns rejected
+
+- No telemetry, no `--report` / `--collect` CLI flag, no MCP server, no IDE-specific behavior.
+- W079 stays info-level on purpose; if maintainer practice eventually shows the section is widely skipped, the next minor can revisit upgrading W079a to a warning, but only after `PL-012` accumulates evidence in the problem ledger.
 
 ---
 

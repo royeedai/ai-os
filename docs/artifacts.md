@@ -93,7 +93,7 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 ### 11. `.ai-os/lanes/default/baseline-log/` + `specs/` + `tasks.yaml`
 
-- **`baseline-log/`**：变更请求与基线升格记录（**L3**）；`CR-*` 记录必须说明 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Close/archive condition
+- **`baseline-log/`**：变更请求与基线升格记录（**L3**）；`CR-*` 记录必须说明 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Close/archive condition；v9.7+ 起 CR 关闭前补 `## Preventability review`（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补 `BL-*-retrospective*.md` 聚合
 - **`specs/`**：大型项目切分 DESIGN 的局部契约（**L3**）；默认包含 generic example 和 bugfix spec route
 - **`tasks.yaml`**：任务、owner、依赖、approval、agent handoff、证据要求与证据产出（**L2**）
 
@@ -214,6 +214,24 @@ AI-OS 对抗 AI 开发幻觉的方式不是追加第二套提示词，而是把�
 - `unknown`：未知；必须进入待确认项、非目标或后续 CR
 
 `doctor --strict` 可用 W077 捕捉执行 / 完成任务缺 `fact_state_review`，以及 done / verified / shipped 任务仍保留未解决 `inferred` / `unknown` 的情况。
+
+## Framework Feedback Loop（v9.7）
+
+AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改中，哪些本可在第一次 session 就拦掉"。这条反馈链不引入任何 telemetry，全靠本地工件 + git：
+
+- `baseline-log/CR-*.md` 在 lifecycle 末尾追加 `## Preventability review`：
+  - `Preventable`：`yes` / `no` / `partial`
+  - `If yes, root cause`：AI-OS 第一次 session 没问 / 没锁 / 没确认的事
+  - `Maps to`：已有 `PL-*` / `PG-*` 编号，或 `unmapped`
+  - `Suggested guard`：建议在框架内落点（AGENTS / 工件 / doctor / docs）
+- lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective*.md`，聚合本 lane 全部 Preventability findings、`unmapped` 高频根因与建议的 framework changes。
+
+`doctor` 用 W079a / W079b（**info 级**，--strict 不升级）做轻量提示：
+
+- W079a：lane 内存在 `CR-*.md` 但缺 `## Preventability review` 段落
+- W079b：lane `status = "closed"` 但 baseline-log 下没有 retrospective 文件
+
+数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。
 
 ### 加载顺序约定
 

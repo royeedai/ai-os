@@ -75,7 +75,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "9.6.0"'), "framework.toml has version 9.6.0");
+  assert(toml && toml.includes('framework_version = "9.7.0"'), "framework.toml has version 9.7.0");
 
   cleanup(dir);
 }
@@ -145,5 +145,26 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "9.6.0", `--version outputs 9.6.0 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "9.7.0", `--version outputs 9.7.0 (got ${result.stdout.trim()})`);
+}
+
+section("install: BL-template ships framework feedback loop schema (v9.7)");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const records = listBaselineRecords(dir);
+  assert(records.length >= 1, "at least one baseline record installed");
+  const initialBaseline = readFile(dir, `.ai-os/lanes/default/baseline-log/${records[0]}`);
+  for (const term of [
+    "Preventability review",
+    "Preventable",
+    "If yes, root cause",
+    "Maps to",
+    "Suggested guard",
+    "BL-YYYYMMDD-HHMMSS-retrospective",
+  ]) {
+    assert(initialBaseline && initialBaseline.includes(term), `installed baseline template includes ${term}`);
+  }
+  cleanup(dir);
 }

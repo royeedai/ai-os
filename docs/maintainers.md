@@ -28,8 +28,10 @@
 | v9.3 | External learning fusion | `specs/bugfix.spec.md`、URL evidence package matrix、MCP resource annotation、eval taxonomy frontmatter、W073-W075 |
 | v9.4 | Agent handoff + evidence loop | `tasks.yaml` `handoff_to` / `context_refs` / `expected_return` / `evidence_produced` / `deviation_log`、W076 |
 | v9.5 | Hallucination guard | `tasks.yaml` `fact_state_review`（`observed` / `confirmed` / `inferred` / `unknown`）、W077 |
+| v9.6 | Long-horizon agent reliability loop + Activation Gate | `agent_run_review`、`docs/interop/long-horizon-agents.md`、doctor W078（warning）；Activation Gate 限定 AI-OS 工件治理只在 delivery-affecting work 启用 |
+| v9.7 | Framework feedback loop | CR `## Preventability review`、lane 关闭 retrospective baseline-log、doctor W079a/W079b（INFO，仅提示） |
 
-每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（warning-only，可由 `doctor --strict` 升级为 error）。
+每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（warning-only，可由 `doctor --strict` 升级为 error；v9.7 W079 为 INFO，--strict 不升级）。
 
 ## 发布前检查清单（公开口径）
 
@@ -88,3 +90,44 @@ npm run lint
 - `examples/multi-tool-coexistence.md`
 - `examples/non-delivery-discussion.md`
 - `examples/background-agent-handoff.md`
+
+## Framework feedback 复盘
+
+AI-OS 的迭代输入来自"用户在第一次开发后提出的修改中，哪些本可在 AI-OS 第一次 session 就拦掉"。v9.7 起这条反馈链不依赖任何 telemetry，全靠本地工件 + git + 定期复盘：
+
+### 反馈数据进入工件
+
+1. 每条 CR 关闭前由 AI 或用户补 `## Preventability review`（schema 见 `framework/.agents/templates/lane/baseline-log/BL-template.md` 与 `docs/artifacts.md`）。
+2. lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective.md`，聚合本 lane 内所有 `Preventability review`。
+3. `doctor` 用 W079a / W079b（INFO 级，--strict 不升级）提示遗漏；不强制，不打断工作流。
+
+### dogfooding 通道（主路径）
+
+每个 minor 发布前，maintainer 在 AI-OS 仓库自身的 lane 内执行：
+
+```bash
+git grep -n "Preventable: yes\|Preventable: partial" .ai-os/lanes/
+git grep -n "Maps to: unmapped" .ai-os/lanes/
+```
+
+列出未归并条目，按下文"归并判断"决定是否升格为 `PL-*` / `PG-*`。
+
+### 第三方通道（可选）
+
+用户可通过 `.github/ISSUE_TEMPLATE/preventable-modification.md` 提交反馈，门槛仅是粘贴自己仓库内的 `## Preventability review` 段落。AI-OS maintainer 在 issue 标签 `framework-feedback` 下定期梳理。
+
+### 归并判断
+
+- 同一 root cause 在 dogfooding + 第三方通道合计出现 ≥2 次 → 新增 `PL-*` 或 `PG-*` 到 `docs/problem-ledger.md`，并在下一个 minor 落 guard。
+- 单次偶发 → 留在 baseline-log 内不升格，避免误把个别项目特性写进框架。
+
+### Guard 落点优先级
+
+从最稳到最重：
+
+1. AGENTS.md 行为规则补一行（首选，零工件成本，跨 IDE 直接生效）
+2. lane 工件模板新增字段（次选，影响所有 install / upgrade）
+3. doctor 新增 warning / info（再次，强制 / 提示力度可控）
+4. docs / examples 补充示例（最后，仅在前三种不合适时使用）
+
+任何升格都必须同步：`docs/problem-ledger.md` 新增 PL-* / PG-*、`docs/constitution-spec.md` 视影响 bump 版本、对应 minor 的 CHANGELOG。

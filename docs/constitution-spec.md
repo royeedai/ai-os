@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v1.8
+# AI Delivery Constitution Spec v1.9
 
 Status: Stable
-Version: 1.8
-Last updated: 2026-05-21
+Version: 1.9
+Last updated: 2026-05-25
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 1.9 (2026-05-25) — non-breaking addition: Framework feedback loop. CR baseline records carry a `## Preventability review` section (`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`), and lanes closing out aggregate findings into a `BL-*-retrospective*.md` baseline-log. Doctor adds info-level W079a / W079b guidance; `--strict` does not upgrade them.
 - 1.8 (2026-05-21) — non-breaking addition: Long-Horizon Agent Reliability Loop `agent_run_review` vocabulary and doctor W078 warning for background / cloud / external / parallel agent work
 - 1.7 (2026-05-21) — non-breaking addition: Activation Gate so AI-OS artifact governance applies only to delivery-affecting work, not ordinary conversation
 - 1.6 (2026-05-07) — non-breaking addition: Hallucination Guard `fact_state_review` vocabulary and doctor W077 unresolved inference / unknown warning
@@ -218,3 +219,21 @@ doctor 可用 W077 检查执行 / 完成任务缺 `fact_state_review`，以及�
 实现不得因此新增 CLI command、flag、profile、runtime runner、MCP server、IDE hook、agent router、默认 worktree manager 或云任务调度器。
 
 doctor 可用 W078 检查长时程 task 缺 `run_refs` / `write_scope` / `expected_return`，关闭前缺 `return_packet` / `evidence_produced` / human review，或带 unresolved risks 仍标记 done / verified / shipped。`local_foreground` 和纯 `human` task 不应触发 W078。
+
+## 19. Framework feedback loop（v1.9）
+
+兼容实现应让"AI-OS 在第一次开发时本可避免的修改"沉淀为本地工件，不引入任何 telemetry 或上报通道。`baseline-log/CR-*.md` 可使用 `## Preventability review` 段落：
+
+- `Preventable`: `yes` / `no` / `partial`
+  - `yes`：本可避免，AI-OS 第一次 session 应该拦住
+  - `no`：真实需求变化或外部条件变化，与 AI-OS 框架本身无关
+  - `partial`：AI-OS 部分覆盖但仍漏，最有价值的迭代信号
+- `If yes, root cause`：AI-OS 第一次 session 没让用户做的事 / 没问的问题 / 没锁的设计
+- `Maps to`：已有的 `PL-*` / `PG-*` 编号，或 `unmapped`
+- `Suggested guard`：要在 AI-OS 框架里防住时该改的工件 / 行为规则 / doctor 检查
+
+lane `status` 切到 `closed` 前，兼容实现可补一条 `BL-YYYYMMDD-HHMMSS-retrospective*.md`，聚合本 lane 内所有 Preventability findings 与未归并的 `unmapped` 根因。
+
+doctor 可用 W079a 提示 CR 缺 `## Preventability review` 段落，W079b 提示 closed lane 缺 retrospective baseline-log。两者均为 **info 级**，`--strict` 不升级为 error；该 loop 只是反馈链工件契约，不是阻塞检查。
+
+该 loop 不要求 IDE plugin、agent runner、telemetry server 或外部 runtime；反馈数据进入项目 git，由 maintainer 通过 `git grep` 与可选 GitHub issue 模板定期归并到问题台账。

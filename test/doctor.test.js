@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.6.0", "JSON reports version 9.6.0");
+  assert(parsed && parsed.version === "9.7.0", "JSON reports version 9.7.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -598,5 +598,92 @@ section("doctor: W078 fires when long-horizon agent review is incomplete");
   const parsedAfter = JSON.parse(after.stdout);
   const w078After = parsedAfter.semantic_warnings.find((it) => it.code === "W078");
   assert(!w078After, "W078 clears once long-horizon run review is complete");
+  cleanup(dir);
+}
+
+section("doctor: W079a fires (info) when CR baseline lacks Preventability review");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  write(
+    dir,
+    ".ai-os/lanes/default/baseline-log/CR-20260525-100000-no-preventability.md",
+    "# CR no preventability\n\n## Current behavior\n\n- old\n\n## Proposed delta\n\n- new\n\n## Affected artifacts\n\n- foo\n\n## Acceptance delta\n\n- AC-001\n\n## Close/archive condition\n\n- merged\n",
+  );
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w079a = parsed.issues.find((it) => it.code === "W079a");
+  assert(!!w079a, "doctor surfaces W079a for CR missing Preventability review");
+  assert(w079a && w079a.level === "info", "W079a is reported at info level");
+  assert(w079a && w079a.message.includes("CR-20260525-100000-no-preventability.md"), "W079a names the offending CR file");
+
+  const semanticW079 = (parsed.semantic_warnings || []).find((it) => it.code === "W079a");
+  assert(!semanticW079, "W079a is NOT included in semantic_warnings");
+
+  const strict = runDoctor([dir, "--strict"]);
+  assert(strict.status === 0, "doctor --strict does NOT upgrade W079a to error");
+
+  const repairedPath = path.join(dir, ".ai-os", "lanes", "default", "baseline-log", "CR-20260525-100000-no-preventability.md");
+  const repairedContent = fs.readFileSync(repairedPath, "utf8") +
+    "\n## Preventability review\n\n- Preventable: no\n- If yes, root cause: n/a\n- Maps to: n/a\n- Suggested guard: n/a\n";
+  fs.writeFileSync(repairedPath, repairedContent);
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w079aAfter = parsedAfter.issues.find((it) => it.code === "W079a");
+  assert(!w079aAfter, "W079a clears once CR includes Preventability review");
+  cleanup(dir);
+}
+
+section("doctor: W079b fires (info) when closed lane lacks retrospective baseline-log");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const baselineDir = path.join(dir, ".ai-os", "lanes", "default", "baseline-log");
+  for (const entry of fs.readdirSync(baselineDir)) {
+    const full = path.join(baselineDir, entry);
+    const content = fs.readFileSync(full, "utf8") +
+      "\n## Preventability review\n\n- Preventable: no\n- If yes, root cause: n/a\n- Maps to: n/a\n- Suggested guard: n/a\n";
+    fs.writeFileSync(full, content);
+  }
+
+  const laneTomlPath = path.join(dir, ".ai-os", "lanes", "default", "lane.toml");
+  const closedToml = fs.readFileSync(laneTomlPath, "utf8").replace('status = "active"', 'status = "closed"');
+  fs.writeFileSync(laneTomlPath, closedToml);
+
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w079b = parsed.issues.find((it) => it.code === "W079b");
+  assert(!!w079b, "doctor surfaces W079b for closed lane without retrospective baseline-log");
+  assert(w079b && w079b.level === "info", "W079b is reported at info level");
+
+  const semanticW079b = (parsed.semantic_warnings || []).find((it) => it.code === "W079b");
+  assert(!semanticW079b, "W079b is NOT included in semantic_warnings");
+
+  const strict = runDoctor([dir, "--strict"]);
+  assert(strict.status === 0, "doctor --strict does NOT upgrade W079b to error");
+
+  write(
+    dir,
+    ".ai-os/lanes/default/baseline-log/BL-20260525-150000-retrospective-test.md",
+    "# Retrospective\n\n- Type: retrospective\n- Status: closed\n\n## Preventable findings\n\n- none\n\n## Unmapped → PL candidates\n\n- none\n\n## Suggested framework changes\n\n- none\n",
+  );
+  const after = runDoctor([dir, "--json"]);
+  const parsedAfter = JSON.parse(after.stdout);
+  const w079bAfter = parsedAfter.issues.find((it) => it.code === "W079b");
+  assert(!w079bAfter, "W079b clears once a retrospective baseline-log is present");
+  cleanup(dir);
+}
+
+section("doctor: clean install reports no W079a / W079b");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const w079 = parsed.issues.find((it) => it.code === "W079a" || it.code === "W079b");
+  assert(!w079, "clean install emits no W079a / W079b (no CRs yet, lane is active)");
   cleanup(dir);
 }

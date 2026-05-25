@@ -749,6 +749,47 @@ function collectRowsMissingConfidence(content, label) {
   return missing;
 }
 
+// W079a (info): CR baseline records should carry a Preventability review section
+// so AI-OS maintainers can grep for "本可避免" modifications later. INFO-level only,
+// --strict does not upgrade. (v9.7 framework feedback loop. W078 is already used
+// by v9.6 long-horizon agent reliability warning.)
+function checkPreventabilityReview(paths) {
+  const issues = [];
+  if (!isDirectory(paths.laneBaselineLog)) return issues;
+  const entries = fs.readdirSync(paths.laneBaselineLog)
+    .filter((name) => /^CR-\d{8}-\d{6}-.*\.md$/.test(name));
+  const missing = [];
+  const headingPattern = /^##\s+Preventability\s+review\s*$/im;
+  for (const entry of entries) {
+    const content = fs.readFileSync(path.join(paths.laneBaselineLog, entry), "utf8");
+    if (!headingPattern.test(content)) {
+      missing.push(entry);
+    }
+  }
+  if (missing.length > 0) {
+    issues.push(issue("info", "W079a",
+      `${missing.length} CR baseline record(s) missing "## Preventability review" section: ${missing.join(", ")}.`));
+  }
+  return issues;
+}
+
+// W079b (info): when lane.toml status is "closed", expect at least one
+// retrospective baseline-log (BL-*-retrospective*.md) summarizing the lane's
+// Preventability findings. INFO-level only, --strict does not upgrade.
+function checkLaneRetrospective(paths) {
+  const issues = [];
+  if (!fileExists(paths.laneToml) || !isDirectory(paths.laneBaselineLog)) return issues;
+  const laneToml = fs.readFileSync(paths.laneToml, "utf8");
+  if (!/^\s*status\s*=\s*"closed"\s*$/m.test(laneToml)) return issues;
+  const entries = fs.readdirSync(paths.laneBaselineLog)
+    .filter((name) => /^BL-\d{8}-\d{6}-.*retrospective.*\.md$/i.test(name));
+  if (entries.length === 0) {
+    issues.push(issue("info", "W079b",
+      `lane.toml status is "closed" but no "BL-*-retrospective*.md" found in baseline-log/. Consider aggregating Preventability review before archiving.`));
+  }
+  return issues;
+}
+
 // W075: captured URL reverse-spec evidence rows need confidence.
 function checkUrlEvidenceConfidence(paths) {
   const issues = [];
@@ -844,6 +885,8 @@ function main() {
     issues.push(...checkChangeRequestDelta(paths));
     issues.push(...checkHighRiskArtifacts(paths));
     issues.push(...checkUrlEvidenceConfidence(paths));
+    issues.push(...checkPreventabilityReview(paths));
+    issues.push(...checkLaneRetrospective(paths));
   }
   // LAYOUT_MODE_ROOT_ONLY already triggered E060 above; further per-artifact
   // checks are intentionally skipped because the only safe action is upgrade.
