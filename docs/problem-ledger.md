@@ -81,6 +81,12 @@
 - **AI-OS 必须保证**：CR `baseline-log/CR-*.md` 提供 `## Preventability review` 段落（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补一条 `BL-*-retrospective*.md` 聚合本 lane 所有 Preventability findings；AI-OS maintainer 通过 dogfooding `git grep` 与 GitHub `framework-feedback` issue 定期归并到本台账，并按 guard 落点优先级（AGENTS.md > 工件模板 > doctor > docs）在下一个 minor 收紧
 - **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v1.9）、`docs/cli.md`（W079a / W079b）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
 
+### PL-013 开发者级与项目级记忆混写，污染项目共享层或丢失个人偏好
+
+- **场景**：用户把"我个人的编码 / 沟通偏好"（语言、工具链、风格、激进度）commit 进 `.ai-os/memory.md`，让所有 contributor 背个人习惯；或反过来把"这个项目的稳定决策 / 跨层契约"写进 agent shell 的 home 级 global rules（Cursor user rules、Claude Code 全局 CLAUDE.md、Codex 全局 instructions），导致换电脑或换人后项目真相丢失
+- **AI-OS 必须保证**：开发者级记忆（第 4 层，按本机 OS 用户 / home 目录识别）属于各 agent shell 的 global rules，AI-OS 不自造第二真理源、不引入 identity / 登录态 / 云端；项目级记忆（第 2/3 层）留在 `.ai-os/`，冲突时项目工件赢；跨机同步个人偏好走 dotfiles 而非 AI-OS
+- **当前覆盖锚点**：`docs/interop/developer-memory.md`、`docs/interop/memory-tool.md`、`docs/interop/cursor.md`、`docs/interop/claude-code.md`、`PROJECT_PURPOSE.md`（§3.5）、`AGENTS.md`（绝对禁止 §10、§13）
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试

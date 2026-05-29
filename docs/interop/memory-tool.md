@@ -8,18 +8,19 @@
 - AI-OS itself does **not** ship a Memory tool client / Memory MCP server. v9 keeps the CLI to three primary product operations (`install` / `doctor` / `upgrade`) and zero runtime dependencies.
 - This document is the **wire-format contract**. It says how to mount `.ai-os/memory.md`, lane `STATE.md`, and lane `MISSION.md` into a Memory-tool `/memories` directory or expose them through Memory MCP.
 
-## Three memory layers, no overlap
+## Memory layers, no overlap
 
 | Layer | Where it lives | Lifetime | Owner | Write path |
 |---|---|---|---|---|
 | Conversation | Claude session | within session | model | model |
 | `/memories` (Memory tool) | client-side directory | cross-session per workspace | model + user | model writes via tool, user can edit |
 | Memory MCP knowledge graph | JSONL store (local or remote) | indefinite | server | model via `tools/call` |
+| Developer-global rules | `~/.cursor/rules/*.mdc` / `~/.claude/CLAUDE.md` / `~/.codex/` (home dir) | cross-project, cross-session | developer | developer hand-curated |
 | `.ai-os/memory.md` | repo, version-controlled | indefinite, project-wide | maintainer | user-supervised CR flow only |
 | Lane `STATE.md` | repo, gitignored | per session | maintainer | user-supervised |
 | Lane `MISSION.md` / `DESIGN.md` | repo, version-controlled | per delivery line | maintainer | baseline-log + user confirmation |
 
-These do not replace each other. Memory tool stores Claude's evolving working notes; AI-OS stores user-confirmed project truth.
+These do not replace each other. Memory tool stores Claude's evolving working notes; AI-OS stores user-confirmed project truth. The **developer-global rules** layer is "how *I* work across projects" (per-developer / per-machine), which AI-OS does not own — see [developer-memory.md](developer-memory.md) for that layer's habitat, write path, and anti-patterns.
 
 ## Mounting AI-OS artifacts into a `/memories` directory
 
@@ -90,6 +91,7 @@ If you wire AI-OS lane artifacts to a remote Memory MCP server (rather than loca
 
 ## See also
 
+- [developer-memory.md](developer-memory.md) — the developer-global layer (per-developer / per-machine preferences) that AI-OS deliberately does not own
 - [mcp-resources.md](mcp-resources.md) — the same `aios://` URIs work as MCP resources and as Memory MCP graph identifiers
 - [a2a.md](a2a.md) — agent-to-agent task delegation (complementary to memory)
 - [claude-code.md](claude-code.md) — `/memory` slash command vs lane `STATE.md`

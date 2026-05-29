@@ -60,11 +60,21 @@ When the skill is active, Claude Code:
 
 This is the closest thing to "AI-OS as a runtime extension" without giving up portability.
 
+## Global `~/.claude/CLAUDE.md` vs project `CLAUDE.md` stub
+
+Claude Code reads two `CLAUDE.md` files, and they serve opposite layers:
+
+- **`~/.claude/CLAUDE.md`** (home dir, global): developer-level memory — "how *I* work" across every project (language / toolchain / style / communication preferences). It follows your OS user, never enters any project git, and is hand-curated by you. AI-OS does not own this layer (see [developer-memory.md](developer-memory.md)).
+- **Project root `CLAUDE.md`** (in repo): a ≤10-line stub that points back to `AGENTS.md` and `.ai-os/`. It enters git and is shared with contributors; it must not duplicate constitution content.
+
+Keep project facts (stable decisions, conventions, cross-layer contracts) in `.ai-os/memory.md`, not in your global `~/.claude/CLAUDE.md` — otherwise they only exist on your machine and are lost when you switch computers or hand off to another contributor.
+
 ## Artifact coexistence
 
 | Claude Code surface | AI-OS artifact | Notes |
 |---|---|---|
-| `CLAUDE.md` | references `AGENTS.md` | stub only; no duplicate constitution |
+| `~/.claude/CLAUDE.md` (global) | n/a — developer-level memory | per-developer / per-machine preferences; see [developer-memory.md](developer-memory.md) |
+| `CLAUDE.md` (project root) | references `AGENTS.md` | stub only; no duplicate constitution |
 | `.claude/skills/ai-os-delivery/SKILL.md` | mirrors AI-OS rules in `agentskills.io` format | Mode C only |
 | `.claude/commands/<x>.md` | n/a | repo-specific user commands stay separate; do not encode AI-OS rules here |
 | Memory mode (`/memory`) | references `.ai-os/memory.md` | session-level Anthropic memory complements project-level AI-OS memory |
@@ -116,3 +126,4 @@ npx --yes github:royeedai/ai-os --no-ide-files
 - [Skill source](../../framework/skills/ai-os-delivery/SKILL.md)
 - [MCP resources](mcp-resources.md) for protocol-level access (when remote/non-filesystem agents read AI-OS artifacts)
 - [spec-kit coexistence](spec-kit-coexistence.md) for 0→1 followed by AI-OS governance
+- [developer-memory.md](developer-memory.md) for the global `~/.claude/CLAUDE.md` vs project stub split

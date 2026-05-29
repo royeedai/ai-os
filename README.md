@@ -163,6 +163,8 @@ AI-OS v9.4 task handoff fields (and v9.5 `fact_state_review`) map onto the [A2A 
 
 `.ai-os/memory.md`, lane `STATE.md`, and lane `MISSION.md` can be mounted (read-only) into Anthropic's [Memory tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) `/memories` directory or projected into a [Memory MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/memory) knowledge graph. AI-OS keeps the markdown as truth source; the memory channel becomes Claude's working notes. See [docs/interop/memory-tool.md](docs/interop/memory-tool.md).
 
+Developer-level memory ("how *I* work" across projects, per-developer / per-machine) lives in each agent shell's global rules (Cursor user rules, `~/.claude/CLAUDE.md`, Codex global instructions), not in AI-OS artifacts. See [docs/interop/developer-memory.md](docs/interop/developer-memory.md) for the four-layer split and why AI-OS does not own that layer.
+
 ## Framework feedback loop (v9.7+)
 
 AI-OS itself iterates from "modifications proposed after the first AI-OS delivery that were preventable in the first session". The loop is **artifact + git only**, no telemetry:

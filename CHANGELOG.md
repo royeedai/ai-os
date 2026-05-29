@@ -10,6 +10,33 @@ This file only tracks v8 and v9 releases (the supported lines as of v9.7). For v
 
 ---
 
+## 9.7.1 (2026-05-29) — Developer-level memory layer docs
+
+**Patch, docs-only, fully backward compatible**. No framework / `AGENTS.md` / CLI / schema change. v9.7.1 clarifies where per-developer / per-machine memory belongs: each agent shell's home-directory global rules (Cursor user rules, `~/.claude/CLAUDE.md`, Codex global instructions), which AI-OS deliberately does **not** own. AI-OS keeps owning only the project-level layers (`.ai-os/`). The three primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150-line constraints are unchanged.
+
+### Added
+
+- `docs/interop/developer-memory.md` (new) documents the **developer-global memory layer** as the fourth memory layer. Includes the four-layer "no overlap" table, what the layer is for (personal coding preferences, AI behavior preferences, cross-project lessons), the "per-developer ≈ per-machine (home dir)" reality, cross-machine sync via dotfiles (not an AI-OS identity layer), per-shell habitats, and anti-patterns.
+- `docs/problem-ledger.md` registers `PL-013` (developer-level vs project-level memory mixed together, polluting the shared project layer or losing personal preferences when switching machines / contributors).
+
+### Changed
+
+- `docs/interop/memory-tool.md` expands its memory-layer table from three to four layers and links to the new doc.
+- `docs/interop/cursor.md` adds a "Global vs project rules" split and a global `~/.cursor/rules/*.mdc` coexistence row.
+- `docs/interop/claude-code.md` adds a "Global `~/.claude/CLAUDE.md` vs project `CLAUDE.md` stub" section.
+- `README.md` Memory tool section points to the new developer-memory doc.
+- VERSION / `package.json` / `package-lock.json` / `.ai-os/framework.toml` bumped to 9.7.1.
+
+### Migration
+
+None required. This is documentation-only; existing installs are unaffected.
+
+### Anti-patterns rejected
+
+- `~/.ai-os/operator.md`, an `install --with-operator` profile, and doctor checks over home-directory rules — all of which would create a second source of truth or break the three-primary-operation surface.
+
+---
+
 ## 9.7.0 (2026-05-25) — Framework feedback loop
 
 **Minor, fully backward compatible**. v9.7 introduces a Framework Feedback Loop so AI-OS itself can iterate from "modifications proposed after the first AI-OS delivery that were preventable in the first session", without telemetry or upload. CR baseline records gain a local `## Preventability review` section; lanes closing out aggregate findings into a retrospective baseline-log; `doctor` adds info-level `W079a` / `W079b` guidance that `--strict` does NOT upgrade. The three primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150-line constraints are preserved. This release is stacked on top of v9.6.0 (Long-Horizon Agent Reliability) and v9.5.1 (Activation Gate); both remain intact.

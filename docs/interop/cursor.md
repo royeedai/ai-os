@@ -87,10 +87,20 @@ For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, De
 | Cursor surface | AI-OS artifact | Rule |
 |---|---|---|
 | `AGENTS.md` (root) | constitution | trunk; never duplicated elsewhere |
-| `.cursor/rules/*.mdc` | trigger shells | 1–3 lines, link only |
+| `.cursor/rules/*.mdc` (in repo) | trigger shells | 1–3 lines, link only |
+| `~/.cursor/rules/*.mdc` + user rules (global, home dir) | n/a — developer-level memory | per-developer / per-machine preferences; never enters project git. See [developer-memory.md](developer-memory.md) |
 | `.cursor/skills/ai-os-delivery/SKILL.md` | open-format wrapper | mirrors AGENTS.md rules per `agentskills.io` |
 | `.cursor/notepads/` | session scratchpad | does not replace `STATE.md`; both exist |
 | `.cursor/hooks/` | doctor / lint integration | recommended for CI parity |
+
+### Global vs project rules
+
+Cursor has two distinct rule scopes, and AI-OS only governs the project one:
+
+- **Global** (Cursor user rules + `~/.cursor/rules/*.mdc` under your home dir): "how *I* work" — language / toolchain / style / communication preferences. They follow your OS user across every repo and never enter any project's git. This is the developer-level memory layer; AI-OS does not own it (see [developer-memory.md](developer-memory.md)).
+- **Project** (`.cursor/rules/*.mdc` inside the repo): thin trigger shells that link back to `AGENTS.md` and `.ai-os/`. They enter the repo's git and are shared with every contributor.
+
+When the two disagree, the project artifacts win — a design you confirmed in the lane outranks your personal default.
 
 ## Anti-patterns
 
@@ -125,3 +135,4 @@ For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, De
 - [AI-OS skill source](../../framework/skills/ai-os-delivery/SKILL.md)
 - [MCP resources URI scheme](mcp-resources.md)
 - [Claude Code coexistence](claude-code.md) for repos using both
+- [developer-memory.md](developer-memory.md) for the global (per-developer) vs project rule split
