@@ -29,7 +29,7 @@ tasks:
     owner: AI
     priority: P1
     wave: 1
-    approval_required: "user_confirms_plan"
+    approval_required: false  # 布尔；high-risk 任务设 true 触发审批门（doctor W074）
     depends_on: []
     requirement_refs:
       - "REQ-001"
@@ -84,7 +84,7 @@ tasks:
     owner: AI
     priority: P0
     wave: 2
-    approval_required: "before_execution"
+    approval_required: false
     depends_on:
       - "TASK-AI-001"
     requirement_refs:

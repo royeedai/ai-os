@@ -97,7 +97,7 @@ function checkAgentsMd(paths) {
   }
   const content = fs.readFileSync(paths.agentsMd, "utf8");
   const lineCount = content.split(/\r?\n/).length;
-  if (lineCount > 200) {
+  if (lineCount > 150) {
     issues.push(issue("warning", "W010", `AGENTS.md is ${lineCount} lines (v9 target: <=150). Consider trimming.`));
   }
   const requiredSections = ["五条核心要求", "绝对禁止"];
@@ -294,7 +294,7 @@ function checkBaselineConsistency(paths) {
   const expectedFile = path.join(paths.laneBaselineLog, `${baselineId}.md`);
   if (!fileExists(expectedFile)) {
     issues.push(issue("warning", "W070",
-      `lane MISSION.md references baseline_id "${baselineId}" but ${PROJECT_STATE_ROOT}/lanes/default/baseline-log/${baselineId}.md does not exist.`));
+      `lane MISSION.md references 当前基线 ID "${baselineId}" but ${PROJECT_STATE_ROOT}/lanes/default/baseline-log/${baselineId}.md does not exist.`));
   }
   return issues;
 }
@@ -562,7 +562,7 @@ function checkTaskHallucinationGuards(paths) {
   if (unresolved.length > 0) details.push(`unresolved inference/unknown at close: ${unresolved.join(", ")}`);
   if (details.length > 0) {
     issues.push(issue("warning", "W077",
-      `tasks.yaml has incomplete hallucination guard review(s): ${details.join("; ")}.`));
+      `tasks.yaml has incomplete fact_state_review(s): ${details.join("; ")}.`));
   }
   return issues;
 }
@@ -667,7 +667,8 @@ function hasHighRiskTask(tasksContent) {
 }
 
 function hasHighRiskLane(laneTomlContent) {
-  return /^risk_tier\s*=\s*"high"\s*$/m.test(laneTomlContent);
+  return /^risk_tier\s*=\s*"high"\s*$/m.test(laneTomlContent) ||
+    /^quality_tier\s*=\s*"high-risk"\s*$/m.test(laneTomlContent);
 }
 
 function hasFilledRiskRegister(content) {
@@ -856,7 +857,7 @@ function main() {
       process.stdout.write(JSON.stringify({ ok: false, reason: "not-an-ai-os-project", targetDir }, null, 2) + "\n");
     } else {
       process.stderr.write(`Not an AI-OS project: ${targetDir} has no .ai-os/ directory.\n`);
-      process.stderr.write(`Run: create-ai-os ${targetDir}\n`);
+      process.stderr.write(`Run: create-ai-os install ${targetDir}\n`);
     }
     process.exit(2);
   }

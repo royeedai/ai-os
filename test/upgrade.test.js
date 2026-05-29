@@ -59,8 +59,8 @@ section("upgrade: v7-style lane project is normalized to v9");
   assert(!exists(dir, ".ai-os/CONVENTIONS.md"), "CONVENTIONS.md merged and removed");
   assert(!exists(dir, ".ai-os/project.md"), "project.md merged and removed");
   assert(!exists(dir, ".ai-os/lanes/default/acceptance.yaml"), "lane acceptance.yaml merged and removed");
-  assert(!exists(dir, ".cursor/rules"), ".cursor/rules removed");
-  assert(!exists(dir, ".cursor/skills"), ".cursor/skills removed");
+  assert(exists(dir, ".cursor/rules/auto.mdc"), ".cursor user content preserved (AI-OS does not own .cursor/)");
+  assert(exists(dir, ".cursor/skills"), ".cursor/skills preserved on upgrade");
 
   assert(exists(dir, ".ai-os/MISSION.md"), "shared root MISSION.md exists");
   assert(exists(dir, ".ai-os/memory.md"), "shared root memory.md exists");

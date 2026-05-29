@@ -44,6 +44,10 @@ Checks:
 - `.gitignore` contains lane `STATE.md` and generated file ignores
 - layout mode is canonical, legacy, or drift
 
+### Structural & metadata codes
+
+Beyond the semantic warnings below, doctor also emits structural / metadata codes for layout health: `E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `W001` (no `framework_version`), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W040` / `W041` (`.gitignore` missing managed-file ignores), `E060` / `E061` (legacy / hybrid layout needing `upgrade`), and `I020` (session-local `STATE.md` absent — informational). These run on every invocation; the authoritative list lives in `bin/ai-os-doctor.js`.
+
 ### Semantic consistency warnings (v9.1+)
 
 In addition to layout health, doctor emits warnings when artifacts drift apart in meaning. These are warnings (non-blocking) by default; `--strict` upgrades them to errors.
@@ -92,6 +96,11 @@ Supported inputs:
 - v7 legacy
 - v8 root-only
 - v8 hybrid root+lane drift
+
+### Options
+
+- `--dry-run` — show what would change without writing any files
+- `--force` — reserved for forward compatibility (currently ignored)
 
 ### What it does
 

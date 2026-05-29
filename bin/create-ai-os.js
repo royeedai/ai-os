@@ -91,7 +91,7 @@ function runInstall(argv) {
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--force" || arg === "--force-framework") { force = true; continue; }
+    if (arg === "--force") { force = true; continue; }
     if (arg === "--no-team-config") { noTeamConfig = true; continue; }
     if (arg === "--no-ide-files") { noIdeFiles = true; continue; }
     if (arg.startsWith("-")) fail(`unknown option: ${arg}`);

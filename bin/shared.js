@@ -367,7 +367,15 @@ const GITATTRIBUTES_ENTRIES = [
 function appendUniqueLines(filePath, header, lines) {
   let existing = "";
   if (fileExists(filePath)) existing = fs.readFileSync(filePath, "utf8");
-  if (existing.includes(header)) return false;
+  if (existing.includes(header)) {
+    // Header already present: backfill only the missing entry lines so a
+    // half-written AI-OS section is repaired instead of silently skipped.
+    const missing = lines.filter((line) => line !== header && !existing.includes(line));
+    if (missing.length === 0) return false;
+    const trailingNewline = existing.endsWith("\n") ? "" : "\n";
+    fs.writeFileSync(filePath, existing + trailingNewline + missing.join("\n") + "\n");
+    return true;
+  }
   const trailingNewline = existing.length === 0 || existing.endsWith("\n") ? "" : "\n";
   const block = `${trailingNewline}${existing ? "\n" : ""}${lines.join("\n")}\n`;
   fs.writeFileSync(filePath, existing + block);

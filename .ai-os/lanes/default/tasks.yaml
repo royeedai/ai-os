@@ -34,7 +34,7 @@ tasks:
     owner: AI
     priority: P1
     wave: 1
-    approval_required: "user_confirmed_plan"
+    approval_required: false
     depends_on: []
     requirement_refs:
       - "REQ-001"
@@ -80,7 +80,7 @@ tasks:
     owner: AI
     priority: P1
     wave: 2
-    approval_required: "user_confirmed_plan"
+    approval_required: false
     depends_on:
       - "TASK-AI-601"
     requirement_refs:
@@ -148,7 +148,7 @@ tasks:
     owner: AI
     priority: P1
     wave: 3
-    approval_required: "user_confirmed_plan"
+    approval_required: false
     depends_on:
       - "TASK-AI-602"
     requirement_refs:
