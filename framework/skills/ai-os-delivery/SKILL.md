@@ -80,10 +80,10 @@ After the Activation Gate passes, load layers progressively. Do not re-load a hi
 | Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / `handoff_to` / `context_refs` / `expected_return` / evidence requirements |
 | URL reverse-spec intake | Capture URL, screenshots, DOM/CSS, interactions, Network/API observations, backend behavior confidence, and unknowns into `design-pack/parity-map.md` + `specs/*.spec.md`; **do not invent backend internals** |
 | Implement | Only act inside confirmed scope; cross-file or unclear boundary → read-only analysis first |
-| Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/` |
+| Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/`; before closing the CR, add a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard) |
 | Fix a bug | State root cause + reproduction path + impact scope + planned files; **stop and wait for "go"** |
 | Verify | Cover normal / abnormal / permission denial / empty / timeout / regression; produce project-native static-check evidence |
-| Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute |
+| Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute; before closing a lane, aggregate every CR's `## Preventability review` into a `BL-*-retrospective*.md` |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
 | Agent handoff return | Before marking a task done / verified / shipped, record `evidence_produced`; put implementation drift in `deviation_log` or a new CR |
 | Long-horizon / background agent work | For delegated, cloud, external PR agent, or parallel execution, record `agent_run_review` with `execution_surface`, `run_refs`, `write_scope`, `progress_checkpoints`, `return_packet`, and `human_review_status`; do not close until evidence and human review are present |
@@ -129,6 +129,7 @@ Any user-asset write, permission / identity change, irreversible state transitio
 
 - Full constitution: `AGENTS.md` (≤150 lines, single source of truth)
 - Artifact schema with layer assignments: `docs/artifacts.md`
+- Framework feedback loop (CR Preventability review + lane retrospective): `docs/maintainers.md` and `docs/cli.md` (info-level `W079a` / `W079b`)
 - URL reverse-spec intake protocol: `docs/reverse-spec-url-intake.md`
 - Constitution spec for cross-tool integration: `docs/constitution-spec.md`
 - MCP resources URI scheme: `docs/interop/mcp-resources.md`

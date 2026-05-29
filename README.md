@@ -75,7 +75,7 @@ Full text: [AGENTS.md](AGENTS.md)
 ## Three primary operations
 
 | Operation | CLI entrypoint | Purpose |
-|---|---|
+|---|---|---|
 | install | `create-ai-os [dir]` or `create-ai-os install [dir]` | Install AI-OS v9 canonical layout |
 | doctor | `create-ai-os doctor [dir]` | Check layout health and constitution compliance |
 | upgrade | `create-ai-os upgrade [dir]` | Migrate legacy AI-OS layouts to v9 |
@@ -86,7 +86,7 @@ No slash commands. No profile flags. No proprietary AI-OS skill system; the `age
 
 Industry consensus in 2026 (e.g. [anthropics/claude-code RFC #45427](https://github.com/anthropics/claude-code/issues/45427)) is that prompt-style guidance such as `CLAUDE.md` / `.cursor/rules` reaches only ~70% compliance: subagents bypass it, models can rewrite hooks, instructions degrade with context length. Safety-critical boundaries need **deterministic enforcement** — a check whose exit code the model cannot override.
 
-AI-OS uses `doctor` for exactly this. W070-W077 (and `--strict` mode) are deterministic command checks: zero model interpretation, zero prompt re-injection. The same exit code that fails locally fails in pre-commit and in CI:
+AI-OS uses `doctor` for exactly this. W070-W078 (and `--strict` mode) are deterministic command checks: zero model interpretation, zero prompt re-injection. The same exit code that fails locally fails in pre-commit and in CI:
 
 | Surface | One-line setup |
 |---|---|

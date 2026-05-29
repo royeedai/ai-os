@@ -13,7 +13,7 @@
 
 ## Four memory layers, no overlap
 
-AI-OS v9 已经覆盖前三层；第四层是各 agent shell 自带的，AI-OS 不重造，只指路。
+AI-OS v9 覆盖第 2、3 层（项目级）；第 1 层（会话级）由模型 / IDE 负责，第 4 层是各 agent shell 自带的开发者级 global rules——这两层 AI-OS 都不重造，只指路。
 
 | Layer | 栖息地 | 识别维度 | Lifetime | Owner | 写入路径 | AI-OS 现状 |
 |---|---|---|---|---|---|---|
@@ -61,7 +61,7 @@ AI-OS v9 已经覆盖前三层；第四层是各 agent shell 自带的，AI-OS �
 - dotfiles 工具：[chezmoi](https://www.chezmoi.io/) / [yadm](https://yadm.io/) / GNU Stow
 - IDE 自带同步：Cursor Settings Sync 等
 
-AI-OS **明确不引入** 独立 identity 层 / 登录态 / 云端 store —— 这违反 v9.7 "不做 framework feedback 遥测 / 上报" 与 "不引入第二套 prompt / rules 真理源" 两条红线（见 [`PROJECT_PURPOSE.md`](../../PROJECT_PURPOSE.md) §5 与 [`AGENTS.md`](../../AGENTS.md)）。
+AI-OS **明确不引入** 独立 identity 层 / 登录态 / 云端 store —— 这违反 v9.7 "不做 framework feedback 遥测 / 上报" 与 "不引入第二套 prompt / rules 真理源" 两条红线（见 [`PROJECT_PURPOSE.md`](../../PROJECT_PURPOSE.md) §2 反向边界与 [`AGENTS.md`](../../AGENTS.md)）。
 
 ## 各 shell 的具体落点
 

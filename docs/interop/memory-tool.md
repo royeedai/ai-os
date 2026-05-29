@@ -22,6 +22,17 @@
 
 These do not replace each other. Memory tool stores Claude's evolving working notes; AI-OS stores user-confirmed project truth. The **developer-global rules** layer is "how *I* work across projects" (per-developer / per-machine), which AI-OS does not own — see [developer-memory.md](developer-memory.md) for that layer's habitat, write path, and anti-patterns.
 
+### Mapping to the four-layer model
+
+[developer-memory.md](developer-memory.md) frames memory as four layers; the table above is the wire-format breakdown. They line up as:
+
+- **Layer 1 — session** = Conversation plus Claude's `/memories` and Memory MCP working notes (all model-side recall channels; AI-OS does not own them)
+- **Layer 2 — project, this machine** = lane `STATE.md` (gitignored)
+- **Layer 3 — project, shared** = `.ai-os/memory.md` + lane `MISSION.md` / `DESIGN.md` + `baseline-log/` (committed)
+- **Layer 4 — developer, cross-project** = developer-global rules (home-dir global rules)
+
+AI-OS owns only Layers 2 and 3. Layer 1 is the model / Memory-tool working-notes channel; Layer 4 lives in each shell's global rules.
+
 ## Mounting AI-OS artifacts into a `/memories` directory
 
 Memory tool reads any markdown / text file under the `/memories` root. Recommended mapping (read-only mount):

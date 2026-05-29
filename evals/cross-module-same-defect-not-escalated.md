@@ -43,4 +43,4 @@ debug 中发现一个 bug，根因是某个跨模块都成立的"模式问题"�
 - `framework/.agents/templates/shared-root/memory.md`（跨层契约登记表）
 - `framework/.agents/templates/lane/verification-matrix.yaml`
 - `framework/.agents/templates/lane/baseline-log/BL-template.md`
-- `docs/problem-ledger.md`（PL-036）
+- `docs/problem-ledger.md`（PL-019）

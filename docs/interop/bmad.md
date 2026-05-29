@@ -71,7 +71,7 @@ See [../getting-started.md](../getting-started.md).
 | Concern | BMAD | AI-OS |
 |---|---|---|
 | Who creates the artifact | persona-driven (Analyst → PM → Architect → ...) | rule-driven (`AGENTS.md` behavior rules) |
-| What enforces it | system prompts on each persona | deterministic `doctor` checks (W070-W077) |
+| What enforces it | system prompts on each persona | deterministic `doctor` checks (W070-W078) |
 | Lifecycle | 4-phase pipeline before / during implementation | full lifecycle, especially **after** implementation |
 | Cross-IDE | requires BMAD-aware agents | works on any agent reading `AGENTS.md` |
 | Memory | context sharding inside persona prompts | repo-committed `memory.md` + `STATE.md` |

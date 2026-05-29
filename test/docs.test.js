@@ -363,7 +363,7 @@ section("docs: long-horizon agent review is documented and checked");
   assert(interop.includes("Google Jules"), "long-horizon interop covers Jules");
   assert(interop.includes("Claude Code subagents / hooks"), "long-horizon interop covers Claude Code subagents/hooks");
   assert(example.includes("doctor --strict emits W078"), "background handoff example names W078 close rule");
-  assert(ledger.includes("PL-011 长时程 / 后台 agent 交付回收不可审查"), "problem ledger tracks long-horizon agent review");
+  assert(ledger.includes("PL-015 长时程 / 后台 agent 交付回收不可审查"), "problem ledger tracks long-horizon agent review");
   assert(changelog.includes("Long-Horizon Agent Reliability"), "CHANGELOG records v9.6 long-horizon release");
   assert(changelog.includes("W078"), "CHANGELOG records W078");
 }
@@ -403,7 +403,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(skill.includes("ordinary conversation"), "skill wrapper excludes ordinary conversation");
   assert(skill.includes("do not read or write `.ai-os/lanes/*`"), "skill wrapper blocks lane artifact access for ordinary conversation");
 
-  assert(ledger.includes("PL-010 非交付对话误触发治理"), "problem ledger tracks non-delivery misactivation");
+  assert(ledger.includes("PL-014 非交付对话误触发治理"), "problem ledger tracks non-delivery misactivation");
   assert(example.includes("Does not read `.ai-os/lanes/default/STATE.md`"), "non-delivery example shows no lane read");
   assert(example.includes("现在进入实现"), "non-delivery example shows explicit transition into delivery");
   assert(changelog.includes("Activation Gate"), "CHANGELOG records activation gate release");
@@ -415,7 +415,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.7.1", `version is 9.7.1 (got ${version})`);
+  assert(version === "9.7.2", `version is 9.7.2 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -683,14 +683,14 @@ section("docs: deterministic-guard narrative aligns doctor with cross-IDE hooks"
   const claude = read("docs/interop/claude-code.md");
 
   assert(readme.includes("Why deterministic"), "README adds deterministic-guard narrative section");
-  assert(readme.includes("W070-W077"), "README narrative cites the W070-W077 doctor warning range");
+  assert(readme.includes("W070-W078"), "README narrative cites the W070-W078 doctor warning range");
   assert(readme.includes("`pre-tool-use`") || readme.includes("pre-tool-use"), "README narrative shows Claude Code pre-tool-use mapping");
   assert(readme.includes("45427") || readme.includes("RFC #45427"), "README narrative cites the 2026 hooks-vs-prompts RFC");
   assert(readme.includes("doctor . --strict") || readme.includes("doctor --strict"), "README narrative uses doctor --strict invocation");
 
   assert(claude.includes("Doctor as cross-IDE deterministic guard"), "claude-code.md adds doctor-as-deterministic-guard section");
   assert(claude.includes("subagent bypass") || claude.includes("hook-bypass"), "claude-code.md surfaces 2026 hook-bypass failure modes");
-  assert(claude.includes("W070-W077"), "claude-code.md cites the W070-W077 doctor warning range");
+  assert(claude.includes("W070-W078"), "claude-code.md cites the W070-W078 doctor warning range");
 }
 
 section("docs: Cursor 2.0+ subagent / cloud agent fields align to v9.4 handoff");
@@ -794,6 +794,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
 
   assert(agents.includes("Preventability review"), "AGENTS.md behavior rule mentions Preventability review");
   assert(agents.includes("retrospective"), "AGENTS.md behavior rule mentions retrospective aggregation");
+  assert(read("framework/skills/ai-os-delivery/SKILL.md").includes("Preventability review"), "skill wrapper routes CR Preventability review before close");
 
   assert(artifacts.includes("Framework Feedback Loop"), "artifacts.md documents Framework Feedback Loop section");
   assert(artifacts.includes("Preventability review"), "artifacts.md describes Preventability review schema");

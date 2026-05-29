@@ -23,7 +23,7 @@ section("shared: readPackageJson");
 {
   const pkg = shared.readPackageJson();
   assert(pkg && pkg.name === "create-ai-os", "package name is create-ai-os");
-  assert(pkg.version === "9.7.1", `package version is 9.7.1 (got ${pkg.version})`);
+  assert(pkg.version === "9.7.2", `package version is 9.7.2 (got ${pkg.version})`);
 }
 
 section("shared: generateInitialBaseline");

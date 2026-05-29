@@ -15,7 +15,7 @@
 | Kiro concept | AI-OS equivalent | Belongs to |
 |---|---|---|
 | Steering files (`.kiro/steering/*.md`) | root `.ai-os/MISSION.md` + `.ai-os/memory.md` | shared, project-long context |
-| `.kiro/specs/<id>/requirements.md` (EARS) | lane `MISSION.md` Section 4 + `lanes/default/specs/*.spec.md` | current delivery baseline |
+| `.kiro/specs/<id>/requirements.md` (EARS) | lane `MISSION.md` Section 4 + `.ai-os/lanes/default/specs/*.spec.md` | current delivery baseline |
 | `.kiro/specs/<id>/design.md` | lane `DESIGN.md` | current delivery design |
 | `.kiro/specs/<id>/tasks.md` | lane `tasks.yaml` | current delivery work breakdown |
 | Hooks | Cursor / Codex hooks; AI-OS does not own this layer | execution layer |
@@ -56,7 +56,7 @@ For multi-IDE teams (Kiro + Cursor + Claude Code + Codex):
 | `.kiro/specs/<id>/design.md` | `.ai-os/lanes/default/DESIGN.md` | pick one as the current design source; brownfield → AI-OS lane DESIGN, greenfield → Kiro design |
 | `.kiro/specs/<id>/tasks.md` | `.ai-os/lanes/default/tasks.yaml` | pick one; running both diverges quickly |
 | Kiro autopilot / agent commands | n/a | execution layer; AI-OS does not own it |
-| `.kiro/hooks/*.json` | n/a | recommended: a hook running `npx create-ai-os doctor --strict` |
+| `.kiro/hooks/*.json` | n/a | recommended: a hook running `npx --yes github:royeedai/ai-os doctor --strict` |
 
 ## Anti-patterns
 
@@ -91,7 +91,7 @@ For multi-IDE teams (Kiro + Cursor + Claude Code + Codex):
 
 3. Move stable conventions to `.ai-os/memory.md`, leaving steering files for AWS-specific preferences
 4. Route subsequent change requests through AI-OS `baseline-log/CR-*.md`
-5. Use `npx create-ai-os doctor` in CI
+5. Use `npx --yes github:royeedai/ai-os doctor` in CI
 
 ## See also
 

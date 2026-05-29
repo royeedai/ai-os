@@ -37,5 +37,5 @@ Close this CR when `npm test`, `npm run lint`, and `node bin/create-ai-os.js doc
 
 - **Preventable**: partial
 - **If yes, root cause**: v9.0 第一次设计宪法时已经声明"AI-OS 不接管执行，工件按 progressive disclosure 加载"，但没有显式区分"普通对话 vs. delivery-affecting work"的启用门槛；导致 agent 在仓库存在 `.ai-os/` 时会无条件进入 lane 工件读写，普通讨论也被治理化。本可在 v9.0 AGENTS.md 设计时就加一条"先判定是否 delivery-affecting"的前置规则。
-- **Maps to**: PL-010（非交付对话误触发治理，本 CR 同步登记）
+- **Maps to**: PL-014（非交付对话误触发治理，本 CR 同步登记）
 - **Suggested guard**: 已在 AGENTS.md 启用门槛章节、`framework/skills/ai-os-delivery/SKILL.md`、`docs/constitution-spec.md` v1.7、`examples/non-delivery-discussion.md` 中沉淀。后续若仍有 agent 越界，可考虑把启用门槛升级为 doctor 检查项。

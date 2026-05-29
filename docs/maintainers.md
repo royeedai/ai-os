@@ -28,14 +28,16 @@
 | v9.3 | External learning fusion | `specs/bugfix.spec.md`、URL evidence package matrix、MCP resource annotation、eval taxonomy frontmatter、W073-W075 |
 | v9.4 | Agent handoff + evidence loop | `tasks.yaml` `handoff_to` / `context_refs` / `expected_return` / `evidence_produced` / `deviation_log`、W076 |
 | v9.5 | Hallucination guard | `tasks.yaml` `fact_state_review`（`observed` / `confirmed` / `inferred` / `unknown`）、W077 |
-| v9.6 | Long-horizon agent reliability loop + Activation Gate | `agent_run_review`、`docs/interop/long-horizon-agents.md`、doctor W078（warning）；Activation Gate 限定 AI-OS 工件治理只在 delivery-affecting work 启用 |
+| v9.5.1 | Activation Gate | AI-OS 工件治理只在 delivery-affecting work 启用；普通对话不读写 lane 工件 |
+| v9.6 | Long-horizon agent reliability loop | `agent_run_review`、`docs/interop/long-horizon-agents.md`、doctor W078（warning） |
 | v9.7 | Framework feedback loop | CR `## Preventability review`、lane 关闭 retrospective baseline-log、doctor W079a/W079b（INFO，仅提示） |
+| v9.7.1 | Developer-level memory interop（patch） | `docs/interop/developer-memory.md`、四层记忆模型、PL-013 |
 
 每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（warning-only，可由 `doctor --strict` 升级为 error；v9.7 W079 为 INFO，--strict 不升级）。
 
 ## 发布前检查清单（公开口径）
 
-任何 minor / patch / major 上 GitHub `main` 前必须依次通过。仓库自身的更详细负责人清单见 `/Users/dai/.cursor/rules/project-lead.mdc`（仅本仓库维护者使用）。
+任何 minor / patch / major 上 GitHub `main` 前必须依次通过。仓库自身的更详细负责人清单见仓库内 `.cursor/rules/project-lead.mdc`（仅本仓库维护者本地使用）。
 
 - [ ] `npm test` 全绿
 - [ ] `npm run lint` 0 错 0 警

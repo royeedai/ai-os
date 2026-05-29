@@ -8,11 +8,11 @@
 |---|---|
 | Cursor only, AI-OS trunk in `AGENTS.md` | Mode A — thin `.cursor/rules/*.mdc` shells |
 | Cursor + multi-tool repo | Mode B — `AGENTS.md` plus `agentskills.io`-format SKILL referenced from `.cursor/` |
-| Cursor + automated doctor in CI | Mode C — Mode B plus a Cursor hook to run `npx create-ai-os doctor --strict` |
+| Cursor + automated doctor in CI | Mode C — Mode B plus a Cursor hook to run `npx --yes github:royeedai/ai-os doctor --strict` |
 
 ## Mode A: Cursor only, thin rule shells
 
-`.cursor/rules/<name>.mdc` files in Cursor are markdown with YAML frontmatter for trigger conditions. Per the [AI documentation layering rule](../../.cursor/rules/) used by AI-OS itself, each rule file should be:
+`.cursor/rules/<name>.mdc` files in Cursor are markdown with YAML frontmatter for trigger conditions. Per the AI documentation layering principle AI-OS itself follows (thin shells link back, never copy), each rule file should be:
 
 - Trigger condition (frontmatter)
 - One-sentence action
@@ -40,8 +40,11 @@ recovery, follow [`AGENTS.md`](mdc:AGENTS.md) and the artifact layout in
 For repos that mix Cursor with Claude Code / Codex / Gemini CLI, install the official AI-OS skill so any spec-aware Cursor flow can pick it up:
 
 ```bash
-mkdir -p .cursor/skills
-cp -R framework/skills/ai-os-delivery .cursor/skills/
+# Recommended: load via the agentskills.io standard
+npx skills add github:royeedai/ai-os
+
+# Manual alternative (from a cloned ai-os repo): copy the skill folder
+mkdir -p .cursor/skills && cp -R framework/skills/ai-os-delivery .cursor/skills/
 ```
 
 Cursor will pre-load only the skill metadata. The full body activates on tasks that match the skill description.
@@ -91,7 +94,7 @@ For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, De
 | `~/.cursor/rules/*.mdc` + user rules (global, home dir) | n/a — developer-level memory | per-developer / per-machine preferences; never enters project git. See [developer-memory.md](developer-memory.md) |
 | `.cursor/skills/ai-os-delivery/SKILL.md` | open-format wrapper | mirrors AGENTS.md rules per `agentskills.io` |
 | `.cursor/notepads/` | session scratchpad | does not replace `STATE.md`; both exist |
-| `.cursor/hooks/` | doctor / lint integration | recommended for CI parity |
+| `.cursor/hooks.json` | doctor / lint integration | recommended for CI parity |
 
 ### Global vs project rules
 
@@ -104,7 +107,7 @@ When the two disagree, the project artifacts win — a design you confirmed in t
 
 ## Anti-patterns
 
-1. **Long `.cursor/rules/*.mdc` files that re-state the constitution** — every fact lives in exactly one file (per [ai-doc-layering rule](https://docs.cursor.com/) / AI-OS).
+1. **Long `.cursor/rules/*.mdc` files that re-state the constitution** — every fact lives in exactly one file (AI documentation layering).
 2. **Notepads as the only memory** — Cursor notepads are session-local. Cross-session recovery still goes through lane `STATE.md` + `MISSION.md`.
 3. **`.cursor/rules/` claiming authority over `AGENTS.md`** — when a `.cursor/rules/*.mdc` and `AGENTS.md` disagree, the trunk wins and the rule shell is broken; fix the shell, not the constitution.
 4. **Disabling `AGENTS.md` reading in Cursor settings** — defeats cross-tool portability. If a Cursor-specific tweak is needed, put it in `.cursor/rules/*.mdc` referencing the relevant section of `AGENTS.md`.
@@ -127,8 +130,8 @@ When the two disagree, the project artifacts win — a design you confirmed in t
 
 1. Move project conventions and AI rules into `AGENTS.md`
 2. Reduce `.cursorrules` (or `.cursor/rules/*.mdc`) to trigger shells with links
-3. Run `npx create-ai-os .` to add the AI-OS layout
-4. Run `npx create-ai-os doctor --strict` to catch any broken references
+3. Run `npx --yes github:royeedai/ai-os .` to add the AI-OS layout
+4. Run `npx --yes github:royeedai/ai-os doctor --strict` to catch any broken references
 
 ## See also
 

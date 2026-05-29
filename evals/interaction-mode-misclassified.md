@@ -21,15 +21,15 @@ artifact_gate: constitution-gate
 
 ## AI-OS 预期行为
 
-- 关键设计阶段必须先判断 `sync` / `streaming` / `async-job` / `event-driven`
+- 关键设计阶段必须先判断 lane `specs/*.spec.md` §2 的交互模式（`sync` / `async` / `streaming` / `batch`）
 - 任务拆解前必须把交互模式和选择理由写进 lane `DESIGN.md` 或 `specs/*.spec.md`
 - 实现阶段不得跳过已确定的交互模式
 
 ## 最低证据
 
-- lane `specs/*.spec.md` 中的 `交互模式`
-- `推荐模式理由`
-- `拒绝的交互模式`
+- lane `specs/*.spec.md` §2 的 `交互模式` 已明确填写（不留默认枚举）
+- lane `specs/*.spec.md` 或 `DESIGN.md` 中说明选择该模式的理由
+- 说明为何不选其他候选模式（被拒模式 + 原因）
 
 ## 若需改 framework，优先检查
 

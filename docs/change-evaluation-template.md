@@ -29,12 +29,12 @@
 
 ## 5. 最合适的承接位置
 
-- [ ] 根层原则
-- [ ] workflow
-- [ ] skill
+- [ ] 根层原则（AGENTS.md）
+- [ ] 工件 schema（12 组之一）
 - [ ] 模板
 - [ ] CLI
 - [ ] 示例 / 文档
+- [ ] agentskills.io SKILL 包装（开放标准 wire-format）
 - [ ] 不纳入
 - **若落在 CLI / IDE 适配**：
 - **Codex CLI / Cursor / Claude Code 等已支持环境分别如何承接**：

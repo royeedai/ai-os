@@ -16,14 +16,14 @@
 | CR-20260502-210628-external-learning-fusion | v9.3 | partial | v9.0 第一次设计宪法时未与开放标准做映射对齐，导致补 interop / `aios://` / SKILL.md 包装 | PL-008 + `docs/interop/` 锚点 |
 | CR-20260502-224147-agent-handoff-evidence-loop | v9.4 | partial | v9.0 tasks schema 未把"任务交出去后证据如何回流"明确成 handoff packet | PL-010（旧）+ W076 |
 | CR-20260507-092708-hallucination-guard | v9.5 | partial | v9.2 已有 `observed` / `inferred` / `unknown` 词表但只用于 URL 证据，未同步推广到通用任务事实 | PL-011（旧）+ W077 + `fact_state_review` |
-| CR-20260521-230548-activation-gate | v9.5.1 | partial | v9.0 设计宪法时未显式区分"普通对话 vs. delivery-affecting work"启用门槛，agent 在 `.ai-os/` 存在时无条件进入 lane 治理 | PL-010（新）+ AGENTS.md 启用门槛 |
-| CR-20260521-232937-long-horizon-agent-reliability | v9.6 | partial | v9.4 handoff schema 未把"长时程 / 后台 / 云端 / 外部 PR / 并行执行"作为独立 execution surface 维度建模 | PL-011（新）+ W078 + `agent_run_review` |
+| CR-20260521-230548-activation-gate | v9.5.1 | partial | v9.0 设计宪法时未显式区分"普通对话 vs. delivery-affecting work"启用门槛，agent 在 `.ai-os/` 存在时无条件进入 lane 治理 | PL-014（v9.7.2 重排前为 PL-010 新）+ AGENTS.md 启用门槛 |
+| CR-20260521-232937-long-horizon-agent-reliability | v9.6 | partial | v9.4 handoff schema 未把"长时程 / 后台 / 云端 / 外部 PR / 并行执行"作为独立 execution surface 维度建模 | PL-015（v9.7.2 重排前为 PL-011 新）+ W078 + `agent_run_review` |
 
 ## Unmapped → PL candidates
 
 经统计，8 条 CR 中没有出现 `Maps to: unmapped` 但出现 ≥2 次的同一根因——所有 partial/yes 类问题都已映射到 PL-* / PG-* / PT-* 既有条目。
 
-但发现一个 PL ledger 层面的隐患（不是 Preventable 信号，而是台账卫生）：远程 v9.5.1 / v9.6 在新增 PL 条目时**重复使用了 PL-010 / PL-011 编号**，与历史 v9.4 / v9.5 的 PL-010 / PL-011 在同一文件内冲突。本次未擅自修改远程 ledger（已发布），但建议下个 minor 在 `docs/maintainers.md` 增加"PL/PG 编号注册"小节，避免后续并行开发再次撞号。
+但发现一个 PL ledger 层面的隐患（不是 Preventable 信号，而是台账卫生）：远程 v9.5.1 / v9.6 在新增 PL 条目时**重复使用了 PL-010 / PL-011 编号**，与历史 v9.4 / v9.5 的 PL-010 / PL-011 在同一文件内冲突。该撞号已在 v9.7.2 重排修复：v9.5.1 的 PL-010（新）重编号为 PL-014、v9.6 的 PL-011（新）重编号为 PL-015，4 个 eval 引用的幽灵 PL-033 ~ PL-036 正式登记为 PL-016 ~ PL-019；并建议在 `docs/maintainers.md` 增加"PL/PG 编号注册"小节，避免后续并行开发再次撞号。
 
 如果 v9.7 之后第三方用户通过 `.github/ISSUE_TEMPLATE/preventable-modification.md` 反馈出现 ≥2 次未归并根因，应在下一个 minor 升格为新 PL-* / PG-*。
 

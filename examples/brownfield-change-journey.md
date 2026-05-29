@@ -15,7 +15,7 @@ The agent now reads `AGENTS.md` on every session.
 
 **You**: "Add CSV bulk import for the product catalog."
 
-**Agent behavior (per AGENTS.md §3, requirement-change rule)**:
+**Agent behavior (per AGENTS.md behavior rules — requirement change)**:
 
 1. Does NOT immediately start coding
 2. Creates `.ai-os/lanes/default/baseline-log/CR-20260422-141000-csv-bulk-import.md` with:
@@ -32,7 +32,7 @@ Per AGENTS.md §2, brownfield changes must audit shared infrastructure before im
 Agent:
 
 1. Scans the repo for request wrappers, response adapters, audit-log middleware, validation pipelines
-2. Writes findings into `.ai-os/lanes/default/DESIGN.md` §7 (shared-layer side-effects clause)
+2. Writes findings into `.ai-os/lanes/default/DESIGN.md` §6 (shared-infrastructure audit / side-effects clause)
 3. Identifies: "Your existing `ImportPipeline` already handles CSV for the customers module. Propose reusing it for products."
 4. Asks: "Reuse existing `ImportPipeline` or write a product-specific pipeline? Trade-offs listed."
 
@@ -45,7 +45,7 @@ Per AGENTS.md §2, reuse of shared abstractions requires parity check.
 Agent:
 
 1. Reads `ImportPipeline` source
-2. Writes to DESIGN §7: "Products schema differs from customers — has 'sku' (unique) and 'inventory' (non-null) that customers don't. Reuse is viable but requires a product-specific validator."
+2. Writes to DESIGN §6: "Products schema differs from customers — has 'sku' (unique) and 'inventory' (non-null) that customers don't. Reuse is viable but requires a product-specific validator."
 3. Confirms with you
 
 ## 4. Scoped build

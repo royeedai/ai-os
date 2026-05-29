@@ -6,7 +6,7 @@ Scenario: you need to migrate user accounts from a legacy auth system to a new i
 
 **You**: "We're switching from our legacy auth to Auth0. Migrate all 50k users."
 
-## 2. Agent detects high-risk (per AGENTS.md §4 + absolute rule #11)
+## 2. Agent detects high-risk (per AGENTS.md high-risk actions section + absolute rule #11)
 
 Hard triggers:
 
@@ -27,7 +27,7 @@ Agent automatically escalates governance to **high-risk tier**:
 
 Agent writes (and waits for your confirmation):
 
-**MISSION §5 (stable risks)**:
+**MISSION §6 (stable risks & external dependencies)**:
 
 - Failure to migrate = users locked out of accounts
 - Partial migration = some users in old system, some in new → split brain
@@ -66,16 +66,13 @@ Agent lists exactly which steps are "AI done" (writing migration code, writing t
 ```yaml
 failure_modes:
   - id: per-user-migration-partial
-    trigger: "User migration fails halfway (old system deleted, new system insert failed)"
-    guards:
-      - "Migration runs in DB transaction; rollback on any error"
-      - "Post-batch verification: diff old vs. new for every migrated user"
-      - "Escalation: pause if failure rate > 0.5%"
+    scenario: "User migration fails halfway (old system deleted, new system insert failed)"
+    expected: "Migration runs in a DB transaction and rolls back on any error; no user left split between systems"
+    guard: "Post-batch diff old vs. new for every migrated user; pause if failure rate > 0.5%"
   - id: pii-leak-during-export
-    trigger: "Encrypted export channel drops encryption"
-    guards:
-      - "TLS + at-rest encryption checked before each batch"
-      - "Audit log captures every export; security review post-migration"
+    scenario: "Encrypted export channel drops encryption"
+    expected: "Export stays encrypted in transit and at rest, with a full audit trail"
+    guard: "TLS + at-rest encryption checked before each batch; security review post-migration"
 ```
 
 ## 6. Build (wave by wave)
@@ -113,4 +110,4 @@ Human runs each batch. Between batches, AI analyzes the run's logs and flags ano
 - Treated code-state as full state (explicitly split code/data/runtime)
 - Allowed auto-advance between phases (each phase required human approval)
 
-This is the entire high-risk flow with no slash commands and no special workflow. `AGENTS.md` absolute rule #11 triggers it; the 12 artifacts carry the evidence.
+This is the entire high-risk flow with no slash commands and no special workflow. `AGENTS.md` high-risk actions section triggers it; the 12 artifacts carry the evidence.

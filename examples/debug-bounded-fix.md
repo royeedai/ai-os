@@ -8,7 +8,7 @@ Scenario: a dropdown in your admin panel shows no options. Users can't select a 
 
 ## 2. Agent applies AGENTS.md debug rule
 
-Per AGENTS.md §3 (bug-fix rule) and absolute rule #5 (no over-scope):
+Per AGENTS.md behavior rules (bug fix) and absolute rule #5 (no over-scope):
 
 1. Agent does NOT immediately open `CategoryDropdown.tsx` and "fix it"
 2. First writes:
@@ -29,7 +29,7 @@ Agent then runs `curl /api/categories` in the terminal (or asks you to) and find
 
 ## 3. Agent identifies scope
 
-1. This bug involves a **shared response wrapper** — per AGENTS.md §3 debug-rule, agent must trace the wrapper first, not patch locally
+1. This bug involves a **shared response wrapper** — per AGENTS.md behavior rules (bug fix) and core requirement §2, agent must trace the wrapper first, not patch locally
 2. Agent searches for other consumers of the wrapper: finds 4 other dropdowns and 2 pages using the same adapter
 3. Writes impact summary:
    - 5 components affected by the same wrapper mismatch
@@ -40,7 +40,7 @@ Agent then runs `curl /api/categories` in the terminal (or asks you to) and find
 
 ## 4. Agent flags this as P1, not P2
 
-Because the fix touches shared infrastructure (wrapper) and multiple modules, it's no longer a single-point P2 debug. Agent escalates to P1 and adds the wrapper contract registry to root `.ai-os/memory.md` (cross-layer contract § 8.1):
+Because the fix touches shared infrastructure (wrapper) and multiple modules, it's no longer a single-point P2 debug. Agent escalates to P1 and adds the wrapper contract registry to root `.ai-os/memory.md` (cross-layer contract §6.2 — Wire 类型契约):
 
 ```
 | Wire field | Defined in | Consumers | Change requires |
@@ -52,10 +52,10 @@ Because the fix touches shared infrastructure (wrapper) and multiple modules, it
 
 **You**: "Go with (B), update all frontend consumers."
 
-Agent writes a `change_scope` in `.ai-os/lanes/default/tasks.yaml`:
+Agent fills the `change_scope` field in `.ai-os/lanes/default/tasks.yaml`:
 
-- Only these 5 files will be edited
-- `out_of_scope_guard`: "Do not refactor, rename, or touch unrelated code"
+- `change_scope`: only these 5 files are in scope to edit
+- scope boundary recorded as "do not refactor, rename, or touch unrelated code"; any deviation goes to `deviation_log`
 
 ## 6. Verify
 
@@ -74,10 +74,9 @@ The wrapper name drift is a stable failure pattern. Agent adds to `.ai-os/lanes/
 ```yaml
 failure_modes:
   - id: wrapper-name-drift-items-vs-data
-    trigger: "Frontend consumes { data: T[] } when backend returns { items: T[] }"
-    guards:
-      - "CI runs a wire-contract check across all 5 consumer files"
-      - "memory.md §8.1 row must be updated before wrapper changes"
+    scenario: "Frontend consumes { data: T[] } when backend returns { items: T[] }"
+    expected: "All consumers of the wire wrapper move together; the mismatch is caught before merge"
+    guard: "CI wire-contract check across all 5 consumer files; memory.md §6.2 row updated before wrapper changes"
 ```
 
 Future agents reading AGENTS.md + lane `verification-matrix.yaml` will check this automatically.

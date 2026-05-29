@@ -36,11 +36,10 @@ layout in [`docs/artifacts.md`](mdc:docs/artifacts.md).
 
 This is a thin shell. Cursor's auto-loader still reads `AGENTS.md`; the rule just adds a glob trigger. Do not copy the constitution body here — drift risk.
 
-Optional: install the AI-OS skill for `.cursor/skills/`:
+Optional: load the AI-OS skill via the agentskills.io standard:
 
 ```bash
-mkdir -p .cursor/skills
-cp -R node_modules/create-ai-os/framework/skills/ai-os-delivery .cursor/skills/
+npx skills add github:royeedai/ai-os
 ```
 
 ## 2. Claude Code side: skill + thin stub
@@ -48,8 +47,7 @@ cp -R node_modules/create-ai-os/framework/skills/ai-os-delivery .cursor/skills/
 The default install already wrote a thin `CLAUDE.md` stub. To also load the constitution as a skill (Claude Code v0.7+):
 
 ```bash
-mkdir -p .claude/skills
-cp -R node_modules/create-ai-os/framework/skills/ai-os-delivery .claude/skills/
+npx skills add github:royeedai/ai-os
 ```
 
 When Claude Code starts, it pre-loads only the skill `name` + `description`. The body activates when the task description matches.
@@ -122,7 +120,7 @@ Day 2, you open Claude Code instead. Claude Code reads `STATE.md` first (per AGE
 
 - **Putting different rules in `CLAUDE.md` vs `AGENTS.md`**: drift becomes silent. Always link CLAUDE.md to AGENTS.md as a stub.
 - **Letting Cursor `notepads` replace `STATE.md`**: notepads are session-local. Cross-session recovery still goes through `STATE.md`.
-- **Running `/skill ai-os-delivery` in Claude Code while Cursor uses a different rule version**: keep one canonical AGENTS.md trunk; both surfaces should track the same content via reference.
+- **Loading a stale AI-OS skill copy in one tool while another tracks a newer AGENTS.md**: keep one canonical AGENTS.md trunk; both surfaces should track the same content via reference.
 - **Two CRs for the same change** because Cursor wrote one and Claude Code wrote another: the second tool to act should append to the existing CR (or write a `BL-` baseline that subsumes it), not write a parallel CR.
 
 ## 7. What each tool owns vs. what AI-OS owns

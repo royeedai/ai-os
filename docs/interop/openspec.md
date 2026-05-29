@@ -1,6 +1,6 @@
 # AI-OS × OpenSpec
 
-> [OpenSpec](https://github.com/Fission-AI/openspec) is an open-source spec-driven workflow that uses **delta markers** in markdown specs (`+++`, `---`, `~~~`) to record change proposals. AI-OS v9 `baseline-log/CR-*.md` covers the same need but as a full delivery-impact analysis. Both can coexist; the rule is "pick the spec format, AI-OS owns the delivery wrapper".
+> [OpenSpec](https://github.com/Fission-AI/openspec) is an open-source spec-driven workflow that uses **delta markers** in markdown specs (`+++`, `---`, `~~~`) to record change proposals. AI-OS v9 `.ai-os/lanes/default/baseline-log/CR-*.md` covers the same need but as a full delivery-impact analysis. Both can coexist; the rule is "pick the spec format, AI-OS owns the delivery wrapper".
 
 ## TL;DR
 
@@ -8,24 +8,24 @@
 |---|---|
 | OpenSpec for spec evolution, AI-OS for delivery governance | Mode A — OpenSpec deltas as the spec-source-of-truth |
 | Brownfield, OpenSpec only | Add AI-OS for change-management + verification + recovery |
-| Want a single delta history without delta markers | Use AI-OS `baseline-log/CR-*.md` only |
+| Want a single delta history without delta markers | Use AI-OS `.ai-os/lanes/default/baseline-log/CR-*.md` only |
 
 ## Conceptual mapping
 
 | OpenSpec concept | AI-OS equivalent | Notes |
 |---|---|---|
-| Spec markdown with delta markers | `lanes/default/specs/<name>.spec.md` | both are versioned text |
-| Delta proposal (`+++` block) | `baseline-log/CR-YYYYMMDD-HHMMSS-<slug>.md` | OpenSpec is in-place; AI-OS is a separate file |
-| Ratified spec | `MISSION.md` Section 4 references | once ratified, lane MISSION points to it |
-| Change discussion | `baseline-log/CR-*.md` impact-analysis sections | OpenSpec discusses inside the spec; AI-OS discusses inside the CR |
+| Spec markdown with delta markers | `.ai-os/lanes/default/specs/<name>.spec.md` | both are versioned text |
+| Delta proposal (`+++` block) | `.ai-os/lanes/default/baseline-log/CR-YYYYMMDD-HHMMSS-<slug>.md` | OpenSpec is in-place; AI-OS is a separate file |
+| Ratified spec | lane `.ai-os/lanes/default/MISSION.md` Section 4 references | once ratified, lane MISSION points to it |
+| Change discussion | `.ai-os/lanes/default/baseline-log/CR-*.md` impact-analysis sections | OpenSpec discusses inside the spec; AI-OS discusses inside the CR |
 | OpenSpec CLI commands | n/a | execution layer; AI-OS does not duplicate |
 
 ## Mode A: OpenSpec for spec evolution, AI-OS for delivery wrap
 
 This is the recommended pairing.
 
-1. Spec authoring & evolution: OpenSpec deltas inside `specs/<name>.spec.md`
-2. Each delta merge → write a brief `baseline-log/CR-*.md` referencing the merged delta:
+1. Spec authoring & evolution: OpenSpec deltas inside their own `specs/<name>.spec.md`
+2. Each delta merge → write a brief `.ai-os/lanes/default/baseline-log/CR-*.md` referencing the merged delta:
 
    ```markdown
    # CR: photo tagging
@@ -44,8 +44,8 @@ The delta markers are the source of truth for **what** changed. The CR is the so
 For teams that prefer one log instead of inline delta markers:
 
 1. Keep specs as plain markdown without delta markers
-2. Track every change as an AI-OS `baseline-log/CR-*.md`
-3. Run `npx create-ai-os doctor` to surface W070 (orphan baseline references) and W072 (AC not covered in matrix)
+2. Track every change as an AI-OS `.ai-os/lanes/default/baseline-log/CR-*.md`
+3. Run `npx --yes github:royeedai/ai-os doctor .` to surface W070 (orphan baseline references) and W072 (AC not covered in matrix)
 
 This is essentially what AI-OS does on its own; OpenSpec adds nothing here.
 
@@ -53,8 +53,8 @@ This is essentially what AI-OS does on its own; OpenSpec adds nothing here.
 
 | OpenSpec file | AI-OS artifact | Coexistence rule |
 |---|---|---|
-| `specs/<name>.spec.md` (with deltas) | `lanes/default/specs/<name>.spec.md` | one location wins. If you keep OpenSpec under `specs/`, leave the AI-OS lane `specs/` empty and reference outward |
-| OpenSpec proposals (PR description / issue) | `lanes/default/baseline-log/CR-*.md` | one CR per merged delta is the cleanest pairing |
+| `specs/<name>.spec.md` (with deltas) | `.ai-os/lanes/default/specs/<name>.spec.md` | one location wins. If you keep OpenSpec under its own `specs/`, leave the AI-OS lane `specs/` empty and reference outward |
+| OpenSpec proposals (PR description / issue) | `.ai-os/lanes/default/baseline-log/CR-*.md` | one CR per merged delta is the cleanest pairing |
 | OpenSpec CLI lock | n/a | execution layer |
 
 ## Anti-patterns
@@ -86,17 +86,17 @@ If the project currently uses only OpenSpec:
    npx --yes github:royeedai/ai-os .
    ```
 
-2. Edit `lanes/default/MISSION.md` Section 4 to reference your OpenSpec specs:
+2. Edit `.ai-os/lanes/default/MISSION.md` Section 4 to reference your OpenSpec specs:
 
    ```markdown
    ### Range internally
 
    - Source-of-truth: `specs/photos.spec.md` (OpenSpec)
-   - Local contracts (in this lane): `lanes/default/specs/local-cache.spec.md`
+   - Local contracts (in this lane): `.ai-os/lanes/default/specs/local-cache.spec.md`
    ```
 
-3. For every future change, write `baseline-log/CR-*.md` referencing the OpenSpec delta or commit
-4. Add `npx create-ai-os doctor` to CI
+3. For every future change, write `.ai-os/lanes/default/baseline-log/CR-*.md` referencing the OpenSpec delta or commit
+4. Add `npx --yes github:royeedai/ai-os doctor .` to CI
 
 ## See also
 

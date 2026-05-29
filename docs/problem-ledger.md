@@ -43,7 +43,7 @@
 
 - **场景**：项目同时引入 Spec-Kit、AI-OS、Cursor rules、Kiro steering、OpenSpec 等多套工件，每套都自称"真理源"，导致需求 / 设计 / 变更记录在多处独立漂移
 - **AI-OS 必须保证**：每个工件类别只承认一个真理源；其他工具的工件以 reference 形式接入，不再独立维护同语义内容
-- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/kiro.md`、`docs/interop/openspec.md`、`docs/interop/a2a.md`、`docs/interop/memory-tool.md`、`docs/interop/bmad.md`、`AGENTS.md`（绝对禁止 §13）
+- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/kiro.md`、`docs/interop/openspec.md`、`docs/interop/a2a.md`、`docs/interop/memory-tool.md`、`docs/interop/bmad.md`、`AGENTS.md`（更多 → docs/interop/）
 
 ### PL-009 反复全量加载工件，浪费 session context
 
@@ -55,7 +55,7 @@
 
 - **场景**：AI-OS 把任务 handoff 给 Cursor agent / Claude Code / 本地 runner 执行，执行端完成代码后没有把测试输出、原生静态校验、影响清单等证据写回 lane 工件，导致仓库内只看到代码而看不到完成证据
 - **AI-OS 必须保证**：`tasks.yaml` 在 done / verified / shipped 之前必须有 `acceptance_refs`、`evidence_required`、handoff `context_refs` / `expected_return` 与 `evidence_produced`
-- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口、绝对禁止 §12）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.5）
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.5）
 
 ### PL-011 agent 把推断 / 未观察的信息当事实进入实现或交付
 
@@ -63,13 +63,13 @@
 - **AI-OS 必须保证**：`tasks.yaml` `fact_state_review` 必须把每条事实标为 `observed` / `confirmed` / `inferred` / `unknown`；`inferred` 必须留 assumptions，`unknown` 必须进入待确认或非目标，closed 任务不得保留未解决 `inferred` / `unknown`
 - **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.6）
 
-### PL-010 非交付对话误触发治理
+### PL-014 非交付对话误触发治理
 
 - **场景**：用户只是想先聊需求、解释代码、比较方案、问工具用法、运行临时命令或处理非仓库任务，但 agent 因仓库存在 `.ai-os/` 自动进入 debug / plan / verification，读取 lane 工件甚至写入 `MISSION.md` / `DESIGN.md` / `tasks.yaml`
 - **AI-OS 必须保证**：先经过 Activation Gate；只有 delivery-affecting work 才启用 AI-OS artifact governance，普通对话不得读写 lane 工件
 - **当前覆盖锚点**：`AGENTS.md`（启用门槛）、`README.md`（How agents use AI-OS）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`examples/non-delivery-discussion.md`、`test/docs.test.js`
 
-### PL-011 长时程 / 后台 agent 交付回收不可审查
+### PL-015 长时程 / 后台 agent 交付回收不可审查
 
 - **场景**：agent 把任务交给后台、云端、外部 PR agent 或并行 subagent 后，只拿到一句“完成了”或一个 diff；缺 branch / PR / session refs、写入范围、测试证据、人工审查和 unresolved risks 记录，导致无法判断是否可接受
 - **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
@@ -87,6 +87,30 @@
 - **AI-OS 必须保证**：开发者级记忆（第 4 层，按本机 OS 用户 / home 目录识别）属于各 agent shell 的 global rules，AI-OS 不自造第二真理源、不引入 identity / 登录态 / 云端；项目级记忆（第 2/3 层）留在 `.ai-os/`，冲突时项目工件赢；跨机同步个人偏好走 dotfiles 而非 AI-OS
 - **当前覆盖锚点**：`docs/interop/developer-memory.md`、`docs/interop/memory-tool.md`、`docs/interop/cursor.md`、`docs/interop/claude-code.md`、`PROJECT_PURPOSE.md`（§3.5）、`AGENTS.md`（绝对禁止 §10、§13）
 
+### PL-016 隐式跨层契约未显式登记，各 session 各自脑补
+
+- **场景**：全栈项目存在 HTTP↔业务码语义映射、Long/UUID/枚举的 wire 格式、名单型常量反向真理源、敏感字段加解密/打码 service 语义档位、查询引擎方言等"看不见的跨层假设"，全靠口头约定维持，AI 在不同 session、不同模块各自脑补一份合理但不一致的实现
+- **AI-OS 必须保证**：跨层任务前必须先核对 `.ai-os/memory.md` 跨层契约登记表；本轮引入新的跨层隐式契约必须同步登记，未登记不得进入任务拆解；验证阶段把"实现与登记表一致"作为通过条件。framework 只规定"必须显式登记"，不硬编码项目特定决策
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2、行为规则 §关键设计未锁 / §验证阶段）、`framework/.agents/templates/shared-root/memory.md`（§6 跨层契约登记表）、`framework/.agents/templates/lane/DESIGN.md`、`evals/implicit-cross-layer-contract-undocumented.md`
+
+### PL-017 弱类型洞擦除契约
+
+- **场景**：契约承载在字符串 / Map / 自由对象 / 弱类型字段 / 库隐式默认值上（`@RequestBody Map`、裸字符串动词、前端自由 reactive 字段、笼统 `catch (Exception)` + 业务码包装、承载 19 位 ID 的默认 max 控件等），导致字段名降级、静默丢弃、精度夹断、错误吞没
+- **AI-OS 必须保证**：验证阶段把通用弱类型反模式扫描作为实现质量门硬检查项，命中即视为未通过；项目特定的具体类型 / 控件 / 异常基类选择留给项目 `.ai-os/memory.md`，框架只锁定通用反模式禁令
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §4、行为规则 §验证阶段）、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/shared-root/memory.md`（§2 工程约束 / §5 技术债追踪）、`evals/weak-type-hole-erodes-contract.md`
+
+### PL-018 单点接口合格不等于端到端 journey 闭环
+
+- **场景**：跨栈 user journey 被拆成前端 / 后端两个任务各自只验半边；接口存在却无调用方、响应体字段不匹配、method / 参数 / 响应三重不一致、列容量不足，导致整条 journey 走不通
+- **AI-OS 必须保证**：关键设计阶段在 `DESIGN.md` 锁定核心交互与状态流转的端到端链路（途经接口 / 关键消费点 / 字段映射）；跨栈链路必须由独立任务承担端到端验证，归整条链路 owner；验证阶段以真实跑通端到端路径作为通过条件，不能用单点接口合格代替
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2、行为规则 §任务拆解 / §验证阶段）、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/verification-matrix.yaml`、`evals/e2e-journey-broken-by-single-point-pass.md`
+
+### PL-019 跨模块同型缺陷只修单点，不升级全仓扫描
+
+- **场景**：debug 发现的 bug 根因是跨模块都成立的模式问题（实体继承但表无列、Long ID 精度丢失、笼统 catch、横切 bean 重复声明等），却按"单点修"推进，全仓审计搜索范围被采样性收缩，同型缺陷散落各模块未被一次扫清
+- **AI-OS 必须保证**：修复 bug 的模式分析必须包含跨模块同型缺陷扫描，搜索范围覆盖所有模块、不得采样收缩；命中同型缺陷必须按"稳定失败模式"升格规则升级治理档位并产出全仓扫描结论
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §修复 bug、五条核心要求 §3、§稳定失败模式升格规则）、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`evals/cross-module-same-defect-not-escalated.md`
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试
@@ -98,5 +122,6 @@
 - v8 root-only 默认布局叙事
 - 已删除的示例、lane CLI、status / resume / validate / gate / release-check 等旧命令锚点
 - 已移除的 `.ai-os/CONVENTIONS.md`、`.ai-os/project.md`、`acceptance.yaml` 直连锚点
+- v7 台账的 PL-033 ~ PL-036 等历史编号已在 v9.7.2 以新语义正式登记为 PL-016 ~ PL-019；`CHANGELOG-archive.md` 中的历史 PL 编号与当前台账不复用、不冲突
 
 这些历史锚点只用于迁移理解，不再视为“当前覆盖”。

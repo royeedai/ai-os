@@ -10,6 +10,41 @@ This file only tracks v8 and v9 releases (the supported lines as of v9.7). For v
 
 ---
 
+## 9.7.2 (2026-05-29) — Consistency cleanup & numbering repair
+
+**Patch, docs/artifact-only, fully backward compatible**. No CLI behavior, schema, or `AGENTS.md` rule change. v9.7.2 is a repository-wide consistency pass: it repairs the problem-ledger numbering (PL-010 / PL-011 collisions and four orphaned eval references), aligns documentation paths and the doctor-range narration with the actual v9 layout and W078 scope, removes a stale legacy template directory, and re-grounds evals / examples / the SKILL wrapper on the current artifact schema. The three primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150 lines are all unchanged.
+
+### Fixed
+
+- **Problem-ledger numbering**: `PL-010` / `PL-011` were each registered twice (v9.4/v9.5 handoff & hallucination vs. v9.5.1/v9.6 activation gate & long-horizon). The second pair is renumbered to **PL-014** (non-delivery misactivation) and **PL-015** (long-horizon agent recovery). References in `CHANGELOG.md`, `test/docs.test.js`, and the self-hosted `baseline-log/` are synced.
+- **Orphaned eval references**: four evals referenced `PL-033`~`PL-036`, which only exist in the v7 archive. They are now formally registered as **PL-016**~**PL-019** (implicit cross-layer contract / weak-type hole / single-point-pass vs. end-to-end journey / cross-module defect escalation), and the evals are re-grounded on current v9 artifacts instead of removed legacy template fields.
+- **Wrong ledger anchors**: `PL-008` (had cited AGENTS.md 绝对禁止 §13) and `PL-010` (§12) now point at the correct sections.
+- **Doctor range narration**: `README.md`, `docs/interop/claude-code.md`, and `docs/interop/bmad.md` updated from `W070-W077` to `W070-W078` (W078 shipped in v9.6).
+- **Canonical paths**: `docs/migrate-to-v9.md` adds `design-pack/parity-map.md`; `docs/interop/openspec.md` / `spec-kit-coexistence.md` / `kiro.md` prefix AI-OS lane paths with `.ai-os/lanes/default/`; the `README.md` operations table separator is fixed to three columns.
+- **interop contradictions**: `developer-memory.md` "covers first three layers" vs. "Layer 1 not owned" contradiction resolved (now "Layers 2-3"), and its wrong `PROJECT_PURPOSE.md §5` citation corrected to §2; `cursor.md` hooks path (`.cursor/hooks.json`), skill-install command, broken `.cursor/rules/` link and command paths unified; `memory-tool.md` gains a four-layer mapping section.
+- **examples**: corrected `AGENTS.md §3/§4` mis-citations to the real behavior-rules / high-risk sections, fixed DESIGN/MISSION section numbers, replaced legacy task fields (`measurable_outcome` / `out_of_scope_guard` / `failure_modes` plural keys) with the current `tasks.yaml` / `verification-matrix.yaml` schema, and added the root `.ai-os/MISSION.md` step in greenfield.
+
+### Changed
+
+- `framework/skills/ai-os-delivery/SKILL.md` behavior routing now covers the v9.7 CR `## Preventability review` and lane retrospective aggregation.
+- `docs/change-evaluation-template.md` drops the v7 `workflow` / `skill` landing options in favor of `工件 schema` and the `agentskills.io` SKILL wrapper.
+- `docs/maintainers.md` splits the minor matrix (Activation Gate → v9.5.1, long-horizon → v9.6), adds v9.7.1, and drops a machine-absolute path.
+- VERSION / `package.json` / `package-lock.json` / `.ai-os/framework.toml` bumped to 9.7.2.
+
+### Removed
+
+- `framework/.agents/templates/project/` legacy directory (unused by the installer and tests; contained obsolete slash commands and a dead `derived-rules.md` reference).
+
+### Tests
+
+- `test/docs.test.js` PL assertions updated to PL-014 / PL-015; a SKILL Preventability-review assertion added. `npm test`: 1027 passed, 0 failed. doctor 0 error / 0 warning, eslint clean.
+
+### Migration
+
+None. Existing projects need no action; this release only repairs AI-OS's own docs / artifacts and registration numbering.
+
+---
+
 ## 9.7.1 (2026-05-29) — Developer-level memory layer docs
 
 **Patch, docs-only, fully backward compatible**. No framework / `AGENTS.md` / CLI / schema change. v9.7.1 clarifies where per-developer / per-machine memory belongs: each agent shell's home-directory global rules (Cursor user rules, `~/.claude/CLAUDE.md`, Codex global instructions), which AI-OS deliberately does **not** own. AI-OS keeps owning only the project-level layers (`.ai-os/`). The three primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150-line constraints are unchanged.
@@ -91,7 +126,7 @@ None required. The new section is opt-in:
 - Doctor semantic warning W078 for long-horizon agent work missing run refs, write scope, expected return, produced evidence, return packet, human review, or closing with unresolved risks.
 - `docs/interop/long-horizon-agents.md` covering Codex, Cursor Background Agents, GitHub Copilot cloud agent, Jules, and Claude Code subagents / hooks as tool-neutral execution surfaces.
 - `examples/background-agent-handoff.md` showing delegation, return review, and closure rules.
-- Problem-ledger entry PL-011 for background / cloud / PR agent work returning without reviewable evidence.
+- Problem-ledger entry PL-015 for background / cloud / PR agent work returning without reviewable evidence.
 
 ### Changed
 
@@ -119,7 +154,7 @@ None. Existing projects can adopt `agent_run_review` only for tasks that explici
 - Activation Gate in `AGENTS.md`: delivery-affecting work triggers AI-OS governance; ordinary discussion, brainstorming, explanation, temporary commands, and non-repo tasks do not.
 - Official `ai-os-delivery` skill wrapper now runs the Activation Gate before reading L1 lane artifacts.
 - `examples/non-delivery-discussion.md` showing discussion-only flow, the one clarification question, and explicit transition into delivery.
-- Problem-ledger entry PL-010 for non-delivery conversation misactivating AI-OS governance.
+- Problem-ledger entry PL-014 for non-delivery conversation misactivating AI-OS governance.
 
 ### Changed
 

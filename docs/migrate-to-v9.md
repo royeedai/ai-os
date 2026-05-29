@@ -40,6 +40,7 @@ npx --yes github:royeedai/ai-os upgrade .
       release-plan.md
       verification-matrix.yaml
       design-pack/
+        parity-map.md
       evals/
 ```
 

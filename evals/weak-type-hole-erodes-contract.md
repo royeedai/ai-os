@@ -11,20 +11,20 @@ artifact_gate: constitution-gate
 
 ## 场景
 
-一个全栈项目里契约承载在"字符串 / Map / 自由对象 / 弱类型字段 / 库的隐式默认值"上：`@RequestBody Map<String,?>` 接收请求体、前端 `axios.get(path)` 用裸字符串动词、前端 `reactive({code, status})` 自由声明 UI 字段、`catch (Exception)` + `BizException(50000, "xxx失败")` 笼统包装、`el-input-number` 默认 `max = MAX_SAFE_INTEGER` 承载 19 位 Snowflake ID、DTO 字段定义后从未被服务层读取、用户 SQL 输入末尾分号没人清洗。
+一个全栈项目里契约承载在“字符串 / Map / 自由对象 / 弱类型字段 / 库的隐式默认值”上：`@RequestBody Map<String,?>` 接收请求体、前端 `axios.get(path)` 用裸字符串动词、前端 `reactive({code, status})` 自由声明 UI 字段、`catch (Exception)` + `BizException(50000, "xxx失败")` 笼统包装、`el-input-number` 默认 `max = MAX_SAFE_INTEGER` 承载 19 位 Snowflake ID、DTO 字段定义后从未被服务层读取、用户 SQL 输入末尾分号没人清洗。
 
 ## 错误交付
 
 - 前端发 `{password: "..."}`，后端用 `body.get("newPassword")` 永远返回 `null`，`BCryptPasswordEncoder.encode(null)` 抛 NPE
 - 前端 PUT `/{id}/menus`，后端只有 `@PutMapping`，没有 `@GetMapping`，TS 层不校验 method × path 组合存在性，AI 修写入侧时漏掉读取侧
-- 前端 reactive 出 `code: "dj"` 字段，后端 DTO 没有 `code`，Jackson 静默丢弃，sys_org 表也没 code 列，"UI 自产字段"挂着无人发现
-- `catch (Exception e) { throw new BizException(50000, "数据源配置解析失败"); }` 把"用错 service / 加密串解析失败 / 字段打码"三层错误吞成一条模糊文案，下次 debug 翻倍排查成本
+- 前端 reactive 出 `code: "dj"` 字段，后端 DTO 没有 `code`，Jackson 静默丢弃，sys_org 表也没 code 列，“UI 自产字段”挂着无人发现
+- `catch (Exception e) { throw new BizException(50000, "数据源配置解析失败"); }` 把“用错 service / 加密串解析失败 / 字段打码”三层错误吞成一条模糊文案，下次 debug 翻倍排查成本
 - 用户在 `el-input-number` 粘贴 19 位 ID `1776694447112000000`，控件默认 `max = 9007199254740991` 静默夹断，回传后端 ID 错位
 - `ComponentDTO.id: Long` 字段从不被 service 读取（业务走先删后插），却因为类型约束阻断了前端用临时字符串 key 反序列化的请求
 
 ## AI-OS 预期行为
 
-- 验证阶段必须把"弱类型洞扫描"作为硬检查项，命中即视为实现质量门未通过：
+- 验证阶段必须把“弱类型洞扫描”作为硬检查项，命中即视为实现质量门未通过：
   - 禁止 `Map<String, ?>` / `JSONObject` / `dict` / 自由对象作为契约载体（仅透传 / 动态字段 / 第三方回调允许，需注释 + `.ai-os/memory.md` 技术债登记）
   - 禁止前端裸字符串动词无 method × path × DTO 四元组校验
   - 禁止 `catch (Exception)` + 笼统业务码包装不带 cause、不 log 堆栈
@@ -37,13 +37,13 @@ artifact_gate: constitution-gate
 
 ## 最低证据
 
-- 验证阶段产出物（lane `verification-matrix.yaml` failure_modes / 评审记录）中包含"弱类型洞扫描"逐项结论
+- 验证阶段产出物（lane `verification-matrix.yaml` failure_modes / 评审记录）中包含“弱类型洞扫描”逐项结论
 - 若存在豁免（如必须用 Map 透传第三方回调），代码注释 + lane `specs/*.spec.md` + `.ai-os/memory.md` 技术债条目同时存在
-- `.ai-os/memory.md` 中"禁止模式"节明确登记本项目的反模式选择
+- `.ai-os/memory.md` 以工程约束（§2）或技术债（§5）条目登记本项目选定的弱类型反模式禁令
 
 ## 若需改 framework，优先检查
 
-- `AGENTS.md`（五条核心要求 §4 证据化完成；行为规则节"验证阶段"）
-- `framework/.agents/templates/shared-root/memory.md`（禁止模式节）
+- `AGENTS.md`（五条核心要求 §4 证据化完成；行为规则节“验证阶段”）
+- `framework/.agents/templates/shared-root/memory.md`（§2 工程约束 / §5 技术债追踪节）
 - `framework/.agents/templates/lane/verification-matrix.yaml`
-- `docs/problem-ledger.md`（PL-034）
+- `docs/problem-ledger.md`（PL-017）

@@ -89,7 +89,7 @@ Keep project facts (stable decisions, conventions, cross-layer contracts) in `.a
 
 ## Doctor as cross-IDE deterministic guard
 
-Claude Code hooks (especially [deterministic command hooks](https://platform.claude.com/docs/en/agent-sdk/hooks)) are the recommended way to enforce safety boundaries because prompts are advisory and only ~70% reliable in practice (per [RFC #45427](https://github.com/anthropics/claude-code/issues/45427) and the 2026 hooks-vs-prompts consensus). AI-OS `doctor --strict` is the **cross-IDE equivalent**: the same warnings (W070-W077) that Claude Code can wrap as a `pre-tool-use` hook also run as a one-line shell command in Cursor's `hooks.json`, in `lefthook` / `pre-commit`, in GitHub Actions, or simply as a manual check.
+Claude Code hooks (especially [deterministic command hooks](https://platform.claude.com/docs/en/agent-sdk/hooks)) are the recommended way to enforce safety boundaries because prompts are advisory and only ~70% reliable in practice (per [RFC #45427](https://github.com/anthropics/claude-code/issues/45427) and the 2026 hooks-vs-prompts consensus). AI-OS `doctor --strict` is the **cross-IDE equivalent**: the same warnings (W070-W078) that Claude Code can wrap as a `pre-tool-use` hook also run as a one-line shell command in Cursor's `hooks.json`, in `lefthook` / `pre-commit`, in GitHub Actions, or simply as a manual check.
 
 | Surface | Setup |
 |---|---|

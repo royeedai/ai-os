@@ -24,14 +24,14 @@ artifact_gate: constitution-gate
 
 ## AI-OS 预期行为
 
-- 项目级 `.ai-os/memory.md` 必须保留"跨层契约登记表"专章，至少覆盖 HTTP↔业务码↔客户端行为映射、Wire 类型契约、名单型常量反向真理源、敏感数据 service 方法语义档位、中间件/查询引擎方言契约五个子节
+- 项目级 `.ai-os/memory.md` 必须保留"跨层契约登记表"专章，至少覆盖 HTTP↔业务码↔客户端行为映射、Wire 类型契约、名单型常量反向真理源、敏感数据 service 方法语义档位、中间件/查询引擎方言契约等子节（模板含 HTTP↔业务码、Wire 类型两类起步子表，其余按项目实际涉及的契约类型扩展）
 - 关键设计阶段在跨层任务前置必须先核对该登记表；本轮引入新的跨层隐式契约（如新查询引擎、新名单型常量、新跨语言精度损失字段类型）必须同步追加条目，未登记不得进入任务拆解
 - 验证阶段必须把"实现是否与登记表一致"作为通过条件，登记表与实现不一致即视为实现质量门未通过
 - framework 只规定"必须显式登记"，不硬编码项目特定决策（如必须 Long→String、必须用反引号）
 
 ## 最低证据
 
-- `.ai-os/memory.md` 跨层契约登记表五节存在且非空
+- `.ai-os/memory.md` 跨层契约登记表存在，且覆盖本轮触及的跨层契约类型（至少 HTTP↔业务码映射与 Wire 类型契约）
 - lane `DESIGN.md` 中显式声明本轮触及的登记项，或显式声明本轮引入了新登记项
 - 验证阶段输出中包含"跨层契约登记表 vs 实现"的逐项对照结论
 - 若涉及名单型常量，提供启动期反向自检结论（如反射扫描所有 `@TableName` 实体对照 `IGNORE_TABLES`）
@@ -42,4 +42,4 @@ artifact_gate: constitution-gate
 - `framework/.agents/templates/shared-root/memory.md`
 - `framework/.agents/templates/lane/DESIGN.md`
 - `framework/.agents/templates/lane/verification-matrix.yaml`
-- `docs/problem-ledger.md`（PL-033）
+- `docs/problem-ledger.md`（PL-016）

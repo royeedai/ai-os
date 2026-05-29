@@ -68,7 +68,7 @@ See [../getting-started.md](../getting-started.md).
 ## Anti-patterns (avoid)
 
 1. **Two parallel requirement sources-of-truth**
-   - Same requirement tracked in both `.specify/specs/<id>/spec.md` and `.ai-os/specs/*.spec.md`, each evolving independently
+   - Same requirement tracked in both `.specify/specs/<id>/spec.md` and `.ai-os/lanes/default/specs/*.spec.md`, each evolving independently
    - Drift is inevitable
    - Fix: pick one, reference from the other
 
