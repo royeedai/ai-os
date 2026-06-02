@@ -12,7 +12,7 @@ alwaysApply: true
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
 - 当前版本：9.7.3（VERSION + package.json + `.ai-os/framework.toml` 同步）
-- 最新 git tag：v9.6.0（Long-Horizon Agent Reliability + Activation Gate）。已落 commit 待按需补 tag：v9.7.0（framework feedback loop：CR `## Preventability review` + 闭关 retrospective + doctor W079a/W079b INFO + PL-012）、v9.7.1（developer-level memory interop + PL-013）、v9.7.2（仓库级一致性修复：PL 撞号重排为 PL-014/PL-015、幽灵 PL-033~036 正式登记为 PL-016~019、路径/W078/节号/legacy 清理）、v9.7.3（8 项 CLI 缺陷修复：upgrade 不再误删 .cursor、W010 阈值 150、approval_required 布尔、移除 --force-framework、W074 识别 quality_tier、doctor 文案、.gitignore 补全、cli.md 附录）。历史 tag：v9.5.2、v9.5.1、v9.5.0、v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)。v9.0/v9.2/v9.3 当时未单独打 tag
+- 最新 git tag：v9.7.3（8 项 CLI 缺陷修复：upgrade 不再误删 .cursor、W010 阈值 150、approval_required 布尔、移除 --force-framework、W074 识别 quality_tier、doctor 文案、.gitignore 补全、cli.md 附录）。近期已打 tag：v9.7.2（仓库级一致性修复：PL 撞号重排为 PL-014/PL-015、幽灵 PL-033~036 正式登记为 PL-016~019、路径/W078/节号/legacy 清理）、v9.7.1（developer-level memory interop + PL-013）、v9.7.0（framework feedback loop：CR `## Preventability review` + 闭关 retrospective + doctor W079a/W079b INFO + PL-012）。历史 tag：v9.6.0、v9.5.2、v9.5.1、v9.5.0、v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)。v9.0/v9.2/v9.3 当时未单独打 tag
 - 归档 tag：v7-legacy（指向 v7.4.0，用户可 `git checkout v7-legacy` 回退）
 - 分支：main
 - CI：.github/workflows/ci.yml（push/PR 触发 lint + test on Node 18/20/22）
