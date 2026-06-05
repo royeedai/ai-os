@@ -25,15 +25,16 @@
 | v9.0 | Default lane reset | shared root + `lanes/default/`；upgrade 路径覆盖 v7 legacy / v8 root-only / v8 hybrid |
 | v9.1 | Open standards alignment | `agentskills.io` SKILL 包装、`aios://` MCP URI、CLAUDE/GEMINI ≤10 行 stub、doctor W070-W072 |
 | v9.2 | URL reverse-spec intake | `docs/reverse-spec-url-intake.md`、`design-pack/parity-map.md`、API observation records |
-| v9.3 | External learning fusion | `specs/bugfix.spec.md`、URL evidence package matrix、MCP resource annotation、eval taxonomy frontmatter、W073-W075 |
+| v9.3 | External learning fusion | `specs/bugfix.spec.md`、URL evidence package matrix、MCP resource annotation、eval taxonomy frontmatter |
 | v9.4 | Agent handoff + evidence loop | `tasks.yaml` `handoff_to` / `context_refs` / `expected_return` / `evidence_produced` / `deviation_log`、W076 |
 | v9.5 | Hallucination guard | `tasks.yaml` `fact_state_review`（`observed` / `confirmed` / `inferred` / `unknown`）、W077 |
 | v9.5.1 | Activation Gate | AI-OS 工件治理只在 delivery-affecting work 启用；普通对话不读写 lane 工件 |
-| v9.6 | Long-horizon agent reliability loop | `agent_run_review`、`docs/interop/long-horizon-agents.md`、doctor W078（warning） |
-| v9.7 | Framework feedback loop | CR `## Preventability review`、lane 关闭 retrospective baseline-log、doctor W079a/W079b（INFO，仅提示） |
-| v9.7.1 | Developer-level memory interop（patch） | `docs/interop/developer-memory.md`、四层记忆模型、PL-013 |
+| v9.6 | Long-horizon agent reliability loop | `agent_run_review`、`docs/interop/standards-map.md`、doctor W078（warning） |
+| v9.7 | Framework feedback loop | CR `## Preventability review`、lane 关闭 retrospective baseline-log |
+| v9.7.1 | Developer-level memory interop（patch） | 四层记忆模型、PL-013（并入 standards-map） |
+| v9.8 | Content slimming（GPT-5.5 / Opus 4.8 世代） | interop 收敛、spec 去重、移除 W073/W075/W079 软检查、叙事更新 |
 
-每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（warning-only，可由 `doctor --strict` 升级为 error；v9.7 W079 为 INFO，--strict 不升级）。
+每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。
 
 ## 发布前检查清单（公开口径）
 
@@ -101,7 +102,7 @@ AI-OS 的迭代输入来自"用户在第一次开发后提出的修改中，哪�
 
 1. 每条 CR 关闭前由 AI 或用户补 `## Preventability review`（schema 见 `framework/.agents/templates/lane/baseline-log/BL-template.md` 与 `docs/artifacts.md`）。
 2. lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective.md`，聚合本 lane 内所有 `Preventability review`。
-3. `doctor` 用 W079a / W079b（INFO 级，--strict 不升级）提示遗漏；不强制，不打断工作流。
+3. v9.8+ 起不再用 doctor 提示 Preventability review 遗漏；靠模板 schema + maintainer `git grep` 复盘。
 
 ### dogfooding 通道（主路径）
 

@@ -226,12 +226,7 @@ AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改
   - `Suggested guard`：建议在框架内落点（AGENTS / 工件 / doctor / docs）
 - lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective*.md`，聚合本 lane 全部 Preventability findings、`unmapped` 高频根因与建议的 framework changes。
 
-`doctor` 用 W079a / W079b（**info 级**，--strict 不升级）做轻量提示：
-
-- W079a：lane 内存在 `CR-*.md` 但缺 `## Preventability review` 段落
-- W079b：lane `status = "closed"` 但 baseline-log 下没有 retrospective 文件
-
-数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。
+数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节（`git grep` + 可选 `framework-feedback` issue）；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。v9.8+ 起不再用 doctor 软检查提示 Preventability review — 由模板 schema 与 maintainer 复盘承载。
 
 ### 加载顺序约定
 

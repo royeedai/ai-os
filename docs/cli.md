@@ -55,23 +55,14 @@ In addition to layout health, doctor emits warnings when artifacts drift apart i
 - **W070** — lane `MISSION.md` references a `当前基线 ID` that has no matching file in `baseline-log/`
 - **W071** — `tasks.yaml` has tasks under the top-level `tasks:` block without an `owner` field
 - **W072** — each non-placeholder AC in `DESIGN.md` must be referenced in `verification-matrix.yaml`
-- **W073** — each `CR-*` baseline record should include Current behavior, Proposed delta, Affected artifacts, Acceptance delta, and Close/archive condition
 - **W074** — high-risk lanes or tasks must have populated `risk-register.md`, `release-plan.md`, and a real verification guard
-- **W075** — URL reverse-spec evidence rows must include `observed` / `inferred` / `unknown` confidence
 - **W076** — task handoff / evidence loops should include `acceptance_refs`, `evidence_required`, handoff `context_refs` / `expected_return`, and produced evidence before `done` / `verified` / `shipped`
 - **W077** — tasks in execution / completion should include `fact_state_review`, and closed tasks must not retain unresolved `inferred` / `unknown` entries
 - **W078** — long-horizon / background / external / parallel agent work should include `agent_run_review` run refs, write scope, expected return, produced evidence, return packet, human review, and no unresolved risks before closure
 
 These are skipped on a clean default install (template placeholders are detected and ignored).
 
-### Info-level framework feedback guidance (v9.7+)
-
-The following are **info-level** guidance only. They print under `INFO` instead of `WARN`, and `--strict` does **not** upgrade them to errors. They are reminders for the AI-OS framework feedback loop and never block a workflow.
-
-- **W079a** — `CR-*.md` baseline records exist but at least one is missing a `## Preventability review` section. Adding the section is recommended before closing the CR so that maintainers can later `git grep` for preventable modifications.
-- **W079b** — `lane.toml` reports `status = "closed"` but no `BL-*-retrospective*.md` is present in `baseline-log/`. Aggregating Preventability findings before archiving the lane is recommended.
-
-Both rules exist to feed the Framework feedback loop documented in `docs/maintainers.md` (Framework feedback 复盘) and `docs/artifacts.md` (Framework Feedback Loop section).
+CR delta lifecycle fields, URL evidence confidence, and Framework feedback `## Preventability review` are carried by artifact templates and `AGENTS.md` behavior rules — not doctor soft checks (removed in v9.8 as redundant with stronger frontier models). Maintainer aggregation: `docs/maintainers.md` (Framework feedback 复盘).
 
 ### Options
 
@@ -85,7 +76,7 @@ Both rules exist to feed the Framework feedback loop documented in `docs/maintai
 - `layout_version`
 - `layout_mode`
 - `issues[]`
-- `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W078 semantic warning codes (v9.7 info-level W079a / W079b are excluded; they live in `issues[]` only)
+- `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W078 semantic warning codes
 
 ## `create-ai-os upgrade [target-dir]`
 

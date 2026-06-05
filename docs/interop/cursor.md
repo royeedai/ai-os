@@ -83,7 +83,7 @@ Cursor 2.0 (October 2025) introduced cloud agents; 2.4 (January 2026) added suba
 
 Cursor's cloud agent PR is the natural carrier for `evidence_produced` — the agent's PR can attach test logs / screenshots / video, which AI-OS lane reviewers copy or reference under `evidence_produced`. **W076** (introduced in v9.4) catches "PR merged but `evidence_produced` empty" before the lane task can be closed.
 
-For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, Devin, custom A2A executors), see [a2a.md](a2a.md) — the same handoff fields map onto the open A2A wire format.
+For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, Devin, custom A2A executors), see [standards-map.md](standards-map.md) — the same handoff fields map onto the open A2A wire format.
 
 ## Artifact coexistence
 
@@ -91,7 +91,7 @@ For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, De
 |---|---|---|
 | `AGENTS.md` (root) | constitution | trunk; never duplicated elsewhere |
 | `.cursor/rules/*.mdc` (in repo) | trigger shells | 1–3 lines, link only |
-| `~/.cursor/rules/*.mdc` + user rules (global, home dir) | n/a — developer-level memory | per-developer / per-machine preferences; never enters project git. See [developer-memory.md](developer-memory.md) |
+| `~/.cursor/rules/*.mdc` + user rules (global, home dir) | n/a — developer-level memory | per-developer / per-machine preferences; never enters project git. See [standards-map.md](standards-map.md) |
 | `.cursor/skills/ai-os-delivery/SKILL.md` | open-format wrapper | mirrors AGENTS.md rules per `agentskills.io` |
 | `.cursor/notepads/` | session scratchpad | does not replace `STATE.md`; both exist |
 | `.cursor/hooks.json` | doctor / lint integration | recommended for CI parity |
@@ -100,7 +100,7 @@ For inter-agent delegation across non-Cursor runtimes (Claude Managed Agents, De
 
 Cursor has two distinct rule scopes, and AI-OS only governs the project one:
 
-- **Global** (Cursor user rules + `~/.cursor/rules/*.mdc` under your home dir): "how *I* work" — language / toolchain / style / communication preferences. They follow your OS user across every repo and never enter any project's git. This is the developer-level memory layer; AI-OS does not own it (see [developer-memory.md](developer-memory.md)).
+- **Global** (Cursor user rules + `~/.cursor/rules/*.mdc` under your home dir): "how *I* work" — language / toolchain / style / communication preferences. They follow your OS user across every repo and never enter any project's git. This is the developer-level memory layer; AI-OS does not own it (see [standards-map.md](standards-map.md)).
 - **Project** (`.cursor/rules/*.mdc` inside the repo): thin trigger shells that link back to `AGENTS.md` and `.ai-os/`. They enter the repo's git and are shared with every contributor.
 
 When the two disagree, the project artifacts win — a design you confirmed in the lane outranks your personal default.
@@ -138,4 +138,4 @@ When the two disagree, the project artifacts win — a design you confirmed in t
 - [AI-OS skill source](../../framework/skills/ai-os-delivery/SKILL.md)
 - [MCP resources URI scheme](mcp-resources.md)
 - [Claude Code coexistence](claude-code.md) for repos using both
-- [developer-memory.md](developer-memory.md) for the global (per-developer) vs project rule split
+- [standards-map.md](standards-map.md) for developer-global memory (Layer 4) vs project rule split

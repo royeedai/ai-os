@@ -18,7 +18,7 @@
 |---|---|---|---|---|---|
 | README | 给用户建立长时程 agent 回收心智 | background / cloud / PR agent row、no runtime boundary | 说明只记录审查，不执行任务 | yes | confirmed |
 | `docs/artifacts.md` | 定义字段语义 | `agent_run_review` 字段列表、W078 语义 | 说明 optional by default | yes | confirmed |
-| `docs/interop/long-horizon-agents.md` | 跨工具执行面映射 | Codex、Cursor、GitHub Copilot cloud agent、Jules、Claude Code | vendor 名称仅作 surface 示例 | yes | confirmed |
+| `docs/interop/standards-map.md` | 跨工具执行面映射（v9.8 起由 standards-map 承载） | Codex、Cursor、GitHub Copilot cloud agent、Jules、Claude Code | vendor 名称仅作 surface 示例 | yes | confirmed |
 | `bin/ai-os-doctor.js` | 机械检查 | W078 | 长时程 task 缺回收证据时 warning | yes | confirmed |
 
 ## 4. 核心接口与数据模型（API 项目必填）
@@ -59,7 +59,7 @@
 | AC-001 | REQ-001 | `tasks.yaml` 模板和 artifacts/spec/skill docs 定义 `agent_run_review` 字段及 optional-by-default 语义 | `npm test` | `test/docs.test.js` |
 | AC-002 | REQ-002 | doctor W078 只检查明确长时程 / 后台 / 外部 / 并行执行的 task，local foreground 不触发 | `npm test` | `test/doctor.test.js` |
 | AC-003 | REQ-003 | W078 检查缺 run refs、write scope、expected return、return packet、evidence、human review、unresolved risks | `npm test` | `test/doctor.test.js` |
-| AC-004 | REQ-004 | interop doc 和 example 覆盖 Codex、Cursor Background Agents、GitHub Copilot cloud agent、Jules、Claude Code subagents/hooks，且保持 tool-neutral | `npm test` | `docs/interop/long-horizon-agents.md`, `examples/background-agent-handoff.md` |
+| AC-004 | REQ-004 | interop doc 和 example 覆盖 Codex、Cursor Background Agents、GitHub Copilot cloud agent、Jules、Claude Code subagents/hooks，且保持 tool-neutral | `npm test` | `docs/interop/standards-map.md`, `examples/background-agent-handoff.md` |
 | AC-005 | REQ-005 | 不新增 CLI、flag、profile、runtime runner、MCP server、IDE hook、agent router 或 schema version | `npm test` + `npm run lint` | product-surface tests |
 | AC-006 | REQ-006 | version/changelog/tests 对齐到 9.6.0 / spec v1.8，self-hosted lane strict doctor 无警告 | `npm test` + `doctor --json --strict` | version tests + `.ai-os/lanes/default/*` |
 

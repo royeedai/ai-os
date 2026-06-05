@@ -1,5 +1,7 @@
 # 从旧 AI-OS 布局迁移到 v9
 
+> 历史：`v7-legacy`（= v7.4.0）与 `v8.0.0` 的完整迁移叙事已归档到 [CHANGELOG-archive.md](../CHANGELOG-archive.md)。v9 起统一用本文档 + `upgrade` 命令。
+
 AI-OS v9 的 canonical layout 是：
 
 - 根层共享：`.ai-os/MISSION.md`、`.ai-os/memory.md`

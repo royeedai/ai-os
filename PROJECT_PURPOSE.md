@@ -13,24 +13,27 @@ AI-OS 的最终目的不是让 AI 更自动写代码，而是让 AI 更稳定地
 
 AI-OS 想解决的问题不是"少一个 prompt"，而是"如何让 AI 在多个 session、多个阶段里持续把项目带到高质量结果"。
 
-## 2. 2026 年的定位（为什么 AI-OS 现在比以前更重要）
+## 2. 2026 年的定位（GPT-5.5 / Opus 4.8 世代）
 
-2026 年的 AI 编程生态已经跨过几个临界点：
+2026 年中期的 AI 编程生态又跨过一轮临界点：
 
-- **模型自验证**：Opus 4.7 SWE-bench Verified 87.6%，模型在报告完成前会自己先验证一次
-- **指令字面化**：frontier 模型严格按 prompt 执行，模糊的需求会被等比例放大成错误
-- **长时域自主**：Cursor 52 小时、Codex 25 小时、Kimi K2.6 300 sub-agents 已是常态
-- **原生记忆**：Claude Code `MEMORY.md`、Cursor notepads、Kiro steering 都在内卷 agent 记忆层
-- **SDD 工具**：Kiro、spec-kit 覆盖 0→1 立项，但不覆盖变更、调试、恢复、复盘
+- **模型自验证更强**：GPT-5.5、Opus 4.8 等 frontier 模型在报告完成前会自行跑测试、修 lint、补边界；单点代码质量不再是主瓶颈
+- **指令字面化依旧**：模型越强越严格按 prompt 执行；模糊目标会被更快、更大规模地放大成错误实现
+- **长时域自主常态化**：多 agent 并行、后台/cloud agent、跨天 session 已是默认工作方式，不是实验特性
+- **原生记忆内卷**：各 IDE 的 session 记忆、notepads、steering 已覆盖"会话级回忆"；项目级共享真理源仍缺位
+- **SDD 工具仍偏 0→1**：spec-kit、Kiro 等擅长立项，不覆盖变更、调试、证据回流、跨 session 恢复
 
-**模型越强、跑得越久，"把项目做对"的瓶颈就越从"写代码"迁移到"定义正确目标、锁定正确设计、提供证据化闭环、保留可恢复的记忆"**。这正是 AI-OS 的主战场。
+**模型越强，AI-OS 核心层越成立，脚手架层越该收敛**：
+
+- **保留（与模型能力正交）**：目标确认、设计锁定、证据化完成、跨 session 恢复、确定性 `doctor` 结构检查——模型再强也无法替代人对项目的验收契约和跨进程状态持久化
+- **收敛（边际价值下降）**：手把手教模型填字段的软检查、在 9 个文件里重复同一能力的 interop 映射、spec 与 artifacts 的双份 schema 复述
 
 AI-OS 的反向边界同样清晰：
 
-- 不帮你跑 52 小时（那是 harness 的事）
+- 不帮你跑长时域 harness（那是 runtime 的事）
 - 不帮你生成代码（那是模型的事）
 - 不做自动记忆抽取（原生工具已经做了）
-- 不做 agent orchestration（Cursor / Codex 已经做了）
+- 不做 agent orchestration（IDE / cloud agent 已经做了）
 
 AI-OS 的独占赛道：**跨 agent、全生命周期、极简的 AI 交付宪法和工件规范**。
 

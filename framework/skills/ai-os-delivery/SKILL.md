@@ -129,7 +129,7 @@ Any user-asset write, permission / identity change, irreversible state transitio
 
 - Full constitution: `AGENTS.md` (≤150 lines, single source of truth)
 - Artifact schema with layer assignments: `docs/artifacts.md`
-- Framework feedback loop (CR Preventability review + lane retrospective): `docs/maintainers.md` and `docs/cli.md` (info-level `W079a` / `W079b`)
+- Framework feedback loop (CR Preventability review + lane retrospective): `docs/maintainers.md` (git grep 复盘)
 - URL reverse-spec intake protocol: `docs/reverse-spec-url-intake.md`
 - Constitution spec for cross-tool integration: `docs/constitution-spec.md`
 - MCP resources URI scheme: `docs/interop/mcp-resources.md`

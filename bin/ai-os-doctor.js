@@ -30,7 +30,7 @@ const {
   parseMissionBaselineId,
 } = require("./shared");
 
-const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W073", "W074", "W075", "W076", "W077", "W078"];
+const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W074", "W076", "W077", "W078"];
 
 function printHelp() {
   process.stdout.write(`create-ai-os doctor — Check artifact completeness
@@ -635,33 +635,6 @@ function checkAcceptanceCoverage(paths) {
   return issues;
 }
 
-// W073: CR-* baseline records should carry explicit spec-delta lifecycle fields.
-function checkChangeRequestDelta(paths) {
-  const issues = [];
-  if (!isDirectory(paths.laneBaselineLog)) return issues;
-  const required = [
-    "Current behavior",
-    "Proposed delta",
-    "Affected artifacts",
-    "Acceptance delta",
-    "Close/archive condition",
-  ];
-  const entries = fs.readdirSync(paths.laneBaselineLog)
-    .filter((name) => /^CR-\d{8}-\d{6}-.*\.md$/.test(name));
-  for (const entry of entries) {
-    const content = fs.readFileSync(path.join(paths.laneBaselineLog, entry), "utf8");
-    const missing = required.filter((heading) => {
-      const pattern = new RegExp(`^##\\s+${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "im");
-      return !pattern.test(content);
-    });
-    if (missing.length > 0) {
-      issues.push(issue("warning", "W073",
-        `${PROJECT_STATE_ROOT}/lanes/default/baseline-log/${entry} is missing CR delta section(s): ${missing.join(", ")}.`));
-    }
-  }
-  return issues;
-}
-
 function hasHighRiskTask(tasksContent) {
   return /^(\s+)approval_required:\s*(true|"true"|'true')\s*$/m.test(tasksContent);
 }
@@ -709,111 +682,6 @@ function checkHighRiskArtifacts(paths) {
   if (missing.length > 0) {
     issues.push(issue("warning", "W074",
       `high-risk lane/task is missing populated artifact(s): ${missing.join(", ")}.`));
-  }
-  return issues;
-}
-
-function tableCells(line) {
-  return line.split("|").slice(1, -1).map((cell) => cell.trim());
-}
-
-function collectRowsMissingConfidence(content, label) {
-  const missing = [];
-  let confidenceIndex = -1;
-  let inConfidenceTable = false;
-  for (const line of content.split(/\r?\n/)) {
-    if (/^#{1,6}\s+/.test(line)) {
-      inConfidenceTable = false;
-      confidenceIndex = -1;
-      continue;
-    }
-    if (!line.startsWith("|")) {
-      if (line.trim() !== "") inConfidenceTable = false;
-      continue;
-    }
-    const cells = tableCells(line);
-    if (cells.length === 0) continue;
-    if (cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
-    const headerIndex = cells.findIndex((cell) => /^confidence(?: rule)?$/i.test(cell));
-    if (headerIndex >= 0) {
-      inConfidenceTable = true;
-      confidenceIndex = headerIndex;
-      continue;
-    }
-    if (!inConfidenceTable || confidenceIndex < 0) continue;
-    if (cells.some((cell) => cell.includes("["))) continue; // template row
-    const confidence = cells[confidenceIndex] || "";
-    if (!/\b(observed|inferred|unknown)\b/.test(confidence)) {
-      missing.push(`${label} row "${cells[0] || "(unknown)"}"`);
-    }
-  }
-  return missing;
-}
-
-// W079a (info): CR baseline records should carry a Preventability review section
-// so AI-OS maintainers can grep for "本可避免" modifications later. INFO-level only,
-// --strict does not upgrade. (v9.7 framework feedback loop. W078 is already used
-// by v9.6 long-horizon agent reliability warning.)
-function checkPreventabilityReview(paths) {
-  const issues = [];
-  if (!isDirectory(paths.laneBaselineLog)) return issues;
-  const entries = fs.readdirSync(paths.laneBaselineLog)
-    .filter((name) => /^CR-\d{8}-\d{6}-.*\.md$/.test(name));
-  const missing = [];
-  const headingPattern = /^##\s+Preventability\s+review\s*$/im;
-  for (const entry of entries) {
-    const content = fs.readFileSync(path.join(paths.laneBaselineLog, entry), "utf8");
-    if (!headingPattern.test(content)) {
-      missing.push(entry);
-    }
-  }
-  if (missing.length > 0) {
-    issues.push(issue("info", "W079a",
-      `${missing.length} CR baseline record(s) missing "## Preventability review" section: ${missing.join(", ")}.`));
-  }
-  return issues;
-}
-
-// W079b (info): when lane.toml status is "closed", expect at least one
-// retrospective baseline-log (BL-*-retrospective*.md) summarizing the lane's
-// Preventability findings. INFO-level only, --strict does not upgrade.
-function checkLaneRetrospective(paths) {
-  const issues = [];
-  if (!fileExists(paths.laneToml) || !isDirectory(paths.laneBaselineLog)) return issues;
-  const laneToml = fs.readFileSync(paths.laneToml, "utf8");
-  if (!/^\s*status\s*=\s*"closed"\s*$/m.test(laneToml)) return issues;
-  const entries = fs.readdirSync(paths.laneBaselineLog)
-    .filter((name) => /^BL-\d{8}-\d{6}-.*retrospective.*\.md$/i.test(name));
-  if (entries.length === 0) {
-    issues.push(issue("info", "W079b",
-      `lane.toml status is "closed" but no "BL-*-retrospective*.md" found in baseline-log/. Consider aggregating Preventability review before archiving.`));
-  }
-  return issues;
-}
-
-// W075: captured URL reverse-spec evidence rows need confidence.
-function checkUrlEvidenceConfidence(paths) {
-  const issues = [];
-  const missing = [];
-  const parityMap = path.join(paths.laneDesignPack, "parity-map.md");
-  if (fileExists(parityMap)) {
-    const content = fs.readFileSync(parityMap, "utf8");
-    if (content.includes("URL reverse-spec capture manifest") || content.includes("Evidence package adaptation")) {
-      missing.push(...collectRowsMissingConfidence(content, "design-pack/parity-map.md"));
-    }
-  }
-  if (isDirectory(paths.laneSpecs)) {
-    for (const entry of fs.readdirSync(paths.laneSpecs).filter((name) => name.endsWith(".md"))) {
-      const specPath = path.join(paths.laneSpecs, entry);
-      const content = fs.readFileSync(specPath, "utf8");
-      if (content.includes("Reverse-spec evidence sources") || content.includes("Evidence package adaptation")) {
-        missing.push(...collectRowsMissingConfidence(content, `specs/${entry}`));
-      }
-    }
-  }
-  if (missing.length > 0) {
-    issues.push(issue("warning", "W075",
-      `URL reverse-spec evidence row(s) missing observed/inferred/unknown confidence: ${missing.join(", ")}.`));
   }
   return issues;
 }
@@ -883,11 +751,7 @@ function main() {
     issues.push(...checkTaskHallucinationGuards(paths));
     issues.push(...checkLongHorizonAgentRunReviews(paths));
     issues.push(...checkAcceptanceCoverage(paths));
-    issues.push(...checkChangeRequestDelta(paths));
     issues.push(...checkHighRiskArtifacts(paths));
-    issues.push(...checkUrlEvidenceConfidence(paths));
-    issues.push(...checkPreventabilityReview(paths));
-    issues.push(...checkLaneRetrospective(paths));
   }
   // LAYOUT_MODE_ROOT_ONLY already triggered E060 above; further per-artifact
   // checks are intentionally skipped because the only safe action is upgrade.

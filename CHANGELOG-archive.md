@@ -1,8 +1,159 @@
-# Changelog Archive (v5.x – v7.x)
+# Changelog Archive (v5.x – v9.4.x)
 
-This file preserves AI-OS history for v5.x – v7.x releases. The active CHANGELOG only retains v8/v9 because those are the supported release lines as of v9.1.
+This file preserves AI-OS history for v5.x – v7.x and v8.0.0 – v9.4.x releases. The active [CHANGELOG.md](CHANGELOG.md) retains v9.5+ only.
 
-For v8/v9 entries, see [CHANGELOG.md](CHANGELOG.md).
+---
+
+## 9.4.0 (2026-05-02) — Agent Handoff + Evidence Loop
+
+**Minor, fully backward compatible**. v9.4 keeps the canonical layout, three primary product operations, and zero runtime dependencies intact. It adds a task-level handoff and evidence loop so IDE / agent execution can return auditable proof without AI-OS becoming an IDE, runner, kanban server, or orchestrator.
+
+### Added
+
+- `tasks.yaml` handoff fields: `handoff_to`, `context_refs`, `expected_return`, `evidence_produced`, and `deviation_log`.
+- `verification-matrix.yaml` guard for task handoff context, expected return, and produced evidence before task closure.
+- Doctor semantic warning W076 for incomplete task handoff / evidence loops.
+- Constitution spec v1.5 section for Agent Handoff + Evidence Loop.
+
+### Changed
+
+- Artifact docs now define task handoff as a repo-local governance contract, not an execution layer.
+- The official `ai-os-delivery` skill wrapper now tells compatible agents to record produced evidence before marking tasks done / verified / shipped.
+- Public docs continue to describe install, doctor, and upgrade as the only three primary product operations.
+
+### Tests
+
+- Documentation tests now assert handoff template fields, product-boundary wording, W076 documentation, and version string.
+- Doctor tests cover missing acceptance/evidence fields, handoff without context/expected return, and done-without-produced-evidence.
+
+### Migration
+
+None. Existing projects can adopt the new task fields gradually. W076 is a warning by default and only blocks when `doctor --strict` is used.
+
+---
+
+## 9.3.0 (2026-05-02) — External learning fusion
+
+**Minor, fully backward compatible**. v9.3 keeps the canonical layout, three primary product operations, and zero runtime dependencies intact. It fuses external spec-driven, MCP resource, browser-evidence, and eval-taxonomy practices into AI-OS artifacts and `doctor --strict` checks.
+
+### Added
+
+- `framework/.agents/templates/lane/specs/bugfix.spec.md` — bugfix route covering root cause, reproduction, blast radius, planned files, regression guard, and code / data / runtime completion status.
+- URL evidence package adaptation matrix for `trace.zip`, network log / HAR, screenshots, DOM snapshots, rawHtml, markdown, and structured JSON, including redaction and confidence mapping.
+- MCP resource annotation guidance for `audience`, `priority`, `lastModified`, `subscribe`, and `listChanged`.
+- Eval taxonomy frontmatter fields: `risk_source`, `failure_mode`, `harm`, and `artifact_gate`.
+- Doctor semantic warnings W073-W075 for CR delta fields, high-risk artifact completeness, and URL evidence confidence.
+
+### Changed
+
+- W072 now checks each non-placeholder AC from `DESIGN.md`, not just whether at least one AC is referenced by `verification-matrix.yaml`.
+- Baseline-log guidance now requires CR records to include Current behavior, Proposed delta, Affected artifacts, Acceptance delta, and Close/archive condition.
+- `docs/constitution-spec.md` bumped to v1.4 with the external learning fusion contracts.
+- Public docs now describe install as one operation with a default entrypoint and an explicit alias, clarify that the `agentskills.io` wrapper is an open-standard adapter rather than a proprietary AI-OS skill system, and describe the MCP sample as an illustrative reference snippet rather than a shipped server.
+
+### Tests
+
+- Documentation tests now assert the bugfix spec route, evidence package matrix, MCP annotation guidance, eval taxonomy frontmatter, unchanged CLI script surface, product-surface wording, and version string.
+- Doctor tests now cover W072 per-AC mapping plus W073/W074/W075 strict-mode behavior.
+
+### Migration
+
+None. Existing projects can adopt the stricter checks gradually; warnings remain non-blocking unless `--strict` is used.
+
+---
+
+## 9.2.0 (2026-05-02) — URL reverse-spec intake
+
+**Minor, fully backward compatible**. v9.2 keeps the canonical layout and three primary product operations intact. It adds an artifact-first intake protocol for accessible website URLs so agents can capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior before implementation.
+
+### Added
+
+- `docs/reverse-spec-url-intake.md` — official URL intake protocol covering authorization boundaries, screenshot matrix, DOM topology, computed CSS, assets, interaction sweep, Network/API observations, backend behavior records, and confidence levels.
+- `evals/url-reverse-spec-backend-hallucination.md` — regression case for agents that invent backend behavior without browser-observable evidence.
+- URL intake guards in `framework/.agents/templates/lane/verification-matrix.yaml`.
+
+### Changed
+
+- `framework/.agents/templates/lane/design-pack/parity-map.md` now includes capture manifest, visual parity, interaction parity, API / interface parity, and backend behavior parity tables.
+- `framework/.agents/templates/lane/specs/example.spec.md` now includes reverse-spec evidence sources, API observation records, backend behavior records, unknowns, and the `observed` / `inferred` / `unknown` confidence model.
+- `framework/skills/ai-os-delivery/SKILL.md` recognizes URL reverse-spec intake while still routing work through AI-OS artifacts instead of adding a command surface.
+- `docs/artifacts.md`, `docs/constitution-spec.md`, and `README.md` document the URL intake flow.
+
+### Tests
+
+- Documentation tests now assert the URL intake protocol, template fields, eval frontmatter, unchanged CLI script surface, and version string.
+
+### Migration
+
+None. Existing projects can adopt the new protocol by updating their lane templates or copying the documented fields into current reverse-spec artifacts.
+
+---
+
+## 9.1.1 (2026-04-30) — Internal cleanup
+
+**Patch, fully backward compatible**. Zero behavior change. No new constitution rules, artifacts, or CLI commands.
+
+### Fixed
+
+- All 22 `evals/*.md` files now reference v9 surfaces.
+- `evals/README.md` updated from stale-reference disclaimer to v9 alignment confirmation.
+
+### Removed (dead code)
+
+- `bin/shared.js`: deleted unused v7→v8 migration helpers.
+- `bin/ai-os-doctor.js`: removed dead `LAYOUT_MODE_ROOT_ONLY` baseline-log check.
+
+### Refactored (zero behavior change)
+
+- `bin/ai-os-doctor.js`: split semantic consistency into focused functions.
+- `bin/shared.js`: moved IDE pointer content into `framework/.agents/templates/ide-pointers/`.
+
+### Documentation
+
+- `CHANGELOG.md` archived v5.x – v7.x entries into this file.
+- `README.md` removed the "Why v9 changed the layout" historical section.
+
+### Migration
+
+None. Drop-in replacement for v9.1.0.
+
+---
+
+## 9.1.0 (2026-04-30) — Open standards alignment
+
+**Minor, fully backward compatible**. v9.1 adds open-standard interop (agentskills.io, MCP resources) and doctor W070-W072.
+
+### Migration
+
+```bash
+npx --yes github:royeedai/ai-os doctor . --strict
+```
+
+---
+
+## 9.0.0 (2026-04-22) — Default lane reset
+
+**Breaking**. v9 makes **shared root + `.ai-os/lanes/default/`** the only canonical layout.
+
+### Migration
+
+```bash
+npx --yes github:royeedai/ai-os upgrade .
+npx --yes github:royeedai/ai-os doctor .
+```
+
+---
+
+## 8.0.0 (2026-04-22) — Delivery Constitution refactor
+
+**Breaking**. v8 repositioned AI-OS as Delivery Constitution + 12-artifact set + minimal CLI. v7 users: run `npx create-ai-os upgrade .`; legacy v7 state tagged as `v7-legacy`. Full v7→v8→v9 migration narrative: [docs/migrate-to-v9.md](docs/migrate-to-v9.md).
+
+### Migration
+
+```bash
+npx --yes github:royeedai/ai-os upgrade .
+npx --yes github:royeedai/ai-os doctor .
+```
 
 ---
 

@@ -133,7 +133,7 @@ tasks:
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
       - "docs/cli.md"
-      - "docs/interop/long-horizon-agents.md"
+      - "docs/interop/standards-map.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
       - "examples/background-agent-handoff.md"
       - "test/doctor.test.js"

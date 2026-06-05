@@ -35,24 +35,16 @@ section("docs: key documentation files exist");
     "docs/cli.md",
     "docs/constitution-spec.md",
     "docs/migrate-to-v9.md",
-    "docs/migrate-v7-to-v8.md",
     "docs/maintainers.md",
     "docs/getting-started.md",
     "docs/reverse-spec-url-intake.md",
-    "docs/problems.md",
     "docs/problem-ledger.md",
     "docs/change-evaluation-template.md",
     "docs/interop/spec-kit-coexistence.md",
     "docs/interop/claude-code.md",
     "docs/interop/cursor.md",
-    "docs/interop/kiro.md",
-    "docs/interop/openspec.md",
     "docs/interop/mcp-resources.md",
-    "docs/interop/eu-ai-act.md",
-    "docs/interop/a2a.md",
-    "docs/interop/memory-tool.md",
-    "docs/interop/bmad.md",
-    "docs/interop/long-horizon-agents.md",
+    "docs/interop/standards-map.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -228,8 +220,10 @@ section("docs: agent handoff evidence loop fields are documented and templated")
     assert(tasks.includes(term), `tasks template includes ${term}`);
     assert(baselineTemplate.includes(term), `baseline template explains ${term}`);
     assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(spec.includes(term), `constitution spec includes ${term}`);
   }
+
+  assert(spec.includes("W076"), "constitution spec cites W076 for handoff loop");
+  assert(spec.includes("docs/artifacts.md"), "constitution spec defers handoff schema to artifacts.md");
 
   assert(matrix.includes("agent-handoff-evidence-loop"), "verification matrix includes agent handoff impact rule");
   assert(matrix.includes("FM-HANDOFF-001"), "verification matrix includes handoff failure mode");
@@ -237,10 +231,9 @@ section("docs: agent handoff evidence loop fields are documented and templated")
   assert(cli.includes("W070-W078"), "CLI docs semantic_warnings range includes W078");
   assert(skill.includes("record `evidence_produced`"), "skill wrapper tells agents to record produced evidence");
   assert(artifacts.includes("它不接管执行"), "artifacts docs keep handoff outside execution");
-  assert(spec.includes("不是执行层"), "constitution spec keeps handoff outside execution");
-  assert(spec.includes("agent runner"), "constitution spec explicitly excludes runner surface");
-  assert(changelog.includes("Agent Handoff + Evidence Loop"), "CHANGELOG records v9.4 handoff release");
-  assert(changelog.includes("W076"), "CHANGELOG records W076");
+  const archive = read("CHANGELOG-archive.md");
+  assert(archive.includes("Agent Handoff + Evidence Loop"), "CHANGELOG-archive records v9.4 handoff release");
+  assert(changelog.includes("W076") || archive.includes("W076"), "CHANGELOG records W076");
 }
 
 section("docs: hallucination guard fact-state vocabulary is documented and checked");
@@ -266,9 +259,11 @@ section("docs: hallucination guard fact-state vocabulary is documented and check
     assert(tasks.includes(term), `tasks template includes ${term}`);
     assert(baselineTemplate.includes(term), `baseline template explains ${term}`);
     assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(spec.includes(term), `constitution spec includes ${term}`);
     assert(skill.includes(term), `skill wrapper includes ${term}`);
   }
+
+  assert(spec.includes("W077"), "constitution spec cites W077 for fact-state review");
+  assert(spec.includes("fact_state_review"), "constitution spec names fact_state_review");
 
   assert(agents.includes("未观察、未确认、未验证"), "AGENTS.md blocks unverified facts from being presented as facts");
   assert(matrix.includes("hallucination-guard"), "verification matrix includes hallucination guard impact rule");
@@ -325,7 +320,7 @@ section("docs: long-horizon agent review is documented and checked");
   const cli = read("docs/cli.md");
   const skill = read("framework/skills/ai-os-delivery/SKILL.md");
   const readme = read("README.md");
-  const interop = read("docs/interop/long-horizon-agents.md");
+  const interop = read("docs/interop/standards-map.md");
   const example = read("examples/background-agent-handoff.md");
   const ledger = read("docs/problem-ledger.md");
   const changelog = read("CHANGELOG.md");
@@ -341,20 +336,20 @@ section("docs: long-horizon agent review is documented and checked");
   ]) {
     assert(tasks.includes(term), `tasks template includes ${term}`);
     assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(spec.includes(term), `constitution spec includes ${term}`);
     assert(skill.includes(term), `skill wrapper includes ${term}`);
     assert(interop.includes(term), `long-horizon interop includes ${term}`);
     assert(example.includes(term), `background handoff example includes ${term}`);
   }
 
+  assert(spec.includes("W078"), "constitution spec cites W078 for long-horizon review");
   assert(baselineTemplate.includes("agent_run_review"), "baseline template explains agent_run_review");
   assert(matrix.includes("long-horizon-agent-run"), "verification matrix includes long-horizon impact rule");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 1.9"), "constitution spec bumped to v1.9");
-  assert(spec.includes("Long-Horizon Agent Reliability Loop（v1.8）"), "constitution spec keeps v1.8 long-horizon section");
-  assert(spec.includes("不得因此新增 CLI command"), "constitution spec preserves no-runtime boundary");
+  assert(spec.includes("Version: 2.0"), "constitution spec bumped to v2.0");
+  assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
+  assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
   assert(readme.includes("Delegate this to a background / cloud / PR agent"), "README includes background agent routing row");
   assert(interop.includes("Codex"), "long-horizon interop covers Codex");
@@ -393,10 +388,10 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
 
-  assert(spec.includes("Version: 1.9"), "constitution spec remains at latest v1.9");
-  assert(spec.includes("Activation Gate（v1.7）"), "constitution spec includes Activation Gate section");
-  assert(spec.includes("ordinary conversation"), "constitution spec changelog names ordinary conversation");
-  assert(spec.includes("确认进入交付前，不加载 L1 / L2 / L3 lane 工件"), "constitution spec blocks lane loading before delivery confirmation");
+  assert(spec.includes("Version: 2.0"), "constitution spec remains at latest v2.0");
+  assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
+  assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
+  assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
 
   assert(skill.includes("## Activation Gate"), "skill wrapper includes Activation Gate section");
   assert(skill.includes("Run the Activation Gate before reading L1"), "skill invocation contract runs gate before L1");
@@ -415,7 +410,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.7.3", `version is 9.7.3 (got ${version})`);
+  assert(version === "9.8.0", `version is 9.8.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -450,9 +445,10 @@ section("docs: product surface wording stays precise");
   assert(!mcp.includes("Reference implementation"), "MCP docs avoid implying a packaged reference implementation");
   assert(!mcp.includes("reference MCP server"), "MCP docs avoid implying a shipped reference MCP server");
 
-  assert(changelog.includes("three primary product operations"), "CHANGELOG uses primary product operation wording");
-  assert(changelog.includes("open-standard adapter"), "CHANGELOG records skill wrapper wording");
-  assert(changelog.includes("illustrative reference snippet"), "CHANGELOG records MCP snippet wording");
+  const archive = read("CHANGELOG-archive.md");
+  assert(changelog.includes("three primary product operations") || archive.includes("three primary product operations"), "CHANGELOG uses primary product operation wording");
+  assert(changelog.includes("open-standard adapter") || archive.includes("open-standard adapter"), "CHANGELOG records skill wrapper wording");
+  assert(changelog.includes("illustrative reference snippet") || archive.includes("illustrative reference snippet"), "CHANGELOG records MCP snippet wording");
 }
 
 section("docs: maintainers guide only references existing examples");
@@ -480,11 +476,11 @@ section("docs: problem-ledger current coverage only references existing files");
   }
 }
 
-section("docs: legacy migration doc points to migrate-to-v9");
+section("docs: migrate-to-v9 points to changelog archive for v7/v8 history");
 
 {
-  const legacy = read("docs/migrate-v7-to-v8.md");
-  assert(legacy.includes("migrate-to-v9.md"), "legacy migration doc points to migrate-to-v9");
+  const migrate = read("docs/migrate-to-v9.md");
+  assert(migrate.includes("CHANGELOG-archive.md"), "migrate-to-v9 points to changelog archive");
 }
 
 section("docs: artifacts.md declares progressive-disclosure layers");
@@ -528,20 +524,15 @@ section("docs: every eval has trigger_source frontmatter");
   assert(urlEval.includes("Backend behavior record"), "URL reverse-spec eval checks backend behavior records");
 }
 
-section("docs: interop folder has cross-tool coexistence docs");
+section("docs: interop folder has core docs plus consolidated standards-map");
 
 {
   const required = [
     "docs/interop/spec-kit-coexistence.md",
     "docs/interop/claude-code.md",
     "docs/interop/cursor.md",
-    "docs/interop/kiro.md",
-    "docs/interop/openspec.md",
     "docs/interop/mcp-resources.md",
-    "docs/interop/a2a.md",
-    "docs/interop/memory-tool.md",
-    "docs/interop/bmad.md",
-    "docs/interop/long-horizon-agents.md",
+    "docs/interop/standards-map.md",
   ];
   for (const rel of required) {
     const content = read(rel);
@@ -581,99 +572,45 @@ section("docs: MCP resources URI scheme covers all 12 artifacts");
   assert(content.includes('"listChanged": true'), "mcp-resources.md declares resource listChanged capability");
 }
 
-section("docs: A2A interop maps handoff yaml fields without expanding the CLI surface");
+section("docs: standards-map consolidates open-standard wire formats");
 
 {
-  const a2a = read("docs/interop/a2a.md");
+  const map = read("docs/interop/standards-map.md");
   const readme = read("README.md");
-  const changelog = read("CHANGELOG.md");
 
   for (const field of [
     "handoff_to",
     "context_refs",
     "expected_return",
-    "evidence_required",
     "evidence_produced",
-    "deviation_log",
     "fact_state_review",
+    "agent_run_review",
+    "execution_surface",
   ]) {
-    assert(a2a.includes(field), `a2a.md maps ${field} to A2A objects`);
+    assert(map.includes(field), `standards-map.md maps ${field}`);
   }
 
   for (const term of [
-    "Task",
-    "Message",
-    "AgentCard",
-    "Artifact",
-    "Part",
-    "TaskState",
-  ]) {
-    assert(a2a.includes(term), `a2a.md references A2A core term ${term}`);
-  }
-
-  for (const state of [
-    "submitted",
-    "working",
-    "input-required",
-    "completed",
-    "failed",
-    "rejected",
-  ]) {
-    assert(a2a.includes(state), `a2a.md documents TaskState ${state}`);
-  }
-
-  assert(a2a.includes("aios://lane/"), "a2a.md reuses aios:// URI scheme inside A2A messages");
-  assert(a2a.includes("mcp-resources.md"), "a2a.md links back to mcp-resources.md for URI scheme");
-  assert(a2a.includes("does **not** ship or start an A2A server"), "a2a.md preserves no-runtime boundary for A2A");
-  assert(a2a.includes("3 primary product operations"), "a2a.md restates the 3-primary-operation surface");
-  assert(a2a.includes("W076"), "a2a.md routes terminal-state evidence through existing W076, not a new doctor warning");
-  assert(!/W07[89]/.test(a2a) && !/W08\d/.test(a2a), "a2a.md does NOT introduce a new doctor warning code");
-  assert(a2a.includes("Anti-patterns"), "a2a.md declares anti-patterns section");
-  assert(a2a.includes("OAuth 2.1"), "a2a.md security note references OAuth 2.1");
-  assert(a2a.includes("eu-ai-act.md"), "a2a.md security note links to eu-ai-act.md audit framing");
-  assert(a2a.includes("ai-os-delivery-executor"), "a2a.md provides a minimal AgentCard example");
-
-  assert(readme.includes("A2A integration"), "README documents A2A integration section");
-  assert(readme.includes("docs/interop/a2a.md"), "README links to docs/interop/a2a.md");
-  for (const term of ["MCP", "A2A", "EU AI Act"]) {
-    assert(readme.includes(term), `README interop index includes ${term}`);
-  }
-
-  assert(changelog.includes("9.5.1"), "CHANGELOG records 9.5.1");
-  assert(changelog.includes("A2A Interop"), "CHANGELOG names the v9.5.1 release theme");
-  assert(changelog.includes("docs/interop/a2a.md"), "CHANGELOG references the new interop doc by path");
-}
-
-section("docs: Memory Tool / Memory MCP interop preserves AI-OS-as-truth boundary");
-
-{
-  const memory = read("docs/interop/memory-tool.md");
-  const readme = read("README.md");
-
-  for (const term of [
+    "A2A",
     "Memory tool",
-    "Memory MCP",
-    "/memories",
-    "knowledge graph",
-    "ZDR",
-    "just-in-time",
+    "BMAD-METHOD",
+    "OpenSpec",
+    "Kiro",
+    "EU AI Act",
+    "Anti-patterns",
+    "W076",
+    "W078",
   ]) {
-    assert(memory.includes(term), `memory-tool.md references ${term}`);
+    assert(map.includes(term), `standards-map.md references ${term}`);
   }
 
-  assert(memory.includes("does **not** ship a Memory tool"), "memory-tool.md preserves no-runtime boundary");
-  assert(memory.includes("3 primary product operations"), "memory-tool.md restates the 3-primary-operation surface");
-  assert(memory.includes(".ai-os/memory.md"), "memory-tool.md anchors AI-OS memory.md as truth source");
-  assert(memory.includes("STATE.md"), "memory-tool.md keeps lane STATE.md as session-local recovery anchor");
-  assert(memory.includes("aios://"), "memory-tool.md reuses aios:// URI scheme inside Memory MCP");
-  assert(memory.includes("mcp-resources.md"), "memory-tool.md links back to mcp-resources.md");
-  assert(memory.includes("eu-ai-act.md"), "memory-tool.md security note links to eu-ai-act.md");
-  assert(memory.includes("Anti-patterns"), "memory-tool.md declares anti-patterns section");
-  assert(memory.includes("Read-only mount") || memory.includes("read-only mount") || memory.includes("Always read-only mount"), "memory-tool.md mandates read-only mount semantics");
+  assert(map.includes("does **not** ship"), "standards-map.md preserves no-runtime boundary");
+  assert(map.includes("3 primary product operations"), "standards-map.md restates 3-primary-operation surface");
+  assert(map.includes("mcp-resources.md"), "standards-map.md links to mcp-resources.md");
+  assert(map.includes("Read-only mount"), "standards-map.md mandates read-only Memory mount");
 
-  assert(readme.includes("Memory tool integration"), "README documents Memory tool integration section");
-  assert(readme.includes("docs/interop/memory-tool.md"), "README links to memory-tool interop doc");
-  assert(readme.includes("Memory Tool"), "README interop index lists Memory Tool");
+  assert(readme.includes("Open standards map"), "README documents Open standards map section");
+  assert(readme.includes("docs/interop/standards-map.md"), "README links to standards-map.md");
 }
 
 section("docs: deterministic-guard narrative aligns doctor with cross-IDE hooks");
@@ -711,27 +648,7 @@ section("docs: Cursor 2.0+ subagent / cloud agent fields align to v9.4 handoff")
   }
   assert(cursor.includes("worktree"), "cursor.md mentions Cursor worktree-based parallel execution");
   assert(cursor.includes("W076"), "cursor.md routes PR-without-evidence through existing W076");
-  assert(cursor.includes("a2a.md"), "cursor.md links to a2a.md for non-Cursor delegation");
-}
-
-section("docs: BMAD coexistence keeps single-source-of-truth boundary");
-
-{
-  const bmad = read("docs/interop/bmad.md");
-  const readme = read("README.md");
-
-  assert(bmad.includes("BMAD-METHOD"), "bmad.md identifies the BMAD-METHOD framework");
-  for (const persona of ["Analyst", "PM", "Architect", "Developer"]) {
-    assert(bmad.includes(persona), `bmad.md references BMAD persona ${persona}`);
-  }
-  assert(bmad.includes("Mode A"), "bmad.md describes Mode A (BMAD leads, AI-OS governs)");
-  assert(bmad.includes("Mode B"), "bmad.md describes Mode B (AI-OS self-contained)");
-  assert(bmad.includes("doctor"), "bmad.md positions doctor as ongoing artifact-consistency guard");
-  assert(bmad.includes("W076") || bmad.includes("W077"), "bmad.md ties BMAD pipeline outputs to AI-OS evidence gates");
-  assert(bmad.includes("Anti-patterns"), "bmad.md declares anti-patterns section");
-  assert(bmad.includes("spec-kit-coexistence.md"), "bmad.md links to spec-kit-coexistence.md for the pattern family");
-
-  assert(readme.includes("BMAD"), "README interop index lists BMAD");
+  assert(cursor.includes("standards-map.md"), "cursor.md links to standards-map.md for non-Cursor delegation");
 }
 
 section("docs: trajectory_signature is opt-in and does not break existing evals");
@@ -758,8 +675,6 @@ section("docs: 9.5.2 release notes cover all five open-standards expansions");
   assert(changelog.includes("9.5.2"), "CHANGELOG records 9.5.2");
   assert(changelog.includes("Open-standards interop expansion"), "CHANGELOG names the v9.5.2 release theme");
   for (const ref of [
-    "docs/interop/memory-tool.md",
-    "docs/interop/bmad.md",
     "Doctor as cross-IDE deterministic guard",
     "Cursor 2.0+ subagents",
     "trajectory_signature",
@@ -798,16 +713,13 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
 
   assert(artifacts.includes("Framework Feedback Loop"), "artifacts.md documents Framework Feedback Loop section");
   assert(artifacts.includes("Preventability review"), "artifacts.md describes Preventability review schema");
-  assert(artifacts.includes("W079a"), "artifacts.md cites W079a");
-  assert(artifacts.includes("W079b"), "artifacts.md cites W079b");
+  assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
 
-  assert(spec.includes("Framework feedback loop"), "constitution-spec.md adds Framework feedback loop section");
-  assert(spec.includes("1.9"), "constitution-spec.md bumped to 1.9");
-  assert(spec.includes("Preventability review"), "constitution-spec.md documents Preventability review");
+  assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
+  assert(spec.includes("Version: 2.0"), "constitution-spec.md is at v2.0");
+  assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
 
-  assert(cli.includes("W079a"), "cli.md documents W079a");
-  assert(cli.includes("W079b"), "cli.md documents W079b");
-  assert(cli.includes("Info-level framework feedback guidance"), "cli.md groups W079 under info-level guidance section");
+  assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");
   assert(cli.includes("W070-W078"), "cli.md still scopes semantic_warnings to W070-W078");
 
   assert(maintainers.includes("Framework feedback 复盘"), "maintainers.md adds Framework feedback 复盘 section");
@@ -824,7 +736,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
 
   assert(changelog.includes("9.7.0"), "CHANGELOG records 9.7.0");
   assert(changelog.includes("Framework feedback loop") || changelog.includes("Framework Feedback Loop"), "CHANGELOG names the v9.7 release theme");
-  assert(changelog.includes("W079"), "CHANGELOG records W079 info-level guidance");
+  assert(changelog.includes("9.7.0") || changelog.includes("Framework feedback"), "CHANGELOG records framework feedback release");
   assert(changelog.includes("PL-012"), "CHANGELOG references PL-012");
 }
 
@@ -866,4 +778,29 @@ section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");
   const body = content.slice(fmEnd + 5);
   const bodyLines = body.split(/\r?\n/).length;
   assert(bodyLines <= 500, `SKILL.md body within 500 lines (got ${bodyLines})`);
+}
+
+section("docs: v9.8 content slimming narrative and removed legacy paths");
+
+{
+  const purpose = read("PROJECT_PURPOSE.md");
+  const readme = read("README.md");
+  const changelog = read("CHANGELOG.md");
+  const spec = read("docs/constitution-spec.md");
+
+  assert(purpose.includes("GPT-5.5"), "PROJECT_PURPOSE cites GPT-5.5 era");
+  assert(purpose.includes("Opus 4.8"), "PROJECT_PURPOSE cites Opus 4.8 era");
+  assert(purpose.includes("脚手架层越该收敛"), "PROJECT_PURPOSE argues scaffolding should converge");
+
+  assert(readme.includes("GPT-5.5"), "README cites GPT-5.5 era positioning");
+  assert(readme.includes("standards-map.md"), "README links to standards-map");
+
+  assert(changelog.includes("9.8.0"), "CHANGELOG records 9.8.0");
+  assert(changelog.includes("Content slimming"), "CHANGELOG names v9.8 content slimming theme");
+  assert(changelog.includes("standards-map.md"), "CHANGELOG references standards-map");
+
+  assert(spec.split(/\r?\n/).length <= 160, `constitution-spec.md slimmed (got ${spec.split(/\r?\n/).length} lines)`);
+  assert(!fs.existsSync(path.join(repoRoot, "docs/migrate-v7-to-v8.md")), "migrate-v7-to-v8 stub removed");
+  assert(!fs.existsSync(path.join(repoRoot, "docs/problems.md")), "problems.md duplicate removed");
+  assert(!fs.existsSync(path.join(repoRoot, "docs/interop/a2a.md")), "a2a.md merged into standards-map");
 }

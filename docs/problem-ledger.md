@@ -2,6 +2,8 @@
 
 本文件记录 AI-OS 必须持续覆盖的稳定问题，以及它们在当前版本中的真实承接点。
 
+AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
+
 ## 当前覆盖
 
 ### PL-001 需求一模糊，AI 就直接开工
@@ -43,13 +45,13 @@
 
 - **场景**：项目同时引入 Spec-Kit、AI-OS、Cursor rules、Kiro steering、OpenSpec 等多套工件，每套都自称"真理源"，导致需求 / 设计 / 变更记录在多处独立漂移
 - **AI-OS 必须保证**：每个工件类别只承认一个真理源；其他工具的工件以 reference 形式接入，不再独立维护同语义内容
-- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/kiro.md`、`docs/interop/openspec.md`、`docs/interop/a2a.md`、`docs/interop/memory-tool.md`、`docs/interop/bmad.md`、`AGENTS.md`（更多 → docs/interop/）
+- **当前覆盖锚点**：`docs/interop/spec-kit-coexistence.md`、`docs/interop/claude-code.md`、`docs/interop/cursor.md`、`docs/interop/standards-map.md`、`AGENTS.md`
 
 ### PL-009 反复全量加载工件，浪费 session context
 
 - **场景**：agent 在长 session 中没有先读 L1 入口（`STATE.md` / `lane.toml` / `framework.toml`），而是直接全量加载所有 12 工件，导致 token 浪费且行为漂移
 - **AI-OS 必须保证**：工件按 L1 / L2 / L3 渐进式加载；除非用户切换阶段，不重复升级层级
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §5）、`docs/artifacts.md`（"加载分层" 章节）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/interop/mcp-resources.md`（resource priority annotations）、`docs/interop/memory-tool.md`（just-in-time retrieval mapping）
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §5）、`docs/artifacts.md`（"加载分层" 章节）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/interop/mcp-resources.md`（resource priority annotations）、`docs/interop/standards-map.md`（just-in-time retrieval mapping）
 
 ### PL-010 任务交付给执行 agent / IDE 后，证据没回流到工件
 
@@ -73,19 +75,19 @@
 
 - **场景**：agent 把任务交给后台、云端、外部 PR agent 或并行 subagent 后，只拿到一句“完成了”或一个 diff；缺 branch / PR / session refs、写入范围、测试证据、人工审查和 unresolved risks 记录，导致无法判断是否可接受
 - **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
-- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v1.8）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/long-horizon-agents.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`、`test/doctor.test.js`、`test/docs.test.js`
+- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v2.0）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/standards-map.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`（W078）、`test/doctor.test.js`、`test/docs.test.js`
 
 ### PL-012 AI-OS 第一次开发未拦住本可避免的修改
 
 - **场景**：用户用 AI-OS 完成首轮交付后，又提出一批修改；这些修改的根因其实是 AI-OS 第一次 session 没问的问题、没锁的设计或没让用户确认的范围——本可在第一次就拦掉，却让框架进入了下一轮返工
 - **AI-OS 必须保证**：CR `baseline-log/CR-*.md` 提供 `## Preventability review` 段落（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补一条 `BL-*-retrospective*.md` 聚合本 lane 所有 Preventability findings；AI-OS maintainer 通过 dogfooding `git grep` 与 GitHub `framework-feedback` issue 定期归并到本台账，并按 guard 落点优先级（AGENTS.md > 工件模板 > doctor > docs）在下一个 minor 收紧
-- **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v1.9）、`docs/cli.md`（W079a / W079b）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.0）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
 
 ### PL-013 开发者级与项目级记忆混写，污染项目共享层或丢失个人偏好
 
 - **场景**：用户把"我个人的编码 / 沟通偏好"（语言、工具链、风格、激进度）commit 进 `.ai-os/memory.md`，让所有 contributor 背个人习惯；或反过来把"这个项目的稳定决策 / 跨层契约"写进 agent shell 的 home 级 global rules（Cursor user rules、Claude Code 全局 CLAUDE.md、Codex 全局 instructions），导致换电脑或换人后项目真相丢失
 - **AI-OS 必须保证**：开发者级记忆（第 4 层，按本机 OS 用户 / home 目录识别）属于各 agent shell 的 global rules，AI-OS 不自造第二真理源、不引入 identity / 登录态 / 云端；项目级记忆（第 2/3 层）留在 `.ai-os/`，冲突时项目工件赢；跨机同步个人偏好走 dotfiles 而非 AI-OS
-- **当前覆盖锚点**：`docs/interop/developer-memory.md`、`docs/interop/memory-tool.md`、`docs/interop/cursor.md`、`docs/interop/claude-code.md`、`PROJECT_PURPOSE.md`（§3.5）、`AGENTS.md`（绝对禁止 §10、§13）
+- **当前覆盖锚点**：`docs/interop/standards-map.md`（developer-global memory Layer 4）、`docs/interop/cursor.md`、`docs/interop/claude-code.md`、`PROJECT_PURPOSE.md`（§3.5）、`AGENTS.md`（绝对禁止 §10、§13）
 
 ### PL-016 隐式跨层契约未显式登记，各 session 各自脑补
 

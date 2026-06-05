@@ -18,6 +18,8 @@ npx --yes github:royeedai/ai-os upgrade .
 
 ## What AI-OS is
 
+In the GPT-5.5 / Opus 4.8 era, frontier models already self-verify code well. The remaining delivery failures are mostly **wrong goal, unlocked design, missing evidence, and lost context** — not "the model cannot write the function." AI-OS targets that layer.
+
 AI-OS is a cross-agent delivery constitution for projects that already use AI coding, but need the AI to more reliably do the **right** work:
 
 - clarify the real goal
@@ -84,9 +86,9 @@ No slash commands. No profile flags. No proprietary AI-OS skill system; the `age
 
 ## Why deterministic `doctor` checks instead of prompts
 
-Industry consensus in 2026 (e.g. [anthropics/claude-code RFC #45427](https://github.com/anthropics/claude-code/issues/45427)) is that prompt-style guidance such as `CLAUDE.md` / `.cursor/rules` reaches only ~70% compliance: subagents bypass it, models can rewrite hooks, instructions degrade with context length. Safety-critical boundaries need **deterministic enforcement** — a check whose exit code the model cannot override.
+Stronger models improve single-shot compliance, but they still bypass subagent rules, degrade with context length, and cannot enforce project-level contracts by themselves. Industry consensus in 2026 (e.g. [anthropics/claude-code RFC #45427](https://github.com/anthropics/claude-code/issues/45427)) is that prompt-style guidance such as `CLAUDE.md` / `.cursor/rules` reaches only ~70% compliance. Safety-critical boundaries need **deterministic enforcement** — a check whose exit code the model cannot override.
 
-AI-OS uses `doctor` for exactly this. W070-W078 (and `--strict` mode) are deterministic command checks: zero model interpretation, zero prompt re-injection. The same exit code that fails locally fails in pre-commit and in CI:
+AI-OS uses `doctor` for exactly this. W070-W078 (and `--strict` mode) are deterministic structural checks for layout health, ownership, evidence loops, and high-risk completeness — not "teach the model how to think." The same exit code that fails locally fails in pre-commit and in CI:
 
 | Surface | One-line setup |
 |---|---|
@@ -155,15 +157,9 @@ This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the consti
 
 AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI scheme. See [docs/interop/mcp-resources.md](docs/interop/mcp-resources.md). The default install does not ship or start an MCP server; the integration is a contract document plus an illustrative reference snippet.
 
-## A2A integration
+## Open standards map
 
-AI-OS v9.4 task handoff fields (and v9.5 `fact_state_review`) map onto the [A2A Protocol v1.0](https://a2a-protocol.org/) `Task` / `Message` / `AgentCard` / `Artifact` objects, so any A2A-compatible runtime can dispatch lane tasks to a remote executor agent without re-inventing field names. See [docs/interop/a2a.md](docs/interop/a2a.md). Same boundary as MCP: AI-OS does not ship or start an A2A server / client.
-
-## Memory tool integration
-
-`.ai-os/memory.md`, lane `STATE.md`, and lane `MISSION.md` can be mounted (read-only) into Anthropic's [Memory tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) `/memories` directory or projected into a [Memory MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/memory) knowledge graph. AI-OS keeps the markdown as truth source; the memory channel becomes Claude's working notes. See [docs/interop/memory-tool.md](docs/interop/memory-tool.md).
-
-Developer-level memory ("how *I* work" across projects, per-developer / per-machine) lives in each agent shell's global rules (Cursor user rules, `~/.claude/CLAUDE.md`, Codex global instructions), not in AI-OS artifacts. See [docs/interop/developer-memory.md](docs/interop/developer-memory.md) for the four-layer split and why AI-OS does not own that layer.
+A2A task delegation, Memory tool mounts, BMAD / OpenSpec / Kiro coexistence, EU AI Act audit framing, developer-global memory, and long-horizon agent surfaces are documented in one wire-format map: [docs/interop/standards-map.md](docs/interop/standards-map.md). AI-OS does not ship servers or clients for any of these — only field mappings and single-truth-source rules.
 
 ## Framework feedback loop (v9.7+)
 
@@ -171,7 +167,7 @@ AI-OS itself iterates from "modifications proposed after the first AI-OS deliver
 
 - Each `baseline-log/CR-*.md` carries a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard).
 - A lane closing out aggregates findings into a `BL-*-retrospective*.md`.
-- `doctor` emits info-level `W079a` / `W079b` reminders; `--strict` does **not** upgrade them.
+- Maintainer dogfooding via `git grep` — not doctor soft checks (v9.8+ removed W079a/b as redundant with stronger models + template schema).
 
 Optional feedback path: file an issue with the `framework-feedback` label using [`.github/ISSUE_TEMPLATE/preventable-modification.md`](.github/ISSUE_TEMPLATE/preventable-modification.md) and paste your CR's section verbatim. The AI-OS maintainer merges recurring root causes into [`docs/problem-ledger.md`](docs/problem-ledger.md) (PL-012) and tightens AGENTS.md / artifact templates / doctor in the next minor. See [`docs/maintainers.md`](docs/maintainers.md#framework-feedback-复盘) for the merge flow.
 
@@ -186,7 +182,7 @@ Optional feedback path: file an issue with the `framework-feedback` label using 
 - [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
 - [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
 - [docs/maintainers.md](docs/maintainers.md)
-- [docs/interop/](docs/interop/) — coexistence with spec-kit, Claude Code, Cursor, Kiro, OpenSpec, BMAD, MCP, A2A, Memory Tool, EU AI Act
+- [docs/interop/](docs/interop/) — spec-kit, Claude Code, Cursor, MCP (`aios://`), and [standards-map](docs/interop/standards-map.md) (A2A, Memory tool, BMAD, OpenSpec, Kiro, EU AI Act, long-horizon agents)
 
 ## License
 
