@@ -33,6 +33,7 @@
 | v9.7 | Framework feedback loop | CR `## Preventability review`、lane 关闭 retrospective baseline-log |
 | v9.7.1 | Developer-level memory interop（patch） | 四层记忆模型、PL-013（并入 standards-map） |
 | v9.8 | Content slimming（GPT-5.5 / Opus 4.8 世代） | interop 收敛、spec 去重、移除 W073/W075/W079 软检查、叙事更新 |
+| v9.9 | Design-aware component-first UI | 有设计稿按设计目标优先复用组件；无设计稿的后台 / PC / 移动业务 UI 默认组件库交付 |
 
 每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。
 

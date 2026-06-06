@@ -158,6 +158,29 @@ AI-OS 工件治理只适用于 delivery-affecting work：改代码、改项目�
 
 如果用户意图不清，agent 只问一句：“这是先讨论，还是要进入项目交付流程？”确认前不加载 L1 / L2 / L3 lane 工件。
 
+## Design-Aware Component-First UI（v9.9）
+
+前端交付先判定 UI source，再决定实现手段。设计稿和组件库不是二选一：
+
+- 有设计稿：设计稿是目标效果；优先用项目现有组件库或已选组件库实现标准元素，组件无法满足时再封装或定制。
+- 无设计稿：组件库默认风格作为 UI 基线；后台、PC 业务系统、App / H5 / 小程序业务页默认不要求独立视觉稿。
+- 老项目已有风格：沿用现有组件、布局和主题；不得因 AI 偏好引入第二套组件库。
+- 混合场景：核心页面可按设计稿，普通业务页走组件库。
+
+`DESIGN.md` 对 UI 项目可记录：
+
+```yaml
+ui_source: design-led | component-first | existing-style | hybrid
+surface: admin-pc | business-pc | business-mobile | consumer
+frontend_stack: vue | react | uni-app | taro | mini-program | unknown
+component_library: existing | element-plus | antd | vant | antd-mobile | tdesign | arco | uview | nutui | uni-ui | custom
+selection_reason: existing dependency | user specified | stack default | ecosystem fit
+fidelity_level: strict | practical | component-native
+custom_required: []
+```
+
+默认选择顺序：已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度。常用默认：Vue PC → Element Plus；React PC → Ant Design；Vue H5 → Vant；React H5 → Ant Design Mobile；uni-app → uView / uni-ui；Taro / 微信生态 → NutUI / TDesign；跨 Vue / React / 小程序统一风格 → TDesign；现代企业中后台 → Arco Design。C 端首页、活动页、品牌页、强视觉页面即使无设计稿，也必须先确认视觉风险或风格基线。
+
 ## URL Reverse-Spec Intake（v9.2）
 
 当用户提供可访问网站 URL 并要求复刻需求、截图、接口或行为时，AI-OS 不新增 CLI 或运行时抓取器，而是要求 agent 把采集证据写入现有 lane 工件：

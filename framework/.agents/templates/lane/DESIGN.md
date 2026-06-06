@@ -40,18 +40,28 @@
 - **同仓正常实现对照**：
 - **副作用清单**：
 
-## 7. 对照参考（reverse-spec 必填）
+## 7. UI Source Routing（前端 UI 项目必填）
+
+- **ui_source**：design-led / component-first / existing-style / hybrid
+- **surface**：admin-pc / business-pc / business-mobile / consumer
+- **frontend_stack**：vue / react / uni-app / taro / mini-program / unknown
+- **component_library**：existing / element-plus / antd / vant / antd-mobile / tdesign / arco / uview / nutui / uni-ui / custom
+- **selection_reason**：existing dependency / user specified / stack default / ecosystem fit
+- **fidelity_level**：strict / practical / component-native
+- **custom_required**：
+
+## 8. 对照参考（reverse-spec 必填）
 
 - **原始参考清单**：
 - **字段级 / 行为级对照摘要**：
 - **仍待解决差异**：
 
-## 8. 验收标准
+## 9. 验收标准
 
 | AC ID | 需求 ID | 验收描述 | 验证方式 | 证据 |
 |---|---|---|---|---|
 | AC-001 | REQ-001 | [验收描述] | 自动化 / 手动 / 运行时观察 | [证据文件] |
 
-## 9. 设计确认记录
+## 10. 设计确认记录
 
 - [日期]：[确认了什么、由谁确认、影响哪些模块]

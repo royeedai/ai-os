@@ -24,6 +24,7 @@ AI-OS is a cross-agent delivery constitution for projects that already use AI co
 
 - clarify the real goal
 - lock key design before scaling out implementation
+- route frontend UI work through design-aware component reuse when designs or component libraries exist
 - reverse-spec accessible websites into auditable evidence before rebuild work
 - separate observed / confirmed facts from inferred / unknown assumptions
 - review long-running, background, external, or parallel agent work before accepting it
@@ -118,10 +119,22 @@ Behavior is rule-driven by task type:
 | “Build a new feature” | produce / update lane `MISSION.md`, then stop for confirmation |
 | “The requirement changed” | write lane `baseline-log/CR-*.md` before code changes |
 | “Reverse-spec this URL” | capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior into lane artifacts |
+| “Build this UI / page” | determine UI source first: design-led, component-first, existing-style, or hybrid; use existing or stack-appropriate components before custom UI |
 | “Delegate this to a background / cloud / PR agent” | record `agent_run_review` run refs, write scope, return packet, evidence, and human review before closing |
 | “Fix this bug” | state root cause + scope + files first, then wait for go |
 | “Is it done?” | run project-native static check + regression + evidence review |
 | “I’m back” | resume from lane `STATE.md` first |
+
+## Design-aware component-first UI
+
+Frontend delivery routes UI source and implementation separately:
+
+- With a design: the design is the target; reuse existing project components first, then theme / wrap / customize only where needed.
+- Without a design: use the project's existing component library; if none exists, choose by stack and surface before asking.
+- Existing project style wins over new library preference. Do not mix multiple component libraries on one surface unless the project already does.
+- Component-first replaces ad-hoc visual design, not business logic: fields, APIs, permissions, validation, loading / empty / error states, and responsive behavior still need acceptance coverage.
+
+Default library preference is China-friendly and conservative: Vue PC uses Element Plus; React PC uses Ant Design; Vue H5 uses Vant; React H5 uses Ant Design Mobile; uni-app uses uView / uni-ui; Taro or WeChat-heavy surfaces use NutUI or TDesign; cross-stack enterprise consistency may choose TDesign; modern enterprise dashboards may choose Arco Design.
 
 ## When to use lanes
 

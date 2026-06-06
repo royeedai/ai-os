@@ -347,7 +347,7 @@ section("docs: long-horizon agent review is documented and checked");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 2.0"), "constitution spec bumped to v2.0");
+  assert(spec.includes("Version: 2.1"), "constitution spec is at v2.1");
   assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
   assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
@@ -388,7 +388,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
 
-  assert(spec.includes("Version: 2.0"), "constitution spec remains at latest v2.0");
+  assert(spec.includes("Version: 2.1"), "constitution spec remains at latest v2.1");
   assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
   assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
   assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
@@ -404,13 +404,69 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(changelog.includes("Activation Gate"), "CHANGELOG records activation gate release");
 }
 
+section("docs: design-aware component-first UI routing is documented and templated");
+
+{
+  const agents = read("AGENTS.md");
+  const readme = read("README.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const designTemplate = read("framework/.agents/templates/lane/DESIGN.md");
+  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const ledger = read("docs/problem-ledger.md");
+  const maintainers = read("docs/maintainers.md");
+  const changelog = read("CHANGELOG.md");
+
+  assert(agents.includes("前端 UI 先判定 UI 来源"), "AGENTS.md requires frontend UI source routing");
+  assert(agents.includes("有设计稿以设计稿为目标且优先复用项目组件"), "AGENTS.md keeps design target and component reuse together");
+  assert(agents.includes("不能用“组件库开发”跳过业务逻辑"), "AGENTS.md blocks component-first from skipping business logic");
+
+  assert(readme.includes("Design-aware component-first UI"), "README documents design-aware component-first UI");
+  assert(readme.includes("With a design: the design is the target"), "README says design files define target effect");
+  assert(readme.includes("Without a design: use the project's existing component library"), "README says no-design UI uses existing component library");
+  assert(readme.includes("Existing project style wins"), "README prioritizes existing project style");
+  for (const term of ["Element Plus", "Ant Design", "Vant", "Ant Design Mobile", "uView", "uni-ui", "NutUI", "TDesign", "Arco Design"]) {
+    assert(readme.includes(term), `README includes default component library ${term}`);
+  }
+
+  assert(artifacts.includes("Design-Aware Component-First UI"), "artifacts.md documents UI source routing section");
+  for (const term of ["ui_source", "surface", "frontend_stack", "component_library", "selection_reason", "fidelity_level", "custom_required"]) {
+    assert(artifacts.includes(term), `artifacts docs include ${term}`);
+    assert(designTemplate.includes(term), `DESIGN template includes ${term}`);
+  }
+  assert(artifacts.includes("已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度"), "artifacts docs define component library priority");
+  assert(artifacts.includes("强视觉页面"), "artifacts docs keep strong-visual consumer pages from default component-native handling");
+
+  assert(spec.includes("Version: 2.1"), "constitution spec is v2.1 for UI routing");
+  assert(spec.includes("Design-aware component-first UI"), "constitution spec references UI routing");
+  assert(spec.includes("组件优先不能替代字段、接口、权限、状态、异常和响应式验收"), "constitution spec preserves business acceptance coverage");
+
+  assert(skill.includes("Frontend UI source routing"), "skill wrapper includes frontend UI source routing section");
+  assert(skill.includes("existing project components first"), "skill wrapper prioritizes existing components with designs");
+  assert(skill.includes("Vue PC → Element Plus"), "skill wrapper includes China-friendly Vue PC default");
+  assert(skill.includes("React PC → Ant Design"), "skill wrapper includes China-friendly React PC default");
+  assert(skill.includes("Component-first does not skip logic"), "skill wrapper preserves logic and state coverage");
+
+  assert(designTemplate.includes("## 7. UI Source Routing"), "DESIGN template has UI Source Routing section");
+  assert(matrixTemplate.includes("design-aware-component-first-ui"), "verification matrix template has UI routing impact rule");
+  assert(matrixTemplate.includes("FM-UI-001"), "verification matrix template covers design/component mismatch");
+  assert(matrixTemplate.includes("FM-UI-002"), "verification matrix template covers skipped business states");
+
+  assert(ledger.includes("PL-020 前端 UI 来源与组件库实现路径混淆"), "problem ledger registers PL-020");
+  assert(maintainers.includes("v9.9"), "maintainers release matrix lists v9.9");
+  assert(changelog.includes("9.9.0"), "CHANGELOG records 9.9.0");
+  assert(changelog.includes("Design-Aware Component-First UI"), "CHANGELOG names the v9.9 release theme");
+  assert(changelog.includes("without expanding the CLI, runtime, doctor warning range, or page template surface"), "CHANGELOG preserves no-runtime/no-doctor expansion boundary");
+}
+
 section("docs: VERSION and package.json are in sync");
 
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.8.0", `version is 9.8.0 (got ${version})`);
+  assert(version === "9.9.0", `version is 9.9.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -716,7 +772,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
   assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
 
   assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
-  assert(spec.includes("Version: 2.0"), "constitution-spec.md is at v2.0");
+  assert(spec.includes("Version: 2.1"), "constitution-spec.md is at v2.1");
   assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
 
   assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");

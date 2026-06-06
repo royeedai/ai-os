@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.8.0", "JSON reports version 9.8.0");
+  assert(parsed && parsed.version === "9.9.0", "JSON reports version 9.9.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -590,4 +590,3 @@ section("doctor: W078 fires when long-horizon agent review is incomplete");
   assert(!w078After, "W078 clears once long-horizon run review is complete");
   cleanup(dir);
 }
-

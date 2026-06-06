@@ -1,34 +1,34 @@
 version: 3
-baseline_id: "CR-20260521-232937-long-horizon-agent-reliability"
+baseline_id: "CR-20260606-123822-design-aware-component-first-ui"
 scope:
   mode: "change+brownfield"
-  focus: "long-horizon-agent-reliability"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260521-232937-long-horizon-agent-reliability"
+  focus: "design-aware-component-first-ui"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260606-123822-design-aware-component-first-ui"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Long-Horizon Contract Locked"
-    goal: "agent_run_review and W078 behavior are specified without adding an execution layer"
+    title: "UI Routing Contract Locked"
+    goal: "UI source routing and component-first policy are specified without adding runtime or templates"
     scope: "MISSION, DESIGN, CR, problem ledger"
-    acceptance_goal: "field semantics and product boundary are explicit"
-    target_window: "2026-05-21"
+    acceptance_goal: "component-first means implementation path, not skipping design target or business logic"
+    target_window: "2026-06-06"
   - id: M2
-    title: "Templates Docs And Doctor Updated"
-    goal: "public artifacts, templates, interop docs, examples, and doctor checks carry the v9.6 contract"
-    scope: "templates, docs, examples, doctor, tests"
-    acceptance_goal: "W078 and agent_run_review are covered by docs and native tests"
-    target_window: "2026-05-21"
+    title: "Docs Templates And Skill Updated"
+    goal: "public docs, official skill wrapper, lane templates, and tests carry the v9.9 contract"
+    scope: "AGENTS, README, artifacts, spec, skill, templates, tests"
+    acceptance_goal: "UI routing policy is consistently documented and mechanically checked"
+    target_window: "2026-06-06"
   - id: M3
-    title: "Release Metadata And Verification Closed"
-    goal: "v9.6.0 metadata and self-hosted lane artifacts are verified"
+    title: "Version And Verification Closed"
+    goal: "v9.9.0 metadata and self-hosted lane artifacts are verified"
     scope: "version, changelog, lane artifacts, verification"
     acceptance_goal: "npm test, lint, and strict doctor pass"
-    target_window: "2026-05-21"
+    target_window: "2026-06-06"
 
 tasks:
-  - id: TASK-AI-601
-    title: "建立 v9.6 长时程 agent 可靠性基线"
+  - id: TASK-AI-901
+    title: "建立 design-aware component-first UI 基线"
     milestone: M1
     status: done
     owner: AI
@@ -38,23 +38,24 @@ tasks:
     depends_on: []
     requirement_refs:
       - "REQ-001"
+      - "REQ-004"
     acceptance_refs:
       - "AC-001"
       - "AC-004"
-      - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/baseline-log/CR-20260521-232937-long-horizon-agent-reliability.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260606-123822-design-aware-component-first-ui.md"
     expected_return:
       - "updated lane baseline artifacts"
-      - "long-horizon contract and acceptance criteria"
+      - "UI source routing contract and acceptance criteria"
     fact_state_review:
       observed:
-        - "existing W076/W077 doctor patterns, docs tests, templates, README, artifacts docs, skill wrapper, and problem ledger inspected"
+        - "AGENTS, README, artifacts docs, constitution spec, skill wrapper, lane templates, docs tests, and current lane artifacts inspected before edit"
       confirmed:
-        - "user requested implementation of v9.6 Long-Horizon Agent Reliability on 2026-05-21"
+        - "user confirmed on 2026-06-06 that design files should be used when present and component libraries should be used wherever suitable"
+        - "user confirmed no-design UI should default to component libraries and prefer China-familiar mature libraries"
       inferred: []
       unknown: []
     impact_tags:
@@ -65,16 +66,16 @@ tasks:
       - "baseline-record"
       - "design-update"
     evidence_produced:
-      - ".ai-os/lanes/default/baseline-log/CR-20260521-232937-long-horizon-agent-reliability.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260606-123822-design-aware-component-first-ui.md"
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/tasks.yaml"
-      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - "docs/problem-ledger.md"
+      - ".ai-os/memory.md"
     deviation_log:
       - "none"
 
-  - id: TASK-AI-602
-    title: "实现 agent_run_review 文档、模板、示例和 W078 doctor 检查"
+  - id: TASK-AI-902
+    title: "同步规则文档、技能包装和 lane 模板"
     milestone: M2
     status: done
     owner: AI
@@ -82,11 +83,13 @@ tasks:
     wave: 2
     approval_required: false
     depends_on:
-      - "TASK-AI-601"
+      - "TASK-AI-901"
     requirement_refs:
+      - "REQ-001"
       - "REQ-002"
       - "REQ-003"
       - "REQ-004"
+      - "REQ-005"
     acceptance_refs:
       - "AC-001"
       - "AC-002"
@@ -95,53 +98,49 @@ tasks:
       - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "bin/ai-os-doctor.js"
+      - "AGENTS.md"
+      - "README.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
-      - "test/doctor.test.js"
+      - "framework/.agents/templates/lane/DESIGN.md"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
       - "test/docs.test.js"
     expected_return:
-      - "agent_run_review field documented and templated"
-      - "W078 doctor warning implemented"
-      - "interop doc and example added"
-      - "no new CLI / runtime surface"
+      - "UI routing policy documented"
+      - "DESIGN template includes UI Source Routing"
+      - "verification matrix includes UI failure modes"
+      - "no new runtime / CLI surface"
     fact_state_review:
       observed:
-        - "doctor task parser and semantic warning range inspected before adding W078"
-        - "docs tests currently assert W076/W077, Activation Gate, product surface, and version metadata"
+        - "existing product-surface tests assert 3 operations, no runtime, and SKILL wrapper constraints"
+        - "v9.8 content slimming requires keeping spec concise and artifacts.md as schema truth source"
       confirmed:
-        - "DESIGN.md AC-001 through AC-005 define v9.6 behavior"
+        - "DESIGN.md AC-001 through AC-005 define required documentation and template behavior"
       inferred: []
       unknown: []
     impact_tags:
-      - "doctor"
-      - "templates"
       - "docs"
-      - "examples"
+      - "templates"
+      - "skill"
       - "tests"
     evidence_required:
-      - "doctor-test"
       - "docs-test"
+      - "template-test"
       - "product-surface-invariant"
     evidence_produced:
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "bin/ai-os-doctor.js"
+      - "AGENTS.md"
+      - "README.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
-      - "docs/cli.md"
-      - "docs/interop/standards-map.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
-      - "examples/background-agent-handoff.md"
-      - "test/doctor.test.js"
+      - "framework/.agents/templates/lane/DESIGN.md"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
       - "test/docs.test.js"
     deviation_log:
       - "none"
 
-  - id: TASK-AI-603
+  - id: TASK-AI-903
     title: "更新版本、changelog 与验证收口"
     milestone: M3
     status: done
@@ -150,7 +149,7 @@ tasks:
     wave: 3
     approval_required: false
     depends_on:
-      - "TASK-AI-602"
+      - "TASK-AI-902"
     requirement_refs:
       - "REQ-005"
       - "REQ-006"
@@ -166,16 +165,16 @@ tasks:
       - "test/install.test.js"
       - "test/shared.test.js"
       - "test/doctor.test.js"
-      - ".cursor/rules/project-lead.mdc"
+      - "test/docs.test.js"
     expected_return:
-      - "version metadata says 9.6.0"
+      - "version metadata says 9.9.0"
       - "native verification logs"
       - "strict doctor clean"
     fact_state_review:
       observed:
-        - "version files, package lock, changelog, install tests, shared tests, and doctor version assertion inspected before update"
+        - "version files, package lock, changelog, install tests, shared tests, doctor tests, and docs tests inspected before update"
       confirmed:
-        - "DESIGN.md AC-006 defines release and verification behavior"
+        - "DESIGN.md AC-006 defines release metadata and verification behavior"
       inferred: []
       unknown: []
     impact_tags:
@@ -191,9 +190,12 @@ tasks:
       - "package.json"
       - "package-lock.json"
       - "CHANGELOG.md"
-      - ".cursor/rules/project-lead.mdc"
-      - "npm test: 920 passed, 0 failed"
+      - "test/docs.test.js"
+      - "test/install.test.js"
+      - "test/shared.test.js"
+      - "test/doctor.test.js"
+      - "npm test: 1002 passed, 0 failed"
       - "npm run lint: passed"
       - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
     deviation_log:
-      - "none"
+      - "strict doctor initially caught W072 because AC-006 was not referenced from verification-matrix.yaml; added FM-V990-006 and reran doctor successfully"

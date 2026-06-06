@@ -1,6 +1,6 @@
 id = "default"
 title = "默认交付线"
 status = "active"
-baseline_id = "CR-20260521-232937-long-horizon-agent-reliability"
+baseline_id = "CR-20260606-123822-design-aware-component-first-ui"
 quality_tier = "standard"
 risk_tier = "medium"

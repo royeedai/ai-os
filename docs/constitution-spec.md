@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v2.0
+# AI Delivery Constitution Spec v2.1
 
-Status: Stable  
-Version: 2.0  
-Last updated: 2026-06-05  
+Status: Stable
+Version: 2.1
+Last updated: 2026-06-06
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 2.1 (2026-06-06) — Design-aware component-first UI routing: design files define the target when present, existing / stack-appropriate component libraries remain the preferred implementation path, and no-design business UI defaults to component-library baselines.
 - 2.0 (2026-06-05) — **dedup only, contract unchanged**: extended schema sections (URL reverse-spec, handoff, hallucination guard, long-horizon, framework feedback) now reference [`docs/artifacts.md`](artifacts.md) as the single schema truth source instead of repeating field lists. Open-standard tool mappings consolidated into [`docs/interop/standards-map.md`](interop/standards-map.md).
 - 1.9 (2026-05-25) — Framework feedback loop (`## Preventability review`, retrospective baseline-log)
 - 1.8 (2026-05-21) — Long-Horizon Agent Reliability Loop (`agent_run_review`, W078)
@@ -74,6 +75,7 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 | 普通对话 / 脑暴 / 解释 | 不读写 lane 工件 | 不进入治理 |
 | 新项目 / 需求模糊 | 根层共享上下文 + lane `MISSION.md` | 等用户确认 |
 | 设计锁定 | lane `DESIGN.md` | 等用户确认 |
+| 前端 UI 交付 | UI source routing + 组件库选择记录 | 按用户设计稿或默认组件策略确认 |
 | 需求变化 | lane `baseline-log/CR-*` | 等用户确认 |
 | 修复 bug | 根因 + 范围 + 计划文件 | 等用户确认 |
 | 验证 / 交付 | 项目原生证据 + 双清单 | 等用户确认 |
@@ -83,6 +85,8 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 ## 6. 证据化完成
 
 设计确认门、逻辑确认门、实现质量门、交付质量门；reverse-spec 额外 parity-gate。模型 self-verification 不等同于项目级证据化完成。
+
+前端 UI 交付使用 Design-Aware Component-First UI：有设计稿时设计稿是目标、组件库是优先实现手段；无设计稿时后台、PC 业务系统和移动业务页默认采用项目现有或栈匹配组件库。组件优先不能替代字段、接口、权限、状态、异常和响应式验收。
 
 ## 7. Layout 漂移语义
 
@@ -124,6 +128,7 @@ AI-OS 默认 install 不 ship 任何 server / client / runtime。
 - Hallucination Guard（v1.6）— `fact_state_review`；**W077**  
 - Long-Horizon Agent Reliability（v1.8）— `agent_run_review`；**W078**  
 - Framework feedback loop（v1.9）— CR `## Preventability review`、lane retrospective；工件契约，非 doctor 阻塞项  
+- Design-aware component-first UI（v2.1）— `DESIGN.md` UI source routing、组件库选择、还原等级和定制边界
 
 **Doctor 语义警告（v9.8+）**：`W070`–`W078` 为 `--strict` 可升级的确定性检查（基线一致性、owner、AC 覆盖、高风险工件、handoff 证据、事实状态、长时程回收）。CR delta 字段完整性、URL confidence 标注、Preventability review 提示由工件模板与 `AGENTS.md` 行为规则承载，不再由 doctor 软检查重复。
 

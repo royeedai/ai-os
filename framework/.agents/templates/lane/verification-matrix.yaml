@@ -26,6 +26,12 @@ impact_rules:
       - "[write_scope overlap review across background / parallel agents]"
       - "[return_packet + human_review_status before done / verified / shipped]"
       - "[doctor W078 before done / verified / shipped]"
+  - when: "design-aware-component-first-ui"
+    run:
+      - "[UI source routing review: design-led / component-first / existing-style / hybrid]"
+      - "[component library selection review: existing dependency before new library]"
+      - "[fidelity level review: strict / practical / component-native]"
+      - "[business logic and UI states review: validation / permissions / loading / empty / error / responsive]"
 
 failure_modes:
   - id: FM-001
@@ -72,6 +78,14 @@ failure_modes:
     scenario: "外部 agent 使用网络、secret 或跨账号能力，但边界没有写清"
     expected: "write_scope 或 deviation_log 必须标出 network / secrets boundary；不清楚时不能关闭任务"
     guard: "agent_run_review.write_scope + risk review"
+  - id: FM-UI-001
+    scenario: "有设计稿时为了套组件明显偏离设计稿，或无设计稿时手搓一套与项目风格不一致的 UI"
+    expected: "先记录 ui_source、component_library、fidelity_level；有设计稿以设计为目标，组件库作为优先实现路径；无设计稿以现有或栈匹配组件库为基线"
+    guard: "DESIGN.md UI Source Routing + component library review"
+  - id: FM-UI-002
+    scenario: "为了组件库开发跳过字段、接口、权限、校验、loading / empty / error / responsive 等验收"
+    expected: "组件优先只替代临时视觉设计，不替代业务逻辑、状态流转和项目原生验证"
+    guard: "verification-matrix design-aware-component-first-ui impact rule"
 
 guards:
   - "[evidence path or eval reference]"

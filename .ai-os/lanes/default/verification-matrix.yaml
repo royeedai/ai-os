@@ -1,4 +1,9 @@
 impact_rules:
+  - when: "design-aware-component-first-ui"
+    run:
+      - "npm test"
+      - "npm run lint"
+      - "node bin/create-ai-os.js doctor . --json --strict"
   - when: "long-horizon-agent-reliability"
     run:
       - "npm test"
@@ -9,63 +14,48 @@ impact_rules:
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "hallucination-guard"
-    run:
-      - "npm test"
-      - "npm run lint"
-      - "node bin/create-ai-os.js doctor . --json --strict"
 
 failure_modes:
-  - id: FM-V960-001
-    scenario: "后台 / 云端 / 外部 PR agent work 缺 branch、PR、issue、外部 task URL 或 session id，返回后无法定位原始运行"
-    expected: "doctor W078 指出缺 `agent_run_review.run_refs`；task 不能关闭"
-    guard: "test/doctor.test.js W078 missing run refs"
-    acceptance_refs:
-      - AC-002
-      - AC-003
-  - id: FM-V960-002
-    scenario: "并行 agent 修改范围重叠，或外部 agent 越界改了 out-of-scope 文件"
-    expected: "`agent_run_review.write_scope` 必须列 owned / out-of-scope，review 时对照 diff"
-    guard: "test/docs.test.js long-horizon verification matrix + examples/background-agent-handoff.md"
+  - id: FM-V990-001
+    scenario: "有设计稿时 agent 认为不能用组件库，于是手搓按钮、表格、表单、弹窗等标准元素，导致维护性和项目一致性下降"
+    expected: "设计稿作为目标效果，组件库作为优先实现路径；仅组件无法满足的品牌视觉、特殊布局或强还原要求才定制"
+    guard: "test/docs.test.js design-aware component-first UI routing"
     acceptance_refs:
       - AC-001
       - AC-004
-  - id: FM-V960-003
-    scenario: "long-horizon task 标记 done / verified / shipped，但没有 return_packet、项目原生 evidence 或 human review"
-    expected: "doctor W078 指出缺 `return_packet` / `evidence_produced` / `human_review_status`"
-    guard: "test/doctor.test.js W078 missing return packet / human review"
-    acceptance_refs:
-      - AC-002
-      - AC-003
-  - id: FM-V960-004
-    scenario: "返回包里仍有 unresolved risks，但 task 被标记 verified"
-    expected: "doctor W078 指出 unresolved risk at close"
-    guard: "test/doctor.test.js W078 unresolved returned risk"
-    acceptance_refs:
-      - AC-003
-  - id: FM-V960-005
-    scenario: "local foreground task 因存在 `agent_run_review` placeholder 被 W078 误报"
-    expected: "W078 只对明确 background / cloud / external / parallel execution 触发"
-    guard: "test/doctor.test.js W078 local foreground bypass"
-    acceptance_refs:
-      - AC-002
-  - id: FM-V960-006
-    scenario: "文档把 v9.6 描述成 AI-OS runtime runner、MCP server、IDE hook、agent router 或 vendor adapter"
-    expected: "docs tests 要求 README、spec、interop doc 和 product surface 保持 no runtime / no new CLI"
-    guard: "test/docs.test.js long-horizon product boundary"
-    acceptance_refs:
-      - AC-005
-  - id: FM-V951-001
-    scenario: "用户只要求需求闲聊、方案讨论、代码解释或非仓库交付任务，但 agent 读取 lane 工件或写 `.ai-os/*`"
-    expected: "AGENTS / skill / docs 明确 ordinary conversation 不进入 AI-OS artifact governance，docs tests 捕捉文案漂移"
-    guard: "test/docs.test.js activation gate coverage"
+  - id: FM-V990-002
+    scenario: "无设计稿时 agent 直接自由设计后台 / PC / 移动业务页，未选择项目现有或栈匹配组件库"
+    expected: "后台、PC 业务系统、移动业务端默认 component-first；先检查 package.json / existing style，再按 Vue / React / uni-app / Taro / 小程序选择国内熟悉组件库"
+    guard: "test/docs.test.js component library defaults"
     acceptance_refs:
       - AC-001
+      - AC-002
+      - AC-004
+  - id: FM-V990-003
+    scenario: "老项目已有 Element Plus / Ant Design / Vant / TDesign 等组件库，但 agent 因个人偏好引入第二套 UI 库"
+    expected: "已有组件库优先；不得混用第二套，除非用户明确要求或项目既有架构已经混用"
+    guard: "README + skill wrapper existing dependency priority assertion"
+    acceptance_refs:
+      - AC-004
       - AC-005
-  - id: FM-V95-001
-    scenario: "任务进入 in_progress / done / verified / shipped，但缺 observed 或 confirmed 事实来源"
-    expected: "doctor W077 在 --strict 下阻断，要求补 `fact_state_review`"
-    guard: "test/doctor.test.js W077 missing fact-state review"
+  - id: FM-V990-004
+    scenario: "组件库优先被误解成无需确认业务逻辑，页面缺权限拒绝、空数据、loading、错误、表单校验或响应式验收"
+    expected: "component-first 只替代临时视觉设计；业务逻辑、接口、权限、状态、异常和项目原生验证仍必须进入 acceptance"
+    guard: "test/docs.test.js business state coverage"
+    acceptance_refs:
+      - AC-001
+      - AC-003
+  - id: FM-V990-005
+    scenario: "C 端首页、活动页、品牌页或强视觉页面在无设计稿时被默认做成普通组件库拼装页"
+    expected: "强视觉 / 品牌 / 营销场景需要先确认视觉风险、风格基线或设计要求；不得套用后台 component-native 默认"
+    guard: "docs/artifacts.md consumer visual risk clause"
+    acceptance_refs:
+      - AC-001
+      - AC-004
+  - id: FM-V990-006
+    scenario: "文档和模板已改，但 VERSION / package metadata / changelog / self-hosted lane 或原生验证没有收口"
+    expected: "版本 metadata 同步到 9.9.0，CHANGELOG 记录 v9.9，npm test / lint / strict doctor 全部通过后才关闭"
+    guard: "VERSION + package.json + CHANGELOG.md + npm test + npm run lint + doctor --strict"
     acceptance_refs:
       - AC-006
 
