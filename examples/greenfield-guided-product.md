@@ -21,10 +21,14 @@ You now have: `AGENTS.md` + shared root `.ai-os/` + `.ai-os/lanes/default/` star
 2. Establishes shared host-project context in root `.ai-os/MISSION.md` (who the project serves, long-term boundaries), then fills in the current-delivery baseline in `.ai-os/lanes/default/MISSION.md`:
    - Target user: hobbyist nature photographers
    - Key scenario: weekly photo posts + seasonal albums + lightweight community
+   - Core main flow (restated): sign in -> upload photo -> tag season -> publish to gallery -> followers notified
+   - Key exception / boundary branches: oversized upload rejected, duplicate post, private-album access denied
    - Explicitly out of scope: stock-photo marketplace, pro workflows
    - Success criteria: first 100 beta users can upload and share within 60 seconds
 3. Writes `.ai-os/lanes/default/baseline-log/CR-20260422-101500-initial-alignment.md` capturing what it asked vs. what you answered
-4. Stops. Asks: "Confirm this lane MISSION.md reflects your intent? (Reply 'confirmed' to proceed.)"
+4. Restate-and-confirm gate (per AGENTS.md §1): before locking anything, the agent restates its understanding back to you in structured form — "Here's what I understood: **goal** = ship a 60-second upload-and-share loop for hobbyists; **core main flow** = sign in -> upload -> tag season -> publish -> notify followers; **state transitions** = draft -> published -> archived; **key exception paths** = oversized upload, duplicate post, private-album access denied. Confirm or correct before I lock the MISSION."
+
+**You**: "Correct, but archived albums must stay viewable by the owner." → agent updates that exception branch in MISSION.md §2 and re-asks.
 
 **You**: "Confirmed."
 

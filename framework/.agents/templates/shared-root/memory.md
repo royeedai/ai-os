@@ -15,10 +15,13 @@
 - **确认来源**：
 - **日期**：
 
-### 2. 工程约束
+### 2. 工程约束（架构护栏 / 编码契约登记表）
+
+> 本节是本项目的架构护栏 / 编码契约登记表，对应外部常说的「架构规范字典 / style guide」——但 AI-OS 不另建 `.ai-os-rules` 等第二真理源文件，统一返回包装、必须复用的共享抽象、禁止的反模式（如裸 map / 笼统 catch）、依赖策略都登记在此。验证阶段必须逐条对照。
 
 #### EC-001: [约束标题]
 
+- **类型**：return-contract / must-reuse-abstraction / forbidden-antipattern / dependency-policy
 - **约束**：
 - **原因**：
 - **影响范围**：

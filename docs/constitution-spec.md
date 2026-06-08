@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v2.0
+# AI Delivery Constitution Spec v2.1
 
 Status: Stable  
-Version: 2.0  
-Last updated: 2026-06-05  
+Version: 2.1  
+Last updated: 2026-06-08  
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 2.1 (2026-06-08) — Restate-and-confirm alignment gate（反述确认门，强化 §1 目标确认 / §2 设计锁定）+ architecture guardrail 定位到 `memory.md` §2；行为 + 工件强化，不新增 doctor code。
 - 2.0 (2026-06-05) — **dedup only, contract unchanged**: extended schema sections (URL reverse-spec, handoff, hallucination guard, long-horizon, framework feedback) now reference [`docs/artifacts.md`](artifacts.md) as the single schema truth source instead of repeating field lists. Open-standard tool mappings consolidated into [`docs/interop/standards-map.md`](interop/standards-map.md).
 - 1.9 (2026-05-25) — Framework feedback loop (`## Preventability review`, retrospective baseline-log)
 - 1.8 (2026-05-21) — Long-Horizon Agent Reliability Loop (`agent_run_review`, W078)
@@ -77,6 +78,8 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 | 需求变化 | lane `baseline-log/CR-*` | 等用户确认 |
 | 修复 bug | 根因 + 范围 + 计划文件 | 等用户确认 |
 | 验证 / 交付 | 项目原生证据 + 双清单 | 等用户确认 |
+
+**反述确认门（v2.1）**：「新项目 / 需求模糊」与「设计锁定」的「等用户确认」停点，要求 agent 先用结构化方式反述目标 / 核心主流程 / 状态流转 / 关键异常路径（落 lane `MISSION.md` §2 与 `DESIGN.md` §9），用户确认或校正后才推进；行为门，不引入 doctor code。
 
 **Activation Gate（v1.7）**：只有 delivery-affecting work 才进入 AI-OS 工件治理。普通对话不得读取或写入 `.ai-os/lanes/*`。意图不清时只问一句确认，确认前不加载 L1/L2/L3。
 

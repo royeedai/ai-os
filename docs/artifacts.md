@@ -47,6 +47,7 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 ### 3. `.ai-os/memory.md`
 
 - **职责**：共享稳定决策、长期约定、跨层契约、坑点、技术债
+- **架构护栏**：§2 工程约束即「架构护栏 / 编码契约登记表」（统一返回包装、必须复用抽象、禁止反模式、依赖策略），对应外部常说的「架构规范字典 / style guide」，但不另建 `.ai-os-rules` 等第二真理源文件；验证阶段逐条对照
 - **版本控制**：入版本控制，使用 union merge
 - **加载层级**：L2
 
@@ -83,6 +84,8 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 ### 9. `.ai-os/lanes/default/DESIGN.md`
 
 - **职责**：关键设计、共享基础设施审计、验收标准、对照参考
+- **契约先行**：§4 核心接口与数据模型即契约层（数据模型 / 接口 / 状态机），确认状态 pending 不得进入大规模实现
+- **反述确认门**：§9 是设计锁定前的反述确认门，agent 先反述对关键设计的理解，用户确认或校正后才锁定
 - **加载层级**：L2
 
 ### 10. `.ai-os/lanes/default/STATE.md`
@@ -227,6 +230,15 @@ AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改
 - lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective*.md`，聚合本 lane 全部 Preventability findings、`unmapped` 高频根因与建议的 framework changes。
 
 数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节（`git grep` + 可选 `framework-feedback` issue）；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。v9.8+ 起不再用 doctor 软检查提示 Preventability review — 由模板 schema 与 maintainer 复盘承载。
+
+## 反述确认 / 双向对齐门（v10.1）
+
+frontier 模型会更快、更大规模地放大模糊目标，所以 AI-OS 在「目标确认优先」之上补一个显式的反述动作，而不是新增 runtime 或第二套提示词：
+
+- 进入设计锁定或大规模实现前，agent 必须用结构化方式反述已理解的目标、核心主流程、状态流转与关键异常路径（`AGENTS.md` §1）
+- 需求层反述落在 lane `MISSION.md` §2（核心主流程 / 关键异常 / 边界分支字段），设计层反述落在 lane `DESIGN.md` §9（反述确认门）
+- 用户确认或校正后才锁定；用户不确认则回到 `MISSION.md` / `DESIGN.md` 修正，不进入实现
+- 这是行为门，**不引入 doctor warning code**——确定性结构检查无法判断「反述是否真实对齐用户意图」，由 `AGENTS.md` 行为规则、模板 schema 与 example 承载，与模型自带的 self-verification 互补
 
 ### 加载顺序约定
 

@@ -20,6 +20,7 @@
 - 出现“配置 / 选项 / 设置”等歧义词时，先确认它是静态预置、后台可配还是用户入口
 - 用户点名局部改动时，不默认扩散成全仓分析
 - 未观察、未确认、未验证的信息不得包装成事实；`inferred` 必须标假设，`unknown` 必须进待确认或非目标
+- 进入设计锁定或大规模实现前，必须用结构化方式反述已理解的目标、核心主流程、状态流转与关键异常路径，经用户确认或校正后才推进
 
 ### 2. 关键设计与逻辑先锁定
 
@@ -67,13 +68,13 @@
 
 ## 行为规则
 
-- **新项目 / 新模块 / 需求模糊**：先产出根层 `.ai-os/MISSION.md` 共享上下文和当前 lane `MISSION.md` 摘要，列待确认项，等用户确认后再进入下一阶段
+- **新项目 / 新模块 / 需求模糊**：先产出根层 `.ai-os/MISSION.md` 共享上下文和当前 lane `MISSION.md` 摘要，结构化反述目标 / 主流程 / 状态流转 / 异常路径并列待确认项，等用户确认后再进入下一阶段
 - **关键设计未锁**：产出当前 lane `DESIGN.md`，列关键取舍和共享层副作用清单，等待用户确认
 - **任务拆解**：在当前 lane `tasks.yaml` 中建立 owner、approval_required、证据要求和验收映射
 - **实现阶段**：只做已确认范围内的事；跨多文件或边界不清时先只读分析
 - **需求变化**：先写当前 lane `baseline-log/CR-*.md` 做影响分析，再更新 `MISSION.md` / `DESIGN.md` / `specs/`；CR 关闭前补 `## Preventability review`，标 `yes` / `no` / `partial`
 - **修复 bug**：先给出根因、复现路径、影响范围、计划修改文件，等用户确认“可执行”
-- **验证阶段**：逐项对照根层共享上下文和当前 lane 工件，覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
+- **验证阶段**：逐项对照根层共享上下文、当前 lane 工件和 `.ai-os/memory.md` 架构护栏 / 工程约束，覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
 - **交付收口**：输出“已实现 / 未纳入 / 验证结果 / 回滚条件 / AI 已完成 vs 需人工执行”双清单；lane 关闭前对本 lane 所有 CR 的 Preventability review 做一次 retrospective 聚合
 - **Session 恢复**：先读 `.ai-os/lanes/default/STATE.md`，再扩展到 lane `MISSION.md`、最新 baseline-log 和根层 `.ai-os/MISSION.md`
 - **稳定失败模式**：首次发现登记到当前 lane `verification-matrix.yaml`；同一 root cause 命中 ≥3 次时必须升格到 `evals/`，记录 `trigger_source` 与首次出现的 baseline-log ID

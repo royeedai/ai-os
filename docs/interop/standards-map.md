@@ -43,6 +43,8 @@ Memory MCP knowledge graph projects entities from `memory.md` / `MISSION.md`; re
 
 Per-developer / per-machine preferences live in agent shell **global rules** (`~/.cursor/rules/*.mdc`, `~/.claude/CLAUDE.md`, `~/.codex/`). AI-OS owns project layers only (`.ai-os/`). Cross-machine sync: dotfiles, not AI-OS identity. Conflict: **project artifacts win** over global rules.
 
+**Architecture style guide / coding-rules file**: project-level architecture guardrails (response-wrapper contract, must-reuse abstractions, forbidden anti-patterns, dependency policy) register in `.ai-os/memory.md` §2 — this is the home for what external tools call an "architecture style guide" or `.ai-os-rules`; AI-OS does **not** create a second truth-source file. Purely personal coding preferences stay in Layer 4 global rules.
+
 ## Long-horizon agent surfaces
 
 Delegated / background / cloud / external PR work records `agent_run_review` in `tasks.yaml`:

@@ -346,7 +346,7 @@ section("docs: long-horizon agent review is documented and checked");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 2.0"), "constitution spec bumped to v2.0");
+  assert(spec.includes("Version: 2.1"), "constitution spec bumped to v2.1");
   assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
   assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
@@ -387,7 +387,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
 
-  assert(spec.includes("Version: 2.0"), "constitution spec remains at latest v2.0");
+  assert(spec.includes("Version: 2.1"), "constitution spec remains at latest v2.1");
   assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
   assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
   assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
@@ -409,7 +409,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.0.0", `version is 10.0.0 (got ${version})`);
+  assert(version === "10.1.0", `version is 10.1.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -708,7 +708,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
   assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
 
   assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
-  assert(spec.includes("Version: 2.0"), "constitution-spec.md is at v2.0");
+  assert(spec.includes("Version: 2.1"), "constitution-spec.md is at v2.1");
   assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
 
   assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");
@@ -796,4 +796,45 @@ section("docs: v9.8 content slimming narrative and removed legacy paths");
   assert(!fs.existsSync(path.join(repoRoot, "docs/problems.md")), "problems.md duplicate removed");
   assert(!fs.existsSync(path.join(repoRoot, "docs/interop/a2a.md")), "a2a.md merged into standards-map");
   assert(!fs.existsSync(path.join(repoRoot, "docs/migrate-to-v9.md")), "migrate-to-v9 removed in v10 (upgrade command dropped)");
+}
+
+section("docs: v10.1 restate-confirm gate + architecture guardrail");
+
+{
+  const agents = read("AGENTS.md");
+  const laneMission = read("framework/.agents/templates/lane/MISSION.md");
+  const design = read("framework/.agents/templates/lane/DESIGN.md");
+  const memory = read("framework/.agents/templates/shared-root/memory.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const map = read("docs/interop/standards-map.md");
+  const ledger = read("docs/problem-ledger.md");
+  const example = read("examples/greenfield-guided-product.md");
+
+  assert(agents.includes("反述"), "AGENTS.md introduces the restate-and-confirm gate");
+  assert(agents.includes("结构化方式反述"), "AGENTS.md §1 requires structured restatement before lock/implementation");
+  assert(agents.includes("架构护栏"), "AGENTS.md verification rule cross-checks memory architecture guardrails");
+
+  assert(laneMission.includes("核心主流程（步骤化反述）"), "lane MISSION template has a restated core-main-flow field");
+  assert(laneMission.includes("关键异常 / 边界分支"), "lane MISSION template has a key exception / boundary branch field");
+  assert(design.includes("契约层"), "DESIGN template names section 4 as the contract layer");
+  assert(design.includes("反述确认门"), "DESIGN template section 9 is the restate-and-confirm gate");
+
+  assert(memory.includes("架构护栏 / 编码契约登记表"), "memory template names section 2 as the architecture guardrail registry");
+  assert(memory.includes("return-contract"), "memory guardrail registry carries a type field");
+  assert(!fs.existsSync(path.join(repoRoot, ".ai-os-rules")), "no second-truth-source .ai-os-rules file is introduced");
+
+  assert(artifacts.includes("反述确认 / 双向对齐门"), "artifacts.md documents the restate-and-confirm / double-loop gate");
+  assert(artifacts.includes("不引入 doctor warning code"), "artifacts.md keeps the restate gate as a behavior gate, not a doctor code");
+  assert(spec.includes("反述确认门（v2.1）"), "constitution spec v2.1 names the restate-and-confirm gate");
+  assert(map.includes("Architecture style guide"), "standards-map maps an external style guide onto memory section 2");
+  assert(map.includes("second truth-source"), "standards-map keeps memory section 2 as the single guardrail truth source");
+
+  assert(ledger.includes("§1 反述确认门"), "problem-ledger PL-001 anchors the restate-confirm gate");
+  assert(!ledger.includes("PL-020"), "no new problem-ledger id is introduced for v10.1");
+
+  assert(example.includes("Restate-and-confirm gate"), "greenfield example demonstrates the restate-and-confirm gate");
+
+  const exampleFiles = fs.readdirSync(path.join(repoRoot, "examples")).filter((f) => f.endsWith(".md") && f !== "README.md");
+  assert(exampleFiles.length === 8, `examples stay at 8 excluding README (got ${exampleFiles.length})`);
 }

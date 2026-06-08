@@ -111,7 +111,7 @@ Behavior is rule-driven by task type:
 | User says | Agent should do |
 |---|---|
 | “Just discuss / brainstorm / explain” | answer directly; do not read or write lane artifacts |
-| “Build a new feature” | produce / update lane `MISSION.md`, then stop for confirmation |
+| “Build a new feature” | produce / update lane `MISSION.md`, restate goal / main flow / state transitions / exception paths, then stop for confirmation |
 | “The requirement changed” | write lane `baseline-log/CR-*.md` before code changes |
 | “Reverse-spec this URL” | capture screenshots, DOM/CSS, interactions, Network/API observations, and evidence-graded backend behavior into lane artifacts |
 | “Delegate this to a background / cloud / PR agent” | record `agent_run_review` run refs, write scope, return packet, evidence, and human review before closing |

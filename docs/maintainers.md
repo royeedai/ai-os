@@ -36,6 +36,7 @@
 | v9.7.3 | CLI defect fixes（patch） | 8 个 CLI 缺陷修复（数据安全、W010 阈值、approval_required schema 等） |
 | v9.8 | Content slimming（GPT-5.5 / Opus 4.8 世代） | interop 收敛、spec 去重、移除 W073/W075/W079 软检查、叙事更新 |
 | v10.0.0 | Drop upgrade + legacy migration（major） | 移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor |
+| v10.1.0 | Restate-confirm gate + architecture guardrail（minor） | AGENTS §1 反述确认门、lane MISSION §2 / DESIGN §9 反述字段、memory §2 架构护栏登记表、spec v2.1；吸收外部建议但守红线，不新增 CLI / doctor code / 工件类别 |
 
 v9.x 各 minor 保持零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。v10.0.0 起 CLI 收敛为 2 个（install + doctor），其余不变量保持。
 

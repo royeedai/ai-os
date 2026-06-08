@@ -10,6 +10,31 @@ This file tracks recent v9 releases (v9.5+). For v8.0.0 – v9.4.x and v5.x – 
 
 ---
 
+## 10.1.0 (2026-06-08) — Restate-and-confirm gate + architecture guardrail
+
+**Minor, backward compatible**. After evaluating an external "turn ai-os into an AI coding platform" proposal through `PROJECT_PURPOSE.md` §5 and the no-expansion red lines, AI-OS absorbs only two model-orthogonal, zero-runtime reinforcements and rejects the runtime / codegen / sandbox parts. No new CLI command, no new doctor code, no new artifact category; 2 primary product operations / 12 artifact categories / zero runtime deps / `AGENTS.md` ≤150 lines preserved.
+
+### Added
+
+- **Restate-and-confirm alignment gate** (`AGENTS.md` §1): before locking design or starting broad implementation, the agent must restate its understanding of goal / core main flow / state transitions / key exception paths in structured form and wait for user confirmation or correction. Need-layer restatement lands in lane `MISSION.md` §2 (new "core main flow" + "key exception / boundary branch" fields); design-layer restatement lands in lane `DESIGN.md` §9 (restate-and-confirm gate). Demonstrated in `examples/greenfield-guided-product.md`.
+- **`docs/artifacts.md`** gains a "restate-and-confirm / double-loop gate" section explaining why it stays a behavior gate (no doctor warning code), complementary to model self-verification.
+
+### Changed
+
+- **Architecture guardrail home named**: `.ai-os/memory.md` §2 工程约束 is now explicitly the "architecture guardrail / coding-contract registry" (response-wrapper contract, must-reuse abstractions, forbidden anti-patterns, dependency policy) with a `type` field, cross-checked during verification (`AGENTS.md` verification rule + `DESIGN.md` §4 contract-first note). This is the home for what external tools call an "architecture style guide" / `.ai-os-rules` — AI-OS does not create a second truth-source file. Mapped in `docs/interop/standards-map.md`.
+- `docs/constitution-spec.md` bumped to **v2.1** (restate-and-confirm gate strengthens the existing goal-confirmation / design-lock gates; contract compatible).
+- `docs/problem-ledger.md` anchors the gate under existing PL-001 / PL-016 / PL-017 — no new PL id.
+
+### Tests
+
+- `test/docs.test.js` adds a v10.1 section (restate gate across AGENTS / templates / artifacts / spec / standards-map / ledger / example; asserts no `.ai-os-rules`; examples stay at 8); version assertions bumped to 10.1.0 and spec to v2.1. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+
+### Migration
+
+No action needed — behavior-rule and artifact-template enrichment only; canonical layout schema unchanged (`9`). Already-installed projects keep passing `doctor`; reinstall to pick up the enriched templates.
+
+---
+
 ## 10.0.0 (2026-06-08) — Drop upgrade + legacy migration
 
 **Major, breaking**. AI-OS converges its operating surface to **2 primary product operations** (install + doctor). The `upgrade` command and all v7/v8 legacy-layout migration are removed — fresh install is now the single supported entry. The canonical layout (`schema_version = "9"`), 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150 lines are unchanged.

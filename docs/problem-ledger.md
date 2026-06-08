@@ -9,7 +9,7 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 ### PL-001 需求一模糊，AI 就直接开工
 
 - **AI-OS 必须保证**：先澄清目标、成功标准和范围边界，再进入设计或实现
-- **当前覆盖锚点**：`AGENTS.md`、`.ai-os/lanes/default/MISSION.md`、`examples/greenfield-guided-product.md`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1 反述确认门）、`.ai-os/lanes/default/MISSION.md`（§2 主流程 / 异常分支反述）、`.ai-os/lanes/default/DESIGN.md`（§9 反述确认门）、`docs/artifacts.md`（反述确认 / 双向对齐门）、`examples/greenfield-guided-product.md`
 
 ### PL-002 需求变化后，代码和基线脱节
 
@@ -57,19 +57,19 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：AI-OS 把任务 handoff 给 Cursor agent / Claude Code / 本地 runner 执行，执行端完成代码后没有把测试输出、原生静态校验、影响清单等证据写回 lane 工件，导致仓库内只看到代码而看不到完成证据
 - **AI-OS 必须保证**：`tasks.yaml` 在 done / verified / shipped 之前必须有 `acceptance_refs`、`evidence_required`、handoff `context_refs` / `expected_return` 与 `evidence_produced`
-- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v2.0）
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v2.1）
 
 ### PL-011 agent 把推断 / 未观察的信息当事实进入实现或交付
 
 - **场景**：agent 在没有源码、网络抓包、运行截图、原生校验等证据时，把"应该是这样"的推断、"通常这样"的常识、"AI 默认行为"的偏好直接当作 confirmed 进入 tasks 与 verification
 - **AI-OS 必须保证**：`tasks.yaml` `fact_state_review` 必须把每条事实标为 `observed` / `confirmed` / `inferred` / `unknown`；`inferred` 必须留 assumptions，`unknown` 必须进入待确认或非目标，closed 任务不得保留未解决 `inferred` / `unknown`
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v2.0）
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v2.1）
 
 ### PL-012 AI-OS 第一次开发未拦住本可避免的修改
 
 - **场景**：用户用 AI-OS 完成首轮交付后，又提出一批修改；这些修改的根因其实是 AI-OS 第一次 session 没问的问题、没锁的设计或没让用户确认的范围——本可在第一次就拦掉，却让框架进入了下一轮返工
 - **AI-OS 必须保证**：CR `baseline-log/CR-*.md` 提供 `## Preventability review` 段落（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补一条 `BL-*-retrospective*.md` 聚合本 lane 所有 Preventability findings；AI-OS maintainer 通过 dogfooding `git grep` 与 GitHub `framework-feedback` issue 定期归并到本台账，并按 guard 落点优先级（AGENTS.md > 工件模板 > doctor > docs）在下一个 minor 收紧
-- **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.0）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.1）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
 
 ### PL-013 开发者级与项目级记忆混写，污染项目共享层或丢失个人偏好
 
@@ -87,19 +87,19 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：agent 把任务交给后台、云端、外部 PR agent 或并行 subagent 后，只拿到一句“完成了”或一个 diff；缺 branch / PR / session refs、写入范围、测试证据、人工审查和 unresolved risks 记录，导致无法判断是否可接受
 - **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
-- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v2.0）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/standards-map.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`（W078）、`test/doctor.test.js`、`test/docs.test.js`
+- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v2.1）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/standards-map.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`（W078）、`test/doctor.test.js`、`test/docs.test.js`
 
 ### PL-016 隐式跨层契约未显式登记，各 session 各自脑补
 
 - **场景**：全栈项目存在 HTTP↔业务码语义映射、Long/UUID/枚举的 wire 格式、名单型常量反向真理源、敏感字段加解密/打码 service 语义档位、查询引擎方言等"看不见的跨层假设"，全靠口头约定维持，AI 在不同 session、不同模块各自脑补一份合理但不一致的实现
 - **AI-OS 必须保证**：跨层任务前必须先核对 `.ai-os/memory.md` 跨层契约登记表；本轮引入新的跨层隐式契约必须同步登记，未登记不得进入任务拆解；验证阶段把"实现与登记表一致"作为通过条件。framework 只规定"必须显式登记"，不硬编码项目特定决策
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2、行为规则 §关键设计未锁 / §验证阶段）、`framework/.agents/templates/shared-root/memory.md`（§6 跨层契约登记表）、`framework/.agents/templates/lane/DESIGN.md`、`evals/implicit-cross-layer-contract-undocumented.md`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2、行为规则 §关键设计未锁 / §验证阶段）、`framework/.agents/templates/shared-root/memory.md`（§2 架构护栏 / §6 跨层契约登记表）、`framework/.agents/templates/lane/DESIGN.md`、`evals/implicit-cross-layer-contract-undocumented.md`
 
 ### PL-017 弱类型洞擦除契约
 
 - **场景**：契约承载在字符串 / Map / 自由对象 / 弱类型字段 / 库隐式默认值上（`@RequestBody Map`、裸字符串动词、前端自由 reactive 字段、笼统 `catch (Exception)` + 业务码包装、承载 19 位 ID 的默认 max 控件等），导致字段名降级、静默丢弃、精度夹断、错误吞没
 - **AI-OS 必须保证**：验证阶段把通用弱类型反模式扫描作为实现质量门硬检查项，命中即视为未通过；项目特定的具体类型 / 控件 / 异常基类选择留给项目 `.ai-os/memory.md`，框架只锁定通用反模式禁令
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §4、行为规则 §验证阶段）、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/shared-root/memory.md`（§2 工程约束 / §5 技术债追踪）、`evals/weak-type-hole-erodes-contract.md`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §4、行为规则 §验证阶段）、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/shared-root/memory.md`（§2 架构护栏 / 编码契约登记表 / §5 技术债追踪）、`evals/weak-type-hole-erodes-contract.md`
 
 ### PL-018 单点接口合格不等于端到端 journey 闭环
 
