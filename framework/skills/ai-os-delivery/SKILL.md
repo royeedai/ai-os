@@ -78,6 +78,7 @@ After the Activation Gate passes, load layers progressively. Do not re-load a hi
 | New project / new module / vague requirement | Produce / update root `.ai-os/MISSION.md` + lane `MISSION.md` summary; list pending confirmations; **stop and wait for user confirmation** |
 | Lock key design | Produce lane `DESIGN.md` with key trade-offs and shared-layer side-effect list; **stop and wait** |
 | Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / `handoff_to` / `context_refs` / `expected_return` / evidence requirements |
+| Frontend UI work | Determine `ui_source` first (`design-led` / `component-first` / `existing-style` / `hybrid`); prefer existing or stack-appropriate components; record component library, fidelity level, and custom-only gaps in `DESIGN.md` |
 | URL reverse-spec intake | Capture URL, screenshots, DOM/CSS, interactions, Network/API observations, backend behavior confidence, and unknowns into `design-pack/parity-map.md` + `specs/*.spec.md`; **do not invent backend internals** |
 | Implement | Only act inside confirmed scope; cross-file or unclear boundary → read-only analysis first |
 | Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/`; before closing the CR, add a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard) |
@@ -89,6 +90,16 @@ After the Activation Gate passes, load layers progressively. Do not re-load a hi
 | Long-horizon / background agent work | For delegated, cloud, external PR agent, or parallel execution, record `agent_run_review` with `execution_surface`, `run_refs`, `write_scope`, `progress_checkpoints`, `return_packet`, and `human_review_status`; do not close until evidence and human review are present |
 | Hallucination guard | Use `fact_state_review` to separate `observed`, `confirmed`, `inferred`, and `unknown`; unresolved `inferred` / `unknown` cannot close as done / verified / shipped |
 | Stable failure mode | First occurrence registers in lane `verification-matrix.yaml`; same root cause hit ≥3 times must promote to `evals/<name>.md` with frontmatter `trigger_source: promoted-from-verification-matrix` and `first_baseline_id` |
+
+## Frontend UI source routing
+
+For frontend screens, separate the UI target from the implementation path:
+
+- With design input, treat the design as the target and use existing project components first. Configure, theme, or wrap components before custom UI; customize only for component gaps, brand visuals, special layouts, or fidelity-critical areas.
+- Without design input, use component-first delivery. Existing project component library wins. If no library exists, infer stack and surface before choosing; ask only when stack / surface cannot be observed.
+- Default China-friendly choices: Vue PC → Element Plus; React PC → Ant Design; Vue H5 → Vant; React H5 → Ant Design Mobile; uni-app → uView / uni-ui; Taro or WeChat-heavy → NutUI / TDesign; cross-stack enterprise consistency → TDesign; modern enterprise admin → Arco Design.
+- Fidelity levels: `strict` when the user demands design restoration, `practical` for business / admin UI with design input, `component-native` when no design exists.
+- Component-first does not skip logic: fields, API contracts, permissions, validation, loading / empty / error states, timeout paths, responsive behavior, and project-native verification still need acceptance coverage.
 
 ## Absolute prohibitions
 

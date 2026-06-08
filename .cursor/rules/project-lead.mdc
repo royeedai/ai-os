@@ -12,7 +12,7 @@ alwaysApply: true
 - 仓库：git@github.com:royeedai/ai-os.git
 - npm 包名：create-ai-os
 - 当前版本：10.1.0（VERSION + package.json + `.ai-os/framework.toml` 同步）
-- 最新 git tag：v9.8.0（GPT-5.5/Opus 4.8 世代内容瘦身）；**v10.0.0、v10.1.0 已在本地完成、待 push 后打 tag**（v10.0.0：移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor，major 破坏性；v10.1.0：反述确认门 + 架构护栏定位 memory §2，吸收外部建议但守红线，minor 非破坏）。近期已打 tag：v9.7.3（CLI 缺陷修复）、v9.7.2（一致性修复）、v9.7.1（developer-memory interop）、v9.7.0（framework feedback loop）。历史 tag：v9.6.0、v9.5.2、v9.5.1、v9.5.0、v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)
+- 最新 git tag：v9.8.0（GPT-5.5/Opus 4.8 世代内容瘦身）；**v9.9.0、v10.0.0、v10.1.0 已在本地完成、待 push 后打 tag**（v9.9.0：Design-Aware Component-First UI，minor；v10.0.0：移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor，major 破坏性；v10.1.0：反述确认门 + 架构护栏定位 memory §2，吸收外部建议但守红线，minor 非破坏）。近期已打 tag：v9.7.3（CLI 缺陷修复）、v9.7.2（一致性修复）、v9.7.1（developer-memory interop）、v9.7.0（framework feedback loop）。历史 tag：v9.6.0、v9.5.2、v9.5.1、v9.5.0、v9.4.0、v9.1.1、v9.1.0、v8.0.0、v7-legacy(=v7.4.0)
 - 归档 tag：v7-legacy（指向 v7.4.0，用户可 `git checkout v7-legacy` 回退）
 - 分支：main
 - CI：.github/workflows/ci.yml（push/PR 触发 lint + test on Node 18/20/22）
@@ -26,6 +26,7 @@ alwaysApply: true
 
 - 操作面极简（2 CLI + 行为规则），工件面完整（12 组默认全装）
 - Activation Gate 先于 lane 工件加载：只有 delivery-affecting work 才进入 AI-OS 工件治理，普通对话不读写 `.ai-os/lanes/*`
+- **Design-Aware Component-First UI（v9.9）**：有设计稿时设计稿定义目标效果，组件库仍是优先实现路径；无设计稿的后台 / PC / 移动业务 UI 默认走项目现有或栈匹配组件库，不能跳过字段、接口、权限、状态和异常路径验收
 - Long-Horizon Agent Reliability 只做回收审查契约：`agent_run_review` + W078 管理后台 / 云端 / 外部 PR / 并行 agent work 的 refs、scope、return packet、evidence 和 human review，不新增 runner 或 vendor adapter
 - 工件按 L1/L2/L3 progressive disclosure 加载（Activation Gate 通过后，`STATE.md` / `lane.toml` 优先；`MISSION.md` / `DESIGN.md` / `memory.md` 次之；`baseline-log/` / `specs/` / `evals/` 按需）
 - 对接开放标准、不自造体系：agentskills.io（已发布官方 SKILL.md）、MCP（已定义 `aios://` URI scheme，不内置 server）、AGENTS.md（Linux Foundation AAIF 治理标准）

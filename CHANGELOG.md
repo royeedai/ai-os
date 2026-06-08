@@ -68,6 +68,35 @@ Projects already on the v9 canonical layout need no action — `doctor` still pa
 
 ---
 
+## 9.9.0 (2026-06-06) — Design-Aware Component-First UI
+
+**Minor, backward compatible; governance / docs / template only**. v9.9 adds a frontend UI source routing contract without expanding the CLI, runtime, doctor warning range, or page template surface.
+
+### Added
+
+- Design-Aware Component-First UI: `design-led`, `component-first`, `existing-style`, and `hybrid` routing for frontend UI work.
+- `docs/artifacts.md` now defines UI source fields for `DESIGN.md`: `ui_source`, `surface`, `frontend_stack`, `component_library`, `selection_reason`, `fidelity_level`, and `custom_required`.
+- Lane `DESIGN.md` template now includes a UI Source Routing section.
+- Lane `verification-matrix.yaml` template includes UI failure modes for design-vs-component mismatch, no-design hand-rolled UI, second-library drift, and skipped business states.
+- `docs/problem-ledger.md` registers PL-020 for frontend UI source and component-library implementation confusion.
+
+### Changed
+
+- `AGENTS.md`, `README.md`, `docs/constitution-spec.md` v2.1, and the official `ai-os-delivery` skill wrapper now state: design files define target effect; component libraries remain the preferred implementation path; no-design admin / PC / mobile business UI defaults to existing or stack-appropriate component libraries.
+- Default component selection is conservative and China-friendly: existing dependency first; then user selection; then stack / surface defaults such as Element Plus, Ant Design, Vant, Ant Design Mobile, uView / uni-ui, NutUI, TDesign, or Arco Design.
+- Version metadata updated to 9.9.0.
+
+### Tests
+
+- `test/docs.test.js` adds consistency checks for UI source routing, component-library default rules, template fields, verification matrix guards, PL-020, and unchanged product surface.
+- Existing version assertions updated to 9.9.0.
+
+### Migration
+
+None. Existing projects do not need to change. The new contract only guides future frontend UI tasks and installed lane templates.
+
+---
+
 ## 9.8.0 (2026-06-05) — Content slimming (GPT-5.5 / Opus 4.8 era)
 
 **Minor, backward compatible for artifact schema; doctor soft-check removals are behavior changes**. v9.8 keeps the 3 primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150 lines. It removes redundant scaffolding that frontier models and artifact templates already cover, without deleting core governance contracts.

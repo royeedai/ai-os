@@ -4,7 +4,7 @@
 
 - **当前交付主题**：double-loop alignment（反述确认）+ architecture guardrail 定位
 - **当前交付目标**：从外部「AI 编码平台」建议中，只吸收两条与模型能力正交、零运行时的强化——实现前「双向对齐 + 反述确认」门，以及把「架构规范字典 / style guide」明确定位到 `.ai-os/memory.md` §2 并强化；其余 runtime / codegen / sandbox 类建议按红线拒绝
-- **成功标准**：`AGENTS.md` 新增反述确认门且 ≤150 行；MISSION/DESIGN/memory 模板承载新 schema；docs（artifacts / constitution-spec v2.1 / standards-map）同步；problem-ledger 在 PL-001/016/017 补锚点不新增编号；examples 仍 8 个；version 升 10.1.0；不新增 CLI / doctor code / 工件类别；npm test + lint + doctor self-check 全绿
+- **成功标准**：`AGENTS.md` 新增反述确认门且 ≤150 行；MISSION/DESIGN/memory 模板承载新 schema；docs（artifacts / constitution-spec v2.2 / standards-map）同步；problem-ledger 在 PL-001/016/017 补锚点不新增编号；examples 仍 8 个；version 升 10.1.0；不新增 CLI / doctor code / 工件类别；npm test + lint + doctor self-check 全绿
 - **项目模式**：change + brownfield（改 AI-OS 自身）
 - **当前质量档位（quality_tier，真理源见 lane.toml）**：standard
 - **当前风险档位（risk_tier，真理源见 lane.toml）**：medium
@@ -30,7 +30,7 @@
 - **已确认目标运行态 / 部署约束**：AI-OS 仍是治理契约，不执行、不生成代码、不索引、不拦截编译
 - **已确认质量优先级**：守初心（不扩张红线）> 吸收外部建议；行为门 + 工件契约 > runtime / 平台功能
 - **已确认核心设计决策**：反述确认是行为门，落 AGENTS.md §1 + 模板 + example，**不进 doctor**；架构护栏落 memory §2，**不新建 `.ai-os-rules`**
-- **已确认核心逻辑决策**：不新增 PL 编号（强化 PL-001/016/017）；不新增第 9 个 example；constitution-spec bump v2.1（强化已有确认门，非新门类）
+- **已确认核心逻辑决策**：不新增 PL 编号（强化 PL-001/016/017）；不新增第 9 个 example；constitution-spec bump v2.2（强化已有确认门，非新门类）
 
 ## 4. 范围边界与非目标
 
@@ -38,7 +38,7 @@
 
 - `AGENTS.md` 反述确认门 + 验证对照护栏（克制行数）
 - lane `MISSION.md` / `DESIGN.md` / shared-root `memory.md` 模板强化
-- `docs/artifacts.md` / `docs/constitution-spec.md`（v2.1）/ `docs/interop/standards-map.md` 同步
+- `docs/artifacts.md` / `docs/constitution-spec.md`（v2.2）/ `docs/interop/standards-map.md` 同步
 - `docs/problem-ledger.md` 补锚点、`examples/greenfield-guided-product.md` 扩展
 - `test/docs.test.js` 断言、version 元数据、CHANGELOG、project-lead 规则
 

@@ -22,13 +22,13 @@
 - **吸收 1（反述确认门）**：`AGENTS.md` §1 增 1 条 bullet（进入设计锁定 / 实现前必须结构化反述目标 / 核心主流程 / 状态流转 / 关键异常路径，经用户确认后才推进）；行为规则「新项目 / 需求模糊」「验证阶段」原地强化。`MISSION.md` §2 增「核心主流程（步骤化反述）」「关键异常 / 边界分支」字段 + 待确认声明。`DESIGN.md` §9 改造为「反述 + 确认门」。`examples/greenfield-guided-product.md` 扩展反述确认步骤。
 - **吸收 2（架构护栏定位）**：`memory.md` §2 引言点名「架构护栏 / 编码契约登记表」，`EC-*` 增「类型」字段（return-contract / must-reuse-abstraction / forbidden-antipattern / dependency-policy）并注明验证阶段逐条对照；`AGENTS.md` 验证阶段行为规则补「对照 memory 架构护栏」。
 - **契约先行点名**：`DESIGN.md` §4 标注「契约层，确认状态 pending 不得进入大规模实现」。
-- **文档同步**：`docs/artifacts.md` 点名 DESIGN §4 契约层 / memory §2 架构护栏 + 新增「反述确认 / 双向对齐门」小节；`docs/constitution-spec.md` bump v2.1（§5 停点表 / §6 确认门点明反述确认）；`docs/interop/standards-map.md` 工具共存表补「外部 style guide / rules 文件 → memory §2」映射。
+- **文档同步**：`docs/artifacts.md` 点名 DESIGN §4 契约层 / memory §2 架构护栏 + 新增「反述确认 / 双向对齐门」小节；`docs/constitution-spec.md` bump v2.2（§5 停点表 / §6 确认门点明反述确认）；`docs/interop/standards-map.md` 工具共存表补「外部 style guide / rules 文件 → memory §2」映射。
 - **拒绝（不进入实现）**：contract→codegen 自动填充、越界拦截 / AST linter / 编译期打回、项目指纹索引器、强制单测生成 80%、`.ai-os-rules` 新配置文件、独立 PRD 工件、多端 UI 沙箱 / 实时预览。
 
 ## Affected artifacts
 
 - 宪法 / 模板：`AGENTS.md`、lane `MISSION.md` / `DESIGN.md`、shared-root `memory.md`
-- 文档：`docs/artifacts.md`、`docs/constitution-spec.md`（v2.1）、`docs/interop/standards-map.md`、`docs/problem-ledger.md`（PL-001 / PL-016 / PL-017 补锚点，不新增编号）
+- 文档：`docs/artifacts.md`、`docs/constitution-spec.md`（v2.2）、`docs/interop/standards-map.md`、`docs/problem-ledger.md`（PL-001 / PL-016 / PL-017 补锚点，不新增编号）
 - 示例：`examples/greenfield-guided-product.md`（不新增第 9 个 example）
 - doctor：**不新增 warning code**（反述确认是行为门、不可确定性机检；强加会变软检查、违背 v9.8+ 收敛方向）
 - 测试 / 元数据：`test/docs.test.js`、`VERSION` / `package.json` / `package-lock.json`（→10.1.0）、`.ai-os/framework.toml`（本机）、`CHANGELOG.md`、`.cursor/rules/project-lead.mdc`
@@ -39,7 +39,7 @@
 - AC-001：`AGENTS.md` §1 含反述确认门，行为规则提及结构化反述与 memory 架构护栏对照；文件 ≤150 行。
 - AC-002：`MISSION.md` §2 含「核心主流程」「关键异常 / 边界分支」反述字段；`DESIGN.md` §4 点名契约层、§9 为反述 + 确认门。
 - AC-003：`memory.md` §2 点名架构护栏 / 编码契约登记表，`EC-*` 含「类型」字段。
-- AC-004：`docs/artifacts.md` 含「反述确认 / 双向对齐门」小节并点名 DESIGN §4 / memory §2；`constitution-spec.md` 为 v2.1 且 ≤160 行；`standards-map.md` 含 style guide → memory §2 映射且 ≤200 行。
+- AC-004：`docs/artifacts.md` 含「反述确认 / 双向对齐门」小节并点名 DESIGN §4 / memory §2；`constitution-spec.md` 为 v2.2 且 ≤160 行；`standards-map.md` 含 style guide → memory §2 映射且 ≤200 行。
 - AC-005：`problem-ledger.md` 在 PL-001 / PL-016 / PL-017 补锚点，无新增 PL 编号；examples 仍为 8 个。
 - AC-006：version 10.1.0 同步（VERSION / package.json / package-lock / framework.toml）；CHANGELOG 10.1.0 条目完整。
 - AC-007：`npm test`、`npm run lint`、`node bin/ai-os-doctor.js .` 全部 0 错 0 警。
