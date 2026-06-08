@@ -17,18 +17,18 @@ artifact_gate: constitution-gate
 
 - 改了接口 / 命令入口，却漏掉代理、网关、鉴权或启动链路
 - 改了 schema / mapping，却漏掉序列化、迁移、兼容性或空值处理
-- `tasks.yaml` 没有 `impact_tags`、`derived_checks`
+- `tasks.yaml` 没有 `impact_tags`、`change_scope`
 
 ## AI-OS 预期行为
 
-- 任务拆解必须根据 lane `specs/*.spec.md` 的 `集成触点` 派生 `context_files`、`impact_tags`、`derived_checks`
+- 任务拆解必须根据 lane `specs/*.spec.md` 与 `DESIGN.md` 的集成触点派生 `context_refs`、`impact_tags`、`change_scope`
 - 实现和验证阶段必须按联动矩阵补查入口、映射、运行态影响
 - lane `verification-matrix.yaml` 必须支持 `impact_rules`
 
 ## 最低证据
 
 - lane `specs/*.spec.md` 中的 `集成触点`
-- lane `tasks.yaml` 中的 `impact_tags` / `derived_checks`
+- lane `tasks.yaml` 中的 `impact_tags` / `change_scope`
 - lane `verification-matrix.yaml` 中的 `impact_rules`
 - contract / degraded-path 证据
 

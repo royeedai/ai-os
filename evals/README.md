@@ -17,7 +17,7 @@ artifact_gate: MISSION                  # artifact gate that should catch it
 ---
 ```
 
-`trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` failure-mode-harvest rule: same root cause hit ≥3 times → promote here).
+`trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` 稳定失败模式 rule: same root cause hit ≥3 times → promote here).
 
 The taxonomy fields are optional for external adopters but used by this repo's own evals. They make the sample set searchable by risk source, failure pattern, harm, and the artifact gate that should intercept the issue.
 
@@ -105,5 +105,5 @@ Hallucination guard via `fact_state_review` is enforced before tasks reach execu
 
 ## Notes
 
-- v8 removed evals tied to v7 lane machinery (`legacy-to-lanes-migration-skipped`, `lane-archive-without-shared-reflux`) since lanes are now optional and non-automated.
+- The v7 lane-machinery evals (`legacy-to-lanes-migration-skipped`, `lane-archive-without-shared-reflux`) were removed when lanes became the single canonical layout (`lanes/default/` always installed; extra lanes optional).
 - v9.1.1 realigned every eval's "若需改 framework，优先检查" pointers to the v9 surface: rules live in root `AGENTS.md` behavior-rule sections; per-lane structure lives under `framework/.agents/templates/lane/`; shared root structure lives under `framework/.agents/templates/shared-root/`. No eval should still reference `framework/.agents/workflows/*` or `framework/.agents/skills/*` (those were the v7 surface).

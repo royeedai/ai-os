@@ -1,4 +1,4 @@
-# AI-OS v9
+# AI-OS
 
 > AI Delivery Constitution + canonical lane-first artifact layout + reference CLI.
 
@@ -11,9 +11,6 @@ npx --yes github:royeedai/ai-os .
 
 # Check health
 npx --yes github:royeedai/ai-os doctor .
-
-# Migrate older layouts to v9
-npx --yes github:royeedai/ai-os upgrade .
 ```
 
 ## What AI-OS is
@@ -34,7 +31,7 @@ It is intentionally **not** an IDE, harness, orchestration layer, runtime runner
 
 ## Canonical layout
 
-v9 has one default layout only:
+There is one default layout:
 
 ```text
 <project-root>/
@@ -74,13 +71,12 @@ Root `.ai-os/MISSION.md` is the **shared host-project context**.
 
 Full text: [AGENTS.md](AGENTS.md)
 
-## Three primary operations
+## Two primary operations
 
 | Operation | CLI entrypoint | Purpose |
 |---|---|---|
-| install | `create-ai-os [dir]` or `create-ai-os install [dir]` | Install AI-OS v9 canonical layout |
+| install | `create-ai-os [dir]` or `create-ai-os install [dir]` | Install the AI-OS canonical layout |
 | doctor | `create-ai-os doctor [dir]` | Check layout health and constitution compliance |
-| upgrade | `create-ai-os upgrade [dir]` | Migrate legacy AI-OS layouts to v9 |
 
 No slash commands. No profile flags. No proprietary AI-OS skill system; the `agentskills.io` wrapper below is an open-standard adapter, not a separate operating surface.
 
@@ -129,20 +125,6 @@ You always get `lanes/default/`. Most projects will only ever use that lane.
 
 Create more lanes only when you truly have separate long-lived delivery lines, release trains, or teams working in parallel with different current baselines.
 
-## Migration
-
-```bash
-npx --yes github:royeedai/ai-os upgrade .
-```
-
-`upgrade` now normalizes legacy layouts to v9:
-
-- v7 legacy
-- v8 root-only
-- v8 hybrid root+lane drift
-
-See [docs/migrate-to-v9.md](docs/migrate-to-v9.md).
-
 ## Cross-agent loading via the `agentskills.io` standard
 
 For agents that prefer the [agentskills.io](https://agentskills.io/specification) skill format (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...), AI-OS publishes an official wrapper:
@@ -180,7 +162,6 @@ Optional feedback path: file an issue with the `framework-feedback` label using 
 - [docs/constitution-spec.md](docs/constitution-spec.md)
 - [docs/getting-started.md](docs/getting-started.md)
 - [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
-- [docs/migrate-to-v9.md](docs/migrate-to-v9.md)
 - [docs/maintainers.md](docs/maintainers.md)
 - [docs/interop/](docs/interop/) — spec-kit, Claude Code, Cursor, MCP (`aios://`), and [standards-map](docs/interop/standards-map.md) (A2A, Memory tool, BMAD, OpenSpec, Kiro, EU AI Act, long-horizon agents)
 

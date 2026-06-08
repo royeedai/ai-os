@@ -6,7 +6,6 @@ require("./docs.test");
 require("./shared.test");
 require("./install.test");
 require("./doctor.test");
-require("./upgrade.test");
 
 const { passed, failed } = getSummary();
 process.stdout.write(`\nSummary: ${passed} passed, ${failed} failed\n`);

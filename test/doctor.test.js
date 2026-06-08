@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Doctor tests: checks canonical layout health and legacy drift detection.
+ * Doctor tests: checks canonical layout health and constitution compliance.
  */
 
 const fs = require("fs");
@@ -79,7 +79,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "9.8.0", "JSON reports version 9.8.0");
+  assert(parsed && parsed.version === "10.0.0", "JSON reports version 10.0.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -109,32 +109,6 @@ section("doctor: schema_version mismatch is an error");
   const result = runDoctor([dir]);
   assert(result.status === 1, "doctor exits 1 when schema_version != 9");
   assert(result.stdout.includes("E002"), "doctor reports E002 on wrong schema");
-  cleanup(dir);
-}
-
-section("doctor: root-only legacy layout is unhealthy");
-
-{
-  const dir = tmpDir();
-  write(dir, ".ai-os/MISSION.md", "# legacy mission\n");
-  write(dir, ".ai-os/DESIGN.md", "# legacy design\n");
-  write(dir, ".ai-os/memory.md", "# memory\n");
-  write(dir, ".ai-os/framework.toml", 'schema_version = "9"\nlayout_version = "9"\nlayout_mode = "root-only-legacy"\nframework_version = "8.0.0"\n');
-  const result = runDoctor([dir]);
-  assert(result.status === 1, "doctor exits 1 for root-only legacy layout");
-  assert(result.stdout.includes("E060"), "doctor reports root-only legacy error");
-  cleanup(dir);
-}
-
-section("doctor: hybrid drift is unhealthy");
-
-{
-  const dir = tmpDir();
-  runInstall([dir]);
-  write(dir, ".ai-os/DESIGN.md", "# rogue root design\n");
-  const result = runDoctor([dir]);
-  assert(result.status === 1, "doctor exits 1 for hybrid drift");
-  assert(result.stdout.includes("E061"), "doctor reports hybrid drift error");
   cleanup(dir);
 }
 

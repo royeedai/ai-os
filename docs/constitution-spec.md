@@ -84,10 +84,9 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 设计确认门、逻辑确认门、实现质量门、交付质量门；reverse-spec 额外 parity-gate。模型 self-verification 不等同于项目级证据化完成。
 
-## 7. Layout 漂移语义
+## 7. Canonical layout
 
-- `shared-root-default-lane`：canonical  
-- `root-only-legacy` / `hybrid-drift`：需 `upgrade`
+- 只有一种 canonical layout：`shared-root-default-lane`（共享根 + `.ai-os/lanes/default/`）
 
 ## 8. 与原生工具共存
 

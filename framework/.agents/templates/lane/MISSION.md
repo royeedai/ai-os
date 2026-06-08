@@ -9,7 +9,8 @@
 - **当前交付目标**：
 - **成功标准**：
 - **项目模式**：greenfield / reverse-spec / brownfield / change
-- **当前交付档位**：exploratory / standard / high-risk
+- **当前质量档位（quality_tier，真理源见 lane.toml）**：exploratory / standard
+- **当前风险档位（risk_tier，真理源见 lane.toml）**：low / medium / high
 - **当前治理档位**：P0 / P1 / P2
 - **当前基线 ID**：{{INITIAL_BASELINE_ID}}
 

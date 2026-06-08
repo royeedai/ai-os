@@ -133,7 +133,7 @@ Any user-asset write, permission / identity change, irreversible state transitio
 - URL reverse-spec intake protocol: `docs/reverse-spec-url-intake.md`
 - Constitution spec for cross-tool integration: `docs/constitution-spec.md`
 - MCP resources URI scheme: `docs/interop/mcp-resources.md`
-- Coexistence with other tools: `docs/interop/`
+- Coexistence with other tools: `docs/interop/standards-map.md`
 - AI-OS itself: <https://github.com/royeedai/ai-os>
 
 ## Skill invocation contract

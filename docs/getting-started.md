@@ -41,11 +41,3 @@ When resuming work:
 ```bash
 npx --yes github:royeedai/ai-os doctor .
 ```
-
-## 6. Upgrade legacy layouts
-
-```bash
-npx --yes github:royeedai/ai-os upgrade .
-```
-
-See [migrate-to-v9.md](migrate-to-v9.md).

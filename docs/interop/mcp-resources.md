@@ -124,7 +124,7 @@ process.stdin.on("data", (c) => { buf += c; let i; while ((i = buf.indexOf("\n")
 
 ## Why this is not in the default CLI
 
-- AI-OS v9 keeps the operating surface to **3 primary product operations** to avoid bloat
+- AI-OS keeps the operating surface to **2 primary product operations** to avoid bloat
 - MCP server lifecycle (auth, transport, OAuth 2.1, audit logging) is large; embedding it would conflict with "zero runtime dependencies"
 - The contract here is enough: any team that wants MCP exposure can adapt the snippet above, or wrap a richer MCP SDK around the same URI map
 
@@ -140,4 +140,4 @@ If you expose AI-OS resources via remote HTTP-MCP rather than stdio:
 
 - Use OAuth 2.1 + PKCE (per [MCP best practices](https://mcp-best-practice.github.io/mcp-best-practice/best-practice/))
 - Bind STATE / DESIGN to per-user scopes — these contain in-flight delivery thinking
-- Log resource reads as part of audit trail (this aligns with the EU AI Act audit framing in [eu-ai-act.md](eu-ai-act.md))
+- Log resource reads as part of audit trail (this aligns with the EU AI Act audit framing in [standards-map.md](standards-map.md))

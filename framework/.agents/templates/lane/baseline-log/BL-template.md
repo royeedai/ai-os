@@ -10,7 +10,7 @@
 
 ## 后续 CR delta lifecycle 模板
 
-新增 `CR-YYYYMMDD-HHMMSS-<slug>.md` 时必须包含以下段落，便于 `doctor --strict` 检查变更基线是否可追溯：
+新增 `CR-YYYYMMDD-HHMMSS-<slug>.md` 时必须包含以下段落（schema 由模板与 `AGENTS.md` 行为规则承载，maintainer 用 `git grep` 复盘）：
 
 1. `## Current behavior`
 2. `## Proposed delta`

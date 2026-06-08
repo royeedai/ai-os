@@ -35,7 +35,7 @@ AI-OS 把一个任务 handoff 给执行端（Cursor agent / Claude Code / 本地
 
 ## 若需改 framework，优先检查
 
-- `AGENTS.md`（行为规则 §交付收口；绝对禁止 §12）
+- `AGENTS.md`（行为规则 §交付收口、§任务拆解）
 - `framework/.agents/templates/lane/tasks.yaml`
 - `framework/.agents/templates/lane/verification-matrix.yaml`
 - `bin/ai-os-doctor.js`（W076 实现）

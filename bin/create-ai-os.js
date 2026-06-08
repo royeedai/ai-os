@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * AI-OS v9 installer
+ * AI-OS installer
  *
  * One default install form. No profiles, no flags for "what to include".
- * All artifacts are installed into the v9 canonical layout:
+ * All artifacts are installed into the canonical layout:
  * shared root + .ai-os/lanes/default/.
  *
  * Primary operations:
  *   create-ai-os [target-dir]       Default install (the only supported form)
  *   create-ai-os install [target]   Explicit install alias (same behavior)
  *   create-ai-os doctor  [target]   Check artifact completeness
- *   create-ai-os upgrade [target]   Migrate older AI-OS layouts to v9
  */
 
 "use strict";
@@ -21,22 +20,19 @@ const path = require("path");
 const SUBCOMMANDS = {
   install: null, // handled below (same as default)
   doctor: "./ai-os-doctor",
-  upgrade: "./ai-os-upgrade",
 };
 
 function printHelp(version) {
   process.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
 
 Usage:
-  create-ai-os [target-dir]               Install AI-OS v9 into the target (default: current dir)
+  create-ai-os [target-dir]               Install AI-OS into the target (default: current dir)
   create-ai-os install [target-dir]       Explicit install alias (same behavior)
   create-ai-os doctor  [target-dir]       Check layout health and constitution compliance
-  create-ai-os upgrade [target-dir]       Migrate older AI-OS layouts to v9
 
 Primary operations:
   install   Default entrypoint plus explicit alias
   doctor    Layout health and constitution compliance checks
-  upgrade   Legacy layout migration to v9
 
 Options:
   --force          Overwrite existing managed artifacts
@@ -147,10 +143,9 @@ Next steps:
   4. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
 
 Primary operations:
-  create-ai-os            Install AI-OS v9 (default entrypoint)
-  create-ai-os install    Install AI-OS v9 (explicit alias)
+  create-ai-os            Install AI-OS (default entrypoint)
+  create-ai-os install    Install AI-OS (explicit alias)
   create-ai-os doctor    Check artifact completeness
-  create-ai-os upgrade   Migrate older AI-OS layouts to v9
 `);
 }
 

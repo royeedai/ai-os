@@ -35,7 +35,7 @@ agent 在没有源码、网络抓包、运行截图、原生校验或用户明�
 - lane `tasks.yaml` 中的 `fact_state_review` 与每条事实标注
 - lane `verification-matrix.yaml` 中 hallucination guard 的失败模式条目
 - `docs/cli.md` 中 W077 的描述与 doctor 实际输出一致
-- `docs/constitution-spec.md` v1.6 中的 Hallucination Guard 章节
+- `docs/constitution-spec.md`（v2.0）中的 Hallucination Guard 章节
 
 ## 若需改 framework，优先检查
 

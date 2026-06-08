@@ -28,7 +28,7 @@ artifact_gate: constitution-gate
 ## 最低证据
 
 - lane `DESIGN.md` 或 `specs/*.spec.md` 中的 route / wrapper / schema parity 记录
-- lane `tasks.yaml` 中的 `parity_checks`、`similar_impl_refs`
+- lane `tasks.yaml` 中的 `change_scope` / `context_refs`，以及 `design-pack/parity-map.md` 的 parity 记录
 - lane `verification-matrix.yaml` 中的 `route-contract-check`、`schema-parity-check` 或等价记录
 
 ## 若需改 framework，优先检查

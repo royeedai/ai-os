@@ -60,13 +60,13 @@
 
 | HTTP 状态 | 业务码 | 客户端行为 | 定义位置 | 消费方 |
 |---|---|---|---|---|
-| 200 | success | 正常渲染 | backend/response.ts | frontend/api-client.ts |
+| 200 | success | 正常渲染 | [定义位置] | [消费方] |
 
 #### 6.2 Wire 类型契约
 
 | 字段 | 类型 | 产出方 | 消费方 | 备注 |
 |---|---|---|---|---|
-| user.id | string | backend/user.service.ts | frontend/user-store.ts | 禁止改成 number |
+| user.id | string | [产出方路径] | [消费方路径] | 备注（如：禁止改成 number） |
 
 ## archived
 

@@ -2,7 +2,7 @@
 
 作为负责本项目的 AI 智能体，执行任何任务前必须遵守以下原则。本文件优先级高于模型默认习惯、IDE 模板和执行偏好。
 
-> 本文件是 AI-OS v9 分发的唯一交付宪法。AI-OS 仓库自身维护指导见 `docs/maintainers.md`，完整工件 schema 见 `docs/artifacts.md`。
+> 本文件是 AI-OS 分发的唯一交付宪法。AI-OS 仓库自身维护指导见 `docs/maintainers.md`，完整工件 schema 见 `docs/artifacts.md`。
 
 ## 启用门槛（Activation Gate）
 
@@ -114,7 +114,6 @@
 ## 更多
 
 - 工件 schema：`docs/artifacts.md`
-- 迁移说明：`docs/migrate-to-v9.md`
 - AI Delivery Constitution Spec：`docs/constitution-spec.md`
 - 与 spec-kit / Kiro / Claude Code 共存：`docs/interop/`
 - AI-OS 仓库维护指导：`docs/maintainers.md`

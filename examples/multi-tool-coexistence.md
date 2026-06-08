@@ -23,7 +23,7 @@ Add `.cursor/rules/ai-os-delivery.mdc` (only if you want a project-scoped rule b
 
 ```mdc
 ---
-description: AI-OS v9 delivery routing
+description: AI-OS delivery routing
 globs:
   - "**/*"
 alwaysApply: false
@@ -96,11 +96,12 @@ Both tools share the same CI gate:
   run: npx --yes github:royeedai/ai-os doctor . --strict
 ```
 
-`--strict` catches:
+`--strict` catches the W070-W078 semantic warnings, for example:
 
 - W070: orphan baseline references (someone updated `MISSION.md` but didn't commit the matching `baseline-log/CR-*.md`)
 - W071: tasks without owner (forgot to attribute who's doing what)
 - W072: AC not covered by `verification-matrix.yaml` (design ratified but verification not wired up)
+- W074 / W076 / W077 / W078: high-risk artifacts, handoff evidence, fact-state review, and long-horizon agent review
 
 ## 5. Cross-session recovery (different agent than yesterday)
 

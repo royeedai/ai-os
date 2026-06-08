@@ -26,7 +26,7 @@ AI-OS 想解决的问题不是"少一个 prompt"，而是"如何让 AI 在多个
 **模型越强，AI-OS 核心层越成立，脚手架层越该收敛**：
 
 - **保留（与模型能力正交）**：目标确认、设计锁定、证据化完成、跨 session 恢复、确定性 `doctor` 结构检查——模型再强也无法替代人对项目的验收契约和跨进程状态持久化
-- **收敛（边际价值下降）**：手把手教模型填字段的软检查、在 9 个文件里重复同一能力的 interop 映射、spec 与 artifacts 的双份 schema 复述
+- **收敛（边际价值下降）**：手把手教模型填字段的软检查、分散在多份文件里重复同一能力的 interop 映射、spec 与 artifacts 的双份 schema 复述
 
 AI-OS 的反向边界同样清晰：
 
@@ -71,7 +71,7 @@ AI 必须能跨会话恢复项目目标、当前阶段、已确认设计、待�
 AI-OS 的产品不是一堆 CLI 命令，是**一份可跨 agent 通用的 AI 交付宪法 + 最小工件集 + 参考实现**。
 
 - 规范：`AGENTS.md`（≤150 行）+ 12 组工件 schema（`docs/artifacts.md`）
-- 参考实现：零依赖 Node.js CLI，3 个命令（`install` / `doctor` / `upgrade`）
+- 参考实现：零依赖 Node.js CLI，2 个命令（`install` / `doctor`）
 - 生态：可被 Kiro / spec-kit / Cursor / Claude Code 集成
 
 ## 5. 新需求筛选法
@@ -92,14 +92,14 @@ AI-OS 的产品不是一堆 CLI 命令，是**一份可跨 agent 通用的 AI �
 
 **默认答案是"不纳入"**。AI 生态每 2 个月变一次，AI-OS 的内核必须比生态更稳。
 
-## 6. 当前阶段重点（v9）
+## 6. 当前阶段重点
 
 现阶段 AI-OS 优先推进：
 
 - 用 shared-root + `lanes/default/` 固定 canonical layout
-- 让 install / doctor / upgrade / docs / examples / tests 只表达一套默认真相
+- 让 install / doctor / docs / examples / tests 只表达一套默认真相
 - 保持内核表面积最小，同时提升多人协作和跨 session 恢复的一致性
 - 明确根层共享工件与当前 lane 工件的职责边界
 - 保持 12 组工件的完整能力，不牺牲 brownfield / high-risk / reverse-spec 的可靠性
 
-更多见 `docs/migrate-to-v9.md` 和 `docs/constitution-spec.md`。
+更多见 `docs/getting-started.md` 和 `docs/constitution-spec.md`。

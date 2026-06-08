@@ -1,6 +1,6 @@
 # AI-OS × Claude Code
 
-> Claude Code is Anthropic's terminal-native agent. As of March 2026 it does **not** auto-load `AGENTS.md`; it reads `CLAUDE.md` plus `agentskills.io`-format skills under `.claude/skills/` or `~/.claude/skills/`. AI-OS v9 keeps the constitution open via `AGENTS.md`, plus a thin `CLAUDE.md` stub and the official [`ai-os-delivery` skill](../../framework/skills/ai-os-delivery/SKILL.md) so Claude Code can pick it up natively.
+> Claude Code is Anthropic's terminal-native agent. As of March 2026 it does **not** auto-load `AGENTS.md`; it reads `CLAUDE.md` plus `agentskills.io`-format skills under `.claude/skills/` or `~/.claude/skills/`. AI-OS keeps the constitution open via `AGENTS.md`, plus a thin `CLAUDE.md` stub and the official [`ai-os-delivery` skill](../../framework/skills/ai-os-delivery/SKILL.md) so Claude Code can pick it up natively.
 
 ## TL;DR
 
@@ -15,18 +15,13 @@
 If Claude Code is the only agent, the constitution still lives in `AGENTS.md` for portability, and `CLAUDE.md` is a thin stub:
 
 ```markdown
-# Claude Code session guide
+# Claude Code
 
-This project uses AI-OS v9. The full delivery constitution is in `AGENTS.md`.
+This project follows AI-OS. See `AGENTS.md` for the delivery constitution.
 
-Before any work:
-
-1. Read `AGENTS.md`
-2. Read `.ai-os/lanes/default/STATE.md`
-3. Read `.ai-os/lanes/default/MISSION.md`
-4. Read `.ai-os/MISSION.md`
-
-Behavior is rule-driven. No slash commands.
+1. Read `AGENTS.md` and run its Activation Gate first.
+2. Ordinary conversation: answer directly; do not read or write `.ai-os/lanes/*`.
+3. Delivery-affecting work: read `.ai-os/lanes/default/STATE.md`, then lane and root `.ai-os/MISSION.md`.
 ```
 
 `create-ai-os` writes this `CLAUDE.md` stub by default; remove it with `--no-ide-files` if you don't use Claude Code.
@@ -46,11 +41,10 @@ When Anthropic ships native `AGENTS.md` support (open feature request), the `CLA
 `framework/skills/ai-os-delivery/SKILL.md` follows the [agentskills.io spec v1.0](https://agentskills.io/specification). Install it project-locally:
 
 ```bash
-mkdir -p .claude/skills
-cp -R node_modules/create-ai-os/framework/skills/ai-os-delivery .claude/skills/
+npx skills add github:royeedai/ai-os
 ```
 
-Or globally with a tool like `npx skills add github:royeedai/ai-os` once your skill manager supports it.
+This loads `framework/skills/ai-os-delivery/SKILL.md` into your skill manager. If you have vendored the repo, you can instead copy `framework/skills/ai-os-delivery` into `.claude/skills/` manually.
 
 When the skill is active, Claude Code:
 
@@ -113,9 +107,9 @@ The exit code is the contract; AI-OS does not depend on model self-policing. Thi
 | Multi-lane delivery model | — | yes |
 | Default `doctor` health check | — | yes |
 
-## When the v9 install changes
+## When the install changes
 
-`create-ai-os` writes `CLAUDE.md` as a lightweight pointer by default. v9.1 keeps the same default but the stub content is **shorter** (≤10 lines, no rule duplication) so it remains pure routing. To skip:
+`create-ai-os` writes `CLAUDE.md` as a lightweight pointer by default. The stub is short (≤10 lines, no rule duplication) so it remains pure routing. To skip:
 
 ```bash
 npx --yes github:royeedai/ai-os --no-ide-files

@@ -78,6 +78,6 @@ Release plan includes:
 - AI done / human needed: separate
 - Rollback: feature flag off + rollback migration
 
-## What changed vs. v7
+## Note
 
 No slash commands. The agent identified "this is a change request" from your message and followed the `AGENTS.md` behavior rule automatically.

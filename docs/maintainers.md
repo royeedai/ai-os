@@ -16,7 +16,7 @@
 - canonical layout：**shared root + `.ai-os/lanes/default/`**
 - 根层 `.ai-os/MISSION.md`：共享宿主上下文
 - lane `MISSION.md`：当前交付基线
-- `doctor`、`upgrade`、README、schema、tests 必须表达同一套默认布局
+- `doctor`、README、schema、tests 必须表达同一套默认布局
 
 ## v9 minor release 能力对照
 
@@ -29,12 +29,15 @@
 | v9.4 | Agent handoff + evidence loop | `tasks.yaml` `handoff_to` / `context_refs` / `expected_return` / `evidence_produced` / `deviation_log`、W076 |
 | v9.5 | Hallucination guard | `tasks.yaml` `fact_state_review`（`observed` / `confirmed` / `inferred` / `unknown`）、W077 |
 | v9.5.1 | Activation Gate | AI-OS 工件治理只在 delivery-affecting work 启用；普通对话不读写 lane 工件 |
-| v9.6 | Long-horizon agent reliability loop | `agent_run_review`、`docs/interop/standards-map.md`、doctor W078（warning） |
+| v9.6 | Long-horizon agent reliability loop | `agent_run_review`、doctor W078（warning）；interop 映射 v9.8 起并入 `standards-map.md` |
 | v9.7 | Framework feedback loop | CR `## Preventability review`、lane 关闭 retrospective baseline-log |
 | v9.7.1 | Developer-level memory interop（patch） | 四层记忆模型、PL-013（并入 standards-map） |
+| v9.7.2 | Consistency cleanup（patch） | problem-ledger 编号修复、文档路径与 doctor 范围对齐 |
+| v9.7.3 | CLI defect fixes（patch） | 8 个 CLI 缺陷修复（数据安全、W010 阈值、approval_required schema 等） |
 | v9.8 | Content slimming（GPT-5.5 / Opus 4.8 世代） | interop 收敛、spec 去重、移除 W073/W075/W079 软检查、叙事更新 |
+| v10.0.0 | Drop upgrade + legacy migration（major） | 移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor |
 
-每个 minor 都保持：零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。
+v9.x 各 minor 保持零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。v10.0.0 起 CLI 收敛为 2 个（install + doctor），其余不变量保持。
 
 ## 发布前检查清单（公开口径）
 
@@ -58,7 +61,7 @@
 - `.ai-os/`：AI-OS 仓库自身的自托管工件
 - `framework/`：模板和 starter
 - `bin/`：CLI 源码
-- `docs/`：规范、迁移、维护和问题台账
+- `docs/`：规范、维护和问题台账
 - `examples/`：叙事型示例
 - `evals/`：AI-OS 母仓库回归样例
 - `test/`：Node.js 测试

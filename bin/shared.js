@@ -1,7 +1,7 @@
 /**
  * AI-OS v9 CLI shared utilities
  *
- * Zero external dependencies. Used by create-ai-os, ai-os-doctor, and ai-os-upgrade.
+ * Zero external dependencies. Used by create-ai-os and ai-os-doctor.
  */
 
 const fs = require("fs");
@@ -25,9 +25,6 @@ const METADATA_FILE = "framework.toml";
 const MANAGED_FILES_MANIFEST = "managed-files.tsv";
 const LAYOUT_VERSION = "9";
 const LAYOUT_MODE_DEFAULT = "shared-root-default-lane";
-const LAYOUT_MODE_ROOT_ONLY = "root-only-legacy";
-const LAYOUT_MODE_HYBRID = "hybrid-drift";
-const LAYOUT_MODE_UNKNOWN = "unknown";
 
 // Initial baseline placeholders
 const TEMPLATE_TOKEN_INITIAL_BASELINE_ID = "{{INITIAL_BASELINE_ID}}";
@@ -63,23 +60,6 @@ const LANE_EXTENSION_DIRS = [
 ];
 const ALL_LANE_FILES = [...LANE_CORE_FILES, ...LANE_EXTENSION_FILES];
 const ALL_LANE_DIRS = [...LANE_CORE_DIRS, ...LANE_EXTENSION_DIRS];
-
-// Legacy root-only lane-scoped artifacts from v8
-const ROOT_ONLY_LEGACY_FILES = [
-  "MISSION.md",
-  "DESIGN.md",
-  "STATE.md",
-  "tasks.yaml",
-  "risk-register.md",
-  "release-plan.md",
-  "verification-matrix.yaml",
-];
-const ROOT_ONLY_LEGACY_DIRS = [
-  "baseline-log",
-  "specs",
-  "design-pack",
-  "evals",
-];
 
 // Files that are session-local (never version-controlled)
 const SESSION_LOCAL_FILES = ["STATE.md"];
@@ -396,68 +376,6 @@ function appendGitattributesEntries(targetDir) {
 // Layout helpers
 // ---------------------------------------------------------------------------
 
-function detectLayout(targetDir) {
-  const aiOsDir = getAiOsDir(targetDir);
-  if (!isDirectory(aiOsDir)) return LAYOUT_MODE_UNKNOWN;
-
-  const defaultLaneDir = getLaneDir(targetDir, DEFAULT_LANE_ID);
-  const hasDefaultLane = isDirectory(defaultLaneDir);
-  const hasRootSharedMission = fileExists(path.join(aiOsDir, "MISSION.md"));
-  const hasRootMemory = fileExists(path.join(aiOsDir, "memory.md"));
-  const hasRootLaneScopedDuplicates = ROOT_ONLY_LEGACY_FILES
-    .filter((name) => name !== "MISSION.md")
-    .concat(ROOT_ONLY_LEGACY_DIRS)
-    .some((name) => fileExists(path.join(aiOsDir, name)));
-
-  if (hasDefaultLane && hasRootLaneScopedDuplicates) return LAYOUT_MODE_HYBRID;
-  if (hasDefaultLane) return LAYOUT_MODE_DEFAULT;
-  if (hasRootSharedMission || hasRootMemory || hasRootLaneScopedDuplicates) return LAYOUT_MODE_ROOT_ONLY;
-  return LAYOUT_MODE_UNKNOWN;
-}
-
-function readKeyValueToml(absPath) {
-  const values = {};
-  if (!fileExists(absPath)) return values;
-  for (const line of fs.readFileSync(absPath, "utf8").split(/\r?\n/)) {
-    const match = line.match(/^([a-zA-Z_]+)\s*=\s*"([^"]*)"\s*$/);
-    if (match) values[match[1]] = match[2];
-  }
-  return values;
-}
-
-function normalizeLaneToml(targetDir, {
-  laneId = DEFAULT_LANE_ID,
-  title = "默认交付线",
-  status = "active",
-  baselineId,
-  qualityTier = "standard",
-  riskTier = "medium",
-} = {}) {
-  const laneTomlPath = path.join(getLaneDir(targetDir, laneId), "lane.toml");
-  const existing = readKeyValueToml(laneTomlPath);
-  const existingBaseline = existing.baseline_id && !existing.baseline_id.endsWith("-initial-baseline")
-    ? existing.baseline_id
-    : "";
-  const resolved = {
-    id: existing.id || laneId,
-    title: existing.title || title,
-    status: existing.status || status,
-    baseline_id: existingBaseline || baselineId || existing.baseline_id || "",
-    quality_tier: existing.quality_tier || qualityTier,
-    risk_tier: existing.risk_tier || riskTier,
-  };
-  const content = [
-    `id = "${resolved.id}"`,
-    `title = "${resolved.title}"`,
-    `status = "${resolved.status}"`,
-    `baseline_id = "${resolved.baseline_id}"`,
-    `quality_tier = "${resolved.quality_tier}"`,
-    `risk_tier = "${resolved.risk_tier}"`,
-    "",
-  ].join("\n");
-  fs.writeFileSync(laneTomlPath, content);
-}
-
 function parseMissionBaselineId(content) {
   if (!content) return null;
   const lines = content.split(/\r?\n/);
@@ -471,19 +389,8 @@ function parseMissionBaselineId(content) {
   return null;
 }
 
-function inferQualityTier({ hasRiskRegister = false, hasReleasePlan = false, hasVerificationMatrix = false } = {}) {
-  if (hasRiskRegister || hasReleasePlan) return "high-risk";
-  if (hasVerificationMatrix) return "standard";
-  return "standard";
-}
-
-function inferRiskTier({ hasRiskRegister = false, hasReleasePlan = false } = {}) {
-  if (hasRiskRegister || hasReleasePlan) return "high";
-  return "medium";
-}
-
 // ---------------------------------------------------------------------------
-// Artifact paths (helper for doctor / upgrade)
+// Artifact paths (helper for doctor)
 // ---------------------------------------------------------------------------
 
 function getArtifactPaths(targetDir) {
@@ -532,9 +439,6 @@ module.exports = {
   MANAGED_FILES_MANIFEST,
   LAYOUT_VERSION,
   LAYOUT_MODE_DEFAULT,
-  LAYOUT_MODE_ROOT_ONLY,
-  LAYOUT_MODE_HYBRID,
-  LAYOUT_MODE_UNKNOWN,
   SHARED_ROOT_FILES,
   LANE_CORE_FILES,
   LANE_CORE_DIRS,
@@ -542,8 +446,6 @@ module.exports = {
   LANE_EXTENSION_DIRS,
   ALL_LANE_FILES,
   ALL_LANE_DIRS,
-  ROOT_ONLY_LEGACY_FILES,
-  ROOT_ONLY_LEGACY_DIRS,
   SESSION_LOCAL_FILES,
   IDE_POINTER_FILES,
   TEMPLATE_TOKEN_INITIAL_BASELINE_ID,
@@ -572,14 +474,10 @@ module.exports = {
   installIdeFiles,
   appendGitignoreEntries,
   appendGitattributesEntries,
-  normalizeLaneToml,
   parseMissionBaselineId,
-  inferQualityTier,
-  inferRiskTier,
   // layout
   getAiOsDir,
   getLaneDir,
-  detectLayout,
   // paths
   getArtifactPaths,
 };

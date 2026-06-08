@@ -14,16 +14,12 @@ const path = require("path");
 const {
   PROJECT_STATE_ROOT,
   LAYOUT_MODE_DEFAULT,
-  LAYOUT_MODE_ROOT_ONLY,
-  LAYOUT_MODE_HYBRID,
-  LAYOUT_MODE_UNKNOWN,
   LAYOUT_VERSION,
   SESSION_LOCAL_FILES,
   readFrameworkVersion,
   readPackageJson,
   readMetadata,
   getArtifactPaths,
-  detectLayout,
   fail,
   fileExists,
   isDirectory,
@@ -80,11 +76,11 @@ function checkMetadata(meta, version) {
     const installedMajor = parseInt(meta.framework_version.split(".")[0], 10);
     const currentMajor = parseInt(version.split(".")[0], 10);
     if (Number.isFinite(installedMajor) && Number.isFinite(currentMajor) && installedMajor < currentMajor) {
-      issues.push(issue("warning", "W002", `Installed framework v${meta.framework_version} is older than current v${version}. Consider running: create-ai-os upgrade .`));
+      issues.push(issue("warning", "W002", `Installed framework v${meta.framework_version} is older than current v${version}. Reinstall with: create-ai-os install . --force`));
     }
   }
   if (meta.schema_version && meta.schema_version !== LAYOUT_VERSION) {
-    issues.push(issue("error", "E002", `schema_version is "${meta.schema_version}", expected "${LAYOUT_VERSION}". Run: create-ai-os upgrade .`));
+    issues.push(issue("error", "E002", `schema_version is "${meta.schema_version}", expected "${LAYOUT_VERSION}". Reinstall with: create-ai-os install . --force`));
   }
   return issues;
 }
@@ -686,18 +682,6 @@ function checkHighRiskArtifacts(paths) {
   return issues;
 }
 
-function checkLayout(layoutMode) {
-  const issues = [];
-  if (layoutMode === LAYOUT_MODE_ROOT_ONLY) {
-    issues.push(issue("error", "E060", 'Detected legacy root-only layout. Run "create-ai-os upgrade ." to migrate to v9 canonical layout.'));
-  } else if (layoutMode === LAYOUT_MODE_HYBRID) {
-    issues.push(issue("error", "E061", "Detected layout drift: root-level lane artifacts and .ai-os/lanes/default/ both exist. Run create-ai-os upgrade . to normalize."));
-  } else if (layoutMode === LAYOUT_MODE_UNKNOWN) {
-    issues.push(issue("warning", "W060", "Unable to determine the current AI-OS layout mode."));
-  }
-  return issues;
-}
-
 function formatReport(issues) {
   const errors = issues.filter((item) => item.level === "error");
   const warnings = issues.filter((item) => item.level === "warning");
@@ -734,27 +718,22 @@ function main() {
   const pkg = readPackageJson();
   const meta = readMetadata(targetDir);
   const paths = getArtifactPaths(targetDir);
-  const layoutMode = detectLayout(targetDir);
+  const layoutMode = meta && meta.layout_mode ? meta.layout_mode : LAYOUT_MODE_DEFAULT;
 
   const issues = [];
   issues.push(...checkMetadata(meta, version));
   issues.push(...checkAgentsMd(paths));
-  issues.push(...checkLayout(layoutMode));
-  if (layoutMode === LAYOUT_MODE_DEFAULT || layoutMode === LAYOUT_MODE_HYBRID) {
-    issues.push(...checkSharedRoot(paths));
-    issues.push(...checkDefaultLane(paths));
-    issues.push(...checkBaselineLog(paths.laneBaselineLog, ".ai-os/lanes/default/baseline-log"));
-    issues.push(...checkLanes(paths));
-    issues.push(...checkBaselineConsistency(paths));
-    issues.push(...checkTaskOwners(paths));
-    issues.push(...checkTaskEvidenceLoops(paths));
-    issues.push(...checkTaskHallucinationGuards(paths));
-    issues.push(...checkLongHorizonAgentRunReviews(paths));
-    issues.push(...checkAcceptanceCoverage(paths));
-    issues.push(...checkHighRiskArtifacts(paths));
-  }
-  // LAYOUT_MODE_ROOT_ONLY already triggered E060 above; further per-artifact
-  // checks are intentionally skipped because the only safe action is upgrade.
+  issues.push(...checkSharedRoot(paths));
+  issues.push(...checkDefaultLane(paths));
+  issues.push(...checkBaselineLog(paths.laneBaselineLog, ".ai-os/lanes/default/baseline-log"));
+  issues.push(...checkLanes(paths));
+  issues.push(...checkBaselineConsistency(paths));
+  issues.push(...checkTaskOwners(paths));
+  issues.push(...checkTaskEvidenceLoops(paths));
+  issues.push(...checkTaskHallucinationGuards(paths));
+  issues.push(...checkLongHorizonAgentRunReviews(paths));
+  issues.push(...checkAcceptanceCoverage(paths));
+  issues.push(...checkHighRiskArtifacts(paths));
   issues.push(...checkGitignore(targetDir));
 
   const errors = issues.filter((item) => item.level === "error");

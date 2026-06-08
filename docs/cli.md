@@ -1,8 +1,8 @@
 # CLI Reference
 
-AI-OS v9 provides **3 primary product operations**: install, doctor, and upgrade.
+AI-OS provides **2 primary product operations**: install and doctor.
 
-Install has two equivalent entrypoints: the default positional form (`create-ai-os [target-dir]`) and the explicit alias (`create-ai-os install [target-dir]`). The alias does not add a fourth product operation.
+Install has two equivalent entrypoints: the default positional form (`create-ai-os [target-dir]`) and the explicit alias (`create-ai-os install [target-dir]`). The alias does not add a third product operation.
 
 ## Quick reference
 
@@ -10,7 +10,6 @@ Install has two equivalent entrypoints: the default positional form (`create-ai-
 create-ai-os [target-dir]
 create-ai-os install [target-dir]
 create-ai-os doctor [target-dir]
-create-ai-os upgrade [target-dir]
 create-ai-os -h | --help
 create-ai-os -v | --version
 ```
@@ -42,11 +41,11 @@ Checks:
 - lane core artifacts exist
 - baseline log naming is valid
 - `.gitignore` contains lane `STATE.md` and generated file ignores
-- layout mode is canonical, legacy, or drift
+- layout mode is canonical
 
 ### Structural & metadata codes
 
-Beyond the semantic warnings below, doctor also emits structural / metadata codes for layout health: `E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `W001` (no `framework_version`), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W040` / `W041` (`.gitignore` missing managed-file ignores), `E060` / `E061` (legacy / hybrid layout needing `upgrade`), and `I020` (session-local `STATE.md` absent — informational). These run on every invocation; the authoritative list lives in `bin/ai-os-doctor.js`.
+Beyond the semantic warnings below, doctor also emits structural / metadata codes for layout health: `E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (expected directory is a file), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing managed-file ignores), and `I020` (session-local `STATE.md` absent — informational). These run on every invocation; the authoritative list lives in `bin/ai-os-doctor.js`.
 
 ### Semantic consistency warnings (v9.1+)
 
@@ -77,34 +76,3 @@ CR delta lifecycle fields, URL evidence confidence, and Framework feedback `## P
 - `layout_mode`
 - `issues[]`
 - `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W078 semantic warning codes
-
-## `create-ai-os upgrade [target-dir]`
-
-Normalizes older layouts to v9 canonical layout.
-
-Supported inputs:
-
-- v7 legacy
-- v8 root-only
-- v8 hybrid root+lane drift
-
-### Options
-
-- `--dry-run` — show what would change without writing any files
-- `--force` — reserved for forward compatibility (currently ignored)
-
-### What it does
-
-1. Replaces `AGENTS.md` with v9
-2. Removes obsolete `.agents/` workflow / skill / policy / reference directories
-3. Normalizes current delivery artifacts into `.ai-os/lanes/default/`
-4. Preserves shared memory at `.ai-os/memory.md`
-5. Creates or repairs root shared `.ai-os/MISSION.md`
-6. Rewrites metadata and managed-files manifest
-7. Refreshes IDE pointers and team config
-
-### What it does not do
-
-- does not touch business code outside AI-OS-managed files
-- does not delete user-authored current-lane content without preserving it
-- does not treat root-only v8 as canonical in v9

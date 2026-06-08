@@ -38,8 +38,8 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 ### PL-007 默认布局真相分叉
 
-- **AI-OS 必须保证**：install、doctor、upgrade、README、schema、tests 只表达一套 canonical layout
-- **当前覆盖锚点**：`README.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`bin/create-ai-os.js`、`bin/ai-os-doctor.js`、`bin/ai-os-upgrade.js`、`test/docs.test.js`
+- **AI-OS 必须保证**：install、doctor、README、schema、tests 只表达一套 canonical layout
+- **当前覆盖锚点**：`README.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`bin/create-ai-os.js`、`bin/ai-os-doctor.js`、`test/docs.test.js`
 
 ### PL-008 跨工具真理源混乱
 
@@ -57,25 +57,13 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：AI-OS 把任务 handoff 给 Cursor agent / Claude Code / 本地 runner 执行，执行端完成代码后没有把测试输出、原生静态校验、影响清单等证据写回 lane 工件，导致仓库内只看到代码而看不到完成证据
 - **AI-OS 必须保证**：`tasks.yaml` 在 done / verified / shipped 之前必须有 `acceptance_refs`、`evidence_required`、handoff `context_refs` / `expected_return` 与 `evidence_produced`
-- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.5）
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §交付收口）、`docs/cli.md`（W076）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v2.0）
 
 ### PL-011 agent 把推断 / 未观察的信息当事实进入实现或交付
 
 - **场景**：agent 在没有源码、网络抓包、运行截图、原生校验等证据时，把"应该是这样"的推断、"通常这样"的常识、"AI 默认行为"的偏好直接当作 confirmed 进入 tasks 与 verification
 - **AI-OS 必须保证**：`tasks.yaml` `fact_state_review` 必须把每条事实标为 `observed` / `confirmed` / `inferred` / `unknown`；`inferred` 必须留 assumptions，`unknown` 必须进入待确认或非目标，closed 任务不得保留未解决 `inferred` / `unknown`
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v1.6）
-
-### PL-014 非交付对话误触发治理
-
-- **场景**：用户只是想先聊需求、解释代码、比较方案、问工具用法、运行临时命令或处理非仓库任务，但 agent 因仓库存在 `.ai-os/` 自动进入 debug / plan / verification，读取 lane 工件甚至写入 `MISSION.md` / `DESIGN.md` / `tasks.yaml`
-- **AI-OS 必须保证**：先经过 Activation Gate；只有 delivery-affecting work 才启用 AI-OS artifact governance，普通对话不得读写 lane 工件
-- **当前覆盖锚点**：`AGENTS.md`（启用门槛）、`README.md`（How agents use AI-OS）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`examples/non-delivery-discussion.md`、`test/docs.test.js`
-
-### PL-015 长时程 / 后台 agent 交付回收不可审查
-
-- **场景**：agent 把任务交给后台、云端、外部 PR agent 或并行 subagent 后，只拿到一句“完成了”或一个 diff；缺 branch / PR / session refs、写入范围、测试证据、人工审查和 unresolved risks 记录，导致无法判断是否可接受
-- **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
-- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v2.0）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/standards-map.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`（W078）、`test/doctor.test.js`、`test/docs.test.js`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1、绝对禁止 §1）、`docs/cli.md`（W077）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/constitution-spec.md`（v2.0）
 
 ### PL-012 AI-OS 第一次开发未拦住本可避免的修改
 
@@ -88,6 +76,18 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 - **场景**：用户把"我个人的编码 / 沟通偏好"（语言、工具链、风格、激进度）commit 进 `.ai-os/memory.md`，让所有 contributor 背个人习惯；或反过来把"这个项目的稳定决策 / 跨层契约"写进 agent shell 的 home 级 global rules（Cursor user rules、Claude Code 全局 CLAUDE.md、Codex 全局 instructions），导致换电脑或换人后项目真相丢失
 - **AI-OS 必须保证**：开发者级记忆（第 4 层，按本机 OS 用户 / home 目录识别）属于各 agent shell 的 global rules，AI-OS 不自造第二真理源、不引入 identity / 登录态 / 云端；项目级记忆（第 2/3 层）留在 `.ai-os/`，冲突时项目工件赢；跨机同步个人偏好走 dotfiles 而非 AI-OS
 - **当前覆盖锚点**：`docs/interop/standards-map.md`（developer-global memory Layer 4）、`docs/interop/cursor.md`、`docs/interop/claude-code.md`、`PROJECT_PURPOSE.md`（§3.5）、`AGENTS.md`（绝对禁止 §10、§13）
+
+### PL-014 非交付对话误触发治理
+
+- **场景**：用户只是想先聊需求、解释代码、比较方案、问工具用法、运行临时命令或处理非仓库任务，但 agent 因仓库存在 `.ai-os/` 自动进入 debug / plan / verification，读取 lane 工件甚至写入 `MISSION.md` / `DESIGN.md` / `tasks.yaml`
+- **AI-OS 必须保证**：先经过 Activation Gate；只有 delivery-affecting work 才启用 AI-OS artifact governance，普通对话不得读写 lane 工件
+- **当前覆盖锚点**：`AGENTS.md`（启用门槛）、`README.md`（How agents use AI-OS）、`framework/skills/ai-os-delivery/SKILL.md`、`docs/artifacts.md`、`docs/constitution-spec.md`、`examples/non-delivery-discussion.md`、`test/docs.test.js`
+
+### PL-015 长时程 / 后台 agent 交付回收不可审查
+
+- **场景**：agent 把任务交给后台、云端、外部 PR agent 或并行 subagent 后，只拿到一句“完成了”或一个 diff；缺 branch / PR / session refs、写入范围、测试证据、人工审查和 unresolved risks 记录，导致无法判断是否可接受
+- **AI-OS 必须保证**：长时程 agent work 不进入执行层编排，但必须通过 `agent_run_review` 记录 run refs、write scope、progress checkpoints、return packet、human review status，并由 doctor W078 检查关闭前证据
+- **当前覆盖锚点**：`docs/artifacts.md`（Long-Horizon Agent Reliability Loop）、`docs/constitution-spec.md`（v2.0）、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`docs/interop/standards-map.md`、`examples/background-agent-handoff.md`、`bin/ai-os-doctor.js`（W078）、`test/doctor.test.js`、`test/docs.test.js`
 
 ### PL-016 隐式跨层契约未显式登记，各 session 各自脑补
 
@@ -111,19 +111,13 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：debug 发现的 bug 根因是跨模块都成立的模式问题（实体继承但表无列、Long ID 精度丢失、笼统 catch、横切 bean 重复声明等），却按"单点修"推进，全仓审计搜索范围被采样性收缩，同型缺陷散落各模块未被一次扫清
 - **AI-OS 必须保证**：修复 bug 的模式分析必须包含跨模块同型缺陷扫描，搜索范围覆盖所有模块、不得采样收缩；命中同型缺陷必须按"稳定失败模式"升格规则升级治理档位并产出全仓扫描结论
-- **当前覆盖锚点**：`AGENTS.md`（行为规则 §修复 bug、五条核心要求 §3、§稳定失败模式升格规则）、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`evals/cross-module-same-defect-not-escalated.md`
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §修复 bug、五条核心要求 §3、行为规则·稳定失败模式）、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`evals/cross-module-same-defect-not-escalated.md`
 
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试
 - **当前覆盖锚点**：`docs/problem-ledger.md`、`docs/maintainers.md`、`docs/change-evaluation-template.md`
 
-## 历史归档（v7 / v8 legacy anchors）
+## 历史归档
 
-- v7 workflow、skill、policy、reference 体系
-- v8 root-only 默认布局叙事
-- 已删除的示例、lane CLI、status / resume / validate / gate / release-check 等旧命令锚点
-- 已移除的 `.ai-os/CONVENTIONS.md`、`.ai-os/project.md`、`acceptance.yaml` 直连锚点
-- v7 台账的 PL-033 ~ PL-036 等历史编号已在 v9.7.2 以新语义正式登记为 PL-016 ~ PL-019；`CHANGELOG-archive.md` 中的历史 PL 编号与当前台账不复用、不冲突
-
-这些历史锚点只用于迁移理解，不再视为“当前覆盖”。
+v7 / v8 的旧体系（workflow / skill / policy、root-only 布局、旧 lane CLI、`CONVENTIONS.md` / `project.md` / `acceptance.yaml`）及其迁移已随 v10 移除 `upgrade` 退出当前覆盖，完整历史见 `CHANGELOG-archive.md`。v7 台账的 PL-033 ~ PL-036 已在 v9.7.2 以新语义登记为 PL-016 ~ PL-019，编号不复用、不冲突。

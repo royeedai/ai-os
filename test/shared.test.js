@@ -15,7 +15,7 @@ section("shared: readFrameworkVersion");
 {
   const version = shared.readFrameworkVersion();
   assert(typeof version === "string" && /^\d+\.\d+\.\d+/.test(version), `version is semver (${version})`);
-  assert(version.startsWith("9."), `version starts with 9 (${version})`);
+  assert(version.startsWith("10."), `version starts with 10 (${version})`);
 }
 
 section("shared: readPackageJson");
@@ -23,7 +23,7 @@ section("shared: readPackageJson");
 {
   const pkg = shared.readPackageJson();
   assert(pkg && pkg.name === "create-ai-os", "package name is create-ai-os");
-  assert(pkg.version === "9.8.0", `package version is 9.8.0 (got ${pkg.version})`);
+  assert(pkg.version === "10.0.0", `package version is 10.0.0 (got ${pkg.version})`);
 }
 
 section("shared: generateInitialBaseline");

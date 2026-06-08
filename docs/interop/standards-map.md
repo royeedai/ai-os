@@ -25,7 +25,7 @@ AI-OS v9.4 handoff + v9.5 `fact_state_review` map onto A2A `Task` / `Message` / 
 | `deviation_log` | `Task.history[]` |
 | `fact_state_review` | structured-data `Artifact` (data Part) |
 
-Recommended `Message` file-part order (L1→L2): `STATE` → `MISSION` → `DESIGN` → `tasks` → `verification-matrix` → relevant `spec/` / `baseline-log/` URIs. AI-OS does **not** ship or start an A2A server / client. 3 primary product operations unchanged.
+Recommended `Message` file-part order (L1→L2): `STATE` → `MISSION` → `DESIGN` → `tasks` → `verification-matrix` → relevant `spec/` / `baseline-log/` URIs. AI-OS does **not** ship or start an A2A server / client. 2 primary product operations unchanged.
 
 ## Memory tool / Memory MCP ↔ repo files
 

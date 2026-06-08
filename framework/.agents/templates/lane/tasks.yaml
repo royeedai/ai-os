@@ -5,7 +5,6 @@ scope:
   mode: "change"
   focus: "example-lane"
   baseline_source: "lane MISSION.md + specs/"
-  quality_tier: "standard"
 
 milestones:
   - id: M1
@@ -42,6 +41,7 @@ tasks:
       - ".ai-os/lanes/default/specs/example.spec.md"
     expected_return:
       - "[design note / spec delta / review note]"
+    # agent_run_review：仅 delegated / background / cloud / external / parallel 执行时需要；本地前台任务可删除此块
     agent_run_review:
       execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
       run_refs: []
@@ -97,6 +97,7 @@ tasks:
       - ".ai-os/lanes/default/verification-matrix.yaml"
     expected_return:
       - "[code diff / test log / runtime evidence]"
+    # agent_run_review：仅 delegated / background / cloud / external / parallel 执行时需要；本地前台任务可删除此块
     agent_run_review:
       execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
       run_refs: []

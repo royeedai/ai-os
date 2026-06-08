@@ -34,7 +34,6 @@ section("docs: key documentation files exist");
     "docs/artifacts.md",
     "docs/cli.md",
     "docs/constitution-spec.md",
-    "docs/migrate-to-v9.md",
     "docs/maintainers.md",
     "docs/getting-started.md",
     "docs/reverse-spec-url-intake.md",
@@ -74,13 +73,13 @@ section("docs: default layout narrative is consistent");
   }
 }
 
-section("docs: bin contains exactly 4 scripts");
+section("docs: bin contains exactly 3 scripts");
 
 {
   const binDir = path.join(repoRoot, "bin");
   const files = fs.readdirSync(binDir).sort();
-  const expected = ["ai-os-doctor.js", "ai-os-upgrade.js", "create-ai-os.js", "shared.js"];
-  assert(JSON.stringify(files) === JSON.stringify(expected), `bin/ has exactly 4 scripts: ${files.join(", ")}`);
+  const expected = ["ai-os-doctor.js", "create-ai-os.js", "shared.js"];
+  assert(JSON.stringify(files) === JSON.stringify(expected), `bin/ has exactly 3 scripts: ${files.join(", ")}`);
 }
 
 section("docs: framework templates contain shared-root and lane starters");
@@ -410,7 +409,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "9.8.0", `version is 9.8.0 (got ${version})`);
+  assert(version === "10.0.0", `version is 10.0.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -430,14 +429,14 @@ section("docs: product surface wording stays precise");
   const mcp = read("docs/interop/mcp-resources.md");
   const changelog = read("CHANGELOG.md");
 
-  assert(readme.includes("Three primary operations"), "README describes product operations, not command count");
+  assert(readme.includes("Two primary operations"), "README describes product operations, not command count");
   assert(readme.includes("No proprietary AI-OS skill system"), "README distinguishes proprietary skill systems from open adapters");
   assert(readme.includes("open-standard adapter"), "README describes agentskills.io wrapper as an open-standard adapter");
   assert(!readme.includes("No skill system."), "README does not imply the agentskills.io wrapper is forbidden");
 
-  assert(cli.includes("3 primary product operations"), "CLI docs describe 3 primary product operations");
+  assert(cli.includes("2 primary product operations"), "CLI docs describe 2 primary product operations");
   assert(cli.includes("explicit alias"), "CLI docs identify create-ai-os install as an alias");
-  assert(cli.includes("does not add a fourth product operation"), "CLI docs prevent install alias from becoming a fourth operation");
+  assert(cli.includes("does not add a third product operation"), "CLI docs prevent install alias from becoming a third operation");
 
   assert(mcp.includes("does **not** ship or start an MCP server"), "MCP docs preserve default serverless boundary");
   assert(mcp.includes("Illustrative reference snippet"), "MCP docs describe the Node sample as an illustrative snippet");
@@ -474,13 +473,6 @@ section("docs: problem-ledger current coverage only references existing files");
     if (sessionLocalSuffixes.some((suffix) => ref.endsWith(suffix))) continue;
     assert(fs.existsSync(path.join(repoRoot, ref)), `${ref} exists`);
   }
-}
-
-section("docs: migrate-to-v9 points to changelog archive for v7/v8 history");
-
-{
-  const migrate = read("docs/migrate-to-v9.md");
-  assert(migrate.includes("CHANGELOG-archive.md"), "migrate-to-v9 points to changelog archive");
 }
 
 section("docs: artifacts.md declares progressive-disclosure layers");
@@ -605,7 +597,7 @@ section("docs: standards-map consolidates open-standard wire formats");
   }
 
   assert(map.includes("does **not** ship"), "standards-map.md preserves no-runtime boundary");
-  assert(map.includes("3 primary product operations"), "standards-map.md restates 3-primary-operation surface");
+  assert(map.includes("2 primary product operations"), "standards-map.md restates 2-primary-operation surface");
   assert(map.includes("mcp-resources.md"), "standards-map.md links to mcp-resources.md");
   assert(map.includes("Read-only mount"), "standards-map.md mandates read-only Memory mount");
 
@@ -803,4 +795,5 @@ section("docs: v9.8 content slimming narrative and removed legacy paths");
   assert(!fs.existsSync(path.join(repoRoot, "docs/migrate-v7-to-v8.md")), "migrate-v7-to-v8 stub removed");
   assert(!fs.existsSync(path.join(repoRoot, "docs/problems.md")), "problems.md duplicate removed");
   assert(!fs.existsSync(path.join(repoRoot, "docs/interop/a2a.md")), "a2a.md merged into standards-map");
+  assert(!fs.existsSync(path.join(repoRoot, "docs/migrate-to-v9.md")), "migrate-to-v9 removed in v10 (upgrade command dropped)");
 }

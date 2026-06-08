@@ -44,10 +44,6 @@ function runDoctor(args = [], cwd) {
   return run("ai-os-doctor.js", args, cwd);
 }
 
-function runUpgrade(args = [], cwd) {
-  return run("ai-os-upgrade.js", args, cwd);
-}
-
 function tmpDir() {
   const dir = path.join(os.tmpdir(), `ai-os-v9-test-${crypto.randomBytes(4).toString("hex")}`);
   fs.mkdirSync(dir, { recursive: true });
@@ -90,7 +86,6 @@ module.exports = {
   run,
   runInstall,
   runDoctor,
-  runUpgrade,
   tmpDir,
   cleanup,
   readFile,

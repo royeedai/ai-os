@@ -21,7 +21,7 @@
 
 ## 3. 契约基准
 
-- **CLI surface**：3 primary product operations / 1 bin / 4 bin scripts
+- **CLI surface**：2 primary product operations / 1 bin / 3 bin scripts
 - **Runtime dependency**：zero runtime dependencies
 - **Doctor warning codes**：W070-W075
 - **No-import boundary**：不引入 Kiro hooks、Spec Kit slash commands、Firecrawl、Playwright、Chrome DevTools 或 MCP SDK 作为默认依赖

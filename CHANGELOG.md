@@ -10,6 +10,39 @@ This file tracks recent v9 releases (v9.5+). For v8.0.0 – v9.4.x and v5.x – 
 
 ---
 
+## 10.0.0 (2026-06-08) — Drop upgrade + legacy migration
+
+**Major, breaking**. AI-OS converges its operating surface to **2 primary product operations** (install + doctor). The `upgrade` command and all v7/v8 legacy-layout migration are removed — fresh install is now the single supported entry. The canonical layout (`schema_version = "9"`), 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150 lines are unchanged.
+
+### Removed
+
+- **`upgrade` command** (`bin/ai-os-upgrade.js`) and all v7/v8 legacy migration. `bin/shared.js` loses `detectLayout`, `normalizeLaneToml`, `readKeyValueToml`, `inferQualityTier`, `inferRiskTier`, `ROOT_ONLY_LEGACY_*`, and `LAYOUT_MODE_ROOT_ONLY` / `HYBRID` / `UNKNOWN`.
+- **doctor** drops `checkLayout` and the `E060` / `E061` / `W060` layout-drift codes; per-artifact checks now run unconditionally on any `.ai-os/` project.
+- `docs/migrate-to-v9.md` and `test/upgrade.test.js`.
+
+### Changed
+
+- `doctor` reads `layout_mode` from `framework.toml` (canonical) instead of filesystem detection; `W002` / `E002` now point to `create-ai-os install . --force` instead of `upgrade`.
+- README / `docs/cli.md` / `docs/getting-started.md` / `PROJECT_PURPOSE.md` / `docs/maintainers.md` updated to 2 operations; user-facing "AI-OS v9" wording de-versioned to avoid v9/v10 ambiguity (layout schema stays `9`).
+- ide-pointers (`CLAUDE.md` / `GEMINI.md`) now route through the Activation Gate instead of reading lane artifacts every session.
+
+### Fixed
+
+- `docs/interop/mcp-resources.md` dead link to removed `eu-ai-act.md` → `standards-map.md`.
+- `BL-template.md` no longer claims `doctor --strict` checks CR delta (W073 was removed in v9.8).
+- `docs/problem-ledger.md` PL ordering (PL-012 → PL-015), constitution-spec version anchors (→ v2.0), and PL-007 / PL-019 anchors.
+- evals re-grounded on the current `tasks.yaml` schema (`change_scope` / `impact_tags` / `evidence_produced` instead of removed `derived_checks` / `parity_checks` / `step_validation`).
+
+### Tests
+
+- `bin/` is now 3 scripts; version assertions bumped to 10.0.0; `test/docs.test.js` asserts `migrate-to-v9.md` removed and the 2-operation wording. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+
+### Migration
+
+Projects already on the v9 canonical layout need no action — `doctor` still passes (schema unchanged). Pre-v9 (v7/v8) projects: there is no in-place `upgrade` anymore; run a fresh `create-ai-os install .` (it preserves user-authored lane content) and reconcile any legacy root-level artifacts manually. For v7/v8 history see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
 ## 9.8.0 (2026-06-05) — Content slimming (GPT-5.5 / Opus 4.8 era)
 
 **Minor, backward compatible for artifact schema; doctor soft-check removals are behavior changes**. v9.8 keeps the 3 primary product operations, 12 artifact categories, zero runtime dependencies, and `AGENTS.md` ≤150 lines. It removes redundant scaffolding that frontier models and artifact templates already cover, without deleting core governance contracts.

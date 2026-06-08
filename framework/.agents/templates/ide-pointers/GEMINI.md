@@ -1,10 +1,7 @@
 # Gemini CLI / Antigravity
 
-This project follows AI-OS v9. See [AGENTS.md](AGENTS.md) for the delivery constitution.
+This project follows AI-OS. See [AGENTS.md](AGENTS.md) for the delivery constitution.
 
-Read in order on every session:
-
-1. [AGENTS.md](AGENTS.md)
-2. [.ai-os/lanes/default/STATE.md](.ai-os/lanes/default/STATE.md)
-3. [.ai-os/lanes/default/MISSION.md](.ai-os/lanes/default/MISSION.md)
-4. [.ai-os/MISSION.md](.ai-os/MISSION.md)
+1. Read [AGENTS.md](AGENTS.md) and run its Activation Gate first.
+2. Ordinary conversation: answer directly; do not read or write `.ai-os/lanes/*`.
+3. Delivery-affecting work: read [.ai-os/lanes/default/STATE.md](.ai-os/lanes/default/STATE.md), then lane and root `.ai-os/MISSION.md`.
