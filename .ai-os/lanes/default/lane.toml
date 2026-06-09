@@ -1,6 +1,6 @@
 id = "default"
 title = "默认交付线"
 status = "active"
-baseline_id = "CR-20260608-153000-restate-confirm-arch-guardrail"
+baseline_id = "CR-20260609-032059-consistency-optimization"
 quality_tier = "standard"
 risk_tier = "medium"

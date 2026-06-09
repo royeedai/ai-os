@@ -1,34 +1,34 @@
 version: 3
-baseline_id: "CR-20260606-123822-design-aware-component-first-ui"
+baseline_id: "CR-20260609-032059-consistency-optimization"
 scope:
   mode: "change+brownfield"
-  focus: "design-aware-component-first-ui"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260606-123822-design-aware-component-first-ui"
+  focus: "consistency-optimization"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260609-032059-consistency-optimization"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "UI Routing Contract Locked"
-    goal: "UI source routing and component-first policy are specified without adding runtime or templates"
-    scope: "MISSION, DESIGN, CR, problem ledger"
-    acceptance_goal: "component-first means implementation path, not skipping design target or business logic"
-    target_window: "2026-06-06"
+    title: "Factual Errors And De-versioning Fixed"
+    goal: "fix confirmed live-doc errors and complete the missed user-facing v9 de-versioning"
+    scope: "mcp-resources, CHANGELOG, doctor/shared output, README"
+    acceptance_goal: "no contradictory operation count, correct spec version, no framework-version v9 in user-facing output"
+    target_window: "2026-06-09"
   - id: M2
-    title: "Docs Templates And Skill Updated"
-    goal: "public docs, official skill wrapper, lane templates, and tests carry the v9.9 contract"
-    scope: "AGENTS, README, artifacts, spec, skill, templates, tests"
-    acceptance_goal: "UI routing policy is consistently documented and mechanically checked"
-    target_window: "2026-06-06"
+    title: "Dogfood Lane Re-synced"
+    goal: "advance the self-hosted lane working artifacts from v9.9 to the current v10.1.1 delivery"
+    scope: "lane MISSION, DESIGN, tasks, verification-matrix, lane.toml, STATE"
+    acceptance_goal: "lane artifacts are internally consistent and point at the current baseline CR"
+    target_window: "2026-06-09"
   - id: M3
-    title: "Version And Verification Closed"
-    goal: "v9.9.0 metadata and self-hosted lane artifacts are verified"
-    scope: "version, changelog, lane artifacts, verification"
-    acceptance_goal: "npm test, lint, and strict doctor pass"
-    target_window: "2026-06-06"
+    title: "Version Closed And Verified"
+    goal: "v10.1.1 metadata, regression guard, and native verification are complete"
+    scope: "version metadata, docs.test guard, CHANGELOG, maintainers, project-lead, verification"
+    acceptance_goal: "npm test, lint, and strict doctor pass; v10.1.1 shipped"
+    target_window: "2026-06-09"
 
 tasks:
-  - id: TASK-AI-901
-    title: "建立 design-aware component-first UI 基线"
+  - id: TASK-AI-1011
+    title: "修活文档事实错误并补齐去版本化"
     milestone: M1
     status: done
     owner: AI
@@ -38,44 +38,47 @@ tasks:
     depends_on: []
     requirement_refs:
       - "REQ-001"
-      - "REQ-004"
+      - "REQ-002"
     acceptance_refs:
       - "AC-001"
-      - "AC-004"
+      - "AC-002"
     handoff_to: "Codex local agent"
     context_refs:
-      - ".ai-os/lanes/default/MISSION.md"
-      - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/baseline-log/CR-20260606-123822-design-aware-component-first-ui.md"
+      - "docs/interop/mcp-resources.md"
+      - "CHANGELOG.md"
+      - "bin/ai-os-doctor.js"
+      - "bin/shared.js"
+      - "README.md"
     expected_return:
-      - "updated lane baseline artifacts"
-      - "UI source routing contract and acceptance criteria"
+      - "mcp-resources says two primary product operations without upgrade"
+      - "CHANGELOG v10.1.0 spec corrected to v2.2"
+      - "user-facing v9 de-versioned while schema/idempotency refs preserved"
     fact_state_review:
       observed:
-        - "AGENTS, README, artifacts docs, constitution spec, skill wrapper, lane templates, docs tests, and current lane artifacts inspected before edit"
+        - "mcp-resources.md line 7 contradicted line 127; CHANGELOG v10.1.0 said spec v2.1 while spec header/maintainers/tests say v2.2; doctor output and bin comments and README still said AI-OS v9"
+        - "test/doctor.test.js:31 only asserts the 'All checks passed' prefix; test/shared.test.js:124 asserts the '# AI-OS v9 managed' header"
       confirmed:
-        - "user confirmed on 2026-06-06 that design files should be used when present and component libraries should be used wherever suitable"
-        - "user confirmed no-design UI should default to component libraries and prefer China-familiar mature libraries"
+        - "upgrade was dropped in v10.0.0 so 2 primary operations is the truth source"
+        - "spec is v2.2 per docs/constitution-spec.md header and changelog and docs tests"
       inferred: []
       unknown: []
     impact_tags:
-      - "baseline-log"
-      - "design"
-      - "problem-ledger"
+      - "docs"
+      - "cli-wording"
     evidence_required:
-      - "baseline-record"
-      - "design-update"
+      - "doc-fix"
+      - "deversion"
     evidence_produced:
-      - ".ai-os/lanes/default/baseline-log/CR-20260606-123822-design-aware-component-first-ui.md"
-      - ".ai-os/lanes/default/MISSION.md"
-      - ".ai-os/lanes/default/DESIGN.md"
-      - "docs/problem-ledger.md"
-      - ".ai-os/memory.md"
+      - "docs/interop/mcp-resources.md"
+      - "CHANGELOG.md"
+      - "bin/ai-os-doctor.js"
+      - "bin/shared.js"
+      - "README.md"
     deviation_log:
       - "none"
 
-  - id: TASK-AI-902
-    title: "同步规则文档、技能包装和 lane 模板"
+  - id: TASK-AI-1012
+    title: "重新同步 dogfood lane 工件到 v10.1.1"
     milestone: M2
     status: done
     owner: AI
@@ -83,65 +86,48 @@ tasks:
     wave: 2
     approval_required: false
     depends_on:
-      - "TASK-AI-901"
+      - "TASK-AI-1011"
     requirement_refs:
-      - "REQ-001"
-      - "REQ-002"
       - "REQ-003"
-      - "REQ-004"
-      - "REQ-005"
     acceptance_refs:
-      - "AC-001"
-      - "AC-002"
       - "AC-003"
-      - "AC-004"
-      - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
-      - "AGENTS.md"
-      - "README.md"
-      - "docs/artifacts.md"
-      - "docs/constitution-spec.md"
-      - "framework/skills/ai-os-delivery/SKILL.md"
-      - "framework/.agents/templates/lane/DESIGN.md"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "test/docs.test.js"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/lanes/default/tasks.yaml"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - ".ai-os/lanes/default/lane.toml"
+      - ".ai-os/lanes/default/baseline-log/CR-20260609-032059-consistency-optimization.md"
     expected_return:
-      - "UI routing policy documented"
-      - "DESIGN template includes UI Source Routing"
-      - "verification matrix includes UI failure modes"
-      - "no new runtime / CLI surface"
+      - "lane working artifacts describe the v10.1.1 delivery"
+      - "baseline_id consistent across MISSION, lane.toml, tasks"
     fact_state_review:
       observed:
-        - "existing product-surface tests assert 3 operations, no runtime, and SKILL wrapper constraints"
-        - "v9.8 content slimming requires keeping spec concise and artifacts.md as schema truth source"
+        - "lane MISSION.md was v10.1.0 but DESIGN.md/tasks.yaml/verification-matrix.yaml were frozen at v9.9 (FM-V990-*, baseline_id design-aware UI)"
       confirmed:
-        - "DESIGN.md AC-001 through AC-005 define required documentation and template behavior"
+        - "v9.9/v10.0.0/v10.1.0 history stays captured in their own baseline-log CRs; only live working artifacts advance"
       inferred: []
       unknown: []
     impact_tags:
-      - "docs"
-      - "templates"
-      - "skill"
-      - "tests"
+      - "baseline-log"
+      - "lane-artifacts"
     evidence_required:
-      - "docs-test"
-      - "template-test"
-      - "product-surface-invariant"
+      - "lane-resync"
+      - "doctor-baseline-consistency"
     evidence_produced:
-      - "AGENTS.md"
-      - "README.md"
-      - "docs/artifacts.md"
-      - "docs/constitution-spec.md"
-      - "framework/skills/ai-os-delivery/SKILL.md"
-      - "framework/.agents/templates/lane/DESIGN.md"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "test/docs.test.js"
+      - ".ai-os/lanes/default/baseline-log/CR-20260609-032059-consistency-optimization.md"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/lanes/default/tasks.yaml"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - ".ai-os/lanes/default/lane.toml"
+      - ".ai-os/lanes/default/STATE.md"
     deviation_log:
       - "none"
 
-  - id: TASK-AI-903
-    title: "更新版本、changelog 与验证收口"
+  - id: TASK-AI-1013
+    title: "版本收口、回归 guard 与原生验证发布"
     milestone: M3
     status: done
     owner: AI
@@ -149,36 +135,43 @@ tasks:
     wave: 3
     approval_required: false
     depends_on:
-      - "TASK-AI-902"
+      - "TASK-AI-1012"
     requirement_refs:
+      - "REQ-004"
       - "REQ-005"
       - "REQ-006"
+      - "REQ-007"
     acceptance_refs:
+      - "AC-004"
       - "AC-005"
       - "AC-006"
+      - "AC-007"
     handoff_to: "Codex local agent"
     context_refs:
       - "VERSION"
       - "package.json"
       - "package-lock.json"
-      - "CHANGELOG.md"
-      - "test/install.test.js"
-      - "test/shared.test.js"
-      - "test/doctor.test.js"
       - "test/docs.test.js"
+      - "test/doctor.test.js"
+      - "test/shared.test.js"
+      - "test/install.test.js"
+      - "docs/maintainers.md"
+      - ".cursor/rules/project-lead.mdc"
     expected_return:
-      - "version metadata says 9.9.0"
-      - "native verification logs"
-      - "strict doctor clean"
+      - "version metadata says 10.1.1"
+      - "mcp-resources regression guard added"
+      - "npm test + lint + strict doctor clean; tagged v10.1.1"
     fact_state_review:
       observed:
-        - "version files, package lock, changelog, install tests, shared tests, doctor tests, and docs tests inspected before update"
+        - "version assertions hardcode 10.1.0 in test/doctor.test.js:82, test/shared.test.js:26, test/install.test.js:82/151, test/docs.test.js:468"
+        - "docs/maintainers.md:40 already records spec v2.2 for v10.1.0; CHANGELOG was the only file with the v2.1 typo"
       confirmed:
-        - "DESIGN.md AC-006 defines release metadata and verification behavior"
+        - "this is a patch release per Changelog semver definition (bugfix / 文案修正 / 治理收口)"
       inferred: []
       unknown: []
     impact_tags:
       - "version"
+      - "tests"
       - "changelog"
       - "verification"
     evidence_required:
@@ -189,13 +182,15 @@ tasks:
       - "VERSION"
       - "package.json"
       - "package-lock.json"
-      - "CHANGELOG.md"
       - "test/docs.test.js"
-      - "test/install.test.js"
-      - "test/shared.test.js"
       - "test/doctor.test.js"
-      - "npm test: 1002 passed, 0 failed"
-      - "npm run lint: passed"
-      - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
+      - "test/shared.test.js"
+      - "test/install.test.js"
+      - "CHANGELOG.md"
+      - "docs/maintainers.md"
+      - ".cursor/rules/project-lead.mdc"
+      - "npm test: 984 passed, 0 failed"
+      - "npm run lint: passed (0 warnings)"
+      - "node bin/ai-os-doctor.js .: 0 error / 0 warning / 0 semantic_warnings"
     deviation_log:
-      - "strict doctor initially caught W072 because AC-006 was not referenced from verification-matrix.yaml; added FM-V990-006 and reran doctor successfully"
+      - "none"

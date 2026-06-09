@@ -1,67 +1,66 @@
-# AI-OS v10.1 Restate-Confirm + Architecture Guardrail Mission
+# AI-OS v10.1.1 Consistency Optimization Mission
 
 ## 1. 当前交付基线摘要
 
-- **当前交付主题**：double-loop alignment（反述确认）+ architecture guardrail 定位
-- **当前交付目标**：从外部「AI 编码平台」建议中，只吸收两条与模型能力正交、零运行时的强化——实现前「双向对齐 + 反述确认」门，以及把「架构规范字典 / style guide」明确定位到 `.ai-os/memory.md` §2 并强化；其余 runtime / codegen / sandbox 类建议按红线拒绝
-- **成功标准**：`AGENTS.md` 新增反述确认门且 ≤150 行；MISSION/DESIGN/memory 模板承载新 schema；docs（artifacts / constitution-spec v2.2 / standards-map）同步；problem-ledger 在 PL-001/016/017 补锚点不新增编号；examples 仍 8 个；version 升 10.1.0；不新增 CLI / doctor code / 工件类别；npm test + lint + doctor self-check 全绿
+- **当前交付主题**：不做新功能的一致性优化（修活文档事实错误 + 去版本化遗漏 + dogfood lane 回正）
+- **当前交付目标**：修两处确凿活文档错误（mcp-resources 操作数 / upgrade、CHANGELOG v10.1.0 spec 版本号）；补齐 v10.0.0 去版本化遗漏的 user-facing「AI-OS v9」措辞；把停滞在 v9.9 的 dogfood lane 工件重新同步到本轮交付；加一条 mcp-resources 回归 guard；按 patch 发布 v10.1.1
+- **成功标准**：上述错误全部修复且无新引入矛盾；user-facing 输出 / 注释不再含读作框架版本的 v9；dogfood lane DESIGN / tasks / verification-matrix / MISSION / lane.toml 内部一致并指向本 CR；不新增 CLI / flag / doctor code / 工件类别 / spec 内容契约；2 operations、零依赖、AGENTS ≤150 行、schema `9`、spec v2.2 保持；npm test + lint + doctor self-check 全绿；version 同步到 10.1.1
 - **项目模式**：change + brownfield（改 AI-OS 自身）
 - **当前质量档位（quality_tier，真理源见 lane.toml）**：standard
 - **当前风险档位（risk_tier，真理源见 lane.toml）**：medium
 - **当前治理档位**：P1
-- **当前基线 ID**：CR-20260608-153000-restate-confirm-arch-guardrail
+- **当前基线 ID**：CR-20260609-032059-consistency-optimization
 
 ## 2. 用户与闭环场景
 
-- **目标用户**：用 AI-OS 在 frontier 模型（GPT-5.5 / Opus 4.8 世代）上做交付的个人开发者与团队，痛点是「模型很快、模糊目标被放大成错误实现」
-- **关键场景**：需求 / 设计未锁时，agent 先结构化反述理解 → 用户一键确认或校正 → 再进入实现；维护既有系统时，架构护栏 / 编码契约登记在 memory §2，验证阶段逐条对照
+- **目标用户**：AI-OS 项目负责人与维护 agent，痛点是「跨版本迭代后边缘文档 / 发布叙事 / dogfood lane 留下局部漂移」
+- **关键场景**：负责人要求做一次「不加功能、只修不合理 / 错误 / 重复」的清理；agent 先全仓审计列出问题分档，确认范围后逐项修复并按 patch 收口
 - **核心主流程（步骤化反述）**：
-  1. agent 填 lane `MISSION.md` 摘要
-  2. agent 结构化反述目标 / 核心主流程 / 状态流转 / 关键异常路径（本节即范例）
-  3. 用户确认或校正 → 锁定后进 `DESIGN.md`（§4 契约先行）
-  4. 实现 → 验证阶段对照 memory §2 架构护栏
-- **关键异常 / 边界分支**：用户不确认 → 回到 MISSION 修正，不进实现；外部建议命中红线 → 拒绝并只抽取可落为行为 / 工件的内核
-- **当前最小可行闭环**：反述确认门（AGENTS + 模板 + example）+ 架构护栏定位（memory §2 + docs）一次性落地为 v10.1.0
-- **明确后续迭代项**：不新增 CLI / flag / profile / runtime / codegen / sandbox / 第二真理源文件
+  1. 全仓审计（npm test / eslint / doctor + 文档交叉核对）列出错误 / 漂移 / 矛盾
+  2. 按「确凿错误 / 自维护漂移 / 判断类」分档，与负责人确认范围（tier3 + patch 发布）
+  3. 修事实错误 → 去版本化 → 重新同步 dogfood lane → 版本与测试收口
+  4. npm test + lint + doctor 全绿后提交、打 tag、push
+- **关键异常 / 边界分支**：若某「v9」实为 schema 代际引用 → 保留不改；若去版本化会破坏测试断言或 .gitignore 幂等（`# AI-OS v9 managed` 段头）→ 保留不改；若修复会扩张产品面 → 拒绝
+- **当前最小可行闭环**：一次 patch（v10.1.1）内完成全部一致性修复 + 回归 guard + 发布收口
+- **明确后续迭代项**：更深的全仓重复内容审计如有需要另起一轮；不在本轮新增任何功能
 
 ## 3. 已确认约束与关键决策
 
-- **已确认技术栈与关键选型**：继续零依赖 Node.js CLI；本轮只改行为规则 + 工件文案 + 测试 + 版本
+- **已确认技术栈与关键选型**：继续零依赖 Node.js CLI；本轮只改文案 / 注释 / 测试断言 / dogfood 工件 / 版本元数据
 - **已确认目标运行态 / 部署约束**：AI-OS 仍是治理契约，不执行、不生成代码、不索引、不拦截编译
-- **已确认质量优先级**：守初心（不扩张红线）> 吸收外部建议；行为门 + 工件契约 > runtime / 平台功能
-- **已确认核心设计决策**：反述确认是行为门，落 AGENTS.md §1 + 模板 + example，**不进 doctor**；架构护栏落 memory §2，**不新建 `.ai-os-rules`**
-- **已确认核心逻辑决策**：不新增 PL 编号（强化 PL-001/016/017）；不新增第 9 个 example；constitution-spec bump v2.2（强化已有确认门，非新门类）
+- **已确认质量优先级**：守不扩张红线 > 顺手加东西；机械可回归的修复（mcp guard）> 仅靠人工核对
+- **已确认核心设计决策**：作为 patch 发布（bugfix / 文案修正 / 治理收口语义）；spec 内容契约不变仍 v2.2，仅修 CHANGELOG 笔误；dogfood lane 推进到 v10.1.1，历史由各 baseline-log CR 保留
+- **已确认核心逻辑决策**：去版本化只动真正读作框架版本的 user-facing 字样，保留 schema 代际引用与受测试 / 幂等约束的段头
 
 ## 4. 范围边界与非目标
 
 ### 范围内
 
-- `AGENTS.md` 反述确认门 + 验证对照护栏（克制行数）
-- lane `MISSION.md` / `DESIGN.md` / shared-root `memory.md` 模板强化
-- `docs/artifacts.md` / `docs/constitution-spec.md`（v2.2）/ `docs/interop/standards-map.md` 同步
-- `docs/problem-ledger.md` 补锚点、`examples/greenfield-guided-product.md` 扩展
-- `test/docs.test.js` 断言、version 元数据、CHANGELOG、project-lead 规则
+- 修 `docs/interop/mcp-resources.md` 操作数 / upgrade、`CHANGELOG.md` v10.1.0 spec 版本号
+- 去版本化 `bin/ai-os-doctor.js` / `bin/shared.js` user-facing 输出与文件头注释、`README.md:101`
+- 重新同步 dogfood lane `MISSION.md` / `DESIGN.md` / `tasks.yaml` / `verification-matrix.yaml` / `lane.toml` / `STATE.md`
+- `test/docs.test.js` 加 mcp guard + 版本断言；版本元数据 → 10.1.1；`CHANGELOG.md` / `docs/maintainers.md` / `.cursor/rules/project-lead.mdc` 同步
 
 ### 范围外
 
-- 新增 CLI 命令 / flag / profile / 配置字段 / schema 版本 / doctor warning code
-- contract→codegen 自动填充、越界拦截 / AST linter、项目指纹索引器、强制单测生成
-- `.ai-os-rules` 新配置文件、独立 PRD 工件、多端 UI 沙箱 / 实时预览
+- 新增 CLI 命令 / flag / profile / 配置字段 / schema 版本 / doctor warning code / 工件类别
+- spec 内容契约变更（仅修 CHANGELOG 笔误，spec 仍 v2.2）
+- 改动 schema 代际「v9」合理引用或 `# AI-OS v9 managed` 段头
 
 ### 非目标
 
-- 把外部建议里的平台 / runtime / 产品形态纳入 AI-OS
+- 借一致性清理之名引入任何新功能或扩张产品面
 - 把具体模型 / IDE / 第三方工具名写进 framework 通用规则
 
 ## 5. 宿主项目相关上下文（按需引用根层 Mission）
 
-- **本轮依赖的宿主项目事实**：AI-OS 已有 Activation Gate、五条核心要求、12 组工件、L1/L2/L3 渐进加载、Framework Feedback Loop 与「不做执行层」边界
-- **必须保持的共享基础设施约束**：AGENTS.md ≤150 行；constitution-spec ≤160 行；interop docs ≤200 行；2 primary product operations；zero runtime deps；canonical layout schema `9`
+- **本轮依赖的宿主项目事实**：v10.0.0 已把 CLI 收敛为 2 operations 并要求去版本化「AI-OS v9」；v10.1.0 已 bump spec 至 v2.2；canonical layout schema 保持 `9`
+- **必须保持的共享基础设施约束**：AGENTS.md ≤150 行；constitution-spec ≤160 行且仍 v2.2；interop docs ≤200 行；2 primary product operations；zero runtime deps；canonical layout schema `9`
 - **与其他 lane 的边界**：继续使用 `default` lane
 
 ## 6. 稳定风险与外部依赖
 
-- **外部依赖**：无新增运行时依赖；外部建议仅作设计参考
-- **稳定风险**：反述确认写得太重会变成模型已覆盖的软检查 → 只锁「必须结构化反述 + 等确认」的行为契约，不规定字数 / 格式细节；架构护栏若被误读成新建文件会破坏单一真理源 → 文档显式点名「就是 memory §2，不另建文件」
+- **外部依赖**：无新增运行时依赖
+- **稳定风险**：去版本化误改 schema 代际引用或 `# AI-OS v9 managed` 段头 → 破坏语义或 .gitignore 幂等；缓解：逐处判定是否读作框架版本，改前核对测试断言。dogfood lane 回正被误解成重写历史 → 缓解：历史由 baseline-log CR 永久保留，只推进 live 工件
 - **高风险触发因素**：不涉及用户资产、身份权限、跨用户数据或外部副作用，不升 high-risk
-- **审批点**：项目负责人于 2026-06-08 确认采用「推荐集」并授权落地 v10.1.0
+- **审批点**：项目负责人于 2026-06-09 确认 tier3 范围 + patch 发布 v10.1.1

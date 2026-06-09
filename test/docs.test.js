@@ -465,7 +465,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.1.0", `version is 10.1.0 (got ${version})`);
+  assert(version === "10.1.1", `version is 10.1.1 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -495,6 +495,8 @@ section("docs: product surface wording stays precise");
   assert(cli.includes("does not add a third product operation"), "CLI docs prevent install alias from becoming a third operation");
 
   assert(mcp.includes("does **not** ship or start an MCP server"), "MCP docs preserve default serverless boundary");
+  assert(mcp.includes("two primary product operations"), "MCP docs state two primary product operations (install/doctor)");
+  assert(!mcp.includes("upgrade"), "MCP docs no longer list the removed upgrade command");
   assert(mcp.includes("Illustrative reference snippet"), "MCP docs describe the Node sample as an illustrative snippet");
   assert(mcp.includes("not a packaged AI-OS server"), "MCP docs clarify the sample is not shipped runtime surface");
   assert(!mcp.includes("Reference implementation"), "MCP docs avoid implying a packaged reference implementation");

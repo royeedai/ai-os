@@ -1,5 +1,5 @@
 /**
- * AI-OS v9 CLI shared utilities
+ * AI-OS CLI shared utilities
  *
  * Zero external dependencies. Used by create-ai-os and ai-os-doctor.
  */

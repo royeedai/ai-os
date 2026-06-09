@@ -79,7 +79,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "10.1.0"'), "framework.toml has version 10.1.0");
+  assert(toml && toml.includes('framework_version = "10.1.1"'), "framework.toml has version 10.1.1");
 
   cleanup(dir);
 }
@@ -148,7 +148,7 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "10.1.0", `--version outputs 10.1.0 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "10.1.1", `--version outputs 10.1.1 (got ${result.stdout.trim()})`);
 }
 
 section("install: BL-template ships framework feedback loop schema (v9.7)");

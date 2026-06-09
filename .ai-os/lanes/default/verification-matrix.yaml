@@ -1,63 +1,58 @@
 impact_rules:
-  - when: "design-aware-component-first-ui"
+  - when: "consistency-optimization"
     run:
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "long-horizon-agent-reliability"
+  - when: "docs"
     run:
       - "npm test"
       - "npm run lint"
-      - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "activation-gate"
+  - when: "cli-wording"
     run:
       - "npm test"
-      - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
 
 failure_modes:
-  - id: FM-V990-001
-    scenario: "有设计稿时 agent 认为不能用组件库，于是手搓按钮、表格、表单、弹窗等标准元素，导致维护性和项目一致性下降"
-    expected: "设计稿作为目标效果，组件库作为优先实现路径；仅组件无法满足的品牌视觉、特殊布局或强还原要求才定制"
-    guard: "test/docs.test.js design-aware component-first UI routing"
+  - id: FM-V1011-001
+    scenario: "interop 边缘文档声明的产品操作数 / 命令与现实矛盾（mcp-resources 仍写 3 operations + upgrade，与同文件 2 operations 自相矛盾）"
+    expected: "全仓只有一个产品面真理源：2 primary operations（install / doctor）；upgrade 已在 v10.0.0 删除，边缘文档不得残留"
+    guard: "test/docs.test.js mcp-resources 2-operation assertion"
     acceptance_refs:
       - AC-001
       - AC-004
-  - id: FM-V990-002
-    scenario: "无设计稿时 agent 直接自由设计后台 / PC / 移动业务页，未选择项目现有或栈匹配组件库"
-    expected: "后台、PC 业务系统、移动业务端默认 component-first；先检查 package.json / existing style，再按 Vue / React / uni-app / Taro / 小程序选择国内熟悉组件库"
-    guard: "test/docs.test.js component library defaults"
+  - id: FM-V1011-002
+    scenario: "发布叙事里的 spec 版本号与实际 spec 头部不一致（CHANGELOG v10.1.0 写 v2.1，实为 v2.2，复制了上一版号）"
+    expected: "CHANGELOG 的 spec 版本锚点与 docs/constitution-spec.md 头部 / maintainers / 测试断言一致"
+    guard: "docs/constitution-spec.md Version 2.2 + test/docs.test.js spec assertion + 发布前人工核对 CHANGELOG"
     acceptance_refs:
       - AC-001
-      - AC-002
-      - AC-004
-  - id: FM-V990-003
-    scenario: "老项目已有 Element Plus / Ant Design / Vant / TDesign 等组件库，但 agent 因个人偏好引入第二套 UI 库"
-    expected: "已有组件库优先；不得混用第二套，除非用户明确要求或项目既有架构已经混用"
-    guard: "README + skill wrapper existing dependency priority assertion"
-    acceptance_refs:
-      - AC-004
       - AC-005
-  - id: FM-V990-004
-    scenario: "组件库优先被误解成无需确认业务逻辑，页面缺权限拒绝、空数据、loading、错误、表单校验或响应式验收"
-    expected: "component-first 只替代临时视觉设计；业务逻辑、接口、权限、状态、异常和项目原生验证仍必须进入 acceptance"
-    guard: "test/docs.test.js business state coverage"
+  - id: FM-V1011-003
+    scenario: "跨版本去版本化不彻底，user-facing 输出 / 注释残留读作框架版本的旧 v9（doctor 报告、README、bin 文件头）"
+    expected: "user-facing 输出与文件头注释不含读作框架版本的 v9；schema 代际引用与 AI-OS v9 managed 段头按设计保留"
+    guard: "test/doctor.test.js 'All checks passed' prefix assertion + 发布前 grep 核对 user-facing 字样"
     acceptance_refs:
-      - AC-001
+      - AC-002
+  - id: FM-V1011-004
+    scenario: "dogfood lane 的 DESIGN / tasks / verification-matrix 落后于 MISSION / baseline-log 的当前基线，造成自托管工件内部漂移"
+    expected: "lane live 工件随每次交付推进并指向当前 baseline CR；历史由 baseline-log 永久保留"
+    guard: "baseline_id 在 MISSION / lane.toml / tasks 一致 + node bin/ai-os-doctor.js . W070"
+    acceptance_refs:
       - AC-003
-  - id: FM-V990-005
-    scenario: "C 端首页、活动页、品牌页或强视觉页面在无设计稿时被默认做成普通组件库拼装页"
-    expected: "强视觉 / 品牌 / 营销场景需要先确认视觉风险、风格基线或设计要求；不得套用后台 component-native 默认"
-    guard: "docs/artifacts.md consumer visual risk clause"
-    acceptance_refs:
-      - AC-001
-      - AC-004
-  - id: FM-V990-006
-    scenario: "文档和模板已改，但 VERSION / package metadata / changelog / self-hosted lane 或原生验证没有收口"
-    expected: "版本 metadata 同步到 9.9.0，CHANGELOG 记录 v9.9，npm test / lint / strict doctor 全部通过后才关闭"
-    guard: "VERSION + package.json + CHANGELOG.md + npm test + npm run lint + doctor --strict"
+  - id: FM-V1011-005
+    scenario: "以一致性修复之名顺手扩张产品面（新增 CLI / flag / doctor warning code / 工件类别）"
+    expected: "保持 2 primary operations、零运行时依赖、AGENTS.md 150 行、schema 9、constitution-spec v2.2，不新增任何产品面"
+    guard: "product surface tests（two primary operations + no runtime deps）+ npm run lint"
     acceptance_refs:
       - AC-006
+  - id: FM-V1011-006
+    scenario: "文案与工件已改，但 VERSION / package metadata / 测试断言 / CHANGELOG / maintainers / project-lead 没有同步收口"
+    expected: "版本同步到 10.1.1，CHANGELOG / maintainers / project-lead 记录 v10.1.1，npm test / lint / strict doctor 全部通过后才关闭"
+    guard: "VERSION + package.json + package-lock.json + npm test version assertions + npm run lint + doctor --strict"
+    acceptance_refs:
+      - AC-005
+      - AC-007
 
 guards:
   - "test/docs.test.js"

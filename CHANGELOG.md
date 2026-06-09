@@ -10,6 +10,30 @@ This file tracks recent v9 releases (v9.5+). For v8.0.0 – v9.4.x and v5.x – 
 
 ---
 
+## 10.1.1 (2026-06-09) — Consistency optimization
+
+**Patch, backward compatible; docs / wording / dogfood-artifact only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
+
+### Fixed
+
+- **`docs/interop/mcp-resources.md`** listed `install` / `doctor` / `upgrade` as three primary product operations, contradicting line 127 of the same file and reality — `upgrade` was dropped in v10.0.0. Corrected to two primary product operations (`install` / `doctor`).
+- **`CHANGELOG.md` v10.1.0 entry** stated `docs/constitution-spec.md` was bumped to **v2.1**; the release actually bumped it to **v2.2** (v2.1 was the v9.9 version). Both anchors corrected to v2.2 to match the spec header, `docs/maintainers.md`, and the tests.
+- **Missed v10.0.0 de-versioning**: `bin/ai-os-doctor.js` user-facing output ("AI-OS v9 project looks healthy", W010 "v9 target"), the `bin/ai-os-doctor.js` / `bin/shared.js` file-header comments, and `README.md` ("no slash commands in v9") still read "AI-OS v9". De-versioned (layout schema stays `9`). Schema-generation references (`docs/cli.md` "v9 canonical layout", `docs/artifacts.md` "v9 起", doctor W011 "pre-v9 file") and the `# AI-OS v9 managed` `.gitignore` / `.gitattributes` section headers are intentionally preserved.
+
+### Changed
+
+- **Dogfood lane re-synced**: the self-hosted `.ai-os/lanes/default/` working artifacts (`DESIGN.md`, `tasks.yaml`, `verification-matrix.yaml`) were frozen at the v9.9 design-aware-UI delivery while `MISSION.md` had advanced to v10.1.0. They now describe the current v10.1.1 consistency delivery and point at `CR-20260609-032059-consistency-optimization`. The v9.9 / v10.0.0 / v10.1.0 history stays captured in their own baseline-log CRs.
+
+### Tests
+
+- `test/docs.test.js` adds a regression guard asserting `docs/interop/mcp-resources.md` states two primary product operations and no longer lists `upgrade`; version assertions bumped to 10.1.1 across `test/docs.test.js`, `test/doctor.test.js`, `test/shared.test.js`, `test/install.test.js`. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+
+### Migration
+
+No action needed — wording / docs / dogfood-artifact only; CLI behavior, doctor warning codes, and canonical layout schema (`9`) unchanged. Already-installed projects keep passing `doctor`.
+
+---
+
 ## 10.1.0 (2026-06-08) — Restate-and-confirm gate + architecture guardrail
 
 **Minor, backward compatible**. After evaluating an external "turn ai-os into an AI coding platform" proposal through `PROJECT_PURPOSE.md` §5 and the no-expansion red lines, AI-OS absorbs only two model-orthogonal, zero-runtime reinforcements and rejects the runtime / codegen / sandbox parts. No new CLI command, no new doctor code, no new artifact category; 2 primary product operations / 12 artifact categories / zero runtime deps / `AGENTS.md` ≤150 lines preserved.
@@ -22,12 +46,12 @@ This file tracks recent v9 releases (v9.5+). For v8.0.0 – v9.4.x and v5.x – 
 ### Changed
 
 - **Architecture guardrail home named**: `.ai-os/memory.md` §2 工程约束 is now explicitly the "architecture guardrail / coding-contract registry" (response-wrapper contract, must-reuse abstractions, forbidden anti-patterns, dependency policy) with a `type` field, cross-checked during verification (`AGENTS.md` verification rule + `DESIGN.md` §4 contract-first note). This is the home for what external tools call an "architecture style guide" / `.ai-os-rules` — AI-OS does not create a second truth-source file. Mapped in `docs/interop/standards-map.md`.
-- `docs/constitution-spec.md` bumped to **v2.1** (restate-and-confirm gate strengthens the existing goal-confirmation / design-lock gates; contract compatible).
+- `docs/constitution-spec.md` bumped to **v2.2** (restate-and-confirm gate strengthens the existing goal-confirmation / design-lock gates; contract compatible).
 - `docs/problem-ledger.md` anchors the gate under existing PL-001 / PL-016 / PL-017 — no new PL id.
 
 ### Tests
 
-- `test/docs.test.js` adds a v10.1 section (restate gate across AGENTS / templates / artifacts / spec / standards-map / ledger / example; asserts no `.ai-os-rules`; examples stay at 8); version assertions bumped to 10.1.0 and spec to v2.1. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+- `test/docs.test.js` adds a v10.1 section (restate gate across AGENTS / templates / artifacts / spec / standards-map / ledger / example; asserts no `.ai-os-rules`; examples stay at 8); version assertions bumped to 10.1.0 and spec to v2.2. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
 
 ### Migration
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * AI-OS v9 doctor
+ * AI-OS doctor
  *
  * Checks artifact completeness, layout health, and constitution compliance.
  */
@@ -94,7 +94,7 @@ function checkAgentsMd(paths) {
   const content = fs.readFileSync(paths.agentsMd, "utf8");
   const lineCount = content.split(/\r?\n/).length;
   if (lineCount > 150) {
-    issues.push(issue("warning", "W010", `AGENTS.md is ${lineCount} lines (v9 target: <=150). Consider trimming.`));
+    issues.push(issue("warning", "W010", `AGENTS.md is ${lineCount} lines (target: <=150). Consider trimming.`));
   }
   const requiredSections = ["五条核心要求", "绝对禁止"];
   for (const section of requiredSections) {
@@ -687,7 +687,7 @@ function formatReport(issues) {
   const warnings = issues.filter((item) => item.level === "warning");
   const infos = issues.filter((item) => item.level === "info");
   if (errors.length === 0 && warnings.length === 0 && infos.length === 0) {
-    return "All checks passed. AI-OS v9 project looks healthy.\n";
+    return "All checks passed. AI-OS project looks healthy.\n";
   }
   const lines = [];
   lines.push(`Found ${errors.length} error(s), ${warnings.length} warning(s), ${infos.length} info:`);

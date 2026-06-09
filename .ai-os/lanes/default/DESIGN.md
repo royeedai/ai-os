@@ -1,78 +1,59 @@
-# AI-OS v9.9 Design-Aware Component-First UI Design
+# AI-OS v10.1.1 Consistency Optimization Design
 
 ## 1. 设计目标
 
-- **本轮设计目标**：把前端 UI 交付治理从“是否有设计稿”扩展为“UI 来源 + 组件实现路径 + 还原等级 + 业务验收”的稳定契约
-- **需要先锁定的关键页面 / 交互 / 接口**：关键对象不是具体页面，而是 `ui_source`、`component_library`、`fidelity_level`、组件选择优先级和不能跳过的业务状态验收
-- **必须用户确认的核心设计决策**：采用 Design-Aware Component-First UI；不新增模板库 / CLI / runtime；默认组件库选择偏国内团队熟悉的成熟库
+- **本轮设计目标**：在不新增任何功能的前提下，消除跨版本迭代后残留的活文档事实错误、user-facing 版本号漂移与 dogfood lane 工件漂移，使仓库内部表述自洽
+- **需要先锁定的关键决策**：哪些「v9」是合理的 schema 代际引用（保留）、哪些是读作框架版本的遗漏（去版本化）；dogfood lane 推进到 v10.1.1 而非重写历史；作为 patch 发布
+- **必须用户确认的核心设计决策**：tier3 范围（事实错误 + 去版本化 + lane 回正）+ patch 发布 v10.1.1；不借机扩张产品面
 
-## 2. 信息架构（UI 项目必填）
+## 2. 信息架构
 
-- **入口与导航骨架**：AGENTS 原则 → README 用户心智 → artifacts 字段 schema → constitution spec 摘要 → skill routing → lane template → verification guard
-- **一级 / 二级结构**：UI source routing → component selection → fidelity level → custom-only gaps → business state verification
-- **关键信息优先级**：项目已有组件库优先；设计稿目标效果优先；组件库默认风格只在无设计稿时作为 UI 基线
+- 不适用（N/A）：本轮非 UI / 非信息架构交付，是文档与工件一致性优化
 
-## 3. 关键页面与交互（UI 项目必填）
+## 3. 关键页面与交互
 
-| 页面 / 入口 | 目标 | 关键元素 | 关键操作 | 是否核心决策 | 确认状态 |
-|---|---|---|---|---|---|
-| README | 建立用户心智 | Design-aware component-first UI section | 说明有设计稿和无设计稿的不同路径 | yes | confirmed |
-| AGENTS.md | 约束 agent 行为 | 前端 UI 来源判定原则 | 阻止跳过业务逻辑 / 权限 / 状态 | yes | confirmed |
-| `docs/artifacts.md` | 定义字段写法 | `ui_source`, `surface`, `component_library`, `fidelity_level` | 指导 DESIGN.md 记录 | yes | confirmed |
-| `framework/skills/ai-os-delivery/SKILL.md` | 执行层路由 | Frontend UI work + source routing section | 指导 AI 先扫现有组件库再选择 | yes | confirmed |
-| lane DESIGN template | 新项目默认工件 | UI Source Routing section | 让前端项目有固定记录位置 | yes | confirmed |
+- 不适用（N/A）：无 UI 页面
 
-## 4. 核心接口与数据模型（API 项目必填）
+## 4. 核心接口与数据模型（契约层）
 
-| 接口 / 模型 | 用途 | 关键字段 | 状态流转 | 是否核心决策 | 确认状态 |
-|---|---|---|---|---|---|
-| UI Source Routing | 记录前端 UI 来源 | `design-led`, `component-first`, `existing-style`, `hybrid` | input observed → strategy selected → validation scoped | yes | confirmed |
-| Component Selection | 记录组件库选择 | existing dependency, user specified, stack default, ecosystem fit | inspect deps → choose / ask → record reason | yes | confirmed |
-| Fidelity Level | 控制还原程度 | `strict`, `practical`, `component-native` | design requirement → implementation policy → acceptance | yes | confirmed |
+- 不适用（N/A）：无新增接口 / 数据模型 / 状态机；CLI 行为、doctor warning code、工件 schema 全部不变。本轮只改 user-facing 文案、代码注释与 dogfood 工件文本
 
 ## 5. 关键流程
 
-1. 用户要求开发 UI 页面或前端功能
-2. AI 判断是否有设计稿、现有页面或已有项目组件库
-3. 若有设计稿：设计稿作为目标；标准元素优先用项目组件库实现；无法覆盖时封装或定制
-4. 若无设计稿：后台 / PC 业务 / 移动业务页默认用现有或栈匹配组件库；强视觉 C 端先确认风格风险
-5. AI 在 DESIGN.md 记录 `ui_source`、`component_library`、`selection_reason`、`fidelity_level` 和 `custom_required`
-6. 验证覆盖 build / lint / typecheck、表单校验、权限、loading / empty / error、接口失败、响应式适配和组件库选择原因
+1. 全仓审计（npm test / eslint / doctor + 文档交叉核对）列出错误 / 漂移 / 矛盾并分档
+2. 与负责人确认范围（tier3 + patch 发布 v10.1.1）
+3. 修两处确凿活文档事实错误（mcp-resources、CHANGELOG spec 版本）
+4. 去版本化 user-facing「AI-OS v9」遗漏（doctor 输出 / 注释 / README），保留 schema 代际引用与受约束段头
+5. 重新同步 dogfood lane（MISSION / DESIGN / tasks / verification-matrix / lane.toml / STATE）到 v10.1.1
+6. 版本与测试收口（10.1.1、mcp guard、CHANGELOG / maintainers / project-lead），npm test + lint + doctor 全绿后提交、打 tag、push
 
-## 6. 共享基础设施审计（brownfield / change / reverse-spec 必填）
+## 6. 共享基础设施审计（brownfield / change 必填）
 
-- **受影响的共享组件**：AGENTS、README、artifacts docs、constitution spec、official skill wrapper、lane DESIGN template、verification-matrix template、problem ledger、docs tests、version metadata、self-hosted lane artifacts
-- **受影响的接口 / 页面清单**：AI agent behavior routing、DESIGN.md schema guidance、verification matrix failure modes、README product narrative
-- **同仓正常实现对照**：v9.6 / v9.7 / v9.8 均采用 docs + template + tests 固化治理契约，不新增 runtime；本轮沿用同一方式
-- **副作用清单**：AGENTS.md 必须继续 ≤150 行；constitution spec 必须保持瘦身后的摘要风格；不扩大 doctor warning range；不引入第三方依赖
+- **受影响的共享组件**：interop 文档（mcp-resources）、CHANGELOG、CLI 源码 user-facing 措辞（doctor / shared）、README、maintainers 版本矩阵、docs 测试、版本元数据、dogfood lane 工件
+- **受影响的接口 / 行为清单**：无——CLI 行为、doctor 退出码与 warning code、工件 schema 全部不变；仅 user-facing 文本与 dogfood 工件文本变化
+- **同仓正常实现对照**：v9.7.2 曾做过一次 repository-wide consistency cleanup（patch），本轮沿用同一「只修一致性、不动契约」的方式
+- **副作用清单**：AGENTS.md 仍 ≤150 行；constitution-spec 仍 v2.2 且 ≤160 行；不扩大 doctor warning range；不引入第三方依赖；`# AI-OS v9 managed` 段头不动以保 .gitignore/.gitattributes 幂等
 
-## 7. UI Source Routing（前端 UI 项目必填）
+## 7. UI Source Routing
 
-- **ui_source**：design-led / component-first / existing-style / hybrid
-- **surface**：admin-pc / business-pc / business-mobile / consumer
-- **frontend_stack**：vue / react / uni-app / taro / mini-program / unknown
-- **component_library**：existing / element-plus / antd / vant / antd-mobile / tdesign / arco / uview / nutui / uni-ui / custom
-- **selection_reason**：existing dependency / user specified / stack default / ecosystem fit
-- **fidelity_level**：strict / practical / component-native
-- **custom_required**：仅记录组件库无法覆盖的品牌视觉、特殊布局、动效或还原要求
+- 不适用（N/A）：非前端 UI 项目
 
 ## 8. 对照参考（reverse-spec 必填）
 
-- **原始参考清单**：用户 2026-06-06 关于后台、PC、App、有设计稿 / 无设计稿、国内熟悉组件库的多轮确认
-- **字段级 / 行为级对照摘要**：将用户目标收敛为 design-aware component-first UI；不引入大量模板；保留设计稿优先和组件复用并存
-- **仍待解决差异**：不维护组件库实时版本 / 生态活跃度；实际项目仍需读取 package.json 和项目代码确认真实栈
+- 不适用（N/A）：非 URL reverse-spec 交付；对照源为仓库自身的真理源文件（spec 头部、VERSION、doctor 实际输出）与历史 CR
 
 ## 9. 验收标准
 
 | AC ID | 需求 ID | 验收描述 | 验证方式 | 证据 |
 |---|---|---|---|---|
-| AC-001 | REQ-001 | AGENTS / README / artifacts / spec / skill 均说明 UI source routing 和 design-aware component-first 原则 | `npm test` | `test/docs.test.js` |
-| AC-002 | REQ-002 | DESIGN template 提供 `ui_source`、`component_library`、`fidelity_level`、`custom_required` 记录位置 | `npm test` | `framework/.agents/templates/lane/DESIGN.md` |
-| AC-003 | REQ-003 | verification matrix 覆盖有设计稿偏离、无设计稿手搓、组件优先跳过业务状态等 failure modes | `npm test` | `framework/.agents/templates/lane/verification-matrix.yaml` |
-| AC-004 | REQ-004 | 默认组件库选择策略符合国内团队常用栈，且现有依赖优先 | `npm test` | README / artifacts / skill assertions |
-| AC-005 | REQ-005 | 不新增 CLI、runtime、doctor warning 或页面模板库 | `npm test` + `npm run lint` | product surface tests |
-| AC-006 | REQ-006 | 版本、changelog、自托管 lane 和原生验证收口 | `npm test` + `npm run lint` + `doctor --strict` | version tests + doctor output |
+| AC-001 | REQ-001 | mcp-resources 写 two primary product operations 且不再出现 upgrade；CHANGELOG v10.1.0 spec 为 v2.2 与 spec 头部一致 | `npm test` + 人工核对 | `test/docs.test.js` / `docs/interop/mcp-resources.md` / `CHANGELOG.md` |
+| AC-002 | REQ-002 | doctor 输出与 bin 文件头注释及 README 不再含读作框架版本的 v9；schema 代际引用与 AI-OS v9 managed 段头保留 | `npm test` + 人工核对 | `bin/ai-os-doctor.js` / `bin/shared.js` / `README.md` |
+| AC-003 | REQ-003 | dogfood lane DESIGN tasks verification-matrix MISSION lane.toml 同步到 v10.1.1 且 baseline id 一致 | `node bin/ai-os-doctor.js .` | 本 lane 工件 + W070 一致性 |
+| AC-004 | REQ-004 | test docs 含锁住 mcp-resources 两操作修复的回归断言 | `npm test` | `test/docs.test.js` |
+| AC-005 | REQ-005 | 版本元数据与发布叙事同步到 10.1.1 含 CHANGELOG maintainers project-lead | `npm test` + 人工核对 | `VERSION` / `package.json` / `package-lock.json` / `CHANGELOG.md` / `docs/maintainers.md` |
+| AC-006 | REQ-006 | 无新增 CLI flag doctor code 工件类别 保持两操作零依赖 AGENTS 150 行 schema 9 spec v2.2 | `npm test` + `npm run lint` | product surface tests |
+| AC-007 | REQ-007 | 原生验证收口 npm test 与 lint 与 strict doctor 全部通过 | `npm test` + `npm run lint` + `doctor --strict` | 验证日志 + doctor 输出 |
 
 ## 10. 设计确认记录
 
-- 2026-06-06：用户确认“有设计图要求的就用设计图，没设计的就都用组件库；有设计稿也能用组件的就用组件”，并要求开始落地到 AI-OS
+- 2026-06-09：项目负责人确认「本次不做新功能，优化下不合理、错误、重复等」，并在范围确认中选择 tier3（事实错误 + 去版本化 + dogfood lane 回正）+ patch 发布 v10.1.1

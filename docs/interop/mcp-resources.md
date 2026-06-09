@@ -4,7 +4,7 @@
 
 ## Status
 
-- AI-OS itself does **not** ship or start an MCP server in the default install. v9 keeps the CLI to three primary product operations (`install` / `doctor` / `upgrade`) and zero runtime dependencies.
+- AI-OS itself does **not** ship or start an MCP server in the default install. AI-OS keeps the CLI to two primary product operations (`install` / `doctor`) and zero runtime dependencies.
 - This document is the **wire-level contract**. Anyone can implement it: adapt the illustrative Node snippet below, use an official SDK server, or expose the same URI map through a remote HTTP gateway.
 - Reading is enough for most agents. AI-OS artifacts are mostly read-only resources; writes go through the user-supervised constitution flow, not through `tools/call`.
 

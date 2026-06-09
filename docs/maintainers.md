@@ -38,6 +38,7 @@
 | v9.9 | Design-aware component-first UI | 有设计稿按设计目标优先复用组件；无设计稿的后台 / PC / 移动业务 UI 默认组件库交付 |
 | v10.0.0 | Drop upgrade + legacy migration（major） | 移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor |
 | v10.1.0 | Restate-confirm gate + architecture guardrail（minor） | AGENTS §1 反述确认门、lane MISSION §2 / DESIGN §9 反述字段、memory §2 架构护栏登记表、spec v2.2；吸收外部建议但守红线，不新增 CLI / doctor code / 工件类别 |
+| v10.1.1 | Consistency optimization（patch） | 修 mcp-resources 操作数 / CHANGELOG spec 版本号、补齐 v10.0.0 去版本化遗漏（doctor 输出 / 注释 / README）、dogfood lane 工件回正到当前交付 + mcp-resources 回归 guard；无新增 CLI / doctor code / 工件类别 |
 
 v9.x 各 minor 保持零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。v10.0.0 起 CLI 收敛为 2 个（install + doctor），其余不变量保持。
 

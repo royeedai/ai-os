@@ -98,7 +98,7 @@ This makes AI-OS the cross-IDE equivalent of a Claude Code deterministic command
 
 ## How agents use AI-OS
 
-There are no slash commands in v9. When an AI agent opens a repo with `AGENTS.md`, it should:
+There are no slash commands. When an AI agent opens a repo with `AGENTS.md`, it should:
 
 - read `AGENTS.md`
 - run the Activation Gate before loading lane artifacts
