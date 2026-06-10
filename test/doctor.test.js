@@ -56,6 +56,21 @@ section("doctor: missing lane MISSION.md returns 1");
   cleanup(dir);
 }
 
+section("doctor: file artifact replaced by a directory returns E022");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const missionPath = path.join(dir, ".ai-os", "lanes", "default", "MISSION.md");
+  fs.unlinkSync(missionPath);
+  fs.mkdirSync(missionPath);
+  const result = runDoctor([dir]);
+  assert(result.status === 1, "doctor exits 1 when a file artifact is a directory");
+  assert(result.stdout.includes("E022"), "doctor reports E022 for wrong artifact type");
+  assert(result.stdout.includes("not a file"), "doctor explains the path is not a file");
+  cleanup(dir);
+}
+
 section("doctor: missing lane STATE.md is info (not error)");
 
 {
@@ -79,7 +94,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "10.1.1", "JSON reports version 10.1.1");
+  assert(parsed && parsed.version === "10.1.2", "JSON reports version 10.1.2");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);

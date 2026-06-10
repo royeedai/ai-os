@@ -28,7 +28,7 @@ artifact_gate: constitution-gate
 ## 最低证据
 
 - `.ai-os/lanes/default/DESIGN.md`
-- 设计确认记录
+- 反述确认门（§10）确认记录
 - 页面对照证据
 
 ## 若需改 framework，优先检查

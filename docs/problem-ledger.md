@@ -9,7 +9,7 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 ### PL-001 需求一模糊，AI 就直接开工
 
 - **AI-OS 必须保证**：先澄清目标、成功标准和范围边界，再进入设计或实现
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1 反述确认门）、`.ai-os/lanes/default/MISSION.md`（§2 主流程 / 异常分支反述）、`.ai-os/lanes/default/DESIGN.md`（§9 反述确认门）、`docs/artifacts.md`（反述确认 / 双向对齐门）、`examples/greenfield-guided-product.md`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §1 反述确认门）、`.ai-os/lanes/default/MISSION.md`（§2 主流程 / 异常分支反述）、`.ai-os/lanes/default/DESIGN.md`（§10 反述确认门）、`docs/artifacts.md`（反述确认 / 双向对齐门）、`examples/greenfield-guided-product.md`
 
 ### PL-002 需求变化后，代码和基线脱节
 

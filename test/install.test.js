@@ -79,7 +79,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "10.1.1"'), "framework.toml has version 10.1.1");
+  assert(toml && toml.includes('framework_version = "10.1.2"'), "framework.toml has version 10.1.2");
 
   cleanup(dir);
 }
@@ -148,7 +148,44 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "10.1.1", `--version outputs 10.1.1 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "10.1.2", `--version outputs 10.1.2 (got ${result.stdout.trim()})`);
+}
+
+section("install: removed subcommands fail instead of installing into a directory");
+
+{
+  const dir = tmpDir();
+  const result = runInstall(["upgrade"], dir);
+  assert(result.status === 1, "`create-ai-os upgrade` exits 1");
+  assert(result.stderr.includes("removed in v10"), "stderr explains upgrade was removed in v10");
+  assert(result.stderr.includes("install"), "stderr points to install as the replacement");
+  assert(!fs.existsSync(path.join(dir, "upgrade")), "no ./upgrade directory is created");
+  cleanup(dir);
+}
+
+section("install: explicit install subcommand supports --help");
+
+{
+  const result = runInstall(["install", "--help"]);
+  assert(result.status === 0, "`install --help` exits 0");
+  assert(result.stdout.includes("Usage:"), "`install --help` shows usage");
+
+  const short = runInstall(["install", "-h"]);
+  assert(short.status === 0, "`install -h` exits 0");
+  assert(short.stdout.includes("Usage:"), "`install -h` shows usage");
+}
+
+section("install: target path that is an existing file fails cleanly");
+
+{
+  const dir = tmpDir();
+  const filePath = path.join(dir, "not-a-dir");
+  fs.writeFileSync(filePath, "plain file\n");
+  const result = runInstall([filePath]);
+  assert(result.status === 1, "install into a file path exits 1");
+  assert(result.stderr.includes("not a directory"), "stderr explains target is not a directory");
+  assert(fs.readFileSync(filePath, "utf8") === "plain file\n", "existing file is left untouched");
+  cleanup(dir);
 }
 
 section("install: BL-template ships framework feedback loop schema (v9.7)");

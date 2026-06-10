@@ -1,6 +1,6 @@
 # AI-OS × Spec-Kit coexistence
 
-> GitHub's [Spec-Kit](https://github.com/github/spec-kit) is the de-facto standard for spec-driven 0→1 kickoff. AI-OS v9 complements it by covering **everything after implementation lands**: change management, evidence-based verification, delivery handoff, debug scoping, and cross-session recovery.
+> GitHub's [Spec-Kit](https://github.com/github/spec-kit) is the de-facto standard for spec-driven 0→1 kickoff. AI-OS complements it by covering **everything after implementation lands**: change management, evidence-based verification, delivery handoff, debug scoping, and cross-session recovery.
 
 ## TL;DR
 
@@ -25,7 +25,7 @@ Phase 1 (Spec-Kit):
 
 Phase 2 (AI-OS takes over):
   npx --yes github:royeedai/ai-os .
-  → AI-OS v9 constitution governs verification, shipping, change, debug, recovery
+  → AI-OS constitution governs verification, shipping, change, debug, recovery
 ```
 
 ### Artifact coexistence
@@ -80,7 +80,7 @@ See [../getting-started.md](../getting-started.md).
 
 ## What AI-OS uniquely provides
 
-| Capability | Spec-Kit | AI-OS v9 |
+| Capability | Spec-Kit | AI-OS |
 |---|---|---|
 | Cross-session recovery (`STATE.md`) | — | yes |
 | Change management (`baseline-log/`) | — | yes |

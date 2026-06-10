@@ -40,8 +40,9 @@ Agent rule: key design must be confirmed before broad implementation.
    - Information architecture: Home / Gallery / Album / Settings
    - Key screens + key interactions + visual direction
    - Section 6: shared-infrastructure audit (empty — greenfield)
-   - Section 8: acceptance criteria mapped to REQ-001 ... REQ-007
-2. Asks: "Review DESIGN.md, particularly the information architecture and acceptance gates."
+   - Section 9: acceptance criteria mapped to REQ-001 ... REQ-007
+2. Restate-and-confirm gate at the design layer (recorded in DESIGN.md §10): before locking, the agent restates the key design back to you — "Here's the design I'm about to lock: **IA** = Home / Gallery / Album / Settings; **core contract** = Photo {id, season, visibility, album_id} with transitions draft -> published -> archived; **key exception paths** = oversized upload rejected, private-album access denied. Confirm or correct."
+3. Asks: "Review DESIGN.md, particularly the information architecture and acceptance gates."
 
 **You**: "Change navigation from bottom tabs to top bar." → agent updates, re-asks.
 

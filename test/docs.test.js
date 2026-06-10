@@ -282,7 +282,7 @@ section("docs: v9.4/v9.5 governance closure tracked in ledger, maintainers guide
   assert(ledger.includes("evidence_produced"), "problem-ledger.md PL-010 uses evidence_produced vocabulary");
 
   const maintainers = read("docs/maintainers.md");
-  assert(maintainers.includes("v9 minor release 能力对照"), "maintainers.md has v9 minor release matrix");
+  assert(maintainers.includes("Release 能力对照"), "maintainers.md has the release capability matrix");
   assert(maintainers.includes("发布前检查清单（公开口径）"), "maintainers.md has public-facing release checklist");
   assert(maintainers.includes("Hallucination guard"), "maintainers.md mentions hallucination guard");
   assert(maintainers.includes("Agent handoff + evidence loop"), "maintainers.md mentions agent handoff + evidence loop");
@@ -465,7 +465,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.1.1", `version is 10.1.1 (got ${version})`);
+  assert(version === "10.1.2", `version is 10.1.2 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -876,7 +876,8 @@ section("docs: v10.1 restate-confirm gate + architecture guardrail");
   assert(laneMission.includes("核心主流程（步骤化反述）"), "lane MISSION template has a restated core-main-flow field");
   assert(laneMission.includes("关键异常 / 边界分支"), "lane MISSION template has a key exception / boundary branch field");
   assert(design.includes("契约层"), "DESIGN template names section 4 as the contract layer");
-  assert(design.includes("反述确认门"), "DESIGN template section 9 is the restate-and-confirm gate");
+  assert(design.includes("## 9. 验收标准"), "DESIGN template keeps acceptance criteria at section 9");
+  assert(design.includes("## 10. 反述确认门"), "DESIGN template section 10 is the restate-and-confirm gate");
 
   assert(memory.includes("架构护栏 / 编码契约登记表"), "memory template names section 2 as the architecture guardrail registry");
   assert(memory.includes("return-contract"), "memory guardrail registry carries a type field");
@@ -889,6 +890,15 @@ section("docs: v10.1 restate-confirm gate + architecture guardrail");
   assert(map.includes("second truth-source"), "standards-map keeps memory section 2 as the single guardrail truth source");
 
   assert(ledger.includes("§1 反述确认门"), "problem-ledger PL-001 anchors the restate-confirm gate");
+
+  // The design-layer restate gate is template section 10 (section 9 is
+  // acceptance criteria). Docs must reference the same section number.
+  for (const [name, content] of [["artifacts.md", artifacts], ["constitution-spec.md", spec], ["problem-ledger.md", ledger]]) {
+    assert(!/§9[^\n]*反述确认门|反述确认门[^\n]*§9/.test(content), `docs/${name} does not anchor the restate gate to DESIGN section 9`);
+  }
+  assert(artifacts.includes("`DESIGN.md` §10（反述确认门）"), "artifacts.md anchors the design-layer restate gate to section 10");
+  assert(spec.includes("`DESIGN.md` §10"), "constitution spec anchors the design-layer restate gate to section 10");
+  assert(ledger.includes("§10 反述确认门"), "problem-ledger anchors the design-layer restate gate to section 10");
 
   assert(example.includes("Restate-and-confirm gate"), "greenfield example demonstrates the restate-and-confirm gate");
 

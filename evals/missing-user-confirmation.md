@@ -28,7 +28,7 @@ AI 自己补完了大量设计和逻辑决策，但没有引导用户确认关�
 ## 最低证据
 
 - lane `MISSION.md` 的待确认项
-- lane `DESIGN.md` 的设计确认记录
+- lane `DESIGN.md` 的反述确认门（§10）确认记录
 - lane `STATE.md` 的待确认项和下一步
 
 ## 若需改 framework，优先检查

@@ -30,6 +30,11 @@ Installs the v9 canonical layout:
 - `--force`
 - `--no-team-config`
 - `--no-ide-files`
+- `-h, --help` (also works after the explicit `install` alias)
+
+### Removed subcommands
+
+Subcommands dropped in earlier majors fail fast instead of being treated as a target directory: `create-ai-os upgrade` exits with an error pointing to `create-ai-os install . --force` (the `upgrade` command was removed in v10). A target path that exists but is a regular file also fails cleanly instead of crashing.
 
 ## `create-ai-os doctor [target-dir]`
 
@@ -45,7 +50,7 @@ Checks:
 
 ### Structural & metadata codes
 
-Beyond the semantic warnings below, doctor also emits structural / metadata codes for layout health: `E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (expected directory is a file), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing managed-file ignores), and `I020` (session-local `STATE.md` absent — informational). These run on every invocation; the authoritative list lives in `bin/ai-os-doctor.js`.
+Beyond the semantic warnings below, doctor also emits structural / metadata codes for layout health: `E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (artifact path has the wrong type — expected file is a directory, or expected directory is a file), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing managed-file ignores), and `I020` (session-local `STATE.md` absent — informational). These run on every invocation; the authoritative list lives in `bin/ai-os-doctor.js`.
 
 ### Semantic consistency warnings (v9.1+)
 

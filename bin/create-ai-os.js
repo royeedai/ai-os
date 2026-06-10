@@ -22,6 +22,13 @@ const SUBCOMMANDS = {
   doctor: "./ai-os-doctor",
 };
 
+// Subcommands that existed in earlier majors. Without this guard they would
+// fall through to the default route and be treated as a target directory
+// (e.g. `create-ai-os upgrade` silently installing into ./upgrade/).
+const REMOVED_SUBCOMMANDS = {
+  upgrade: "the `upgrade` command was removed in v10. Run `npx create-ai-os install . --force` to refresh managed artifacts instead.",
+};
+
 function printHelp(version) {
   process.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
 
@@ -87,6 +94,7 @@ function runInstall(argv) {
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "-h" || arg === "--help") { printHelp(readFrameworkVersion()); return; }
     if (arg === "--force") { force = true; continue; }
     if (arg === "--no-team-config") { noTeamConfig = true; continue; }
     if (arg === "--no-ide-files") { noIdeFiles = true; continue; }
@@ -98,6 +106,9 @@ function runInstall(argv) {
   const version = readFrameworkVersion();
   const pkg = readPackageJson();
   const targetDir = path.resolve(targetArg || ".");
+  if (fs.existsSync(targetDir) && !fs.statSync(targetDir).isDirectory()) {
+    fail(`target path exists but is not a directory: ${targetDir}`);
+  }
   ensureDir(targetDir);
 
   const aiOsDir = path.join(targetDir, PROJECT_STATE_ROOT);
@@ -151,7 +162,7 @@ Primary operations:
 
 function main() {
   const argv = process.argv.slice(2);
-  const { readFrameworkVersion } = require("./shared");
+  const { readFrameworkVersion, fail } = require("./shared");
 
   if (argv.length === 0 || argv[0] === "-h" || argv[0] === "--help") {
     if (argv.length === 0) {
@@ -169,6 +180,9 @@ function main() {
   }
 
   const sub = argv[0];
+  if (Object.prototype.hasOwnProperty.call(REMOVED_SUBCOMMANDS, sub)) {
+    fail(REMOVED_SUBCOMMANDS[sub]);
+  }
   if (Object.prototype.hasOwnProperty.call(SUBCOMMANDS, sub)) {
     const handler = SUBCOMMANDS[sub];
     if (handler) {

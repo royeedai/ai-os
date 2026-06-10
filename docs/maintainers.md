@@ -11,14 +11,14 @@
   - 证据化完成
   - 可恢复记忆
 
-## v9 当前真相
+## 当前真相
 
 - canonical layout：**shared root + `.ai-os/lanes/default/`**
 - 根层 `.ai-os/MISSION.md`：共享宿主上下文
 - lane `MISSION.md`：当前交付基线
 - `doctor`、README、schema、tests 必须表达同一套默认布局
 
-## v9 minor release 能力对照
+## Release 能力对照
 
 | Minor | 主题 | 关键工件 / 检查 |
 |---|---|---|
@@ -37,10 +37,11 @@
 | v9.8 | Content slimming（GPT-5.5 / Opus 4.8 世代） | interop 收敛、spec 去重、移除 W073/W075/W079 软检查、叙事更新 |
 | v9.9 | Design-aware component-first UI | 有设计稿按设计目标优先复用组件；无设计稿的后台 / PC / 移动业务 UI 默认组件库交付 |
 | v10.0.0 | Drop upgrade + legacy migration（major） | 移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor |
-| v10.1.0 | Restate-confirm gate + architecture guardrail（minor） | AGENTS §1 反述确认门、lane MISSION §2 / DESIGN §9 反述字段、memory §2 架构护栏登记表、spec v2.2；吸收外部建议但守红线，不新增 CLI / doctor code / 工件类别 |
+| v10.1.0 | Restate-confirm gate + architecture guardrail（minor） | AGENTS §1 反述确认门、lane MISSION §2 / DESIGN §10 反述字段、memory §2 架构护栏登记表、spec v2.2；吸收外部建议但守红线，不新增 CLI / doctor code / 工件类别 |
 | v10.1.1 | Consistency optimization（patch） | 修 mcp-resources 操作数 / CHANGELOG spec 版本号、补齐 v10.0.0 去版本化遗漏（doctor 输出 / 注释 / README）、dogfood lane 工件回正到当前交付 + mcp-resources 回归 guard；无新增 CLI / doctor code / 工件类别 |
+| v10.1.2 | CLI defect fixes + restate-anchor unification（patch） | 修已移除子命令静默误装 / install --help / 目标为文件崩溃 / doctor 类型漏检与 EISDIR 崩溃 / 死导出；反述门锚点统一 DESIGN §10 并落节号级断言；清理 upgrade 与去版本化残留；greenfield 补设计层反述示范；无新增 CLI / doctor code / 工件类别 |
 
-v9.x 各 minor 保持零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。v10.0.0 起 CLI 收敛为 2 个（install + doctor），其余不变量保持。
+各版本保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）。
 
 ## 发布前检查清单（公开口径）
 
@@ -56,7 +57,7 @@ v9.x 各 minor 保持零运行时依赖、3 个 CLI 子命令、`AGENTS.md` ≤1
 - [ ] `docs/problem-ledger.md` 已为本次新规则补登 PL-* 或 PG-*
 - [ ] `git status` 干净
 - [ ] minor / major 发布在 push 完成后执行 `git tag -a vX.Y.Z -m "..."` 并 `git push origin vX.Y.Z`
-- [ ] 评估是否需要 npm publish（v9 默认走 npx-from-GitHub 主路径，npm 可选）
+- [ ] 评估是否需要 npm publish（默认走 npx-from-GitHub 主路径，npm 可选）
 
 ## 目录结构
 
@@ -135,7 +136,7 @@ git grep -n "Maps to: unmapped" .ai-os/lanes/
 从最稳到最重：
 
 1. AGENTS.md 行为规则补一行（首选，零工件成本，跨 IDE 直接生效）
-2. lane 工件模板新增字段（次选，影响所有 install / upgrade）
+2. lane 工件模板新增字段（次选，影响所有新 install）
 3. doctor 新增 warning / info（再次，强制 / 提示力度可控）
 4. docs / examples 补充示例（最后，仅在前三种不合适时使用）
 

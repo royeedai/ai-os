@@ -81,7 +81,7 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 | 修复 bug | 根因 + 范围 + 计划文件 | 等用户确认 |
 | 验证 / 交付 | 项目原生证据 + 双清单 | 等用户确认 |
 
-**反述确认门（v2.2）**：「新项目 / 需求模糊」与「设计锁定」的「等用户确认」停点，要求 agent 先用结构化方式反述目标 / 核心主流程 / 状态流转 / 关键异常路径（落 lane `MISSION.md` §2 与 `DESIGN.md` §9），用户确认或校正后才推进；行为门，不引入 doctor code。
+**反述确认门（v2.2）**：「新项目 / 需求模糊」与「设计锁定」的「等用户确认」停点，要求 agent 先用结构化方式反述目标 / 核心主流程 / 状态流转 / 关键异常路径（落 lane `MISSION.md` §2 与 `DESIGN.md` §10），用户确认或校正后才推进；行为门，不引入 doctor code。
 
 **Activation Gate（v1.7）**：只有 delivery-affecting work 才进入 AI-OS 工件治理。普通对话不得读取或写入 `.ai-os/lanes/*`。意图不清时只问一句确认，确认前不加载 L1/L2/L3。
 
@@ -131,7 +131,7 @@ AI-OS 默认 install 不 ship 任何 server / client / runtime。
 - Long-Horizon Agent Reliability（v1.8）— `agent_run_review`；**W078**  
 - Framework feedback loop（v1.9）— CR `## Preventability review`、lane retrospective；工件契约，非 doctor 阻塞项  
 - Design-aware component-first UI（v2.1）— `DESIGN.md` UI source routing、组件库选择、还原等级和定制边界
-- Restate-and-confirm gate（v2.2）— lane `MISSION.md` §2 主流程 / 异常反述、`DESIGN.md` §9 反述确认门 + `memory.md` §2 架构护栏；行为门，无 doctor code
+- Restate-and-confirm gate（v2.2）— lane `MISSION.md` §2 主流程 / 异常反述、`DESIGN.md` §10 反述确认门 + `memory.md` §2 架构护栏；行为门，无 doctor code
 
 **Doctor 语义警告（v9.8+）**：`W070`–`W078` 为 `--strict` 可升级的确定性检查（基线一致性、owner、AC 覆盖、高风险工件、handoff 证据、事实状态、长时程回收）。CR delta 字段完整性、URL confidence 标注、Preventability review 提示由工件模板与 `AGENTS.md` 行为规则承载，不再由 doctor 软检查重复。
 

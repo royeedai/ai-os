@@ -6,7 +6,37 @@
 - **minor** (x.y.0)：新增 skill / workflow / CLI 命令、非破坏性增强
 - **major** (x.0.0)：破坏性变更（工件格式、CLI 接口、安装行为不向后兼容）
 
-This file tracks recent v9 releases (v9.5+). For v8.0.0 – v9.4.x and v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 – v9.4.x and v5.x – v7.x history, see [CHANGELOG-archive.md](CHANGELOG-archive.md).
+
+---
+
+## 10.1.2 (2026-06-10) — CLI defect fixes + restate-gate anchor unification
+
+**Patch, backward compatible; defect fixes / docs / dogfood-artifact only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
+
+### Fixed
+
+- **Removed subcommands no longer install silently**: `create-ai-os upgrade` (dropped in v10.0.0) used to fall through the default route and be treated as a target directory — silently creating `./upgrade/` with a full artifact set. It now fails fast with an error pointing to `create-ai-os install . --force`. Legitimate directory targets (`create-ai-os my-project`) are unaffected.
+- **`install --help`**: the explicit `install` alias rejected `-h` / `--help` with `unknown option`; it now prints the same help as the top-level entrypoint.
+- **File-as-target crash**: installing into a path that exists as a regular file crashed with a raw `ENOTDIR`; it now fails cleanly without touching the file.
+- **doctor wrong-type artifacts**: a core file artifact replaced by a directory was neither reported (size-only check missed it) nor survivable — semantic checks crashed with a raw `EISDIR` (`checkBaselineConsistency` et al. read any existing path). `checkArtifact` now reports `E022` for files-that-are-directories, and all semantic checks (`AGENTS.md`, `.gitignore`, baseline consistency, W071/W072/W074/W076/W077/W078) read regular files only; `shared.readMetadata` returns `null` for a directory `framework.toml`.
+- **Restate-gate anchor unified to `DESIGN.md` §10**: the v10.1.0 CR acceptance text said "§9 becomes the restate gate", but the shipped template put acceptance criteria at §9 and the restate-and-confirm gate at §10 — without a deviation record. All docs followed the CR text. Decision: docs follow the shipped template (re-numbering a template already installed twice would create a third state, and the gate reads naturally as the last pre-lock step). Corrected `docs/artifacts.md` (×2), `docs/constitution-spec.md` (×2, section-number typo only — spec stays v2.2), `docs/problem-ledger.md`, `docs/maintainers.md`, and the v10.1.0 entry below (same back-fix precedent as v10.1.1's spec-version correction).
+- **Residual wording**: `docs/maintainers.md` guard-placement still said "install / upgrade" (last live `upgrade` residue), plus de-versioning leftovers — `maintainers.md` "v9 当前真相" heading / "3 个 CLI 子命令" phrasing / npm-check wording, `examples/README.md` "Canonical AI-OS v9", three "AI-OS v9" in `docs/interop/spec-kit-coexistence.md`, and this file's header ("tracks recent v9 releases"). Capability-introduction labels (v9.4 handoff, v9.5 fact_state_review) and schema-generation references stay by design.
+- **Dead export**: `bin/shared.js` `readText` had no callers; removed.
+
+### Changed
+
+- **`examples/greenfield-guided-product.md`** now demonstrates the design-layer restate-and-confirm gate (DESIGN §10) in Step 2 — previously only the MISSION-layer restatement was shown despite the v10.1.0 entry claiming it; the acceptance-criteria pointer also corrected from "Section 8" to Section 9. `evals/missing-user-confirmation.md` and `evals/logic-right-but-product-shape-wrong.md` update the pre-v10.1 term "设计确认记录" to "反述确认门（§10）确认记录".
+- **`docs/cli.md`** documents the removed-subcommand error, `install --help`, the file-as-target failure, and the two-directional `E022` semantics.
+- **Dogfood lane advanced** to this delivery (`CR-20260610-024200-cli-defects-restate-anchor-fixes`), including renaming the self-hosted `DESIGN.md` §10 to the template's "反述确认门" section name; the CR's Preventability review records the root causes (AC-vs-implementation divergence without a `deviation_log` entry; removing a CLI entrypoint without guarding the old route).
+
+### Tests
+
+- `test/install.test.js` adds three sections: removed subcommands fail instead of installing into a directory, explicit `install` supports `--help` / `-h`, and a file target fails cleanly. `test/doctor.test.js` adds a wrong-type `E022` section (which exposed the EISDIR crash on first run). `test/docs.test.js` upgrades the restate-gate assertions from string-presence to section-number level: template §9 = acceptance criteria, §10 = restate gate, and docs must anchor §10 (never §9). Version assertions bumped to 10.1.2.
+
+### Migration
+
+No action needed — defect fixes / wording / dogfood-artifact only; CLI surface, doctor warning-code range, and canonical layout schema (`9`) unchanged. Previously-misused `create-ai-os upgrade` invocations now fail with guidance instead of creating an `./upgrade/` directory. Already-installed projects keep passing `doctor`.
 
 ---
 
@@ -40,7 +70,7 @@ No action needed — wording / docs / dogfood-artifact only; CLI behavior, docto
 
 ### Added
 
-- **Restate-and-confirm alignment gate** (`AGENTS.md` §1): before locking design or starting broad implementation, the agent must restate its understanding of goal / core main flow / state transitions / key exception paths in structured form and wait for user confirmation or correction. Need-layer restatement lands in lane `MISSION.md` §2 (new "core main flow" + "key exception / boundary branch" fields); design-layer restatement lands in lane `DESIGN.md` §9 (restate-and-confirm gate). Demonstrated in `examples/greenfield-guided-product.md`.
+- **Restate-and-confirm alignment gate** (`AGENTS.md` §1): before locking design or starting broad implementation, the agent must restate its understanding of goal / core main flow / state transitions / key exception paths in structured form and wait for user confirmation or correction. Need-layer restatement lands in lane `MISSION.md` §2 (new "core main flow" + "key exception / boundary branch" fields); design-layer restatement lands in lane `DESIGN.md` §10 (restate-and-confirm gate). Demonstrated in `examples/greenfield-guided-product.md`.
 - **`docs/artifacts.md`** gains a "restate-and-confirm / double-loop gate" section explaining why it stays a behavior gate (no doctor warning code), complementary to model self-verification.
 
 ### Changed

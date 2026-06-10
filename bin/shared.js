@@ -114,10 +114,6 @@ function isDirectory(absPath) {
   return fileExists(absPath) && fs.statSync(absPath).isDirectory();
 }
 
-function readText(absPath) {
-  return fileExists(absPath) ? fs.readFileSync(absPath, "utf8") : "";
-}
-
 // ---------------------------------------------------------------------------
 // Baseline ID
 // ---------------------------------------------------------------------------
@@ -272,7 +268,7 @@ function writeMetadata(targetDir, { version, layoutMode = LAYOUT_MODE_DEFAULT } 
 
 function readMetadata(targetDir) {
   const tomlPath = path.join(getAiOsDir(targetDir), METADATA_FILE);
-  if (!fileExists(tomlPath)) return null;
+  if (!fileExists(tomlPath) || isDirectory(tomlPath)) return null;
   const content = fs.readFileSync(tomlPath, "utf8");
   const meta = {};
   for (const line of content.split(/\r?\n/)) {
@@ -459,7 +455,6 @@ module.exports = {
   ensureDir,
   fileExists,
   isDirectory,
-  readText,
   // baseline
   formatTimestamp,
   generateInitialBaseline,

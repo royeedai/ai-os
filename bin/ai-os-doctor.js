@@ -64,6 +64,21 @@ function issue(level, code, message) {
   return { level, code, message };
 }
 
+// `fileExists` is true for directories too. Semantic checks must read only
+// regular files: a path of the wrong type is reported once by checkArtifact
+// (E022) and silently skipped here instead of crashing with EISDIR.
+function isRegularFile(absPath) {
+  try {
+    return fs.statSync(absPath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function readTextFile(absPath) {
+  return isRegularFile(absPath) ? fs.readFileSync(absPath, "utf8") : "";
+}
+
 function checkMetadata(meta, version) {
   const issues = [];
   if (!meta) {
@@ -87,7 +102,7 @@ function checkMetadata(meta, version) {
 
 function checkAgentsMd(paths) {
   const issues = [];
-  if (!fileExists(paths.agentsMd)) {
+  if (!isRegularFile(paths.agentsMd)) {
     issues.push(issue("error", "E010", "Missing AGENTS.md at project root. This is the delivery constitution."));
     return issues;
   }
@@ -119,7 +134,9 @@ function checkArtifact(absPath, { required, type, label, category = "extension" 
   }
   if (type === "file") {
     const stat = fs.statSync(absPath);
-    if (stat.size === 0) {
+    if (!stat.isFile()) {
+      issues.push(issue("error", "E022", `${label} exists but is not a file.`));
+    } else if (stat.size === 0) {
       issues.push(issue("warning", "W021", `${label} exists but is empty.`));
     }
   } else if (!isDirectory(absPath)) {
@@ -240,7 +257,7 @@ function checkBaselineLog(absPath, labelPrefix) {
 function checkGitignore(targetDir) {
   const issues = [];
   const gitignorePath = path.join(targetDir, ".gitignore");
-  if (!fileExists(gitignorePath)) {
+  if (!isRegularFile(gitignorePath)) {
     issues.push(issue("warning", "W040", ".gitignore not found. AI-OS lane STATE.md should be session-local."));
     return issues;
   }
@@ -283,7 +300,7 @@ function checkLanes(paths) {
 // W070: lane MISSION.md 的 "当前基线 ID" 必须能在 baseline-log/ 找到对应文件
 function checkBaselineConsistency(paths) {
   const issues = [];
-  if (!fileExists(paths.laneMission) || !isDirectory(paths.laneBaselineLog)) return issues;
+  if (!isRegularFile(paths.laneMission) || !isDirectory(paths.laneBaselineLog)) return issues;
   const missionContent = fs.readFileSync(paths.laneMission, "utf8");
   const baselineId = parseMissionBaselineId(missionContent);
   if (!baselineId) return issues;
@@ -487,7 +504,7 @@ function hasUnresolvedAgentRunRisk(task) {
 // W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
 function checkTaskOwners(paths) {
   const issues = [];
-  if (!fileExists(paths.laneTasks)) return issues;
+  if (!isRegularFile(paths.laneTasks)) return issues;
   const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
   const tasksWithoutOwner = [];
   for (const task of collectTopLevelTasks(tasksContent)) {
@@ -505,7 +522,7 @@ function checkTaskOwners(paths) {
 // W076: tasks should preserve handoff context and close evidence loops.
 function checkTaskEvidenceLoops(paths) {
   const issues = [];
-  if (!fileExists(paths.laneTasks)) return issues;
+  if (!isRegularFile(paths.laneTasks)) return issues;
   const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
   const missing = [];
   for (const task of collectTopLevelTasks(tasksContent)) {
@@ -537,7 +554,7 @@ function checkTaskEvidenceLoops(paths) {
 // W077: tasks in execution / completion need explicit fact-state review.
 function checkTaskHallucinationGuards(paths) {
   const issues = [];
-  if (!fileExists(paths.laneTasks)) return issues;
+  if (!isRegularFile(paths.laneTasks)) return issues;
   const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
   const missing = [];
   const unresolved = [];
@@ -566,7 +583,7 @@ function checkTaskHallucinationGuards(paths) {
 // W078: long-horizon / background agent work needs a reviewable return packet.
 function checkLongHorizonAgentRunReviews(paths) {
   const issues = [];
-  if (!fileExists(paths.laneTasks)) return issues;
+  if (!isRegularFile(paths.laneTasks)) return issues;
   const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
   const missing = [];
   const unresolved = [];
@@ -609,7 +626,7 @@ function checkLongHorizonAgentRunReviews(paths) {
 // W072: lane DESIGN.md 已填的 AC 必须至少有一项被 verification-matrix.yaml 引用
 function checkAcceptanceCoverage(paths) {
   const issues = [];
-  if (!fileExists(paths.laneDesign) || !fileExists(paths.laneVerificationMatrix)) return issues;
+  if (!isRegularFile(paths.laneDesign) || !isRegularFile(paths.laneVerificationMatrix)) return issues;
   const designContent = fs.readFileSync(paths.laneDesign, "utf8");
   const matrixContent = fs.readFileSync(paths.laneVerificationMatrix, "utf8");
   const acIds = [];
@@ -660,19 +677,19 @@ function hasRealVerificationGuard(content) {
 // W074: high-risk lanes/tasks require populated risk, release, and guard artifacts.
 function checkHighRiskArtifacts(paths) {
   const issues = [];
-  const laneToml = fileExists(paths.laneToml) ? fs.readFileSync(paths.laneToml, "utf8") : "";
-  const tasks = fileExists(paths.laneTasks) ? fs.readFileSync(paths.laneTasks, "utf8") : "";
+  const laneToml = readTextFile(paths.laneToml);
+  const tasks = readTextFile(paths.laneTasks);
   const highRisk = hasHighRiskLane(laneToml) || hasHighRiskTask(tasks);
   if (!highRisk) return issues;
 
   const missing = [];
-  if (!fileExists(paths.laneRiskRegister) || !hasFilledRiskRegister(fs.readFileSync(paths.laneRiskRegister, "utf8"))) {
+  if (!hasFilledRiskRegister(readTextFile(paths.laneRiskRegister))) {
     missing.push("risk-register.md");
   }
-  if (!fileExists(paths.laneReleasePlan) || !hasFilledReleasePlan(fs.readFileSync(paths.laneReleasePlan, "utf8"))) {
+  if (!hasFilledReleasePlan(readTextFile(paths.laneReleasePlan))) {
     missing.push("release-plan.md");
   }
-  if (!fileExists(paths.laneVerificationMatrix) || !hasRealVerificationGuard(fs.readFileSync(paths.laneVerificationMatrix, "utf8"))) {
+  if (!hasRealVerificationGuard(readTextFile(paths.laneVerificationMatrix))) {
     missing.push("verification-matrix.yaml guard");
   }
   if (missing.length > 0) {
