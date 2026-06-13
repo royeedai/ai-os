@@ -41,6 +41,7 @@ tasks:
       - ".ai-os/lanes/default/specs/example.spec.md"
     expected_return:
       - "[design note / spec delta / review note]"
+      - "[optional design_input evidence: Product Design brief / selected visual option / prototype URL / QA screenshot / Figma frame / screenshot / URL capture / manual brief]"
     # agent_run_review：仅 delegated / background / cloud / external / parallel 执行时需要；本地前台任务可删除此块
     agent_run_review:
       execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
@@ -72,6 +73,7 @@ tasks:
     evidence_required:
       - "design-note"
       - "spec-update"
+      - "design-input-evidence-or-fallback"
     evidence_produced: []
     deviation_log: []
     change_scope:
@@ -97,6 +99,7 @@ tasks:
       - ".ai-os/lanes/default/verification-matrix.yaml"
     expected_return:
       - "[code diff / test log / runtime evidence]"
+      - "[Product Design output or fallback evidence if this is UI / prototype work]"
     # agent_run_review：仅 delegated / background / cloud / external / parallel 执行时需要；本地前台任务可删除此块
     agent_run_review:
       execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"

@@ -2,7 +2,7 @@
 
 本文件记录 AI-OS 必须持续覆盖的稳定问题，以及它们在当前版本中的真实承接点。
 
-AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
+AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
 
 ## 当前覆盖
 
@@ -117,7 +117,13 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：有设计稿时误以为不能用组件库，导致手搓 UI、维护成本高；无设计稿时又误以为不需要任何设计确认，跳过组件库选择、字段、权限、状态和异常路径；老项目里还可能因 AI 偏好混入第二套组件库
 - **AI-OS 必须保证**：前端 UI 先判定 `ui_source`（design-led / component-first / existing-style / hybrid），设计稿只定义目标效果，组件库仍是优先实现路径；无设计稿的后台、PC 业务系统和移动业务页默认走组件库基线；新增组件库前必须先检查现有依赖
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2）、`README.md`（Design-aware component-first UI）、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.2）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2）、`README.md`（Design-aware component-first UI）、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.3）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
+
+### PL-021 Product Design 能力被误写成单一 IDE 硬依赖
+
+- **场景**：Codex 中可用 Product Design 后，agent 把 brief、ideation、prototype、image-to-code、design QA、share 写成 AI-OS 必备流程，导致 Cursor、Claude Code、普通 IDE 或无插件环境无法按同一规则交付；反过来也可能因担心兼容性而完全不用 Product Design 的设计证据
+- **AI-OS 必须保证**：Product Design 只是可选 `design_input.provider`；其产物通过 `evidence_refs` / `evidence_produced` 回流。无插件场景必须有 Figma、截图、URL reverse-spec、existing-code、manual brief、component-first 或 existing-style fallback，且 Product Design evidence 不替代项目原生验证
+- **当前覆盖锚点**：`docs/interop/product-design.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.3）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
 
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 

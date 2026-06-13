@@ -60,6 +60,14 @@
 - **确认来源**：2026-06-06 用户确认“有设计图要求的就用设计图，没设计的就都用组件库；有设计稿也能用组件的就用组件”
 - **日期**：2026-06-06
 
+#### DD-008: Product Design 是可选设计证据提供方，不是 AI-OS 硬依赖
+
+- **决策**：AI-OS 用 `design_input` 记录 Product Design、Figma、URL、截图、现有代码或人工 brief 等设计输入来源；Product Design 可完整提供 brief、ideation、prototype、image-to-code、design QA 和 share 证据，但无插件 IDE 必须能用同一字段降级交付
+- **原因**：项目负责人需要在 Codex 中充分利用 Product Design，同时 AI-OS 的核心治理能力不能依赖单一 IDE 或插件
+- **影响范围**：docs/interop、docs/artifacts、DESIGN template、tasks template、verification-matrix、skill wrapper、README、docs tests
+- **确认来源**：2026-06-13 用户要求“完整使用 Product Design 的能力和不影响其他 IDE 的方式”
+- **日期**：2026-06-13
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

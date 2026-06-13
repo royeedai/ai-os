@@ -51,6 +51,10 @@
 - **selection_reason**：existing dependency / user specified / stack default / ecosystem fit
 - **fidelity_level**：strict / practical / component-native
 - **custom_required**：
+- **design_input.provider**：product-design / figma / url / screenshot / existing-code / manual-brief / none
+- **design_input.capability_used**：brief / ideation / prototype / image-to-code / design-qa / share / manual
+- **design_input.evidence_refs**：[Product Design brief / selected visual option / prototype URL / QA screenshot / Figma frame / URL capture / local screenshot / existing code path / manual confirmation]
+- **design_input.fallback_path**：figma / screenshot / url-reverse-spec / component-first / existing-style
 
 ## 8. 对照参考（reverse-spec 必填）
 

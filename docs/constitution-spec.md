@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v2.2
+# AI Delivery Constitution Spec v2.3
 
 Status: Stable  
-Version: 2.2  
-Last updated: 2026-06-08  
+Version: 2.3
+Last updated: 2026-06-13
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 2.3 (2026-06-13) — Product Design optional design-evidence bridge：`design_input` 记录 Product Design / Figma / URL / screenshot / existing-code / manual brief 来源；插件能力可完整使用，但不是核心硬依赖，不新增 doctor code。
 - 2.2 (2026-06-08) — Restate-and-confirm alignment gate（反述确认门，强化 §1 目标确认 / §2 设计锁定）+ architecture guardrail 定位到 `memory.md` §2；行为 + 工件强化，不新增 doctor code。
 - 2.1 (2026-06-06) — Design-aware component-first UI routing: design files define the target when present, existing / stack-appropriate component libraries remain the preferred implementation path, and no-design business UI defaults to component-library baselines.
 - 2.0 (2026-06-05) — **dedup only, contract unchanged**: extended schema sections (URL reverse-spec, handoff, hallucination guard, long-horizon, framework feedback) now reference [`docs/artifacts.md`](artifacts.md) as the single schema truth source instead of repeating field lists. Open-standard tool mappings consolidated into [`docs/interop/standards-map.md`](interop/standards-map.md).
@@ -91,6 +92,8 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 前端 UI 交付使用 Design-Aware Component-First UI：有设计稿时设计稿是目标、组件库是优先实现手段；无设计稿时后台、PC 业务系统和移动业务页默认采用项目现有或栈匹配组件库。组件优先不能替代字段、接口、权限、状态、异常和响应式验收。
 
+Product Design 可作为可选设计证据提供方：brief、ideation、prototype、image-to-code、design QA、share 产物进入 `design_input.evidence_refs` 或 task evidence；无插件时同字段接受 Figma、截图、URL reverse-spec、existing-code、component-first、existing-style 或 manual brief fallback。Product Design 证据不替代项目原生验证。
+
 ## 7. Canonical layout
 
 - 只有一种 canonical layout：`shared-root-default-lane`（共享根 + `.ai-os/lanes/default/`）
@@ -132,6 +135,7 @@ AI-OS 默认 install 不 ship 任何 server / client / runtime。
 - Framework feedback loop（v1.9）— CR `## Preventability review`、lane retrospective；工件契约，非 doctor 阻塞项  
 - Design-aware component-first UI（v2.1）— `DESIGN.md` UI source routing、组件库选择、还原等级和定制边界
 - Restate-and-confirm gate（v2.2）— lane `MISSION.md` §2 主流程 / 异常反述、`DESIGN.md` §10 反述确认门 + `memory.md` §2 架构护栏；行为门，无 doctor code
+- Product Design optional bridge（v2.3）— `DESIGN.md` `design_input` provider / capability / evidence / fallback；可选设计证据，不是插件硬依赖
 
 **Doctor 语义警告（v9.8+）**：`W070`–`W078` 为 `--strict` 可升级的确定性检查（基线一致性、owner、AC 覆盖、高风险工件、handoff 证据、事实状态、长时程回收）。CR delta 字段完整性、URL confidence 标注、Preventability review 提示由工件模板与 `AGENTS.md` 行为规则承载，不再由 doctor 软检查重复。
 

@@ -1,34 +1,34 @@
 version: 3
-baseline_id: "CR-20260610-024200-cli-defects-restate-anchor-fixes"
+baseline_id: "CR-20260613-110848-product-design-optional-bridge"
 scope:
   mode: "change+brownfield"
-  focus: "cli-defects-and-restate-anchor-fixes"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260610-024200-cli-defects-restate-anchor-fixes"
+  focus: "product-design-optional-bridge"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260613-110848-product-design-optional-bridge"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "CLI Defects Fixed With Regression Guards"
-    goal: "fix the removed-subcommand silent install, install --help, file-target crash, doctor type-check gap and EISDIR crash, dead export"
-    scope: "bin/create-ai-os.js, bin/ai-os-doctor.js, bin/shared.js, test/install.test.js, test/doctor.test.js"
-    acceptance_goal: "all five defects fixed, each locked by a regression assertion"
-    target_window: "2026-06-10"
+    title: "Optional Bridge Contract Locked"
+    goal: "Product Design is modeled as an optional design evidence provider with no-plugin fallback"
+    scope: "MISSION, DESIGN, CR, memory, problem ledger"
+    acceptance_goal: "Product Design capability can be used fully without becoming a hard dependency"
+    target_window: "2026-06-13"
   - id: M2
-    title: "Restate-Gate Anchor Unified And Residue Cleaned"
-    goal: "unify the restate-gate anchor to DESIGN section 10 across docs, clean de-versioning and upgrade residue, align examples and evals"
-    scope: "docs/*, examples/*, evals/*, CHANGELOG header and v10.1.0 entry, test/docs.test.js"
-    acceptance_goal: "no doc anchors section 9, section-level assertions added, no live upgrade or framework-version v9 residue"
-    target_window: "2026-06-10"
+    title: "Docs Templates And Skill Updated"
+    goal: "Public docs, interop docs, templates, and skill wrapper carry the design_input contract"
+    scope: "README, artifacts, spec, interop, templates, skill, tests"
+    acceptance_goal: "Design evidence fields and fallback path are consistently documented and checked"
+    target_window: "2026-06-13"
   - id: M3
-    title: "Dogfood Lane Advanced And Version Closed"
-    goal: "advance the self-hosted lane to this delivery with Preventability review; ship v10.1.2"
-    scope: "lane artifacts, version metadata, docs/cli.md, CHANGELOG, maintainers, project-lead, verification"
-    acceptance_goal: "npm test, lint, doctor self-check pass; v10.1.2 tagged"
-    target_window: "2026-06-10"
+    title: "Version And Verification Closed"
+    goal: "v10.2.0 metadata and self-hosted lane artifacts are verified"
+    scope: "version, changelog, lane artifacts, native verification"
+    acceptance_goal: "npm test, lint, and strict doctor pass"
+    target_window: "2026-06-13"
 
 tasks:
-  - id: TASK-AI-1021
-    title: "修复 5 处 CLI 缺陷并补回归测试"
+  - id: TASK-AI-1001
+    title: "锁定 Product Design optional bridge 基线"
     milestone: M1
     status: done
     owner: AI
@@ -38,46 +38,49 @@ tasks:
     depends_on: []
     requirement_refs:
       - "REQ-001"
+      - "REQ-004"
+      - "REQ-005"
     acceptance_refs:
       - "AC-001"
-      - "AC-002"
-    handoff_to: "Cursor local agent"
+      - "AC-004"
+      - "AC-005"
+    handoff_to: "Codex local agent"
     context_refs:
-      - "bin/create-ai-os.js"
-      - "bin/ai-os-doctor.js"
-      - "bin/shared.js"
-      - "test/install.test.js"
-      - "test/doctor.test.js"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260613-110848-product-design-optional-bridge.md"
+      - ".ai-os/memory.md"
     expected_return:
-      - "removed subcommand `upgrade` fails with guidance instead of installing into ./upgrade/"
-      - "install --help works; file-target fails cleanly; doctor reports E022 without EISDIR crash"
-      - "readText dead export removed"
+      - "updated self-hosted lane baseline artifacts"
+      - "Product Design optional bridge contract and acceptance criteria"
     fact_state_review:
       observed:
-        - "main() routed unknown first args to runInstall as target dir; runInstall rejected -h/--help; ensureDir threw ENOTDIR on file targets"
-        - "checkArtifact only checked stat.size for files; first regression run crashed EISDIR at checkBaselineConsistency:289 proving semantic checks read wrong-type paths"
-        - "rg confirmed readText had zero callers outside its definition and export"
+        - "AGENTS, lane STATE, lane.toml, lane MISSION/DESIGN/tasks/verification, Product Design index and critical-overrides, artifacts docs, skill wrapper, docs tests, package metadata, and problem ledger inspected before edits"
       confirmed:
-        - "project owner approved the fix list including the five explicitly-not-fixed design tradeoffs"
+        - "user requested implementation of the proposed Product Design optional bridge plan on 2026-06-13"
+        - "user clarified the desired approach: fully use Product Design capabilities while not affecting other IDEs"
       inferred: []
       unknown: []
     impact_tags:
-      - "cli"
-      - "tests"
+      - "baseline-log"
+      - "design"
+      - "problem-ledger"
+      - "memory"
     evidence_required:
-      - "npm-test"
-      - "lint"
+      - "baseline-record"
+      - "design-update"
+      - "problem-ledger-update"
     evidence_produced:
-      - "bin/create-ai-os.js"
-      - "bin/ai-os-doctor.js"
-      - "bin/shared.js"
-      - "test/install.test.js (3 new sections)"
-      - "test/doctor.test.js (E022 wrong-type section)"
-    deviation_log:
-      - "scope grew within the same defect class: first regression run exposed EISDIR crashes in doctor semantic checks; hardened all semantic checks via isRegularFile/readTextFile and readMetadata, recorded in CR Current behavior / Proposed delta"
+      - ".ai-os/lanes/default/baseline-log/CR-20260613-110848-product-design-optional-bridge.md"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - ".ai-os/memory.md"
+      - "docs/problem-ledger.md"
+    deviation_log: []
 
-  - id: TASK-AI-1022
-    title: "反述门锚点统一 §10 + 去版本化清理 + 示例 eval 对齐"
+  - id: TASK-AI-1002
+    title: "同步 Product Design interop、design_input schema 和模板"
     milestone: M2
     status: done
     owner: AI
@@ -85,66 +88,67 @@ tasks:
     wave: 2
     approval_required: false
     depends_on:
-      - "TASK-AI-1021"
+      - "TASK-AI-1001"
     requirement_refs:
+      - "REQ-001"
       - "REQ-002"
       - "REQ-003"
       - "REQ-004"
+      - "REQ-005"
     acceptance_refs:
+      - "AC-001"
+      - "AC-002"
       - "AC-003"
       - "AC-004"
       - "AC-005"
-    handoff_to: "Cursor local agent"
+    handoff_to: "Codex local agent"
     context_refs:
-      - "framework/.agents/templates/lane/DESIGN.md"
+      - "docs/interop/product-design.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
-      - "docs/problem-ledger.md"
-      - "docs/maintainers.md"
-      - "docs/interop/spec-kit-coexistence.md"
-      - "examples/README.md"
-      - "examples/greenfield-guided-product.md"
-      - "evals/missing-user-confirmation.md"
-      - "evals/logic-right-but-product-shape-wrong.md"
-      - "CHANGELOG.md"
+      - "docs/interop/standards-map.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+      - "framework/.agents/templates/lane/DESIGN.md"
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
       - "test/docs.test.js"
     expected_return:
-      - "all five docs anchor the restate gate at DESIGN section 10; docs.test asserts section numbers"
-      - "maintainers has no install/upgrade guard wording; AI-OS v9 framework-version residue removed"
-      - "greenfield demonstrates the design-layer restate gate; evals use the v10.1 term"
+      - "Product Design interop doc with workflow mapping and no-plugin fallback"
+      - "design_input schema in docs and templates"
+      - "skill wrapper routing that uses Product Design when available and falls back otherwise"
+      - "verification matrix guards for hard dependency and evidence substitution failure modes"
     fact_state_review:
       observed:
-        - "template DESIGN.md has section 9 = acceptance criteria and section 10 = restate gate; v10.1.0 CR AC-002 wrote section 9 with no deviation_log entry; five docs followed the AC"
-        - "rg confirmed remaining AI-OS v9 hits are capability-introduction labels (standards-map v9.4/v9.5, cursor.md v9.4) which stay by design"
+        - "existing v9.9 UI source routing and v9.4 handoff/evidence loop already provide the extension points needed"
+        - "Product Design skill requires brief gate before ideation/prototype/image-to-code and treats design QA as visual comparison evidence"
       confirmed:
-        - "unify direction = docs follow the shipped template (section 10); template stays untouched; project owner approved"
+        - "DESIGN.md AC-001 through AC-005 define the required docs, template, skill, and no-hard-dependency behavior"
       inferred: []
       unknown: []
     impact_tags:
       - "docs"
-      - "examples"
-      - "evals"
+      - "templates"
+      - "skill"
       - "tests"
     evidence_required:
-      - "npm-test"
-      - "section-anchor-assertions"
+      - "docs-test"
+      - "template-test"
+      - "product-surface-invariant"
     evidence_produced:
+      - "docs/interop/product-design.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
-      - "docs/problem-ledger.md"
-      - "docs/maintainers.md"
-      - "docs/interop/spec-kit-coexistence.md"
-      - "examples/README.md"
-      - "examples/greenfield-guided-product.md"
-      - "evals/missing-user-confirmation.md"
-      - "evals/logic-right-but-product-shape-wrong.md"
-      - "CHANGELOG.md"
-      - "test/docs.test.js (section-level anchor assertions)"
-    deviation_log:
-      - "none"
+      - "docs/interop/standards-map.md"
+      - "README.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+      - "framework/.agents/templates/lane/DESIGN.md"
+      - "framework/.agents/templates/lane/tasks.yaml"
+      - "framework/.agents/templates/lane/verification-matrix.yaml"
+      - "test/docs.test.js"
+    deviation_log: []
 
-  - id: TASK-AI-1023
-    title: "dogfood lane 推进、版本收口与发布 v10.1.2"
+  - id: TASK-AI-1003
+    title: "更新版本、changelog 与验证收口"
     milestone: M3
     status: done
     owner: AI
@@ -152,53 +156,47 @@ tasks:
     wave: 3
     approval_required: false
     depends_on:
-      - "TASK-AI-1022"
+      - "TASK-AI-1002"
     requirement_refs:
       - "REQ-005"
       - "REQ-006"
-      - "REQ-007"
     acceptance_refs:
+      - "AC-005"
       - "AC-006"
-      - "AC-007"
-    handoff_to: "Cursor local agent"
+    handoff_to: "Codex local agent"
     context_refs:
-      - ".ai-os/lanes/default/baseline-log/CR-20260610-024200-cli-defects-restate-anchor-fixes.md"
       - "VERSION"
       - "package.json"
       - "package-lock.json"
-      - "docs/cli.md"
       - "CHANGELOG.md"
-      - "docs/maintainers.md"
-      - ".cursor/rules/project-lead.mdc"
+      - "test/docs.test.js"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
     expected_return:
-      - "lane artifacts internally consistent and pointing at this CR; DESIGN section 10 renamed to the restate gate"
-      - "version metadata says 10.1.2; CHANGELOG entry written; cli.md documents removed-subcommand error and install --help"
-      - "npm test + lint + doctor self-check clean; tagged v10.1.2"
+      - "version metadata says 10.2.0"
+      - "native verification logs"
+      - "strict doctor clean"
     fact_state_review:
       observed:
-        - "test/install.test.js version assertion hardcodes 10.1.1 and must move to 10.1.2"
-        - "dogfood DESIGN.md section 10 was still the pre-v10.1 name 设计确认记录"
+        - "version files, package lock, changelog, docs tests, and verification matrix inspected before update"
       confirmed:
-        - "patch semantics per CHANGELOG semver definition (bugfix / 文案修正 / 治理收口); project owner approved tagging v10.1.2"
+        - "DESIGN.md AC-006 defines release metadata and verification behavior"
       inferred: []
       unknown: []
     impact_tags:
-      - "baseline-log"
-      - "lane-artifacts"
       - "version"
       - "changelog"
       - "verification"
     evidence_required:
       - "npm-test"
       - "lint"
-      - "doctor-self-check"
+      - "doctor-strict"
     evidence_produced:
-      - ".ai-os/lanes/default/baseline-log/CR-20260610-024200-cli-defects-restate-anchor-fixes.md"
-      - ".ai-os/lanes/default/MISSION.md / DESIGN.md / tasks.yaml / verification-matrix.yaml / lane.toml / STATE.md"
-      - "VERSION / package.json / package-lock.json / .ai-os/framework.toml = 10.1.2"
-      - "docs/cli.md / CHANGELOG.md / docs/maintainers.md / .cursor/rules/project-lead.mdc"
-      - "npm test: 1008 passed, 0 failed"
-      - "npx eslint bin/ test/: passed (0 warnings)"
-      - "node bin/create-ai-os.js doctor . --json --strict: ok=true, 0 issues, 0 semantic_warnings"
-    deviation_log:
-      - "none"
+      - "VERSION"
+      - "package.json"
+      - "package-lock.json"
+      - "CHANGELOG.md"
+      - ".ai-os/framework.toml"
+      - "npm test: 1060 passed, 0 failed"
+      - "npm run lint: passed"
+      - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
+    deviation_log: []

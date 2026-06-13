@@ -1,6 +1,6 @@
 id = "default"
 title = "默认交付线"
 status = "active"
-baseline_id = "CR-20260610-024200-cli-defects-restate-anchor-fixes"
+baseline_id = "CR-20260613-110848-product-design-optional-bridge"
 quality_tier = "standard"
 risk_tier = "medium"

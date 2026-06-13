@@ -42,6 +42,7 @@ section("docs: key documentation files exist");
     "docs/interop/spec-kit-coexistence.md",
     "docs/interop/claude-code.md",
     "docs/interop/cursor.md",
+    "docs/interop/product-design.md",
     "docs/interop/mcp-resources.md",
     "docs/interop/standards-map.md",
     "CHANGELOG.md",
@@ -346,7 +347,7 @@ section("docs: long-horizon agent review is documented and checked");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 2.2"), "constitution spec is at v2.2");
+  assert(spec.includes("Version: 2.3"), "constitution spec is at v2.3");
   assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
   assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
@@ -387,7 +388,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
 
-  assert(spec.includes("Version: 2.2"), "constitution spec remains at latest v2.2");
+  assert(spec.includes("Version: 2.3"), "constitution spec remains at latest v2.3");
   assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
   assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
   assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
@@ -437,7 +438,7 @@ section("docs: design-aware component-first UI routing is documented and templat
   assert(artifacts.includes("已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度"), "artifacts docs define component library priority");
   assert(artifacts.includes("强视觉页面"), "artifacts docs keep strong-visual consumer pages from default component-native handling");
 
-  assert(spec.includes("Version: 2.2"), "constitution spec is at v2.2 (UI routing changelog stays v2.1)");
+  assert(spec.includes("Version: 2.3"), "constitution spec is at v2.3 (UI routing changelog stays v2.1)");
   assert(spec.includes("Design-aware component-first UI"), "constitution spec references UI routing");
   assert(spec.includes("组件优先不能替代字段、接口、权限、状态、异常和响应式验收"), "constitution spec preserves business acceptance coverage");
 
@@ -459,13 +460,75 @@ section("docs: design-aware component-first UI routing is documented and templat
   assert(changelog.includes("without expanding the CLI, runtime, doctor warning range, or page template surface"), "CHANGELOG preserves no-runtime/no-doctor expansion boundary");
 }
 
+section("docs: Product Design optional bridge is documented with no-plugin fallback");
+
+{
+  const readme = read("README.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const productDesign = read("docs/interop/product-design.md");
+  const standards = read("docs/interop/standards-map.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const designTemplate = read("framework/.agents/templates/lane/DESIGN.md");
+  const tasksTemplate = read("framework/.agents/templates/lane/tasks.yaml");
+  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const ledger = read("docs/problem-ledger.md");
+  const maintainers = read("docs/maintainers.md");
+  const changelog = read("CHANGELOG.md");
+
+  assert(readme.includes("Product Design"), "README mentions Product Design as optional design evidence");
+  assert(readme.includes("same `design_input` contract"), "README names the portable design_input contract");
+  assert(readme.includes("docs/interop/product-design.md"), "README links to Product Design interop doc");
+
+  for (const term of ["design_input", "provider", "capability_used", "evidence_refs", "fallback_path"]) {
+    assert(artifacts.includes(term), `artifacts docs include ${term}`);
+    assert(designTemplate.includes(term), `DESIGN template includes ${term}`);
+  }
+  for (const term of ["product-design", "figma", "url", "screenshot", "existing-code", "manual-brief", "none"]) {
+    assert(artifacts.includes(term), `artifacts docs include design_input provider ${term}`);
+    assert(productDesign.includes(term), `Product Design interop includes provider/fallback ${term}`);
+  }
+  for (const term of ["brief", "ideation", "prototype", "image-to-code", "design-qa", "share", "manual"]) {
+    assert(artifacts.includes(term), `artifacts docs include Product Design capability ${term}`);
+    assert(productDesign.includes(term), `Product Design interop maps capability ${term}`);
+  }
+  for (const term of ["figma", "screenshot", "url-reverse-spec", "component-first", "existing-style"]) {
+    assert(productDesign.includes(term), `Product Design interop includes no-plugin fallback ${term}`);
+  }
+
+  assert(productDesign.includes("optional design-evidence provider"), "Product Design interop frames plugin as optional evidence provider");
+  assert(productDesign.includes("AI-OS does not install Product Design"), "Product Design interop preserves no-install boundary");
+  assert(productDesign.includes("No new CLI command, runtime, doctor warning, MCP server, IDE adapter, or Product Design hard dependency"), "Product Design interop preserves product surface boundary");
+  assert(productDesign.includes("Product Design evidence does not replace project-native verification"), "Product Design interop keeps native verification required");
+
+  assert(tasksTemplate.includes("Product Design brief"), "tasks template accepts Product Design brief as expected return evidence");
+  assert(tasksTemplate.includes("design-input-evidence-or-fallback"), "tasks template requires design input evidence or fallback");
+  assert(skill.includes("If Product Design is available"), "skill wrapper routes through Product Design when available");
+  assert(skill.includes("If Product Design is not available"), "skill wrapper routes no-plugin fallback");
+  assert(skill.includes("Product Design QA, prototype links, or share URLs are design evidence, not native verification"), "skill wrapper preserves native verification boundary");
+
+  assert(matrixTemplate.includes("product-design-optional-bridge"), "verification matrix template includes Product Design optional bridge impact rule");
+  assert(matrixTemplate.includes("FM-PD-001"), "verification matrix template covers Product Design hard dependency failure");
+  assert(matrixTemplate.includes("FM-PD-002"), "verification matrix template covers Product Design replacing native verification");
+
+  assert(spec.includes("Product Design optional design-evidence bridge"), "constitution spec records Product Design optional bridge");
+  assert(spec.includes("Product Design 证据不替代项目原生验证"), "constitution spec keeps native verification boundary");
+  assert(standards.includes("Product Design evidence"), "standards-map includes Product Design evidence layer");
+  assert(standards.includes("product-design.md"), "standards-map links Product Design interop doc");
+
+  assert(ledger.includes("PL-021 Product Design 能力被误写成单一 IDE 硬依赖"), "problem ledger registers PL-021");
+  assert(maintainers.includes("v10.2.0"), "maintainers release matrix lists v10.2.0");
+  assert(changelog.includes("10.2.0"), "CHANGELOG records 10.2.0");
+  assert(changelog.includes("Product Design optional bridge"), "CHANGELOG names Product Design optional bridge release");
+}
+
 section("docs: VERSION and package.json are in sync");
 
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.1.2", `version is 10.1.2 (got ${version})`);
+  assert(version === "10.2.0", `version is 10.2.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -581,6 +644,7 @@ section("docs: interop folder has core docs plus consolidated standards-map");
     "docs/interop/spec-kit-coexistence.md",
     "docs/interop/claude-code.md",
     "docs/interop/cursor.md",
+    "docs/interop/product-design.md",
     "docs/interop/mcp-resources.md",
     "docs/interop/standards-map.md",
   ];
@@ -642,6 +706,7 @@ section("docs: standards-map consolidates open-standard wire formats");
 
   for (const term of [
     "A2A",
+    "Product Design",
     "Memory tool",
     "BMAD-METHOD",
     "OpenSpec",
@@ -655,6 +720,7 @@ section("docs: standards-map consolidates open-standard wire formats");
   }
 
   assert(map.includes("does **not** ship"), "standards-map.md preserves no-runtime boundary");
+  assert(map.includes("Product Design") && map.includes("design_input"), "standards-map.md maps Product Design onto design_input");
   assert(map.includes("2 primary product operations"), "standards-map.md restates 2-primary-operation surface");
   assert(map.includes("mcp-resources.md"), "standards-map.md links to mcp-resources.md");
   assert(map.includes("Read-only mount"), "standards-map.md mandates read-only Memory mount");
@@ -766,7 +832,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
   assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
 
   assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
-  assert(spec.includes("Version: 2.2"), "constitution-spec.md is at v2.2");
+  assert(spec.includes("Version: 2.3"), "constitution-spec.md is at v2.3");
   assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
 
   assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");

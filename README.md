@@ -22,6 +22,7 @@ AI-OS is a cross-agent delivery constitution for projects that already use AI co
 - clarify the real goal
 - lock key design before scaling out implementation
 - route frontend UI work through design-aware component reuse when designs or component libraries exist
+- preserve optional design evidence from Product Design, Figma, screenshots, URLs, existing code, or manual briefs
 - reverse-spec accessible websites into auditable evidence before rebuild work
 - separate observed / confirmed facts from inferred / unknown assumptions
 - review long-running, background, external, or parallel agent work before accepting it
@@ -130,6 +131,8 @@ Frontend delivery routes UI source and implementation separately:
 - Existing project style wins over new library preference. Do not mix multiple component libraries on one surface unless the project already does.
 - Component-first replaces ad-hoc visual design, not business logic: fields, APIs, permissions, validation, loading / empty / error states, and responsive behavior still need acceptance coverage.
 
+When Product Design is available, AI-OS can use its brief, ideation, prototype, image-to-code, design QA, and share outputs as optional design evidence. Without Product Design, the same `design_input` contract accepts Figma, screenshots, URL reverse-spec, existing code / style, component-first, or manual brief fallback. See [docs/interop/product-design.md](docs/interop/product-design.md).
+
 Default library preference is China-friendly and conservative: Vue PC uses Element Plus; React PC uses Ant Design; Vue H5 uses Vant; React H5 uses Ant Design Mobile; uni-app uses uView / uni-ui; Taro or WeChat-heavy surfaces use NutUI or TDesign; cross-stack enterprise consistency may choose TDesign; modern enterprise dashboards may choose Arco Design.
 
 ## When to use lanes
@@ -154,7 +157,7 @@ AI-OS artifacts can be exposed as MCP resources via the standard `aios://` URI s
 
 ## Open standards map
 
-A2A task delegation, Memory tool mounts, BMAD / OpenSpec / Kiro coexistence, EU AI Act audit framing, developer-global memory, and long-horizon agent surfaces are documented in one wire-format map: [docs/interop/standards-map.md](docs/interop/standards-map.md). AI-OS does not ship servers or clients for any of these — only field mappings and single-truth-source rules.
+A2A task delegation, Product Design optional evidence, Memory tool mounts, BMAD / OpenSpec / Kiro coexistence, EU AI Act audit framing, developer-global memory, and long-horizon agent surfaces are documented in the interop docs and standards map. AI-OS does not ship servers or clients for any of these — only field mappings and single-truth-source rules.
 
 ## Framework feedback loop (v9.7+)
 
@@ -176,7 +179,7 @@ Optional feedback path: file an issue with the `framework-feedback` label using 
 - [docs/getting-started.md](docs/getting-started.md)
 - [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
 - [docs/maintainers.md](docs/maintainers.md)
-- [docs/interop/](docs/interop/) — spec-kit, Claude Code, Cursor, MCP (`aios://`), and [standards-map](docs/interop/standards-map.md) (A2A, Memory tool, BMAD, OpenSpec, Kiro, EU AI Act, long-horizon agents)
+- [docs/interop/](docs/interop/) — spec-kit, Claude Code, Cursor, Product Design, MCP (`aios://`), and [standards-map](docs/interop/standards-map.md) (A2A, Memory tool, BMAD, OpenSpec, Kiro, EU AI Act, long-horizon agents)
 
 ## License
 

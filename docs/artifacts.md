@@ -180,9 +180,20 @@ component_library: existing | element-plus | antd | vant | antd-mobile | tdesign
 selection_reason: existing dependency | user specified | stack default | ecosystem fit
 fidelity_level: strict | practical | component-native
 custom_required: []
+design_input:
+  provider: product-design | figma | url | screenshot | existing-code | manual-brief | none
+  capability_used: brief | ideation | prototype | image-to-code | design-qa | share | manual
+  evidence_refs: []
+  fallback_path: figma | screenshot | url-reverse-spec | component-first | existing-style
 ```
 
 默认选择顺序：已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度。常用默认：Vue PC → Element Plus；React PC → Ant Design；Vue H5 → Vant；React H5 → Ant Design Mobile；uni-app → uView / uni-ui；Taro / 微信生态 → NutUI / TDesign；跨 Vue / React / 小程序统一风格 → TDesign；现代企业中后台 → Arco Design。C 端首页、活动页、品牌页、强视觉页面即使无设计稿，也必须先确认视觉风险或风格基线。
+
+### Product Design optional design-evidence bridge（v10.2）
+
+Product Design 是可选设计证据提供方，不是 AI-OS 硬依赖。有 Product Design 时，`get-context` / `ideate` / `prototype` / `image-to-code` / `design-qa` / `share` 的产物进入 `design_input.evidence_refs` 或 task `evidence_produced`；无 Product Design 时，同一字段接受 Figma、截图、URL reverse-spec、existing-code、manual brief、component-first 或 existing-style fallback。
+
+Product Design brief 只锁目标，不自动等于视觉目标；没有 URL、截图、Figma frame、mockup 或用户选定 visual option 时，不得直接进入大规模 UI 实现。Product Design QA 截图、prototype link 或 share URL 只是设计 / 视觉证据，不能替代项目原生 build、lint、typecheck、test 或 `doctor --strict`。
 
 ## URL Reverse-Spec Intake（v9.2）
 

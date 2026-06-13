@@ -78,7 +78,7 @@ After the Activation Gate passes, load layers progressively. Do not re-load a hi
 | New project / new module / vague requirement | Produce / update root `.ai-os/MISSION.md` + lane `MISSION.md` summary; list pending confirmations; **stop and wait for user confirmation** |
 | Lock key design | Produce lane `DESIGN.md` with key trade-offs and shared-layer side-effect list; **stop and wait** |
 | Decompose tasks | Update lane `tasks.yaml` with owner / `approval_required` / `handoff_to` / `context_refs` / `expected_return` / evidence requirements |
-| Frontend UI work | Determine `ui_source` first (`design-led` / `component-first` / `existing-style` / `hybrid`); prefer existing or stack-appropriate components; record component library, fidelity level, and custom-only gaps in `DESIGN.md` |
+| Frontend UI work | Determine `ui_source` first (`design-led` / `component-first` / `existing-style` / `hybrid`); if Product Design is available, use it as an optional design-evidence provider; otherwise use Figma / screenshot / URL / existing-style / component-first fallback; record component library, fidelity level, custom-only gaps, and `design_input` in `DESIGN.md` |
 | URL reverse-spec intake | Capture URL, screenshots, DOM/CSS, interactions, Network/API observations, backend behavior confidence, and unknowns into `design-pack/parity-map.md` + `specs/*.spec.md`; **do not invent backend internals** |
 | Implement | Only act inside confirmed scope; cross-file or unclear boundary → read-only analysis first |
 | Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/`; before closing the CR, add a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard) |
@@ -97,9 +97,12 @@ For frontend screens, separate the UI target from the implementation path:
 
 - With design input, treat the design as the target and use existing project components first. Configure, theme, or wrap components before custom UI; customize only for component gaps, brand visuals, special layouts, or fidelity-critical areas.
 - Without design input, use component-first delivery. Existing project component library wins. If no library exists, infer stack and surface before choosing; ask only when stack / surface cannot be observed.
+- If Product Design is available in the current IDE, it can provide brief, ideation, prototype, image-to-code, design QA, and share evidence. Record those outputs under `design_input.evidence_refs` or task `evidence_produced`; do not make Product Design a hard dependency.
+- If Product Design is not available, record the fallback source under `design_input`: Figma, screenshot, URL reverse-spec, existing code / style, manual brief, or component-first.
 - Default China-friendly choices: Vue PC → Element Plus; React PC → Ant Design; Vue H5 → Vant; React H5 → Ant Design Mobile; uni-app → uView / uni-ui; Taro or WeChat-heavy → NutUI / TDesign; cross-stack enterprise consistency → TDesign; modern enterprise admin → Arco Design.
 - Fidelity levels: `strict` when the user demands design restoration, `practical` for business / admin UI with design input, `component-native` when no design exists.
 - Component-first does not skip logic: fields, API contracts, permissions, validation, loading / empty / error states, timeout paths, responsive behavior, and project-native verification still need acceptance coverage.
+- Product Design QA, prototype links, or share URLs are design evidence, not native verification. Project build / lint / typecheck / tests or equivalent checks still close delivery.
 
 ## Absolute prohibitions
 

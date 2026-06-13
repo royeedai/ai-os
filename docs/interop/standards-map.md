@@ -1,6 +1,6 @@
 # Open Standards & Tool Mapping
 
-> Wire-format contracts for A2A, Memory tool, BMAD, OpenSpec, Kiro, EU AI Act audit framing, developer-global memory, and long-horizon agent surfaces. AI-OS does **not** ship servers, clients, or runtimes for any of these — only field mappings and coexistence rules. Core IDE interop: [spec-kit-coexistence.md](spec-kit-coexistence.md), [claude-code.md](claude-code.md), [cursor.md](cursor.md), [mcp-resources.md](mcp-resources.md).
+> Wire-format contracts for A2A, Product Design evidence, Memory tool, BMAD, OpenSpec, Kiro, EU AI Act audit framing, developer-global memory, and long-horizon agent surfaces. AI-OS does **not** ship servers, clients, or runtimes for any of these — only field mappings and coexistence rules. Core IDE interop: [spec-kit-coexistence.md](spec-kit-coexistence.md), [claude-code.md](claude-code.md), [cursor.md](cursor.md), [product-design.md](product-design.md), [mcp-resources.md](mcp-resources.md).
 
 ## Layer stack
 
@@ -8,6 +8,7 @@
 |---|---|---|
 | Resource discovery | MCP | `aios://` URI scheme ([mcp-resources.md](mcp-resources.md)) |
 | Capability wrapping | agentskills.io | `framework/skills/ai-os-delivery/SKILL.md` |
+| Design evidence | Product Design / Figma / URL / screenshot | `DESIGN.md` `design_input` |
 | Inter-agent delegation | A2A v1.0 | Field map below |
 | Session / working memory | Memory tool / Memory MCP | Mount map below |
 
@@ -57,6 +58,7 @@ Delegated / background / cloud / external PR work records `agent_run_review` in 
 
 | Tool | Mode | Rule |
 |---|---|---|
+| **Product Design** | optional design-evidence provider | Use brief / ideation / prototype / image-to-code / design QA / share outputs as `design_input.evidence_refs`; no-plugin fallback stays valid |
 | **BMAD-METHOD** | A: BMAD 0→1, AI-OS governs delivery; B: AI-OS self-contained | BMAD owns PRD/architecture; AI-OS owns `baseline-log/`, verification, `STATE.md`. One requirement truth source |
 | **OpenSpec** | A: deltas in spec, CR references delta; B: AI-OS CR only | Delta = what changed; CR = why safe to ship |
 | **Kiro** | A: steering stable, lane MISSION current; B: AGENTS.md trunk | Pick one requirements source; reference the other |
@@ -75,13 +77,14 @@ CI: `npx --yes github:royeedai/ai-os doctor . --strict` (W070-W078). AI-OS is si
 
 ## Anti-patterns (all mappings)
 
-1. Re-inventing handoff field names per IDE — use the table above
-2. Remote agent writing directly into `.ai-os/lanes/` — round-trip through user-supervised CR flow
-3. Two parallel requirement truth sources — pick one, reference the other
-4. Encoding `fact_state_review` as a prompt string — keep structured in `tasks.yaml`
-5. Skipping `doctor --strict` because an external tool "already validated"
+1. Making Product Design a hard dependency for AI-OS UI work — use `design_input` plus fallback
+2. Re-inventing handoff field names per IDE — use the table above
+3. Remote agent writing directly into `.ai-os/lanes/` — round-trip through user-supervised CR flow
+4. Two parallel requirement truth sources — pick one, reference the other
+5. Encoding `fact_state_review` as a prompt string — keep structured in `tasks.yaml`
+6. Skipping `doctor --strict` because an external tool "already validated"
 
 ## See also
 
-- [spec-kit-coexistence.md](spec-kit-coexistence.md) · [claude-code.md](claude-code.md) · [cursor.md](cursor.md)
+- [spec-kit-coexistence.md](spec-kit-coexistence.md) · [claude-code.md](claude-code.md) · [cursor.md](cursor.md) · [product-design.md](product-design.md)
 - [mcp-resources.md](mcp-resources.md) · [../artifacts.md](../artifacts.md) · [../problem-ledger.md](../problem-ledger.md)

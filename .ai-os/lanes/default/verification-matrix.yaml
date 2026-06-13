@@ -1,58 +1,64 @@
 impact_rules:
-  - when: "cli"
+  - when: "product-design-optional-bridge"
     run:
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "docs"
+  - when: "design-aware-component-first-ui"
     run:
       - "npm test"
       - "npm run lint"
-  - when: "examples"
+      - "node bin/create-ai-os.js doctor . --json --strict"
+  - when: "long-horizon-agent-reliability"
     run:
       - "npm test"
-  - when: "evals"
-    run:
-      - "npm test"
+      - "npm run lint"
+      - "node bin/create-ai-os.js doctor . --json --strict"
 
 failure_modes:
-  - id: FM-V1012-001
-    scenario: "major 移除 CLI 子命令后旧入口无人守卫，叠加「未知首参 = 目标目录」默认路由，`create-ai-os upgrade` 静默创建 ./upgrade/ 并装入整套工件"
-    expected: "已移除子命令命中显式守卫清单（REMOVED_SUBCOMMANDS）即报错并指向 install，不创建任何目录；合法目录名安装语义不变"
-    guard: "test/install.test.js 'removed subcommands fail instead of installing into a directory'"
+  - id: FM-PD-001
+    scenario: "AI-OS 文档把 Product Design 写成 Codex / 插件环境的硬依赖，导致 Cursor、Claude Code 或无插件 IDE 不能按同一工件交付 UI"
+    expected: "Product Design 只能是可选设计证据 provider；无插件场景必须通过 Figma、截图、URL reverse-spec、component-first 或 existing-style fallback 使用同一 design_input 字段"
+    guard: "test/docs.test.js Product Design optional bridge"
     acceptance_refs:
       - AC-001
-  - id: FM-V1012-002
-    scenario: "工件路径类型不匹配（file 工件实为目录）时 checkArtifact 漏检，后续语义检查 readFileSync 直接 EISDIR 裸崩"
-    expected: "checkArtifact 用 isFile() 单点报 E022；语义检查只读常规文件，类型错误静默跳过不崩溃"
-    guard: "test/doctor.test.js 'file artifact replaced by a directory returns E022'"
-    acceptance_refs:
       - AC-002
-  - id: FM-V1012-003
-    scenario: "CR 的 AC 与实际落地分叉（v10.1.0 AC 写 DESIGN §9，落地模板为 §10）且未记 deviation_log，文档全部沿用错误锚点"
-    expected: "文档与分发模板的节号锚点一致；测试断言到节号粒度而非仅字符串存在；AC 与落地不一致时当场回改或记 deviation"
-    guard: "test/docs.test.js section-level anchor assertions（§9 = 验收标准、§10 = 反述确认门、docs 禁止再锚 §9）"
+      - AC-005
+  - id: FM-PD-002
+    scenario: "Product Design 的 prototype、image-to-code 或 share URL 被当作 AI-OS 原生验证，跳过项目 build / lint / typecheck / doctor"
+    expected: "Product Design 产物只进入 evidence_refs 或 evidence_produced；任务收口仍必须有项目原生静态校验证据"
+    guard: "test/docs.test.js Product Design native verification boundary"
     acceptance_refs:
       - AC-003
-  - id: FM-V1012-004
-    scenario: "跨版本清理不彻底：maintainers guard 落点残留 upgrade、多处「AI-OS v9」读作框架版本、CHANGELOG 头部范围过时"
-    expected: "活文档无已移除命令残留；版本化措辞仅保留能力引入标签与 schema 代际引用"
-    guard: "发布前 rg 'AI-OS v9|install / upgrade' 核对 + npm test"
-    acceptance_refs:
       - AC-004
-  - id: FM-V1012-005
-    scenario: "CHANGELOG 宣称的示例演示能力（Demonstrated in greenfield）实际未落地，示例只覆盖 MISSION 层反述"
-    expected: "宣称的能力在示例中真实可见：greenfield 同时演示需求层（MISSION §2）与设计层（DESIGN §10）反述"
-    guard: "test/docs.test.js greenfield restate assertion + 发布前人工核对 CHANGELOG 宣称"
+      - AC-006
+  - id: FM-PD-003
+    scenario: "有 Product Design brief 但没有视觉目标或用户选定方案，就直接进入 prototype / image-to-code 实现"
+    expected: "brief 只锁目标；没有 URL、截图、Figma、mockup 或已选 visual option 时必须先完成 ideation/选择或走 fallback"
+    guard: "docs/interop/product-design.md brief-gate mapping"
     acceptance_refs:
+      - AC-001
+      - AC-004
+  - id: FM-PD-004
+    scenario: "无 Product Design 时 agent 不记录设计输入来源，导致后续 IDE 不知道是截图、Figma、URL、现有代码还是人工 brief"
+    expected: "DESIGN.md 必须记录 design_input.provider、capability_used、evidence_refs 和 fallback_path，其他 IDE 只依赖这些通用字段"
+    guard: "framework/.agents/templates/lane/DESIGN.md design_input fields"
+    acceptance_refs:
+      - AC-002
       - AC-005
-  - id: FM-V1012-006
-    scenario: "dogfood lane 工件落后于当前交付或版本元数据未同步收口"
-    expected: "lane live 工件指向当前 baseline CR；版本元数据 / CHANGELOG / maintainers / project-lead 同步到 10.1.2 后才关闭"
-    guard: "baseline_id 在 MISSION / lane.toml / tasks 一致 + node bin/ai-os-doctor.js . W070 + npm test version assertions"
+  - id: FM-PD-005
+    scenario: "Product Design 输出与项目已有组件库或 UI source routing 冲突，但没有记录 fidelity / component selection trade-off"
+    expected: "DESIGN.md 保留 ui_source、component_library、fidelity_level、custom_required 和 design_input；偏离进入 deviation_log 或 CR"
+    guard: "DESIGN.md UI Source Routing + tasks.yaml deviation_log"
+    acceptance_refs:
+      - AC-002
+      - AC-003
+  - id: FM-PD-006
+    scenario: "文档和模板已改，但 VERSION / package metadata / changelog / self-hosted lane 或原生验证没有收口"
+    expected: "版本 metadata 同步到 10.2.0，CHANGELOG 记录 v10.2，npm test / lint / strict doctor 全部通过后才关闭"
+    guard: "VERSION + package.json + CHANGELOG.md + npm test + npm run lint + doctor --strict"
     acceptance_refs:
       - AC-006
-      - AC-007
 
 guards:
   - "test/docs.test.js"

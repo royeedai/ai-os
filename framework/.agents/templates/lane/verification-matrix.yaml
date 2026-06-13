@@ -32,6 +32,12 @@ impact_rules:
       - "[component library selection review: existing dependency before new library]"
       - "[fidelity level review: strict / practical / component-native]"
       - "[business logic and UI states review: validation / permissions / loading / empty / error / responsive]"
+  - when: "product-design-optional-bridge"
+    run:
+      - "[design_input review: provider / capability_used / evidence_refs / fallback_path]"
+      - "[Product Design evidence review when available: brief / selected visual option / prototype / design QA / share]"
+      - "[no-plugin fallback review: figma / screenshot / url-reverse-spec / component-first / existing-style]"
+      - "[native verification review: Product Design evidence does not replace project checks]"
 
 failure_modes:
   - id: FM-001
@@ -86,6 +92,14 @@ failure_modes:
     scenario: "为了组件库开发跳过字段、接口、权限、校验、loading / empty / error / responsive 等验收"
     expected: "组件优先只替代临时视觉设计，不替代业务逻辑、状态流转和项目原生验证"
     guard: "verification-matrix design-aware-component-first-ui impact rule"
+  - id: FM-PD-001
+    scenario: "把 Product Design 当成 AI-OS 硬依赖，导致无插件 IDE 无法交付 UI / prototype 任务"
+    expected: "Product Design 只是可选设计证据 provider；无插件时必须记录 figma / screenshot / url-reverse-spec / component-first / existing-style fallback"
+    guard: "DESIGN.md design_input + docs/interop/product-design.md"
+  - id: FM-PD-002
+    scenario: "Product Design prototype、design QA 或 share URL 替代了项目原生 build / lint / typecheck / test"
+    expected: "Product Design 产物只作为 evidence_refs / evidence_produced；交付仍需项目原生静态校验证据"
+    guard: "tasks.yaml evidence_required + native verification"
 
 guards:
   - "[evidence path or eval reference]"
