@@ -125,6 +125,12 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 - **AI-OS 必须保证**：Product Design 只是可选 `design_input.provider`；其产物通过 `evidence_refs` / `evidence_produced` 回流。无插件场景必须有 Figma、截图、URL reverse-spec、existing-code、manual brief、component-first 或 existing-style fallback，且 Product Design evidence 不替代项目原生验证
 - **当前覆盖锚点**：`docs/interop/product-design.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.3）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
 
+### PL-022 其他项目用 AI-OS 时 doctor 走远程冷拉，工作时反复外部请求拖慢
+
+- **场景**：装了 AI-OS 的用户项目把 doctor 当作收口证据 / IDE hook / CI guard 反复调用，但项目内没有本地 doctor 入口，只能用 npx 远程（github:royeedai/ai-os doctor）解析 HEAD + 下载整仓 + 临时 npm install，秒级冷启动 × 高频 = 拖慢日常开发；首次安装之外的任何工作都不应再产生外部请求
+- **AI-OS 必须保证**：install 把 doctor 入口（doctor 脚本 + 共享模块 + 版本文件）vendored 到目标项目 .ai-os/bin/ 并入 git，日常 / hook / CI 一律走本地 node .ai-os/bin/ai-os-doctor.js 零网络；团队 clone 缺 gitignored 元数据时本地 doctor 以 committed 版本文件降级、不报 E001；install / skills 命令 pin 到 release tag，减少 ls-remote 且可复现；首次 install 是唯一允许的一次性联网
+- **当前覆盖锚点**：`bin/shared.js`（installLocalDoctor + 双模式版本解析）、`bin/create-ai-os.js`、`bin/ai-os-doctor.js`（embedded E001 降级）、`README.md`、`docs/cli.md`、`docs/getting-started.md`、`test/install.test.js`、`test/doctor.test.js`、`test/shared.test.js`
+
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 
 - **AI-OS 必须保证**：问题先进入台账，再进入实现与测试

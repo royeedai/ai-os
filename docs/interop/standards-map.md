@@ -73,7 +73,7 @@ Engineering narrative mapping only — not compliance advice. Articles 12 / 14 /
 | Human oversight (Art. 14) | `AGENTS.md` confirmation gates, `approval_required`, delivery double-checklist |
 | Quality management (Art. 17) | `DESIGN.md`, `verification-matrix.yaml`, `risk-register.md`, `evals/` |
 
-CI: `npx --yes github:royeedai/ai-os doctor . --strict` (W070-W078). AI-OS is silent on model weights, GDPR flows, Art. 13 transparency, Art. 15 robustness testing.
+CI: `node .ai-os/bin/ai-os-doctor.js . --strict` (W070-W078; committed local entry, runs offline). AI-OS is silent on model weights, GDPR flows, Art. 13 transparency, Art. 15 robustness testing.
 
 ## Anti-patterns (all mappings)
 

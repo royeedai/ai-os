@@ -33,7 +33,7 @@ Code lands. Feature is functionally complete. Now you want quality governance.
 ## 2. Phase B: Install AI-OS alongside
 
 ```bash
-npx --yes github:royeedai/ai-os .
+npx --yes github:royeedai/ai-os#v10.3.0 .
 ```
 
 Result: `AGENTS.md` at root + shared root `.ai-os/` + `.ai-os/lanes/default/` starter templates.

@@ -41,10 +41,10 @@ When Anthropic ships native `AGENTS.md` support (open feature request), the `CLA
 `framework/skills/ai-os-delivery/SKILL.md` follows the [agentskills.io spec v1.0](https://agentskills.io/specification). Install it project-locally:
 
 ```bash
-npx skills add github:royeedai/ai-os
+npx skills add github:royeedai/ai-os#v10.3.0
 ```
 
-This loads `framework/skills/ai-os-delivery/SKILL.md` into your skill manager. If you have vendored the repo, you can instead copy `framework/skills/ai-os-delivery` into `.claude/skills/` manually.
+This loads `framework/skills/ai-os-delivery/SKILL.md` into your skill manager. To stay fully offline after cloning, copy `framework/skills/ai-os-delivery` into `.claude/skills/` manually instead of fetching.
 
 When the skill is active, Claude Code:
 
@@ -83,13 +83,13 @@ Keep project facts (stable decisions, conventions, cross-layer contracts) in `.a
 
 ## Doctor as cross-IDE deterministic guard
 
-Claude Code hooks (especially [deterministic command hooks](https://platform.claude.com/docs/en/agent-sdk/hooks)) are the recommended way to enforce safety boundaries because prompts are advisory and only ~70% reliable in practice (per [RFC #45427](https://github.com/anthropics/claude-code/issues/45427) and the 2026 hooks-vs-prompts consensus). AI-OS `doctor --strict` is the **cross-IDE equivalent**: the same warnings (W070-W078) that Claude Code can wrap as a `pre-tool-use` hook also run as a one-line shell command in Cursor's `hooks.json`, in `lefthook` / `pre-commit`, in GitHub Actions, or simply as a manual check.
+Claude Code hooks (especially [deterministic command hooks](https://platform.claude.com/docs/en/agent-sdk/hooks)) are the recommended way to enforce safety boundaries because prompts are advisory and only ~70% reliable in practice (per [RFC #45427](https://github.com/anthropics/claude-code/issues/45427) and the 2026 hooks-vs-prompts consensus). AI-OS `doctor --strict` is the **cross-IDE equivalent**: the same warnings (W070-W078) that Claude Code can wrap as a `pre-tool-use` hook also run as a one-line shell command in Cursor's `hooks.json`, in `lefthook` / `pre-commit`, in GitHub Actions, or simply as a manual check. All surfaces call the committed local entry `node .ai-os/bin/ai-os-doctor.js . --strict`, so every run is offline.
 
 | Surface | Setup |
 |---|---|
-| Claude Code | `pre-tool-use` hook calling `npx --yes github:royeedai/ai-os doctor . --strict` |
+| Claude Code | `pre-tool-use` hook calling `node .ai-os/bin/ai-os-doctor.js . --strict` |
 | Cursor | `.cursor/hooks.json` with the same command (see [cursor.md](cursor.md)) |
-| Local pre-commit | `lefthook` / `pre-commit` running `npx ... doctor --strict` |
+| Local pre-commit | `lefthook` / `pre-commit` running `node .ai-os/bin/ai-os-doctor.js . --strict` |
 | CI | GitHub Action step running the same command |
 
 The exit code is the contract; AI-OS does not depend on model self-policing. This sidesteps the [hook-bypass failure modes documented in 2026 RFCs](https://github.com/anthropics/claude-code/issues/45427) (subagent bypass, silent hook failure, model self-modification, alternative tool paths, CLAUDE.md non-compliance).
@@ -112,7 +112,7 @@ The exit code is the contract; AI-OS does not depend on model self-policing. Thi
 `create-ai-os` writes `CLAUDE.md` as a lightweight pointer by default. The stub is short (≤10 lines, no rule duplication) so it remains pure routing. To skip:
 
 ```bash
-npx --yes github:royeedai/ai-os --no-ide-files
+npx --yes github:royeedai/ai-os#v10.3.0 --no-ide-files
 ```
 
 ## See also

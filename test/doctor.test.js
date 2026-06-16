@@ -10,6 +10,7 @@ const {
   assert,
   runInstall,
   runDoctor,
+  runLocalDoctor,
   tmpDir,
   cleanup,
   section,
@@ -94,7 +95,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "10.2.0", "JSON reports version 10.2.0");
+  assert(parsed && parsed.version === "10.3.0", "JSON reports version 10.3.0");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -577,5 +578,69 @@ section("doctor: W078 fires when long-horizon agent review is incomplete");
   const parsedAfter = JSON.parse(after.stdout);
   const w078After = parsedAfter.semantic_warnings.find((it) => it.code === "W078");
   assert(!w078After, "W078 clears once long-horizon run review is complete");
+  cleanup(dir);
+}
+
+section("doctor: vendored local entry runs offline with no external request");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  const local = runLocalDoctor(dir, [dir]);
+  assert(local.status === 0, "local doctor exits 0 on clean install");
+  assert(local.stdout.includes("All checks passed"), "local doctor reports all checks passed");
+
+  // parity with the source doctor on the same project
+  const localJson = JSON.parse(runLocalDoctor(dir, [dir, "--json"]).stdout);
+  const sourceJson = JSON.parse(runDoctor([dir, "--json"]).stdout);
+  assert(localJson.version === sourceJson.version, "local doctor reports same version as source doctor");
+  assert(localJson.layout_mode === sourceJson.layout_mode, "local doctor reports same layout mode");
+  assert(localJson.version === "10.3.0", "local doctor reports framework version 10.3.0");
+  cleanup(dir);
+}
+
+section("doctor: local entry survives a team clone with gitignored framework.toml removed");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  // framework.toml is gitignored; a teammate / CI clone never ran install and
+  // has no framework.toml. The committed .ai-os/bin/ must still run doctor.
+  fs.unlinkSync(path.join(dir, ".ai-os", "framework.toml"));
+  const result = runLocalDoctor(dir, [dir, "--json"]);
+  assert(result.status === 0, "local doctor exits 0 without framework.toml");
+  const parsed = JSON.parse(result.stdout);
+  assert(parsed.ok === true, "local doctor ok=true without framework.toml");
+  const e001 = parsed.issues.find((it) => it.code === "E001");
+  assert(!e001, "local doctor does not report E001 in embedded mode without framework.toml");
+  assert(parsed.installedVersion === "10.3.0", "local doctor falls back to committed VERSION as installed version");
+  cleanup(dir);
+}
+
+section("doctor: source doctor still reports E001 (strict) when framework.toml is absent");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  fs.unlinkSync(path.join(dir, ".ai-os", "framework.toml"));
+  // The dev / npx package doctor is NOT embedded, so it keeps the strict
+  // "is this an AI-OS project?" check and reports E001.
+  const result = runDoctor([dir, "--json"]);
+  const parsed = JSON.parse(result.stdout);
+  const e001 = parsed.issues.find((it) => it.code === "E001");
+  assert(!!e001, "source doctor still reports E001 when framework.toml is missing");
+  cleanup(dir);
+}
+
+section("doctor: vendored local entry honors --strict");
+
+{
+  const dir = tmpDir();
+  runInstall([dir]);
+  fs.unlinkSync(path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml"));
+  const normal = runLocalDoctor(dir, [dir]);
+  assert(normal.status === 0, "local doctor without --strict exits 0 on warning");
+  const strict = runLocalDoctor(dir, [dir, "--strict"]);
+  assert(strict.status === 1, "local doctor --strict exits 1 on warning");
   cleanup(dir);
 }

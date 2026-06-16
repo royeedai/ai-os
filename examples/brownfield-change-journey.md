@@ -6,7 +6,7 @@ Scenario: you have a 2-year-old SaaS app. A new requirement comes in: "Add CSV b
 
 ```bash
 cd my-existing-app
-npx --yes github:royeedai/ai-os .
+npx --yes github:royeedai/ai-os#v10.3.0 .
 ```
 
 The agent now reads `AGENTS.md` on every session.

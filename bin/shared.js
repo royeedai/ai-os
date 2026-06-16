@@ -67,24 +67,40 @@ const SESSION_LOCAL_FILES = ["STATE.md"];
 // IDE integration files (root-level, cross-tool)
 const IDE_POINTER_FILES = ["CLAUDE.md", "GEMINI.md"];
 
+// Local doctor entry copied into the target project so doctor runs with zero
+// external request after the one-time install. Lives under .ai-os/bin/ and is
+// committed (unlike framework.toml), so team clones and CI run doctor offline.
+const LOCAL_BIN_DIR = "bin";
+const LOCAL_DOCTOR_FILES = ["ai-os-doctor.js", "shared.js"];
+const LOCAL_VERSION_FILE = "VERSION";
+
 // ---------------------------------------------------------------------------
 // Version helpers
 // ---------------------------------------------------------------------------
 
 function readFrameworkVersion() {
-  try {
-    const raw = fs.readFileSync(path.join(PACKAGE_ROOT, "VERSION"), "utf8").trim();
-    return raw || "0.0.0";
-  } catch {
-    return "0.0.0";
+  // Dual-mode: when this module runs as the embedded local doctor it lives at
+  // <target>/.ai-os/bin/shared.js, so VERSION sits next to it. In the dev / npx
+  // package it lives at <pkg>/bin/shared.js, so VERSION is one level up at the
+  // package root. Try the adjacent file first, then the package root.
+  for (const candidate of [path.join(__dirname, "VERSION"), path.join(PACKAGE_ROOT, "VERSION")]) {
+    try {
+      const raw = fs.readFileSync(candidate, "utf8").trim();
+      if (raw) return raw;
+    } catch {
+      // try the next candidate
+    }
   }
+  return "0.0.0";
 }
 
 function readPackageJson() {
   try {
     return JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"));
   } catch {
-    return { name: "create-ai-os", version: "0.0.0" };
+    // Embedded local doctor has no package.json next to it; fall back to the
+    // committed VERSION so output still reports a real framework version.
+    return { name: "create-ai-os", version: readFrameworkVersion() };
   }
 }
 
@@ -288,6 +304,11 @@ function writeManagedFilesManifest(targetDir, { laneId = DEFAULT_LANE_ID } = {})
   for (const file of SHARED_ROOT_FILES) {
     lines.push(`${PROJECT_STATE_ROOT}/${file}\tfile`);
   }
+  lines.push(`${PROJECT_STATE_ROOT}/${LOCAL_BIN_DIR}\tdir`);
+  for (const name of LOCAL_DOCTOR_FILES) {
+    lines.push(`${PROJECT_STATE_ROOT}/${LOCAL_BIN_DIR}/${name}\tfile`);
+  }
+  lines.push(`${PROJECT_STATE_ROOT}/${LOCAL_BIN_DIR}/${LOCAL_VERSION_FILE}\tfile`);
   lines.push(`${PROJECT_STATE_ROOT}/${LANES_ROOT}\tdir`);
   lines.push(`${lanePrefix}\tdir`);
   lines.push(`${lanePrefix}/lane.toml\tfile`);
@@ -319,6 +340,30 @@ function installIdeFiles(targetDir, { overwrite = false } = {}) {
     fs.copyFileSync(src, dest);
     installed.push(name);
   }
+  return installed;
+}
+
+// ---------------------------------------------------------------------------
+// Local doctor entry (zero-network doctor for the target project)
+// ---------------------------------------------------------------------------
+
+// Copies the doctor entry + its shared module verbatim into <target>/.ai-os/bin/
+// plus a committed VERSION file. After the one-time install, every teammate and
+// CI runs `node .ai-os/bin/ai-os-doctor.js .` with no external request. Always
+// overwrites: these are framework-managed files, not user-authored content, so
+// they must stay in sync with the installed framework version.
+function installLocalDoctor(targetDir) {
+  const destDir = path.join(getAiOsDir(targetDir), LOCAL_BIN_DIR);
+  ensureDir(destDir);
+  const installed = [];
+  for (const name of LOCAL_DOCTOR_FILES) {
+    const src = path.join(PACKAGE_ROOT, "bin", name);
+    if (!fileExists(src)) fail(`Missing source bin/${name} at ${src}`);
+    fs.copyFileSync(src, path.join(destDir, name));
+    installed.push(`${PROJECT_STATE_ROOT}/${LOCAL_BIN_DIR}/${name}`);
+  }
+  fs.writeFileSync(path.join(destDir, LOCAL_VERSION_FILE), `${readFrameworkVersion()}\n`);
+  installed.push(`${PROJECT_STATE_ROOT}/${LOCAL_BIN_DIR}/${LOCAL_VERSION_FILE}`);
   return installed;
 }
 
@@ -444,6 +489,9 @@ module.exports = {
   ALL_LANE_DIRS,
   SESSION_LOCAL_FILES,
   IDE_POINTER_FILES,
+  LOCAL_BIN_DIR,
+  LOCAL_DOCTOR_FILES,
+  LOCAL_VERSION_FILE,
   TEMPLATE_TOKEN_INITIAL_BASELINE_ID,
   TEMPLATE_TOKEN_INITIAL_BASELINE_FILE,
   TEMPLATE_TOKEN_INITIAL_BASELINE_DATE,
@@ -467,6 +515,7 @@ module.exports = {
   readMetadata,
   writeManagedFilesManifest,
   installIdeFiles,
+  installLocalDoctor,
   appendGitignoreEntries,
   appendGitattributesEntries,
   parseMissionBaselineId,

@@ -8,7 +8,7 @@
 |---|---|
 | Cursor only, AI-OS trunk in `AGENTS.md` | Mode A — thin `.cursor/rules/*.mdc` shells |
 | Cursor + multi-tool repo | Mode B — `AGENTS.md` plus `agentskills.io`-format SKILL referenced from `.cursor/` |
-| Cursor + automated doctor in CI | Mode C — Mode B plus a Cursor hook to run `npx --yes github:royeedai/ai-os doctor --strict` |
+| Cursor + automated doctor in CI | Mode C — Mode B plus a Cursor hook to run the local `node .ai-os/bin/ai-os-doctor.js . --strict` |
 
 ## Mode A: Cursor only, thin rule shells
 
@@ -40,10 +40,10 @@ recovery, follow [`AGENTS.md`](mdc:AGENTS.md) and the artifact layout in
 For repos that mix Cursor with Claude Code / Codex / Gemini CLI, install the official AI-OS skill so any spec-aware Cursor flow can pick it up:
 
 ```bash
-# Recommended: load via the agentskills.io standard
-npx skills add github:royeedai/ai-os
+# Recommended: load via the agentskills.io standard (pin a release)
+npx skills add github:royeedai/ai-os#v10.3.0
 
-# Manual alternative (from a cloned ai-os repo): copy the skill folder
+# Offline alternative (from a cloned ai-os repo): copy the skill folder, no network
 mkdir -p .cursor/skills && cp -R framework/skills/ai-os-delivery .cursor/skills/
 ```
 
@@ -53,20 +53,20 @@ Cursor will pre-load only the skill metadata. The full body activates on tasks t
 
 ## Mode C: doctor in pre-commit / CI
 
-Cursor supports hooks via `hooks.json`. Add a `pre-commit`-style hook to run AI-OS doctor:
+Cursor supports hooks via `hooks.json`. Add a `pre-commit`-style hook to run AI-OS doctor from the committed local entry (zero external request):
 
 ```json
 {
   "hooks": [
     {
       "event": "pre-commit",
-      "command": "npx --yes github:royeedai/ai-os doctor . --strict"
+      "command": "node .ai-os/bin/ai-os-doctor.js . --strict"
     }
   ]
 }
 ```
 
-This catches W070-W078 semantic drift before commits land.
+This catches W070-W078 semantic drift before commits land, with no network call.
 
 ## Cursor 2.0+ subagents / cloud agents and AI-OS handoff
 
@@ -130,8 +130,8 @@ When the two disagree, the project artifacts win — a design you confirmed in t
 
 1. Move project conventions and AI rules into `AGENTS.md`
 2. Reduce `.cursorrules` (or `.cursor/rules/*.mdc`) to trigger shells with links
-3. Run `npx --yes github:royeedai/ai-os .` to add the AI-OS layout
-4. Run `npx --yes github:royeedai/ai-os doctor --strict` to catch any broken references
+3. Run `npx --yes github:royeedai/ai-os#v10.3.0 .` to add the AI-OS layout
+4. Run the local `node .ai-os/bin/ai-os-doctor.js . --strict` to catch any broken references (offline)
 
 ## See also
 

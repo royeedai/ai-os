@@ -733,7 +733,17 @@ function main() {
 
   const version = readFrameworkVersion();
   const pkg = readPackageJson();
-  const meta = readMetadata(targetDir);
+  let meta = readMetadata(targetDir);
+  // Embedded local doctor (.ai-os/bin/ai-os-doctor.js): framework.toml is
+  // gitignored, so a team / CI clone that never ran install has none. The local
+  // doctor is itself committed proof of an AI-OS install, so fall back to the
+  // committed .ai-os/bin/VERSION as the installed framework version instead of
+  // failing E001. The dev / npx package keeps strict E001 (a real "is this an
+  // AI-OS project?" check).
+  const embedded = path.basename(path.dirname(__dirname)) === PROJECT_STATE_ROOT;
+  if (!meta && embedded && version !== "0.0.0") {
+    meta = { framework_version: version };
+  }
   const paths = getArtifactPaths(targetDir);
   const layoutMode = meta && meta.layout_mode ? meta.layout_mode : LAYOUT_MODE_DEFAULT;
 

@@ -10,6 +10,32 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 ---
 
+## 10.3.0 (2026-06-16) — Zero-network local doctor
+
+**Minor, backward compatible**. `doctor` now runs locally with no external request after the one-time install. Previously, projects using AI-OS had no local doctor entry, so every verification / IDE hook / CI run shelled out to `npx --yes github:royeedai/ai-os doctor` — re-resolving the GitHub HEAD, downloading the whole repo, and running a throwaway `npm install` on each invocation. The doctor logic itself is unchanged; only its distribution moves into the target project. No new CLI subcommand, package bin, runtime, doctor warning code, or artifact category.
+
+### Added
+
+- **Vendored local doctor entry**: `install` now writes `.ai-os/bin/ai-os-doctor.js` + `.ai-os/bin/shared.js` + `.ai-os/bin/VERSION` into the target project (committed, registered in `managed-files.tsv`). Daily / hook / CI runs use `node .ai-os/bin/ai-os-doctor.js .` and make **no external request**.
+- **Team / CI offline fallback**: the embedded doctor reads its version from the committed `.ai-os/bin/VERSION`, so a teammate or CI that clones the repo (without the gitignored `.ai-os/framework.toml`) runs doctor with zero install — `bin/ai-os-doctor.js` downgrades the embedded-mode `E001` instead of failing.
+
+### Changed
+
+- `bin/shared.js` `readFrameworkVersion()` / `readPackageJson()` are dual-mode (package vs embedded `.ai-os/bin/`); new `installLocalDoctor()` always (re)vendors the entry to stay in sync with the installed framework version.
+- All distributed/user-facing docs (`README.md`, `docs/getting-started.md`, `docs/cli.md`, `docs/interop/cursor.md`, `docs/interop/claude-code.md`, `docs/interop/standards-map.md`, `examples/multi-tool-coexistence.md`) point daily/hook/CI doctor at the local entry; the remote `npx ... doctor` form is kept only as a one-time pre-install audit.
+- `install` and `skills add` commands across README / getting-started / examples / interop are pinned to `github:royeedai/ai-os#v10.3.0` (cache-friendly, reproducible, fewer `git ls-remote` round-trips).
+
+### Tests
+
+- `test/shared.test.js` covers `installLocalDoctor` (verbatim vendoring + VERSION) and the new `managed-files.tsv` `.ai-os/bin/` entries; `test/install.test.js` asserts the vendored files land and stay out of `.gitignore`; `test/doctor.test.js` adds local-entry parity, the team-clone-without-`framework.toml` case, and `--strict` parity; `test/docs.test.js` enforces the local-entry docs + release tracking. Version assertions move 10.2.0 → 10.3.0.
+- Release validation requires `npm test`, `npm run lint`, and `node bin/ai-os-doctor.js .`.
+
+### Migration
+
+No action needed. Re-install (`npx --yes github:royeedai/ai-os#v10.3.0 install . --force`) to vendor the local doctor entry, then switch hooks / CI to `node .ai-os/bin/ai-os-doctor.js . --strict` and commit `.ai-os/bin/`. The remote `npx ... doctor` invocation still works for one-off audits. PL-022 tracks the failure mode.
+
+---
+
 ## 10.2.0 (2026-06-13) — Product Design optional bridge
 
 **Minor, backward compatible**. AI-OS can now preserve Product Design brief / ideation / prototype / image-to-code / design QA / share outputs as optional design evidence while keeping Cursor, Claude Code, plain IDEs, and no-plugin environments on the same portable artifact contract. No new CLI command, runtime, doctor code, MCP server, IDE adapter, or Product Design hard dependency.

@@ -82,6 +82,7 @@ function runInstall(argv) {
     writeMetadata,
     writeManagedFilesManifest,
     installIdeFiles,
+    installLocalDoctor,
     appendGitignoreEntries,
     appendGitattributesEntries,
     LAYOUT_MODE_DEFAULT,
@@ -120,6 +121,9 @@ function runInstall(argv) {
   const { installed, baseline } = installArtifacts(targetDir, { overwrite: force });
   writeMetadata(targetDir, { version, layoutMode: LAYOUT_MODE_DEFAULT });
   writeManagedFilesManifest(targetDir);
+  // Local zero-network doctor entry: always (re)written to stay in sync with the
+  // installed framework version, so daily/hook/CI doctor runs need no network.
+  const localDoctorInstalled = installLocalDoctor(targetDir);
 
   let ideInstalled = [];
   if (!noIdeFiles) {
@@ -143,6 +147,7 @@ Installation complete.
 
   AGENTS.md:       ${agentsInstalled ? "installed" : "already present (use --force to overwrite)"}
   Artifacts:       ${installed.length} file(s) written under .ai-os/
+  Local doctor:    ${localDoctorInstalled.length} file(s) under .ai-os/bin/ (run offline)
   IDE pointers:    ${ideInstalled.length > 0 ? ideInstalled.join(", ") : "skipped or already present"}
   .gitignore:      ${gitignoreUpdated ? "updated" : "already configured or skipped"}
   .gitattributes:  ${gitattributesUpdated ? "updated" : "already configured or skipped"}
@@ -152,6 +157,9 @@ Next steps:
   2. Fill in .ai-os/MISSION.md — your shared host-project context
   3. Fill in .ai-os/lanes/default/MISSION.md — your current delivery baseline
   4. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
+
+Daily health check (zero network, commit .ai-os/bin/ so teammates + CI share it):
+  node .ai-os/bin/ai-os-doctor.js .
 
 Primary operations:
   create-ai-os            Install AI-OS (default entrypoint)

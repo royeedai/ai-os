@@ -12,6 +12,10 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
     memory.md
     framework.toml
     managed-files.tsv
+    bin/
+      ai-os-doctor.js
+      shared.js
+      VERSION
     lanes/
       default/
         lane.toml
@@ -60,6 +64,8 @@ v9 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/de
 
 - **职责**：记录 AI-OS 受管文件路径
 - **加载层级**：L3
+
+> 受管工具入口（不计入 12 组工件）：`.ai-os/bin/`（`ai-os-doctor.js` + `shared.js` + `VERSION`）。install 把 doctor vendored 到此，让日常 / hook / CI 用 `node .ai-os/bin/ai-os-doctor.js .` 本地零外部请求。**入版本控制**（与 gitignored 的 `framework.toml` 不同），团队 clone 与 CI 无需重新 install 即可离线运行 doctor；由 install 始终覆盖以与框架版本同步。
 
 ### 6. `.ai-os/lanes/`
 

@@ -528,7 +528,7 @@ section("docs: VERSION and package.json are in sync");
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.2.0", `version is 10.2.0 (got ${version})`);
+  assert(version === "10.3.0", `version is 10.3.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -739,7 +739,7 @@ section("docs: deterministic-guard narrative aligns doctor with cross-IDE hooks"
   assert(readme.includes("W070-W078"), "README narrative cites the W070-W078 doctor warning range");
   assert(readme.includes("`pre-tool-use`") || readme.includes("pre-tool-use"), "README narrative shows Claude Code pre-tool-use mapping");
   assert(readme.includes("45427") || readme.includes("RFC #45427"), "README narrative cites the 2026 hooks-vs-prompts RFC");
-  assert(readme.includes("doctor . --strict") || readme.includes("doctor --strict"), "README narrative uses doctor --strict invocation");
+  assert(readme.includes("ai-os-doctor.js . --strict"), "README narrative uses the committed local doctor --strict invocation");
 
   assert(claude.includes("Doctor as cross-IDE deterministic guard"), "claude-code.md adds doctor-as-deterministic-guard section");
   assert(claude.includes("subagent bypass") || claude.includes("hook-bypass"), "claude-code.md surfaces 2026 hook-bypass failure modes");
@@ -970,4 +970,39 @@ section("docs: v10.1 restate-confirm gate + architecture guardrail");
 
   const exampleFiles = fs.readdirSync(path.join(repoRoot, "examples")).filter((f) => f.endsWith(".md") && f !== "README.md");
   assert(exampleFiles.length === 8, `examples stay at 8 excluding README (got ${exampleFiles.length})`);
+}
+
+section("docs: v10.3 local zero-network doctor entry is documented");
+
+{
+  const readme = read("README.md");
+  const cli = read("docs/cli.md");
+  const gettingStarted = read("docs/getting-started.md");
+  const claude = read("docs/interop/claude-code.md");
+  const cursor = read("docs/interop/cursor.md");
+  const multiTool = read("examples/multi-tool-coexistence.md");
+  const changelog = read("CHANGELOG.md");
+  const maintainers = read("docs/maintainers.md");
+  const ledger = read("docs/problem-ledger.md");
+
+  // Daily / hook / CI use the committed local entry (zero external request)
+  assert(readme.includes("node .ai-os/bin/ai-os-doctor.js ."), "README uses the local doctor entry");
+  assert(gettingStarted.includes("node .ai-os/bin/ai-os-doctor.js ."), "getting-started uses the local doctor entry");
+  assert(cli.includes("Local doctor entry"), "cli.md documents the local doctor entry section");
+  assert(cli.includes(".ai-os/bin/"), "cli.md lists the committed .ai-os/bin/ entry");
+  assert(claude.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "claude-code hook calls the local doctor entry");
+  assert(cursor.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "cursor hook calls the local doctor entry");
+  assert(multiTool.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "multi-tool CI calls the local doctor entry");
+
+  // No-external-request narrative
+  assert(/zero (external request|network)/i.test(readme), "README states the daily flow makes zero external request");
+
+  // Install commands are pinned to a release tag (cache-friendly + reproducible)
+  assert(readme.includes("github:royeedai/ai-os#v10.3.0"), "README pins install/skills commands to a release tag");
+  assert(gettingStarted.includes("github:royeedai/ai-os#v10.3.0"), "getting-started pins the install command");
+
+  // Release tracked
+  assert(changelog.includes("10.3.0"), "CHANGELOG records 10.3.0");
+  assert(maintainers.includes("v10.3.0"), "maintainers release matrix lists v10.3.0");
+  assert(ledger.includes("PL-022"), "problem-ledger registers the zero-network doctor failure mode (PL-022)");
 }

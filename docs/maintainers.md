@@ -41,6 +41,7 @@
 | v10.1.1 | Consistency optimization（patch） | 修 mcp-resources 操作数 / CHANGELOG spec 版本号、补齐 v10.0.0 去版本化遗漏（doctor 输出 / 注释 / README）、dogfood lane 工件回正到当前交付 + mcp-resources 回归 guard；无新增 CLI / doctor code / 工件类别 |
 | v10.1.2 | CLI defect fixes + restate-anchor unification（patch） | 修已移除子命令静默误装 / install --help / 目标为文件崩溃 / doctor 类型漏检与 EISDIR 崩溃 / 死导出；反述门锚点统一 DESIGN §10 并落节号级断言；清理 upgrade 与去版本化残留；greenfield 补设计层反述示范；无新增 CLI / doctor code / 工件类别 |
 | v10.2.0 | Product Design optional bridge（minor） | `design_input` 记录 Product Design / Figma / URL / screenshot / existing-code / manual brief；Product Design 能力可完整用作设计证据，但不是插件硬依赖 |
+| v10.3.0 | Zero-network local doctor（minor） | install 把 doctor 入口 vendored 到目标项目 `.ai-os/bin/`（入 git），日常 / hook / CI 走 `node .ai-os/bin/ai-os-doctor.js .` 本地零外部请求；团队 clone 无 framework.toml 时按 committed VERSION 降级 E001；install / skills 命令 pin release tag；无新增 CLI / doctor code / 工件类别 |
 
 各版本保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）。
 

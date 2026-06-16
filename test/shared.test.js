@@ -23,7 +23,7 @@ section("shared: readPackageJson");
 {
   const pkg = shared.readPackageJson();
   assert(pkg && pkg.name === "create-ai-os", "package name is create-ai-os");
-  assert(pkg.version === "10.2.0", `package version is 10.2.0 (got ${pkg.version})`);
+  assert(pkg.version === "10.3.0", `package version is 10.3.0 (got ${pkg.version})`);
 }
 
 section("shared: generateInitialBaseline");
@@ -96,6 +96,29 @@ section("shared: writeManagedFilesManifest");
   assert(content.includes(".ai-os/MISSION.md\tfile"), "manifest lists shared MISSION.md");
   assert(content.includes(".ai-os/lanes/default/MISSION.md\tfile"), "manifest lists lane MISSION.md");
   assert(content.includes(".ai-os/lanes/default/baseline-log\tdir"), "manifest lists lane baseline-log dir");
+  assert(content.includes(".ai-os/bin\tdir"), "manifest lists local doctor bin dir");
+  assert(content.includes(".ai-os/bin/ai-os-doctor.js\tfile"), "manifest lists local doctor entry");
+  assert(content.includes(".ai-os/bin/shared.js\tfile"), "manifest lists local doctor shared module");
+  assert(content.includes(".ai-os/bin/VERSION\tfile"), "manifest lists local doctor VERSION");
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+section("shared: installLocalDoctor vendors a zero-network doctor");
+
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-os-unit-"));
+  const installed = shared.installLocalDoctor(dir);
+  assert(installed.includes(".ai-os/bin/ai-os-doctor.js"), "returns local doctor entry");
+  assert(installed.includes(".ai-os/bin/shared.js"), "returns local shared module");
+  assert(installed.includes(".ai-os/bin/VERSION"), "returns local VERSION");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "bin", "ai-os-doctor.js")), "doctor entry written");
+  assert(fs.existsSync(path.join(dir, ".ai-os", "bin", "shared.js")), "shared module written");
+  const localVersion = fs.readFileSync(path.join(dir, ".ai-os", "bin", "VERSION"), "utf8").trim();
+  assert(localVersion === shared.readFrameworkVersion(), `local VERSION matches framework (${localVersion})`);
+  // vendored files are verbatim copies of the source bin scripts (zero drift)
+  const srcDoctor = fs.readFileSync(path.join(__dirname, "..", "bin", "ai-os-doctor.js"), "utf8");
+  const vendoredDoctor = fs.readFileSync(path.join(dir, ".ai-os", "bin", "ai-os-doctor.js"), "utf8");
+  assert(srcDoctor === vendoredDoctor, "vendored doctor is a verbatim copy of bin/ai-os-doctor.js");
   fs.rmSync(dir, { recursive: true, force: true });
 }
 

@@ -3,8 +3,10 @@
 ## 1. Install
 
 ```bash
-npx --yes github:royeedai/ai-os .
+npx --yes github:royeedai/ai-os#v10.3.0 .
 ```
+
+Pinning a release tag keeps installs reproducible and cache-friendly. This is the only step that needs the network.
 
 This creates:
 
@@ -38,6 +40,10 @@ When resuming work:
 
 ## 5. Health check
 
+Install vendors the doctor into `.ai-os/bin/` (committed), so the daily check runs locally with **zero external request**:
+
 ```bash
-npx --yes github:royeedai/ai-os doctor .
+node .ai-os/bin/ai-os-doctor.js .
 ```
+
+To audit a repo you have not installed into yet, a one-time remote run still works: `npx --yes github:royeedai/ai-os#v10.3.0 doctor .`

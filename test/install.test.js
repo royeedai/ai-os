@@ -44,6 +44,12 @@ section("install: default install into fresh dir");
   assert(exists(dir, ".ai-os/framework.toml"), "framework.toml written");
   assert(exists(dir, ".ai-os/managed-files.tsv"), "managed-files.tsv written");
 
+  assert(exists(dir, ".ai-os/bin/ai-os-doctor.js"), "local doctor entry vendored");
+  assert(exists(dir, ".ai-os/bin/shared.js"), "local doctor shared module vendored");
+  assert(exists(dir, ".ai-os/bin/VERSION"), "local doctor VERSION vendored");
+  const localDoctorVersion = readFile(dir, ".ai-os/bin/VERSION");
+  assert(localDoctorVersion && localDoctorVersion.trim() === "10.3.0", "local doctor VERSION matches framework version");
+
   assert(exists(dir, ".ai-os/lanes/default"), "default lane directory installed");
   assert(exists(dir, ".ai-os/lanes/default/lane.toml"), "lane.toml installed");
   assert(exists(dir, ".ai-os/lanes/default/MISSION.md"), "lane MISSION.md installed");
@@ -72,6 +78,7 @@ section("install: default install into fresh dir");
 
   const gitignore = readFile(dir, ".gitignore");
   assert(gitignore && gitignore.includes(".ai-os/lanes/*/STATE.md"), ".gitignore excludes lane STATE.md");
+  assert(gitignore && !gitignore.includes(".ai-os/bin"), ".gitignore keeps .ai-os/bin committed (teammates + CI run doctor offline)");
 
   const gitattributes = readFile(dir, ".gitattributes");
   assert(gitattributes && gitattributes.includes("memory.md merge=union"), ".gitattributes uses union merge for memory.md");
@@ -79,7 +86,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "10.2.0"'), "framework.toml has version 10.2.0");
+  assert(toml && toml.includes('framework_version = "10.3.0"'), "framework.toml has version 10.3.0");
 
   cleanup(dir);
 }
@@ -148,7 +155,7 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "10.2.0", `--version outputs 10.2.0 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "10.3.0", `--version outputs 10.3.0 (got ${result.stdout.trim()})`);
 }
 
 section("install: removed subcommands fail instead of installing into a directory");

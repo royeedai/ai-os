@@ -44,6 +44,17 @@ function runDoctor(args = [], cwd) {
   return run("ai-os-doctor.js", args, cwd);
 }
 
+// Runs the local doctor vendored into a target project (.ai-os/bin/ai-os-doctor.js).
+// This is the zero-network entry teammates / CI use after a one-time install.
+function runLocalDoctor(projectDir, args = [], cwd) {
+  const doctor = path.join(projectDir, ".ai-os", "bin", "ai-os-doctor.js");
+  return spawnSync(NODE, [doctor, ...args], {
+    cwd: cwd || process.cwd(),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
 function tmpDir() {
   const dir = path.join(os.tmpdir(), `ai-os-v9-test-${crypto.randomBytes(4).toString("hex")}`);
   fs.mkdirSync(dir, { recursive: true });
@@ -86,6 +97,7 @@ module.exports = {
   run,
   runInstall,
   runDoctor,
+  runLocalDoctor,
   tmpDir,
   cleanup,
   readFile,

@@ -6,7 +6,7 @@ Scenario: a small team uses **Cursor** for daily editing (autocomplete, multi-fi
 
 ```bash
 cd my-app
-npx --yes github:royeedai/ai-os .
+npx --yes github:royeedai/ai-os#v10.3.0 .
 ```
 
 Result:
@@ -15,6 +15,7 @@ Result:
 - `CLAUDE.md` thin stub (≤10 lines) pointing at `AGENTS.md`
 - `GEMINI.md` thin stub (in case anyone uses Gemini CLI)
 - Shared root `.ai-os/MISSION.md` + `.ai-os/memory.md`
+- `.ai-os/bin/` committed local doctor entry (every teammate + CI runs doctor offline)
 - `.ai-os/lanes/default/` full starter set
 
 ## 1. Cursor side: trigger shells, not duplicate rules
@@ -39,7 +40,7 @@ This is a thin shell. Cursor's auto-loader still reads `AGENTS.md`; the rule jus
 Optional: load the AI-OS skill via the agentskills.io standard:
 
 ```bash
-npx skills add github:royeedai/ai-os
+npx skills add github:royeedai/ai-os#v10.3.0
 ```
 
 ## 2. Claude Code side: skill + thin stub
@@ -47,7 +48,7 @@ npx skills add github:royeedai/ai-os
 The default install already wrote a thin `CLAUDE.md` stub. To also load the constitution as a skill (Claude Code v0.7+):
 
 ```bash
-npx skills add github:royeedai/ai-os
+npx skills add github:royeedai/ai-os#v10.3.0
 ```
 
 When Claude Code starts, it pre-loads only the skill `name` + `description`. The body activates when the task description matches.
@@ -92,8 +93,9 @@ Both tools share the same CI gate:
 
 ```yaml
 # .github/workflows/ai-os.yml
+# .ai-os/bin/ is committed, so CI runs doctor offline — no install, no network.
 - name: Doctor
-  run: npx --yes github:royeedai/ai-os doctor . --strict
+  run: node .ai-os/bin/ai-os-doctor.js . --strict
 ```
 
 `--strict` catches the W070-W078 semantic warnings, for example:

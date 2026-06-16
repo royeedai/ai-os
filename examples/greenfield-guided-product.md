@@ -5,7 +5,7 @@ Scenario: you have an idea ("I want a photo-sharing app for nature photographers
 ## 0. Install
 
 ```bash
-npx --yes github:royeedai/ai-os my-nature-photos
+npx --yes github:royeedai/ai-os#v10.3.0 my-nature-photos
 cd my-nature-photos
 ```
 

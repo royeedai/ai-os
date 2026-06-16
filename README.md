@@ -3,15 +3,19 @@
 > AI Delivery Constitution + canonical lane-first artifact layout + reference CLI.
 
 ```bash
-# Install into a new project
-npx --yes github:royeedai/ai-os my-project
+# Install into a new project (pin a release: reproducible + cache-friendly)
+npx --yes github:royeedai/ai-os#v10.3.0 my-project
 
 # Install into an existing repo
-npx --yes github:royeedai/ai-os .
+npx --yes github:royeedai/ai-os#v10.3.0 .
 
-# Check health
-npx --yes github:royeedai/ai-os doctor .
+# Check health — runs locally with zero network after install
+node .ai-os/bin/ai-os-doctor.js .
 ```
+
+> After the one-time install, `doctor` lives at `.ai-os/bin/` (committed). Daily
+> runs, IDE hooks, and CI use the local entry above and make **no external
+> request**. Only the first install needs the network.
 
 ## What AI-OS is
 
@@ -86,16 +90,16 @@ No slash commands. No profile flags. No proprietary AI-OS skill system; the `age
 
 Stronger models improve single-shot compliance, but they still bypass subagent rules, degrade with context length, and cannot enforce project-level contracts by themselves. Industry consensus in 2026 (e.g. [anthropics/claude-code RFC #45427](https://github.com/anthropics/claude-code/issues/45427)) is that prompt-style guidance such as `CLAUDE.md` / `.cursor/rules` reaches only ~70% compliance. Safety-critical boundaries need **deterministic enforcement** — a check whose exit code the model cannot override.
 
-AI-OS uses `doctor` for exactly this. W070-W078 (and `--strict` mode) are deterministic structural checks for layout health, ownership, evidence loops, and high-risk completeness — not "teach the model how to think." The same exit code that fails locally fails in pre-commit and in CI:
+AI-OS uses `doctor` for exactly this. W070-W078 (and `--strict` mode) are deterministic structural checks for layout health, ownership, evidence loops, and high-risk completeness — not "teach the model how to think." The same exit code that fails locally fails in pre-commit and in CI. All four surfaces call the committed local entry `node .ai-os/bin/ai-os-doctor.js . --strict`, so they run offline:
 
 | Surface | One-line setup |
 |---|---|
-| Claude Code | `pre-tool-use` hook calling `npx --yes github:royeedai/ai-os doctor . --strict` |
+| Claude Code | `pre-tool-use` hook calling `node .ai-os/bin/ai-os-doctor.js . --strict` |
 | Cursor | `.cursor/hooks.json` with the same command (see [docs/interop/cursor.md](docs/interop/cursor.md)) |
-| Local pre-commit | `lefthook` / `pre-commit` running `npx ... doctor --strict` |
+| Local pre-commit | `lefthook` / `pre-commit` running `node .ai-os/bin/ai-os-doctor.js . --strict` |
 | CI | GitHub Action step running the same command |
 
-This makes AI-OS the cross-IDE equivalent of a Claude Code deterministic command hook: same enforcement guarantee (100% or it fails), but portable to Cursor, Codex, Gemini CLI, and any other agent with shell access.
+This makes AI-OS the cross-IDE equivalent of a Claude Code deterministic command hook: same enforcement guarantee (100% or it fails), but portable to Cursor, Codex, Gemini CLI, and any other agent with shell access — and zero external request because the doctor entry is vendored into `.ai-os/bin/`.
 
 ## How agents use AI-OS
 
@@ -146,10 +150,11 @@ Create more lanes only when you truly have separate long-lived delivery lines, r
 For agents that prefer the [agentskills.io](https://agentskills.io/specification) skill format (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...), AI-OS publishes an official wrapper:
 
 ```bash
-npx skills add github:royeedai/ai-os
+# Pin a release; or vendor the folder offline once cloned (no network)
+npx skills add github:royeedai/ai-os#v10.3.0
 ```
 
-This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the constitution into the open standard. It does not introduce a new command surface — it is a thin wrapper so any spec-compliant agent can pick AI-OS up without per-tool adapters.
+This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the constitution into the open standard. It does not introduce a new command surface — it is a thin wrapper so any spec-compliant agent can pick AI-OS up without per-tool adapters. To stay fully offline after cloning, copy `framework/skills/ai-os-delivery` into `.claude/skills/` or `.cursor/skills/` instead of fetching.
 
 ## MCP integration
 
