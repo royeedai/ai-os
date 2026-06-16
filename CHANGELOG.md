@@ -10,6 +10,33 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 ---
 
+## 10.2.0 (2026-06-13) — Product Design optional bridge
+
+**Minor, backward compatible**. AI-OS can now preserve Product Design brief / ideation / prototype / image-to-code / design QA / share outputs as optional design evidence while keeping Cursor, Claude Code, plain IDEs, and no-plugin environments on the same portable artifact contract. No new CLI command, runtime, doctor code, MCP server, IDE adapter, or Product Design hard dependency.
+
+### Added
+
+- **Product Design optional design-evidence bridge**: `docs/interop/product-design.md` maps Product Design workflows to AI-OS artifacts and defines no-plugin fallback through Figma, screenshots, URL reverse-spec, existing code / style, component-first, or manual brief.
+- **`design_input` schema** for UI work in `docs/artifacts.md` and lane `DESIGN.md` templates: `provider`, `capability_used`, `evidence_refs`, and `fallback_path`.
+- Verification guards for Product Design hard dependency drift, missing fallback evidence, and Product Design QA / prototype / share evidence being mistaken for project-native verification.
+
+### Changed
+
+- The official `ai-os-delivery` skill now tells agents to use Product Design when available, but to record the same `design_input` fallback contract when unavailable.
+- `tasks.yaml` templates explicitly accept Product Design or fallback outputs through existing `expected_return`, `evidence_required`, `evidence_produced`, and `deviation_log`; no new task fields were added.
+- `docs/constitution-spec.md` bumped to **v2.3** and `docs/interop/standards-map.md` maps Product Design evidence to `DESIGN.md` `design_input`.
+
+### Tests
+
+- `test/docs.test.js` adds Product Design optional bridge checks across README, artifacts, interop docs, skill wrapper, lane templates, verification matrix, problem ledger, maintainers guide, changelog, and product-surface boundaries.
+- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+
+### Migration
+
+No action needed. Installed projects keep passing `doctor`; reinstall to pick up enriched templates. Product Design is optional, and no-plugin AI-OS workflows continue through the same UI source routing and evidence fields.
+
+---
+
 ## 10.1.2 (2026-06-10) — CLI defect fixes + restate-gate anchor unification
 
 **Patch, backward compatible; defect fixes / docs / dogfood-artifact only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
@@ -61,33 +88,6 @@ No action needed — defect fixes / wording / dogfood-artifact only; CLI surface
 ### Migration
 
 No action needed — wording / docs / dogfood-artifact only; CLI behavior, doctor warning codes, and canonical layout schema (`9`) unchanged. Already-installed projects keep passing `doctor`.
-
----
-
-## 10.2.0 (2026-06-13) — Product Design optional bridge
-
-**Minor, backward compatible**. AI-OS can now preserve Product Design brief / ideation / prototype / image-to-code / design QA / share outputs as optional design evidence while keeping Cursor, Claude Code, plain IDEs, and no-plugin environments on the same portable artifact contract. No new CLI command, runtime, doctor code, MCP server, IDE adapter, or Product Design hard dependency.
-
-### Added
-
-- **Product Design optional design-evidence bridge**: `docs/interop/product-design.md` maps Product Design workflows to AI-OS artifacts and defines no-plugin fallback through Figma, screenshots, URL reverse-spec, existing code / style, component-first, or manual brief.
-- **`design_input` schema** for UI work in `docs/artifacts.md` and lane `DESIGN.md` templates: `provider`, `capability_used`, `evidence_refs`, and `fallback_path`.
-- Verification guards for Product Design hard dependency drift, missing fallback evidence, and Product Design QA / prototype / share evidence being mistaken for project-native verification.
-
-### Changed
-
-- The official `ai-os-delivery` skill now tells agents to use Product Design when available, but to record the same `design_input` fallback contract when unavailable.
-- `tasks.yaml` templates explicitly accept Product Design or fallback outputs through existing `expected_return`, `evidence_required`, `evidence_produced`, and `deviation_log`; no new task fields were added.
-- `docs/constitution-spec.md` bumped to **v2.3** and `docs/interop/standards-map.md` maps Product Design evidence to `DESIGN.md` `design_input`.
-
-### Tests
-
-- `test/docs.test.js` adds Product Design optional bridge checks across README, artifacts, interop docs, skill wrapper, lane templates, verification matrix, problem ledger, maintainers guide, changelog, and product-surface boundaries.
-- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
-
-### Migration
-
-No action needed. Installed projects keep passing `doctor`; reinstall to pick up enriched templates. Product Design is optional, and no-plugin AI-OS workflows continue through the same UI source routing and evidence fields.
 
 ---
 
