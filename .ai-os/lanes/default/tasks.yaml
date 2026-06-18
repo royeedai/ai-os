@@ -1,34 +1,40 @@
 version: 3
-baseline_id: "CR-20260613-110848-product-design-optional-bridge"
+baseline_id: "CR-20260618-114948-codex-suitability-doc-accuracy"
 scope:
   mode: "change+brownfield"
-  focus: "product-design-optional-bridge"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260613-110848-product-design-optional-bridge"
+  focus: "codex-suitability-doc-accuracy"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260618-114948-codex-suitability-doc-accuracy"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Optional Bridge Contract Locked"
-    goal: "Product Design is modeled as an optional design evidence provider with no-plugin fallback"
-    scope: "MISSION, DESIGN, CR, memory, problem ledger"
-    acceptance_goal: "Product Design capability can be used fully without becoming a hard dependency"
-    target_window: "2026-06-13"
+    title: "Audit And Baseline Locked"
+    goal: "Codex-hostile wording and self-description drift are identified and baselined"
+    scope: "AGENTS, skill, README, docs, version metadata, self-hosted lane"
+    acceptance_goal: "Concrete affected artifacts and acceptance criteria are recorded before edits"
+    target_window: "2026-06-18"
   - id: M2
-    title: "Docs Templates And Skill Updated"
-    goal: "Public docs, interop docs, templates, and skill wrapper carry the design_input contract"
-    scope: "README, artifacts, spec, interop, templates, skill, tests"
-    acceptance_goal: "Design evidence fields and fallback path are consistently documented and checked"
-    target_window: "2026-06-13"
+    title: "Docs Skill And Lane Fixed"
+    goal: "Public behavior rules and dogfood lane are updated without expanding product surface"
+    scope: "AGENTS, README, docs, skill, lane, memory, tests"
+    acceptance_goal: "Codex explicit delivery requests, doctor guard wording, and stale self-description are corrected"
+    target_window: "2026-06-18"
   - id: M3
     title: "Version And Verification Closed"
-    goal: "v10.2.0 metadata and self-hosted lane artifacts are verified"
-    scope: "version, changelog, lane artifacts, native verification"
-    acceptance_goal: "npm test, lint, and strict doctor pass"
-    target_window: "2026-06-13"
+    goal: "v10.3.1 metadata and project-native verification close the patch"
+    scope: "VERSION, package metadata, changelog, tests, lint, doctor"
+    acceptance_goal: "npm test, npm run lint, and strict doctor pass"
+    target_window: "2026-06-18"
+  - id: M4
+    title: "Published Online"
+    goal: "v10.3.1 patch is committed, pushed to main, and tagged for GitHub npx consumption"
+    scope: "git commit, origin/main push, v10.3.1 tag"
+    acceptance_goal: "origin/main contains the patch commit and tag v10.3.1 is pushed"
+    target_window: "2026-06-18"
 
 tasks:
-  - id: TASK-AI-1001
-    title: "锁定 Product Design optional bridge 基线"
+  - id: TASK-AI-1101
+    title: "审计 Codex 适配与描述漂移并建立 CR"
     milestone: M1
     status: done
     owner: AI
@@ -38,63 +44,8 @@ tasks:
     depends_on: []
     requirement_refs:
       - "REQ-001"
-      - "REQ-004"
-      - "REQ-005"
-    acceptance_refs:
-      - "AC-001"
-      - "AC-004"
-      - "AC-005"
-    handoff_to: "Codex local agent"
-    context_refs:
-      - ".ai-os/lanes/default/MISSION.md"
-      - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/baseline-log/CR-20260613-110848-product-design-optional-bridge.md"
-      - ".ai-os/memory.md"
-    expected_return:
-      - "updated self-hosted lane baseline artifacts"
-      - "Product Design optional bridge contract and acceptance criteria"
-    fact_state_review:
-      observed:
-        - "AGENTS, lane STATE, lane.toml, lane MISSION/DESIGN/tasks/verification, Product Design index and critical-overrides, artifacts docs, skill wrapper, docs tests, package metadata, and problem ledger inspected before edits"
-      confirmed:
-        - "user requested implementation of the proposed Product Design optional bridge plan on 2026-06-13"
-        - "user clarified the desired approach: fully use Product Design capabilities while not affecting other IDEs"
-      inferred: []
-      unknown: []
-    impact_tags:
-      - "baseline-log"
-      - "design"
-      - "problem-ledger"
-      - "memory"
-    evidence_required:
-      - "baseline-record"
-      - "design-update"
-      - "problem-ledger-update"
-    evidence_produced:
-      - ".ai-os/lanes/default/baseline-log/CR-20260613-110848-product-design-optional-bridge.md"
-      - ".ai-os/lanes/default/MISSION.md"
-      - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/verification-matrix.yaml"
-      - ".ai-os/memory.md"
-      - "docs/problem-ledger.md"
-    deviation_log: []
-
-  - id: TASK-AI-1002
-    title: "同步 Product Design interop、design_input schema 和模板"
-    milestone: M2
-    status: done
-    owner: AI
-    priority: P1
-    wave: 2
-    approval_required: false
-    depends_on:
-      - "TASK-AI-1001"
-    requirement_refs:
-      - "REQ-001"
       - "REQ-002"
       - "REQ-003"
-      - "REQ-004"
-      - "REQ-005"
     acceptance_refs:
       - "AC-001"
       - "AC-002"
@@ -103,52 +54,117 @@ tasks:
       - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
-      - "docs/interop/product-design.md"
-      - "docs/artifacts.md"
-      - "docs/constitution-spec.md"
-      - "docs/interop/standards-map.md"
+      - "AGENTS.md"
+      - "README.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
-      - "framework/.agents/templates/lane/DESIGN.md"
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "test/docs.test.js"
+      - "docs/constitution-spec.md"
+      - "docs/artifacts.md"
+      - "docs/interop/claude-code.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
     expected_return:
-      - "Product Design interop doc with workflow mapping and no-plugin fallback"
-      - "design_input schema in docs and templates"
-      - "skill wrapper routing that uses Product Design when available and falls back otherwise"
-      - "verification matrix guards for hard dependency and evidence substitution failure modes"
+      - "CR with root cause, affected artifacts, acceptance delta, and preventability review"
+      - "bounded fix plan for docs / skill / tests / lane"
     fact_state_review:
       observed:
-        - "existing v9.9 UI source routing and v9.4 handoff/evidence loop already provide the extension points needed"
-        - "Product Design skill requires brief gate before ideation/prototype/image-to-code and treats design QA as visual comparison evidence"
+        - "AGENTS, README, skill wrapper, constitution spec, artifacts docs, Claude interop, package metadata, package-lock, test docs assertions, and self-hosted lane artifacts inspected"
+        - "package-lock root metadata was 10.2.0 while VERSION and package.json were 10.3.0 before edits"
+        - "skill wrapper described the current framework as AI-OS v9 before edits"
+        - "README and Claude interop over-generalized hook enforcement semantics before edits"
       confirmed:
-        - "DESIGN.md AC-001 through AC-005 define the required docs, template, skill, and no-hard-dependency behavior"
+        - "user requested full project analysis for Codex-unsuitable points or description errors and asked to fix them"
+      inferred: []
+      unknown: []
+    impact_tags:
+      - "baseline-log"
+      - "docs"
+      - "skill"
+      - "version"
+      - "self-hosted-lane"
+    evidence_required:
+      - "baseline-record"
+      - "affected-artifact-list"
+    evidence_produced:
+      - ".ai-os/lanes/default/baseline-log/CR-20260618-114948-codex-suitability-doc-accuracy.md"
+      - ".ai-os/lanes/default/MISSION.md"
+      - ".ai-os/lanes/default/DESIGN.md"
+    deviation_log: []
+
+  - id: TASK-AI-1102
+    title: "修复 Codex 行为语义、doctor 文案与自托管工件"
+    milestone: M2
+    status: done
+    owner: AI
+    priority: P1
+    wave: 2
+    approval_required: false
+    depends_on:
+      - "TASK-AI-1101"
+    requirement_refs:
+      - "REQ-001"
+      - "REQ-002"
+      - "REQ-004"
+      - "REQ-005"
+    acceptance_refs:
+      - "AC-001"
+      - "AC-002"
+      - "AC-004"
+      - "AC-005"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - "AGENTS.md"
+      - "README.md"
+      - "docs/artifacts.md"
+      - "docs/constitution-spec.md"
+      - "docs/interop/claude-code.md"
+      - "docs/problem-ledger.md"
+      - "docs/maintainers.md"
+      - "framework/skills/ai-os-delivery/SKILL.md"
+      - ".ai-os/memory.md"
+      - ".ai-os/lanes/default/specs/example.spec.md"
+    expected_return:
+      - "updated Activation Gate and confirmation-stop wording"
+      - "portable doctor guard wording that distinguishes hooks from Codex local / CI guards"
+      - "de-versioned skill wrapper current-framework wording"
+      - "dogfood lane and stale example spec aligned to v10.3.1"
+    fact_state_review:
+      observed:
+        - "AGENTS and skill wording changed to treat explicit analyze / fix / implement / verify / ship requests as delivery-affecting"
+        - "README and Claude interop wording changed from equal hook enforcement to portable guard command"
+        - "problem ledger PL-023 added"
+      confirmed:
+        - "DESIGN.md AC-001, AC-002, AC-004, and AC-005 define the required behavior"
       inferred: []
       unknown: []
     impact_tags:
       - "docs"
-      - "templates"
       - "skill"
-      - "tests"
+      - "problem-ledger"
+      - "memory"
+      - "self-hosted-lane"
     evidence_required:
       - "docs-test"
-      - "template-test"
-      - "product-surface-invariant"
+      - "lane-review"
     evidence_produced:
-      - "docs/interop/product-design.md"
+      - "AGENTS.md"
+      - "README.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
-      - "docs/interop/standards-map.md"
-      - "README.md"
+      - "docs/interop/claude-code.md"
+      - "docs/problem-ledger.md"
+      - "docs/maintainers.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
-      - "framework/.agents/templates/lane/DESIGN.md"
-      - "framework/.agents/templates/lane/tasks.yaml"
-      - "framework/.agents/templates/lane/verification-matrix.yaml"
-      - "test/docs.test.js"
+      - ".ai-os/memory.md"
+      - ".ai-os/lanes/default/specs/example.spec.md"
+      - ".ai-os/lanes/default/risk-register.md"
+      - ".ai-os/lanes/default/release-plan.md"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
     deviation_log: []
 
-  - id: TASK-AI-1003
-    title: "更新版本、changelog 与验证收口"
+  - id: TASK-AI-1103
+    title: "更新 v10.3.1 版本元数据并完成验证"
     milestone: M3
     status: done
     owner: AI
@@ -156,12 +172,12 @@ tasks:
     wave: 3
     approval_required: false
     depends_on:
-      - "TASK-AI-1002"
+      - "TASK-AI-1102"
     requirement_refs:
-      - "REQ-005"
+      - "REQ-003"
       - "REQ-006"
     acceptance_refs:
-      - "AC-005"
+      - "AC-003"
       - "AC-006"
     handoff_to: "Codex local agent"
     context_refs:
@@ -172,14 +188,17 @@ tasks:
       - "test/docs.test.js"
       - ".ai-os/lanes/default/verification-matrix.yaml"
     expected_return:
-      - "version metadata says 10.2.0"
+      - "version metadata says 10.3.1 across VERSION, package.json, package-lock.json"
       - "native verification logs"
       - "strict doctor clean"
     fact_state_review:
       observed:
-        - "version files, package lock, changelog, docs tests, and verification matrix inspected before update"
+        - "VERSION, package.json, package-lock.json, changelog, docs tests, and verification matrix inspected before closeout"
+        - "npm test passed: 1163 passed, 0 failed"
+        - "npm run lint passed with exit code 0"
+        - "node bin/create-ai-os.js doctor . --json --strict passed with ok true, issues [], semantic_warnings []"
       confirmed:
-        - "DESIGN.md AC-006 defines release metadata and verification behavior"
+        - "DESIGN.md AC-003 and AC-006 define metadata and verification behavior"
       inferred: []
       unknown: []
     impact_tags:
@@ -195,8 +214,64 @@ tasks:
       - "package.json"
       - "package-lock.json"
       - "CHANGELOG.md"
-      - ".ai-os/framework.toml"
-      - "npm test: 1060 passed, 0 failed"
+      - "test/docs.test.js"
+      - "npm test: 1163 passed, 0 failed"
       - "npm run lint: passed"
       - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
+    deviation_log: []
+
+  - id: TASK-AI-1104
+    title: "提交推送并发布 v10.3.1 tag"
+    milestone: M4
+    status: in_progress
+    owner: AI
+    priority: P1
+    wave: 4
+    approval_required: true
+    approval:
+      status: "approved"
+      approved_by: "project owner"
+      approved_at: "2026-06-18"
+      evidence: "用户明确要求：继续再次检查修复，并发布上线"
+    depends_on:
+      - "TASK-AI-1103"
+    requirement_refs:
+      - "REQ-006"
+    acceptance_refs:
+      - "AC-006"
+    handoff_to: "Codex local agent"
+    context_refs:
+      - ".ai-os/lanes/default/release-plan.md"
+      - ".ai-os/lanes/default/risk-register.md"
+      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - "CHANGELOG.md"
+      - "VERSION"
+    expected_return:
+      - "commit hash pushed to origin/main"
+      - "tag v10.3.1 pushed to origin"
+      - "final verification summary"
+    fact_state_review:
+      observed:
+        - "origin/main was at acfbb48 before release commit"
+        - "local v10.* tags after fetch listed v10.0.0, v10.1.0, v10.1.1, v10.1.2"
+        - "publish-before verification passed: npm test 1163 passed / 0 failed, npm run lint exit 0, strict doctor ok true, git diff --check exit 0"
+      confirmed:
+        - "user explicitly requested publish online on 2026-06-18"
+        - "release-plan.md defines manual GitHub release path"
+      inferred: []
+      unknown: []
+    impact_tags:
+      - "release"
+      - "git-push"
+      - "tag"
+    evidence_required:
+      - "git-commit"
+      - "git-push"
+      - "git-tag"
+      - "verification-before-publish"
+    evidence_produced:
+      - "npm test: 1163 passed, 0 failed"
+      - "npm run lint: passed"
+      - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
+      - "git diff --check: passed"
     deviation_log: []

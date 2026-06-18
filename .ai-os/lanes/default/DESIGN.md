@@ -1,84 +1,83 @@
-# AI-OS v10.2 Product Design Optional Bridge Design
+# AI-OS v10.3.1 Codex Suitability Design
 
 ## 1. 设计目标
 
-- **本轮设计目标**：把 Product Design 从 Codex 专属体验降级为 AI-OS 可选设计证据来源，保留完整 Product Design workflow 能力，并让无插件 IDE 走同一工件契约。
-- **需要先锁定的关键页面 / 交互 / 接口**：关键对象不是 UI 页面，而是 `design_input`、Product Design workflow mapping、fallback path、handoff evidence reuse 和 no-hard-dependency 边界。
-- **必须用户确认的核心设计决策**：Product Design 作为推荐可选能力，不进入 AI-OS 核心依赖；无插件场景必须继续可用。
+- **本轮设计目标**：修正 AI-OS 对 Codex 前台执行代理不友好的确认停点描述、过度泛化的 doctor hook 强制性叙事，以及 release metadata / self-hosted lane 的自描述漂移。
+- **需要先锁定的关键页面 / 交互 / 接口**：关键对象是 Activation Gate、confirmation-stop semantics、doctor guard integration wording、version metadata parity、dogfood lane baseline。
+- **必须用户确认的核心设计决策**：用户已明确要求“全面分析并修复”，本轮可直接进入交付；仍不新增 Codex 专属 surface 或 runtime。
 
 ## 2. 信息架构（UI 项目必填）
 
-- **入口与导航骨架**：README 用户心智 → Product Design interop → artifacts schema → lane template → skill routing → verification guard
-- **一级 / 二级结构**：optional provider detection → Product Design workflow mapping → no-plugin fallback → evidence return → native verification
-- **关键信息优先级**：跨 IDE 可用性优先于插件便利性；Product Design 产物进入 evidence，不替代 AI-OS 验证。
+- **入口与导航骨架**：AGENTS 宪法 → skill wrapper → README / interop docs → spec / artifacts schema → tests → dogfood lane。
+- **一级 / 二级结构**：explicit delivery request routing → confirmation-stop boundaries → portable doctor guard wording → version parity → lane recovery state。
+- **关键信息优先级**：先保证 agent 行为不误拦明确交付请求，再保证对 Codex / hooks 的技术描述真实，最后同步自托管工件。
 
 ## 3. 关键页面与交互（UI 项目必填）
 
 | 页面 / 入口 | 目标 | 关键元素 | 关键操作 | 是否核心决策 | 确认状态 |
 |---|---|---|---|---|---|
-| `docs/interop/product-design.md` | 说明可选桥接 | workflow mapping / fallback / boundaries | 告诉 agent 如何用 Product Design 和如何降级 | yes | confirmed |
-| `docs/artifacts.md` | 定义通用字段 | `design_input` schema | 让各 IDE 只依赖通用 evidence refs | yes | confirmed |
-| lane `DESIGN.md` template | 新项目记录位置 | design input evidence references | 保存 Product Design 或 fallback 证据 | yes | confirmed |
-| `tasks.yaml` template | 证据回收 | handoff / expected_return / evidence_produced | 复用现有 task evidence loop | yes | confirmed |
-| skill wrapper | 执行层路由 | Product Design optional branch + fallback | 指导 agent 不硬依赖插件 | yes | confirmed |
+| `AGENTS.md` | 分发宪法 | Activation Gate / 确认停点 / bugfix rule | 明确已授权请求不二次反问 | yes | confirmed |
+| `framework/skills/ai-os-delivery/SKILL.md` | agentskills wrapper | explicit delivery requests / confirmation stops | 让 Codex 等 spec-aware agent 按同一规则执行 | yes | confirmed |
+| README / Claude interop | 用户心智 | portable guard command / hook vs local guard | 不把 Codex 写成 host-level hook | yes | confirmed |
+| tests / version files | 发布一致性 | VERSION / package.json / package-lock | 锁住 metadata parity | yes | confirmed |
 
 ## 4. 核心接口与数据模型（API 项目必填）
 
 | 接口 / 模型 | 用途 | 关键字段 | 状态流转 | 是否核心决策 | 确认状态 |
 |---|---|---|---|---|---|
-| Design Input Evidence | 记录设计输入来源 | `provider`, `capability_used`, `evidence_refs`, `fallback_path` | source detected → evidence recorded → validation scoped | yes | confirmed |
-| Product Design Workflow Mapping | 把插件产物接入 AI-OS | brief, ideation, prototype, image-to-code, design-qa, share | workflow output → task evidence → native verification | yes | confirmed |
-| No-plugin Fallback | 保证其他 IDE 可用 | figma, screenshot, url-reverse-spec, component-first, existing-style | plugin unavailable → fallback selected → same fields populated | yes | confirmed |
+| Activation Gate Semantics | 判断是否读 lane | delivery-affecting / ordinary / ambiguous / explicit request | ordinary → no lane；ambiguous → one question；explicit delivery → L1 | yes | confirmed |
+| Confirmation Stop Semantics | 判断是否停等用户 | authorization / scope clarity / acceptance clarity / risk / boundary | authorized + clear → proceed；unclear / high-risk / out-of-scope → stop | yes | confirmed |
+| Doctor Guard Wording | 描述强制边界 | local command / host hook / pre-commit / CI / Codex local closure | command shared → enforcement depends on integration surface | yes | confirmed |
+| Version Metadata Parity | 发布一致性 | VERSION / package.json / package-lock root package | bump → tests assert all three match | yes | confirmed |
 
 ## 5. 关键流程
 
-1. 用户要求 UI / prototype / design-led work。
-2. agent 判断 Product Design 是否可用，以及是否已有视觉来源。
-3. 有 Product Design：先按 Product Design brief gate，必要时进入 ideation / prototype / image-to-code / design-qa / share。
-4. agent 把 brief、visual option、prototype link、QA screenshot 或 share URL 作为 evidence refs 写入 AI-OS。
-5. 无 Product Design：走 Figma、截图、URL reverse-spec、existing-code、existing-style 或 component-first fallback。
-6. 任务关闭前仍运行项目原生静态校验，并把 code / data / runtime 状态拆开交付。
+1. 用户要求全面分析并修复 AI-OS 对 Codex 不友好或描述错误的点。
+2. agent 通过 Activation Gate，读取 L1/L2 工件并建立本轮 CR。
+3. agent 审计公开 docs、skill、tests、version metadata、自托管 lane 与 stale spec。
+4. agent 修正确认停点、doctor guard 文案、v9 残留、package-lock 版本和 lane 自描述。
+5. agent 运行 `npm test`、`npm run lint`、`node bin/create-ai-os.js doctor . --json --strict` 后收口。
 
 ## 6. 共享基础设施审计（brownfield / change / reverse-spec 必填）
 
-- **受影响的共享组件**：README、docs/artifacts、docs/constitution-spec、docs/interop、official skill wrapper、lane DESIGN / tasks / verification templates、problem ledger、maintainers、version metadata、docs tests、自托管 lane artifacts。
-- **受影响的接口 / 页面清单**：AI agent behavior routing、DESIGN.md schema guidance、task evidence return contract、UI parity verification guards、interop docs。
-- **同仓正常实现对照**：v9.4 handoff、v9.6 long-horizon、v9.9 UI source routing 均把外部执行 / 设计能力映射进工件，不新增运行时；本轮沿用同一模式。
-- **副作用清单**：不改 AGENTS.md；不扩大 doctor warning range；不引入第三方依赖；interop 新文档保持 ≤200 行；constitution spec 保持 ≤160 行。
+- **受影响的共享组件**：AGENTS、README、docs/artifacts、docs/constitution-spec、docs/interop/claude-code、problem ledger、maintainers guide、official skill wrapper、docs tests、version metadata、self-hosted lane。
+- **受影响的接口 / 页面清单**：AI agent task routing、Activation Gate、bugfix flow、doctor guard setup guidance、release metadata checks。
+- **同仓正常实现对照**：v10.0 去版本化要求避免把 schema `9` 读成当前产品版本；v10.3 local doctor 要求日常 guard 零网络；v9.5 Activation Gate 要求普通对话不读 lane。
+- **副作用清单**：不改 CLI 行为；不新增 doctor warning；不新增 Codex-only files；不改变 canonical layout；历史 changelog / old CR 的版本事实保留。
 
 ## 7. UI Source Routing（前端 UI 项目必填）
 
-- **ui_source**：design-led / component-first / existing-style / hybrid
-- **surface**：admin-pc / business-pc / business-mobile / consumer
-- **frontend_stack**：vue / react / uni-app / taro / mini-program / unknown
-- **component_library**：existing / element-plus / antd / vant / antd-mobile / tdesign / arco / uview / nutui / uni-ui / custom
-- **selection_reason**：existing dependency / user specified / stack default / ecosystem fit
-- **fidelity_level**：strict / practical / component-native
-- **custom_required**：仅记录组件库无法覆盖的品牌视觉、特殊布局、动效或还原要求
-- **design_input.provider**：product-design / figma / url / screenshot / existing-code / manual-brief / none
-- **design_input.capability_used**：brief / ideation / prototype / image-to-code / design-qa / share / manual
-- **design_input.evidence_refs**：brief、selected visual option、prototype URL、QA screenshot、Figma frame、URL capture 或人工确认记录
-- **design_input.fallback_path**：figma / screenshot / url-reverse-spec / component-first / existing-style
+- **ui_source**：none
+- **surface**：unknown
+- **frontend_stack**：unknown
+- **component_library**：custom
+- **selection_reason**：not a frontend UI delivery
+- **fidelity_level**：component-native
+- **custom_required**：无 UI 实现
+- **design_input.provider**：none
+- **design_input.capability_used**：manual
+- **design_input.evidence_refs**：用户 2026-06-18 请求 + 仓库实际文件审计
+- **design_input.fallback_path**：existing-style
 
 ## 8. 对照参考（reverse-spec 必填）
 
-- **原始参考清单**：用户 2026-06-13 要求“完整使用 Product Design 的能力”和“不影响其他 IDE”。
-- **字段级 / 行为级对照摘要**：将 Product Design 能力接入 AI-OS 的通用 `design_input` / evidence loop；无插件时同字段接受 Figma、截图、URL、existing code 或 manual brief。
-- **仍待解决差异**：AI-OS 不检测 Product Design 安装状态；实际 agent 只在当前 shell / IDE 可见能力内判断可用性。
+- **原始参考清单**：用户要求“全面分析该项目，有哪些不适合 Codex 的点，或者本身的描述错误。修复下”。
+- **字段级 / 行为级对照摘要**：确认停点从固定 wait 改为授权 / 风险 / 范围敏感；doctor guard 从同等 hook 改为 portable command；version metadata 从 VERSION/package-only 扩到 package-lock parity。
+- **仍待解决差异**：AI-OS 仍不检测 Codex 宿主能力；只能描述本地 command、pre-commit 和 CI 接入边界。
 
 ## 9. 验收标准
 
 | AC ID | 需求 ID | 验收描述 | 验证方式 | 证据 |
 |---|---|---|---|---|
-| AC-001 | REQ-001 | 新增 Product Design interop 文档，覆盖 workflow mapping、fallback 和 no-hard-dependency 边界 | `npm test` | `docs/interop/product-design.md` |
-| AC-002 | REQ-002 | artifacts 和 DESIGN template 记录 `design_input` provider / capability / evidence / fallback | `npm test` | `docs/artifacts.md`、`framework/.agents/templates/lane/DESIGN.md` |
-| AC-003 | REQ-003 | tasks template 和 skill wrapper 说明 Product Design 输出复用现有 handoff/evidence loop，不新增字段 | `npm test` | `framework/.agents/templates/lane/tasks.yaml`、`framework/skills/ai-os-delivery/SKILL.md` |
-| AC-004 | REQ-004 | verification matrix 覆盖插件硬依赖、无 fallback、QA 替代原生验证等 failure modes | `npm test` | `framework/.agents/templates/lane/verification-matrix.yaml` |
-| AC-005 | REQ-005 | 不新增 CLI、runtime、doctor warning、MCP server、IDE adapter 或 Product Design 硬依赖 | `npm test` + `npm run lint` | product surface tests |
-| AC-006 | REQ-006 | v10.2.0 版本、changelog、自托管 lane 和原生验证收口 | `npm test` + `npm run lint` + `doctor --strict` | version tests + doctor output |
+| AC-001 | REQ-001 | Explicit Codex-style delivery requests no longer force ritual re-confirmation | `npm test` | AGENTS / skill / artifacts / spec assertions |
+| AC-002 | REQ-002 | Doctor guard wording distinguishes hooks from Codex local / CI guard | `npm test` | README / claude-code assertions |
+| AC-003 | REQ-003 | VERSION / package.json / package-lock all match 10.3.1 | `npm test` | version parity assertions |
+| AC-004 | REQ-004 | Skill wrapper no longer calls current AI-OS “v9” | `npm test` | skill assertion |
+| AC-005 | REQ-005 | Dogfood lane and example spec no longer describe v10.2 / removed upgrade path as current | `doctor --strict` + review | self-hosted lane files |
+| AC-006 | REQ-006 | Native verification passes | `npm test` + `npm run lint` + `doctor --strict` | command outputs |
 
 ## 10. 反述确认门（设计锁定前必经）
 
-- **agent 反述的关键设计理解**：Product Design 是可选设计证据提供方；AI-OS 接收其 brief、视觉方案、prototype、image-to-code、design QA 和 share 产物，但用通用 `design_input` + task evidence 表达；无插件 IDE 走 Figma / screenshot / URL reverse-spec / component-first / existing-style fallback。
-- **用户确认 / 校正**：用户 2026-06-13 明确要求实现已提计划，并补充“需要能完整使用 Product Design 的能力和不影响其他 IDE 的方式”。
-- **确认日期**：2026-06-13
+- **agent 反述的关键设计理解**：这是 patch 级治理和文案准确性修复；用户已明确授权“分析并修复”，因此本轮可在写 CR 后继续执行。核心设计是让确认停点不误拦 Codex 明确交付请求，同时保留模糊 / 高风险 / 越界停点；doctor 强制性必须按接入面描述。
+- **用户确认 / 校正**：用户 2026-06-18 明确要求全面分析并修复。
+- **确认日期**：2026-06-18

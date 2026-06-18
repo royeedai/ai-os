@@ -26,7 +26,7 @@ Installs the v9 canonical layout:
 - `.ai-os/bin/` local doctor entry (`ai-os-doctor.js` + `shared.js` + `VERSION`, committed)
 - `.ai-os/lanes/default/` full starter set
 
-Pin a release for reproducible, cache-friendly installs: `npx --yes github:royeedai/ai-os#v10.3.0 .`. The install is the only step that needs the network.
+Pin a release for reproducible, cache-friendly installs: `npx --yes github:royeedai/ai-os#v10.3.1 .`. The install is the only step that needs the network.
 
 ### Options
 
@@ -61,7 +61,7 @@ node .ai-os/bin/ai-os-doctor.js . --strict
 
 Because `.ai-os/bin/` is committed (unlike the gitignored `.ai-os/framework.toml`), teammates and CI that clone the repo run doctor offline without re-installing — the committed `.ai-os/bin/VERSION` supplies the framework version. Re-run `install` (or `install . --force`) to refresh the vendored entry after upgrading the framework.
 
-The legacy remote form `npx --yes github:royeedai/ai-os#v10.3.0 doctor .` still works for a one-time audit of a project you have not installed into; it is not for daily use.
+The legacy remote form `npx --yes github:royeedai/ai-os#v10.3.1 doctor .` still works for a one-time audit of a project you have not installed into; it is not for daily use.
 
 ### Structural & metadata codes
 

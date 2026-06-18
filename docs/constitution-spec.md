@@ -1,12 +1,13 @@
-# AI Delivery Constitution Spec v2.3
+# AI Delivery Constitution Spec v2.4
 
 Status: Stable  
-Version: 2.3
-Last updated: 2026-06-13
+Version: 2.4
+Last updated: 2026-06-18
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 2.4 (2026-06-18) — Codex / foreground executor confirmation semantics：明确“分析并修复 / 实现 / 验证 / 发布”等请求已通过 Activation Gate；确认停点只阻塞未授权、模糊、高风险或越界工作；Codex 场景中的 doctor 是本地 / CI guard，不被描述成宿主 pre-tool hook。
 - 2.3 (2026-06-13) — Product Design optional design-evidence bridge：`design_input` 记录 Product Design / Figma / URL / screenshot / existing-code / manual brief 来源；插件能力可完整使用，但不是核心硬依赖，不新增 doctor code。
 - 2.2 (2026-06-08) — Restate-and-confirm alignment gate（反述确认门，强化 §1 目标确认 / §2 设计锁定）+ architecture guardrail 定位到 `memory.md` §2；行为 + 工件强化，不新增 doctor code。
 - 2.1 (2026-06-06) — Design-aware component-first UI routing: design files define the target when present, existing / stack-appropriate component libraries remain the preferred implementation path, and no-design business UI defaults to component-library baselines.
@@ -78,13 +79,15 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 | 新项目 / 需求模糊 | 根层共享上下文 + lane `MISSION.md` | 等用户确认 |
 | 设计锁定 | lane `DESIGN.md` | 等用户确认 |
 | 前端 UI 交付 | UI source routing + 组件库选择记录 | 按用户设计稿或默认组件策略确认 |
-| 需求变化 | lane `baseline-log/CR-*` | 等用户确认 |
-| 修复 bug | 根因 + 范围 + 计划文件 | 等用户确认 |
-| 验证 / 交付 | 项目原生证据 + 双清单 | 等用户确认 |
+| 需求变化 | lane `baseline-log/CR-*` | 范围 / 验收不清时等用户确认 |
+| 修复 bug | 根因 + 范围 + 计划文件 | 未明确授权、范围不清或高风险时等用户确认 |
+| 验证 / 交付 | 项目原生证据 + 双清单 | 交付动作需人工执行或高风险时等用户确认 |
 
 **反述确认门（v2.2）**：「新项目 / 需求模糊」与「设计锁定」的「等用户确认」停点，要求 agent 先用结构化方式反述目标 / 核心主流程 / 状态流转 / 关键异常路径（落 lane `MISSION.md` §2 与 `DESIGN.md` §10），用户确认或校正后才推进；行为门，不引入 doctor code。
 
-**Activation Gate（v1.7）**：只有 delivery-affecting work 才进入 AI-OS 工件治理。普通对话不得读取或写入 `.ai-os/lanes/*`。意图不清时只问一句确认，确认前不加载 L1/L2/L3。
+**Activation Gate（v1.7 + v2.4 clarification）**：只有 delivery-affecting work 才进入 AI-OS 工件治理。普通对话不得读取或写入 `.ai-os/lanes/*`。意图不清时只问一句确认，确认前不加载 L1/L2/L3。用户已经明确要求分析、修复、实现、验证或发布当前项目时，不再反问，直接进入 L1。
+
+**确认停点语义（v2.4）**：停点不是固定二次审批。用户已明确授权当前阶段且范围可界定时，agent 可记录依据后继续；仍必须停等确认的情况包括目标 / 验收不清、高风险动作、共享边界未锁、可能越界、用户资产 / 权限 / 不可逆副作用，或 `approval_required: true` 未满足。
 
 ## 6. 证据化完成
 
@@ -136,6 +139,7 @@ AI-OS 默认 install 不 ship 任何 server / client / runtime。
 - Design-aware component-first UI（v2.1）— `DESIGN.md` UI source routing、组件库选择、还原等级和定制边界
 - Restate-and-confirm gate（v2.2）— lane `MISSION.md` §2 主流程 / 异常反述、`DESIGN.md` §10 反述确认门 + `memory.md` §2 架构护栏；行为门，无 doctor code
 - Product Design optional bridge（v2.3）— `DESIGN.md` `design_input` provider / capability / evidence / fallback；可选设计证据，不是插件硬依赖
+- Foreground executor confirmation semantics（v2.4）— 明确授权的 Codex / shell-agent 交付请求直接进入 L1；确认停点按授权、风险、范围和验收清晰度判断；不新增 doctor code
 
 **Doctor 语义警告（v9.8+）**：`W070`–`W078` 为 `--strict` 可升级的确定性检查（基线一致性、owner、AC 覆盖、高风险工件、handoff 证据、事实状态、长时程回收）。CR delta 字段完整性、URL confidence 标注、Preventability review 提示由工件模板与 `AGENTS.md` 行为规则承载，不再由 doctor 软检查重复。
 

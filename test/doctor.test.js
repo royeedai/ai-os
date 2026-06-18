@@ -95,7 +95,7 @@ section("doctor: --json output includes layout metadata");
   try { parsed = JSON.parse(result.stdout); } catch { parsed = null; }
   assert(parsed !== null, "--json output is valid JSON");
   assert(parsed && parsed.ok === true, "JSON ok=true on clean install");
-  assert(parsed && parsed.version === "10.3.0", "JSON reports version 10.3.0");
+  assert(parsed && parsed.version === "10.3.1", "JSON reports version 10.3.1");
   assert(parsed && parsed.layout_version === "9", "JSON reports layout_version=9");
   assert(parsed && parsed.layout_mode === "shared-root-default-lane", "JSON reports canonical layout mode");
   cleanup(dir);
@@ -595,7 +595,7 @@ section("doctor: vendored local entry runs offline with no external request");
   const sourceJson = JSON.parse(runDoctor([dir, "--json"]).stdout);
   assert(localJson.version === sourceJson.version, "local doctor reports same version as source doctor");
   assert(localJson.layout_mode === sourceJson.layout_mode, "local doctor reports same layout mode");
-  assert(localJson.version === "10.3.0", "local doctor reports framework version 10.3.0");
+  assert(localJson.version === "10.3.1", "local doctor reports framework version 10.3.1");
   cleanup(dir);
 }
 
@@ -613,7 +613,7 @@ section("doctor: local entry survives a team clone with gitignored framework.tom
   assert(parsed.ok === true, "local doctor ok=true without framework.toml");
   const e001 = parsed.issues.find((it) => it.code === "E001");
   assert(!e001, "local doctor does not report E001 in embedded mode without framework.toml");
-  assert(parsed.installedVersion === "10.3.0", "local doctor falls back to committed VERSION as installed version");
+  assert(parsed.installedVersion === "10.3.1", "local doctor falls back to committed VERSION as installed version");
   cleanup(dir);
 }
 

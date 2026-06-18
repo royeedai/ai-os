@@ -117,19 +117,25 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：有设计稿时误以为不能用组件库，导致手搓 UI、维护成本高；无设计稿时又误以为不需要任何设计确认，跳过组件库选择、字段、权限、状态和异常路径；老项目里还可能因 AI 偏好混入第二套组件库
 - **AI-OS 必须保证**：前端 UI 先判定 `ui_source`（design-led / component-first / existing-style / hybrid），设计稿只定义目标效果，组件库仍是优先实现路径；无设计稿的后台、PC 业务系统和移动业务页默认走组件库基线；新增组件库前必须先检查现有依赖
-- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2）、`README.md`（Design-aware component-first UI）、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.3）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
+- **当前覆盖锚点**：`AGENTS.md`（五条核心要求 §2）、`README.md`（Design-aware component-first UI）、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.4）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
 
 ### PL-021 Product Design 能力被误写成单一 IDE 硬依赖
 
 - **场景**：Codex 中可用 Product Design 后，agent 把 brief、ideation、prototype、image-to-code、design QA、share 写成 AI-OS 必备流程，导致 Cursor、Claude Code、普通 IDE 或无插件环境无法按同一规则交付；反过来也可能因担心兼容性而完全不用 Product Design 的设计证据
 - **AI-OS 必须保证**：Product Design 只是可选 `design_input.provider`；其产物通过 `evidence_refs` / `evidence_produced` 回流。无插件场景必须有 Figma、截图、URL reverse-spec、existing-code、manual brief、component-first 或 existing-style fallback，且 Product Design evidence 不替代项目原生验证
-- **当前覆盖锚点**：`docs/interop/product-design.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.3）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
+- **当前覆盖锚点**：`docs/interop/product-design.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.4）、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/DESIGN.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`test/docs.test.js`
 
 ### PL-022 其他项目用 AI-OS 时 doctor 走远程冷拉，工作时反复外部请求拖慢
 
 - **场景**：装了 AI-OS 的用户项目把 doctor 当作收口证据 / IDE hook / CI guard 反复调用，但项目内没有本地 doctor 入口，只能用 npx 远程（github:royeedai/ai-os doctor）解析 HEAD + 下载整仓 + 临时 npm install，秒级冷启动 × 高频 = 拖慢日常开发；首次安装之外的任何工作都不应再产生外部请求
 - **AI-OS 必须保证**：install 把 doctor 入口（doctor 脚本 + 共享模块 + 版本文件）vendored 到目标项目 .ai-os/bin/ 并入 git，日常 / hook / CI 一律走本地 node .ai-os/bin/ai-os-doctor.js 零网络；团队 clone 缺 gitignored 元数据时本地 doctor 以 committed 版本文件降级、不报 E001；install / skills 命令 pin 到 release tag，减少 ls-remote 且可复现；首次 install 是唯一允许的一次性联网
 - **当前覆盖锚点**：`bin/shared.js`（installLocalDoctor + 双模式版本解析）、`bin/create-ai-os.js`、`bin/ai-os-doctor.js`（embedded E001 降级）、`README.md`、`docs/cli.md`、`docs/getting-started.md`、`test/install.test.js`、`test/doctor.test.js`、`test/shared.test.js`
+
+### PL-023 前台执行代理被确认停点误拦，或把 hook 强制性错误泛化到 Codex
+
+- **场景**：用户已经明确要求“全面分析并修复”“修这个 bug”“验证并发布”，但 agent 仍按模板固定停等“go”，导致 Codex 这类前台执行代理无法一次性交付；或文档把 Claude Code pre-tool hook 的强制能力说成 Codex / shell agent 的同等宿主能力，误导用户以为所有表面都有 100% 阻断式 hook。
+- **AI-OS 必须保证**：Activation Gate 把明确的分析 / 修复 / 实现 / 验证 / 发布请求视为 delivery-affecting work，直接进入 L1；确认停点只阻塞未授权、模糊、高风险或越界工作。doctor 是同一条本地 guard 命令，但 Codex 中通常作为本地 / pre-commit / CI 证据门，不描述成宿主 pre-tool hook。
+- **当前覆盖锚点**：`AGENTS.md` Activation Gate 与确认停点、`framework/skills/ai-os-delivery/SKILL.md` 行为路由、`docs/constitution-spec.md` v2.4、README deterministic doctor 段、`docs/interop/claude-code.md` portable guard command、`test/docs.test.js`
 
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 

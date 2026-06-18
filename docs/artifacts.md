@@ -165,7 +165,9 @@ AI-OS 工件治理只适用于 delivery-affecting work：改代码、改项目�
 
 普通对话不进入 lane governance，包括需求脑暴、先聊聊、代码解释、方案比较、学习提问、临时命令查询、非仓库交付任务，或用户明确说不要进入 AI-OS / 不要改项目。普通对话只遵守真实目标优先、不得脑补事实、不得伪造验证结果；不写 `MISSION.md` / `DESIGN.md` / `tasks.yaml`，也不进入 debug / plan / verification 流程。
 
-如果用户意图不清，agent 只问一句：“这是先讨论，还是要进入项目交付流程？”确认前不加载 L1 / L2 / L3 lane 工件。
+如果用户意图不清，agent 只问一句：“这是先讨论，还是要进入项目交付流程？”确认前不加载 L1 / L2 / L3 lane 工件。用户已明确要求分析、修复、实现、验证或发布当前项目时，这已经是 delivery-affecting work，agent 直接从 L1 进入恢复与审计，不再反问。
+
+确认停点只在用户尚未授权当前阶段、范围 / 验收对象不清、高风险或可能越界时阻塞。用户已经明确要求修复、实现、验证或发布且范围可从用户原话和仓库事实界定时，前序授权可以作为继续依据；agent 仍必须记录 root cause / scope / planned files / evidence。
 
 ## Design-Aware Component-First UI（v9.9）
 
@@ -218,6 +220,8 @@ URL reverse-spec 可接受 `trace.zip`、network log / HAR、screenshots、DOM s
 ### Bugfix spec route（v9.3）
 
 Bug 修复可使用 `specs/bugfix.spec.md` 模板，必须锁定 root cause、reproduction、blast radius、planned files、regression guard，并在交付时拆分 code / data / runtime 状态。
+
+如果用户已经明确要求“修复”且问题范围清楚，agent 在给出 root cause、复现、影响范围和计划文件后可继续执行本轮修复；若范围不清、涉及高风险动作、跨共享边界或会扩大到未授权模块，必须停等“可执行”确认。
 
 ## Agent Handoff + Evidence Loop（v9.4）
 
@@ -283,7 +287,7 @@ frontier 模型会更快、更大规模地放大模糊目标，所以 AI-OS 在�
 ### 加载顺序约定
 
 1. 任意会话开始：先读 `AGENTS.md` 并执行 Activation Gate
-2. 只有 delivery-affecting work 才读 L1 全部 → 决定是否需要 L2
+2. 只有 delivery-affecting work 才读 L1 全部 → 决定是否需要 L2；明确“分析并修复 / 实现 / 验证 / 发布”请求直接算 delivery-affecting
 3. 用户进入"对齐 / 设计 / 验证 / 修 bug"等阶段：升级到 L2
 4. 用户引用具体 baseline ID / spec 路径 / failure mode：仅按需读对应 L3
 5. 长 session 持续推进时不重复升级；只有阶段切换才重新评估

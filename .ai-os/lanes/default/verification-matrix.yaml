@@ -1,62 +1,71 @@
 impact_rules:
-  - when: "product-design-optional-bridge"
+  - when: "codex-suitability-doc-accuracy"
     run:
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "design-aware-component-first-ui"
+      - "self-hosted lane current-baseline review"
+  - when: "confirmation-stop-semantics"
+    run:
+      - "AGENTS.md explicit delivery request review"
+      - "skill wrapper confirmation-stop review"
+      - "docs/constitution-spec.md v2.4 review"
+  - when: "doctor-guard-wording"
+    run:
+      - "README portable guard wording review"
+      - "docs/interop/claude-code.md hook vs local guard review"
+  - when: "release-metadata-parity"
+    run:
+      - "VERSION / package.json / package-lock.json parity check"
+      - "CHANGELOG / maintainers release matrix review"
+  - when: "publish-online"
     run:
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "long-horizon-agent-reliability"
-    run:
-      - "npm test"
-      - "npm run lint"
-      - "node bin/create-ai-os.js doctor . --json --strict"
+      - "git status / origin/main / tag review"
 
 failure_modes:
-  - id: FM-PD-001
-    scenario: "AI-OS 文档把 Product Design 写成 Codex / 插件环境的硬依赖，导致 Cursor、Claude Code 或无插件 IDE 不能按同一工件交付 UI"
-    expected: "Product Design 只能是可选设计证据 provider；无插件场景必须通过 Figma、截图、URL reverse-spec、component-first 或 existing-style fallback 使用同一 design_input 字段"
-    guard: "test/docs.test.js Product Design optional bridge"
+  - id: FM-CODEX-001
+    scenario: "用户已明确要求分析并修复、实现、验证或发布，但 AGENTS / skill 仍固定要求二次等 go，导致 Codex 前台执行被误拦"
+    expected: "明确 delivery request 直接通过 Activation Gate 进入 L1；只有未授权、范围 / 验收不清、高风险或可能越界时停等确认"
+    guard: "test/docs.test.js explicit delivery request + confirmation-stop assertions"
     acceptance_refs:
       - AC-001
+  - id: FM-CODEX-002
+    scenario: "README 或 interop docs 把 Claude Code pre-tool hook 的阻断能力泛化为 Codex / shell agent 的同等宿主 hook"
+    expected: "doctor 被描述为 portable guard command；Codex 使用本地 closure check、pre-commit 或 CI，强制性取决于接入面"
+    guard: "test/docs.test.js deterministic guard wording assertions"
+    acceptance_refs:
       - AC-002
-      - AC-005
-  - id: FM-PD-002
-    scenario: "Product Design 的 prototype、image-to-code 或 share URL 被当作 AI-OS 原生验证，跳过项目 build / lint / typecheck / doctor"
-    expected: "Product Design 产物只进入 evidence_refs 或 evidence_produced；任务收口仍必须有项目原生静态校验证据"
-    guard: "test/docs.test.js Product Design native verification boundary"
+  - id: FM-CODEX-003
+    scenario: "VERSION / package.json 已 bump，但 package-lock 根 package 仍停在旧版本"
+    expected: "三个版本真理源同步为 10.3.1，并由 docs tests 断言"
+    guard: "test/docs.test.js package-lock version parity"
     acceptance_refs:
       - AC-003
+  - id: FM-CODEX-004
+    scenario: "官方 skill wrapper 继续把当前框架描述为 AI-OS v9，造成产品版本和 layout schema 9 混淆"
+    expected: "当前框架用 current AI-OS delivery constitution；只有 schema / 历史能力标签保留 v9 语义"
+    guard: "test/docs.test.js skill current-framework wording assertion"
+    acceptance_refs:
       - AC-004
+  - id: FM-CODEX-005
+    scenario: "自托管 lane 或 current spec 仍描述已关闭 v10.2 任务或已删除 upgrade 路径，导致 session 恢复到错误目标"
+    expected: "lane MISSION / DESIGN / tasks / verification / example spec / release-plan / risk-register 指向 v10.3.1 和 install + local doctor 当前产品面"
+    guard: "self-hosted lane current-baseline review + strict doctor"
+    acceptance_refs:
+      - AC-005
+  - id: FM-CODEX-006
+    scenario: "文档和 lane 修完但未运行项目原生校验就声称交付完成"
+    expected: "必须记录 npm test、npm run lint、strict doctor 结果"
+    guard: "tasks.yaml evidence_required + final verification"
+    acceptance_refs:
       - AC-006
-  - id: FM-PD-003
-    scenario: "有 Product Design brief 但没有视觉目标或用户选定方案，就直接进入 prototype / image-to-code 实现"
-    expected: "brief 只锁目标；没有 URL、截图、Figma、mockup 或已选 visual option 时必须先完成 ideation/选择或走 fallback"
-    guard: "docs/interop/product-design.md brief-gate mapping"
-    acceptance_refs:
-      - AC-001
-      - AC-004
-  - id: FM-PD-004
-    scenario: "无 Product Design 时 agent 不记录设计输入来源，导致后续 IDE 不知道是截图、Figma、URL、现有代码还是人工 brief"
-    expected: "DESIGN.md 必须记录 design_input.provider、capability_used、evidence_refs 和 fallback_path，其他 IDE 只依赖这些通用字段"
-    guard: "framework/.agents/templates/lane/DESIGN.md design_input fields"
-    acceptance_refs:
-      - AC-002
-      - AC-005
-  - id: FM-PD-005
-    scenario: "Product Design 输出与项目已有组件库或 UI source routing 冲突，但没有记录 fidelity / component selection trade-off"
-    expected: "DESIGN.md 保留 ui_source、component_library、fidelity_level、custom_required 和 design_input；偏离进入 deviation_log 或 CR"
-    guard: "DESIGN.md UI Source Routing + tasks.yaml deviation_log"
-    acceptance_refs:
-      - AC-002
-      - AC-003
-  - id: FM-PD-006
-    scenario: "文档和模板已改，但 VERSION / package metadata / changelog / self-hosted lane 或原生验证没有收口"
-    expected: "版本 metadata 同步到 10.2.0，CHANGELOG 记录 v10.2，npm test / lint / strict doctor 全部通过后才关闭"
-    guard: "VERSION + package.json + CHANGELOG.md + npm test + npm run lint + doctor --strict"
+  - id: FM-CODEX-007
+    scenario: "发布上线前未复验，或 tag 指向错误提交，导致 GitHub npx 用户拉到未验证 / 错版本"
+    expected: "发布前重跑 npm test、npm run lint、strict doctor；commit 推送 origin/main 后创建并推送 v10.3.1 tag"
+    guard: "release task evidence + git log/tag review"
     acceptance_refs:
       - AC-006
 

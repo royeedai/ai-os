@@ -68,6 +68,14 @@
 - **确认来源**：2026-06-13 用户要求“完整使用 Product Design 的能力和不影响其他 IDE 的方式”
 - **日期**：2026-06-13
 
+#### DD-009: 确认停点按授权 / 风险 / 范围判断，Codex 明确交付请求不二次反问
+
+- **决策**：用户明确要求分析、修复、实现、验证或发布当前项目时，视为已通过 Activation Gate，agent 读取 L1 并继续；确认停点只在当前阶段未授权、范围 / 验收不清、高风险、共享边界未锁或可能越界时阻塞。`doctor --strict` 是跨 surface 复用的本地 guard command，但 Codex / shell agent 的硬阻断依赖 pre-commit、CI 或人工 review，而不是宿主 pre-tool hook。
+- **原因**：Codex 是前台执行代理，过度模板化的“等 go”会阻断用户已明确授权的修复；同时不能把 Claude Code / Cursor hook 机制误写成所有 IDE 的同等能力。
+- **影响范围**：AGENTS、skill wrapper、README、docs/artifacts、docs/constitution-spec、docs/interop、problem ledger、tests
+- **确认来源**：2026-06-18 用户要求“全面分析该项目，有哪些不适合 Codex 的点，或者本身的描述错误。修复下”
+- **日期**：2026-06-18
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接
@@ -84,20 +92,32 @@
 
 - **问题**：同一版本里同时存在 root-only 和 default-lane 两套默认布局叙事
 - **根因**：重构后规范、实现、测试、维护文档未一起回正
-- **绕行方案**：任何 major 布局变更必须同时改 AGENTS、schema、CLI、upgrade、tests
+- **绕行方案**：任何 major 布局变更必须同时改 AGENTS、schema、CLI、install/doctor、tests
 - **影响范围**：交付一致性、doctor 可信度、用户心智模型
 - **日期**：2026-04-22
 
+#### PT-002: 发布元数据只查 VERSION / package.json 会漏掉 package-lock
+
+- **问题**：v10.3.0 发布叙事和测试已切到 10.3.0，但 `package-lock.json` 根 package 仍停在 10.2.0
+- **根因**：发布前检查和 docs tests 只校验 VERSION 与 package.json，没有把 lockfile 根版本纳入同一真理源
+- **绕行方案**：任何版本 bump 必须同时改 VERSION、package.json、package-lock.json，并由 `test/docs.test.js` 断言三者一致
+- **影响范围**：发布一致性、npm / lockfile 消费者心智、release trust
+- **日期**：2026-06-18
+
 ### 4. 技术债追踪
 
-#### TD-001: legacy project 模板仍保留用于迁移辅助
-
-- **类型**：architecture-violation
-- **严重度**：low
-- **影响范围**：framework templates、upgrade 兼容逻辑
-- **消除计划**：后续在确认不再需要 v8 root-only 兼容后清理 project legacy 模板
-- **日期**：2026-04-22
+> 当前无 active 技术债。已解决或不再适用的条目移入 archived。
 
 ## archived
 
 > 不再生效的条目移到这里，归档而非删除。
+
+#### TD-001: legacy project 模板仍保留用于迁移辅助
+
+- **状态**：resolved / archived
+- **原类型**：architecture-violation
+- **原严重度**：low
+- **原影响范围**：framework templates、upgrade 兼容逻辑
+- **解决记录**：v10.0.0 移除 upgrade 命令与 v7/v8 legacy migration；当前 install 只支持 fresh canonical layout，active 技术债不再引用 legacy project 模板
+- **原日期**：2026-04-22
+- **归档日期**：2026-06-18

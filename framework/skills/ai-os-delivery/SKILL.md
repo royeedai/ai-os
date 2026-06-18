@@ -11,7 +11,7 @@ metadata:
 
 # AI-OS delivery skill
 
-This skill packages the AI-OS v9 delivery constitution into the open `agentskills.io` format so any compatible agent (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, VS Code Copilot, Amp, Roo Code, Goose, Windsurf, Continue, ...) can pick it up without writing custom adapters.
+This skill packages the current AI-OS delivery constitution into the open `agentskills.io` format so any compatible agent (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, VS Code Copilot, Amp, Roo Code, Goose, Windsurf, Continue, ...) can pick it up without writing custom adapters.
 
 ## When to apply
 
@@ -30,6 +30,7 @@ Do **not** apply lane governance for ordinary conversation: requirement brainsto
 - Delivery-affecting work → activate this skill, then use progressive disclosure.
 - Ordinary conversation → answer directly; do not read or write `.ai-os/lanes/*`, and do not enter debug / plan / verification routing.
 - Ambiguous intent → ask the one confirmation question above, then follow the user's answer.
+- Explicit delivery requests such as "analyze and fix", "implement this", "verify this", or "ship this" are already delivery-affecting; do not ask the one confirmation question before reading L1.
 - Ordinary conversation still follows the general constraints to serve the user's real goal, avoid invented facts, and avoid false verification claims.
 
 ## Five core requirements (always enforce)
@@ -72,6 +73,8 @@ After the Activation Gate passes, load layers progressively. Do not re-load a hi
 
 ## Behavior routing by task type
 
+Confirmation stops are real approval boundaries, not ritual pauses. Stop only when the user has not authorized the current phase, scope / acceptance remains unclear, the task is high-risk, or continuing would expand beyond the requested boundary. If the user already asked the agent to fix / implement / verify / ship and the scope is clear, record the basis and continue within that scope.
+
 | User intent | Skill response |
 |---|---|
 | Just discuss / brainstorm / explain | Do **not** read or write lane artifacts; answer directly and ask whether to enter delivery only if intent is ambiguous |
@@ -82,7 +85,7 @@ After the Activation Gate passes, load layers progressively. Do not re-load a hi
 | URL reverse-spec intake | Capture URL, screenshots, DOM/CSS, interactions, Network/API observations, backend behavior confidence, and unknowns into `design-pack/parity-map.md` + `specs/*.spec.md`; **do not invent backend internals** |
 | Implement | Only act inside confirmed scope; cross-file or unclear boundary → read-only analysis first |
 | Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/`; before closing the CR, add a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard) |
-| Fix a bug | State root cause + reproduction path + impact scope + planned files; **stop and wait for "go"** |
+| Fix a bug | State root cause + reproduction path + impact scope + planned files; if the user already asked to fix and scope is clear, continue within that scope; otherwise **stop and wait for "go"** |
 | Verify | Cover normal / abnormal / permission denial / empty / timeout / regression; produce project-native static-check evidence |
 | Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute; before closing a lane, aggregate every CR's `## Preventability review` into a `BL-*-retrospective*.md` |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
@@ -118,7 +121,7 @@ The skill must refuse to proceed when any of these would be violated:
 8. Hiding ambiguity, risk, verification failures, or impact surface
 9. Stable failure mode patched once without a regression guard
 10. Hard-coding personal business rules into universal framework rules
-11. Auto-advancing past an approval stop point without explicit user confirmation
+11. Auto-advancing without user authorization, outside requested scope, or past a high-risk approval stop point
 12. Treating IDE diagnostics as project-native static-check evidence
 13. Mixing root shared artifacts and current-lane artifacts into the same semantic file
 
@@ -155,7 +158,7 @@ Any user-asset write, permission / identity change, irreversible state transitio
 When activated by an agent, this skill should:
 
 1. Confirm presence of `AGENTS.md` + `.ai-os/` (if missing, decline gracefully)
-2. Run the Activation Gate before reading L1; ordinary conversation stops here with no lane artifact access
+2. Run the Activation Gate before reading L1; ordinary conversation stops here with no lane artifact access, while explicit delivery requests proceed to L1
 3. If activated, read L1 (`STATE.md` / `lane.toml` / `framework.toml`)
 4. Decide whether the delivery task is align / design / decompose / implement / change / debug / verify / ship / resume / high-risk
 5. Apply the matching behavior rule from the routing table above and stop at confirmation points

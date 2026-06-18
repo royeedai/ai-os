@@ -347,7 +347,7 @@ section("docs: long-horizon agent review is documented and checked");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 2.3"), "constitution spec is at v2.3");
+  assert(spec.includes("Version: 2.4"), "constitution spec is at v2.4");
   assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
   assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
@@ -378,27 +378,37 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(agents.includes("Activation Gate"), "AGENTS.md names Activation Gate");
   assert(agents.includes("delivery-affecting work"), "AGENTS.md gates on delivery-affecting work");
   assert(agents.includes("确认前不得读取或写入 `.ai-os/lanes/*`"), "AGENTS.md forbids lane access before activation confirmation");
+  assert(agents.includes("用户已明确要求分析、修复、实现、验证或发布当前项目时，视为已进入交付流程"), "AGENTS.md lets explicit delivery requests enter governance without re-asking");
+  assert(agents.includes("确认停点"), "AGENTS.md defines confirmation-stop semantics");
   assert(agents.includes("这是先讨论，还是要进入项目交付流程？"), "AGENTS.md includes the one confirmation question");
 
   assert(readme.includes("run the Activation Gate before loading lane artifacts"), "README routes agents through Activation Gate before lane loading");
   assert(readme.includes("Just discuss / brainstorm / explain"), "README includes ordinary conversation row");
   assert(readme.includes("do not read or write lane artifacts"), "README tells agents not to touch lane artifacts for discussion");
+  assert(readme.includes("if the user already asked to fix and scope is clear"), "README does not force a second go on already-authorized fixes");
 
   assert(artifacts.includes("Activation Gate（v9.5.1）"), "artifacts docs include Activation Gate section");
   assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
+  assert(artifacts.includes("用户已明确要求分析、修复、实现、验证或发布当前项目时"), "artifacts docs treat explicit project work as delivery-affecting");
 
-  assert(spec.includes("Version: 2.3"), "constitution spec remains at latest v2.3");
+  assert(spec.includes("Version: 2.4"), "constitution spec remains at latest v2.4");
   assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
   assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
   assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
+  assert(spec.includes("确认停点语义"), "constitution spec defines confirmation-stop semantics");
+  assert(spec.includes("用户已经明确要求分析、修复、实现、验证或发布当前项目时，不再反问"), "constitution spec routes explicit delivery requests to L1");
 
   assert(skill.includes("## Activation Gate"), "skill wrapper includes Activation Gate section");
   assert(skill.includes("Run the Activation Gate before reading L1"), "skill invocation contract runs gate before L1");
   assert(skill.includes("ordinary conversation"), "skill wrapper excludes ordinary conversation");
   assert(skill.includes("do not read or write `.ai-os/lanes/*`"), "skill wrapper blocks lane artifact access for ordinary conversation");
+  assert(skill.includes("Explicit delivery requests"), "skill wrapper recognizes explicit delivery requests");
+  assert(skill.includes("Confirmation stops are real approval boundaries"), "skill wrapper defines non-ritual confirmation stops");
+  assert(!skill.includes("AI-OS v9 delivery constitution"), "skill wrapper does not describe v9 as the current framework version");
 
   assert(ledger.includes("PL-014 非交付对话误触发治理"), "problem ledger tracks non-delivery misactivation");
+  assert(ledger.includes("PL-023 前台执行代理被确认停点误拦"), "problem ledger tracks Codex confirmation-stop overblocking");
   assert(example.includes("Does not read `.ai-os/lanes/default/STATE.md`"), "non-delivery example shows no lane read");
   assert(example.includes("现在进入实现"), "non-delivery example shows explicit transition into delivery");
   assert(changelog.includes("Activation Gate"), "CHANGELOG records activation gate release");
@@ -438,7 +448,7 @@ section("docs: design-aware component-first UI routing is documented and templat
   assert(artifacts.includes("已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度"), "artifacts docs define component library priority");
   assert(artifacts.includes("强视觉页面"), "artifacts docs keep strong-visual consumer pages from default component-native handling");
 
-  assert(spec.includes("Version: 2.3"), "constitution spec is at v2.3 (UI routing changelog stays v2.1)");
+  assert(spec.includes("Version: 2.4"), "constitution spec is at v2.4 (UI routing changelog stays v2.1)");
   assert(spec.includes("Design-aware component-first UI"), "constitution spec references UI routing");
   assert(spec.includes("组件优先不能替代字段、接口、权限、状态、异常和响应式验收"), "constitution spec preserves business acceptance coverage");
 
@@ -527,8 +537,11 @@ section("docs: VERSION and package.json are in sync");
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, "package-lock.json"), "utf8"));
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.3.0", `version is 10.3.0 (got ${version})`);
+  assert(lock.version === pkg.version, `package-lock root version (${lock.version}) matches package.json version (${pkg.version})`);
+  assert(lock.packages[""].version === pkg.version, `package-lock package version (${lock.packages[""].version}) matches package.json version (${pkg.version})`);
+  assert(version === "10.3.1", `version is 10.3.1 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -729,7 +742,7 @@ section("docs: standards-map consolidates open-standard wire formats");
   assert(readme.includes("docs/interop/standards-map.md"), "README links to standards-map.md");
 }
 
-section("docs: deterministic-guard narrative aligns doctor with cross-IDE hooks");
+section("docs: deterministic-guard narrative distinguishes hooks from Codex local guards");
 
 {
   const readme = read("README.md");
@@ -740,10 +753,16 @@ section("docs: deterministic-guard narrative aligns doctor with cross-IDE hooks"
   assert(readme.includes("`pre-tool-use`") || readme.includes("pre-tool-use"), "README narrative shows Claude Code pre-tool-use mapping");
   assert(readme.includes("45427") || readme.includes("RFC #45427"), "README narrative cites the 2026 hooks-vs-prompts RFC");
   assert(readme.includes("ai-os-doctor.js . --strict"), "README narrative uses the committed local doctor --strict invocation");
+  assert(readme.includes("Codex / Gemini / shell agents"), "README lists Codex-style agents separately from hook surfaces");
+  assert(readme.includes("Enforcement strength depends on where you wire the command"), "README avoids claiming identical host-hook enforcement across IDEs");
+  assert(readme.includes("Codex local checks"), "README names Codex local checks as portable guards");
 
   assert(claude.includes("Doctor as cross-IDE deterministic guard"), "claude-code.md adds doctor-as-deterministic-guard section");
   assert(claude.includes("subagent bypass") || claude.includes("hook-bypass"), "claude-code.md surfaces 2026 hook-bypass failure modes");
   assert(claude.includes("W070-W078"), "claude-code.md cites the W070-W078 doctor warning range");
+  assert(claude.includes("portable guard command"), "claude-code.md describes doctor as a portable guard command");
+  assert(claude.includes("not a promise that every host has the same hook API"), "claude-code.md avoids overgeneralizing hook semantics");
+  assert(claude.includes("Codex / Gemini / shell agents"), "claude-code.md documents Codex-style local guard use");
 }
 
 section("docs: Cursor 2.0+ subagent / cloud agent fields align to v9.4 handoff");
@@ -832,7 +851,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
   assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
 
   assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
-  assert(spec.includes("Version: 2.3"), "constitution-spec.md is at v2.3");
+  assert(spec.includes("Version: 2.4"), "constitution-spec.md is at v2.4");
   assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
 
   assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");
@@ -998,11 +1017,11 @@ section("docs: v10.3 local zero-network doctor entry is documented");
   assert(/zero (external request|network)/i.test(readme), "README states the daily flow makes zero external request");
 
   // Install commands are pinned to a release tag (cache-friendly + reproducible)
-  assert(readme.includes("github:royeedai/ai-os#v10.3.0"), "README pins install/skills commands to a release tag");
-  assert(gettingStarted.includes("github:royeedai/ai-os#v10.3.0"), "getting-started pins the install command");
+  assert(readme.includes("github:royeedai/ai-os#v10.3.1"), "README pins install/skills commands to a release tag");
+  assert(gettingStarted.includes("github:royeedai/ai-os#v10.3.1"), "getting-started pins the install command");
 
   // Release tracked
-  assert(changelog.includes("10.3.0"), "CHANGELOG records 10.3.0");
-  assert(maintainers.includes("v10.3.0"), "maintainers release matrix lists v10.3.0");
+  assert(changelog.includes("10.3.1"), "CHANGELOG records 10.3.1");
+  assert(maintainers.includes("v10.3.1"), "maintainers release matrix lists v10.3.1");
   assert(ledger.includes("PL-022"), "problem-ledger registers the zero-network doctor failure mode (PL-022)");
 }

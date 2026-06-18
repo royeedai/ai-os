@@ -10,6 +10,35 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 ---
 
+## 10.3.1 (2026-06-18) — Codex suitability + release metadata consistency
+
+**Patch, backward compatible**. Clarifies AI-OS behavior for Codex-style foreground execution and fixes release metadata drift. No new CLI command, runtime, doctor warning code, MCP server, IDE adapter, artifact category, or schema layout change.
+
+### Fixed
+
+- **Codex confirmation-stop fit**: Activation Gate now explicitly treats "analyze and fix", "implement", "verify", and "ship" as delivery-affecting work. Confirmation stops block only when authorization, scope, acceptance, risk, or boundary ownership is unclear; a clear user request to fix can proceed after the agent records root cause, reproduction, impact scope, and planned files.
+- **Doctor enforcement wording**: README and Claude Code interop no longer imply Codex has the same host-level pre-tool hook semantics as Claude Code. `doctor --strict` is the portable local guard command; hard blocking comes from the surfaces it is wired into, such as Claude hooks, Cursor hooks, pre-commit, or CI.
+- **Version metadata drift**: `package-lock.json` root package version now matches `VERSION` and `package.json`; docs tests check the lockfile too.
+- **Residual version wording**: the public `ai-os-delivery` skill no longer says it packages "AI-OS v9" as the current framework version.
+- **Dogfood lane drift**: self-hosted lane artifacts now describe the current Codex suitability / doc accuracy audit instead of the closed v10.2 Product Design bridge, and the stale `specs/example.spec.md` no longer describes the removed `upgrade` path.
+
+### Changed
+
+- `docs/constitution-spec.md` bumped to **v2.4** for the foreground executor confirmation semantics clarification.
+- `docs/problem-ledger.md` adds PL-023 for confirmation-stop overblocking and host-hook enforcement overgeneralization.
+- `docs/maintainers.md` release checklist now requires `package-lock.json` root version parity with `VERSION` and `package.json`.
+
+### Tests
+
+- `test/docs.test.js` checks v2.4 spec wording, PL-023, package-lock version parity, Codex local / CI guard wording, and explicit delivery-request Activation Gate semantics.
+- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+
+### Migration
+
+No action needed. Existing installs keep the same artifact layout and doctor behavior. Reinstall to pick up the clarified `AGENTS.md`, skill wrapper, and docs.
+
+---
+
 ## 10.3.0 (2026-06-16) — Zero-network local doctor
 
 **Minor, backward compatible**. `doctor` now runs locally with no external request after the one-time install. Previously, projects using AI-OS had no local doctor entry, so every verification / IDE hook / CI run shelled out to `npx --yes github:royeedai/ai-os doctor` — re-resolving the GitHub HEAD, downloading the whole repo, and running a throwaway `npm install` on each invocation. The doctor logic itself is unchanged; only its distribution moves into the target project. No new CLI subcommand, package bin, runtime, doctor warning code, or artifact category.
