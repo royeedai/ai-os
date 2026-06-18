@@ -347,7 +347,7 @@ section("docs: long-horizon agent review is documented and checked");
   assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
   assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
   assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 2.4"), "constitution spec is at v2.4");
+  assert(spec.includes("Version: 2.6"), "constitution spec is at v2.6");
   assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
   assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
   assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
@@ -392,7 +392,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
   assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
   assert(artifacts.includes("用户已明确要求分析、修复、实现、验证或发布当前项目时"), "artifacts docs treat explicit project work as delivery-affecting");
 
-  assert(spec.includes("Version: 2.4"), "constitution spec remains at latest v2.4");
+  assert(spec.includes("Version: 2.6"), "constitution spec remains at latest v2.6");
   assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
   assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
   assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
@@ -448,7 +448,7 @@ section("docs: design-aware component-first UI routing is documented and templat
   assert(artifacts.includes("已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度"), "artifacts docs define component library priority");
   assert(artifacts.includes("强视觉页面"), "artifacts docs keep strong-visual consumer pages from default component-native handling");
 
-  assert(spec.includes("Version: 2.4"), "constitution spec is at v2.4 (UI routing changelog stays v2.1)");
+  assert(spec.includes("Version: 2.6"), "constitution spec is at v2.6 (UI routing changelog stays v2.1)");
   assert(spec.includes("Design-aware component-first UI"), "constitution spec references UI routing");
   assert(spec.includes("组件优先不能替代字段、接口、权限、状态、异常和响应式验收"), "constitution spec preserves business acceptance coverage");
 
@@ -541,7 +541,7 @@ section("docs: VERSION and package.json are in sync");
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
   assert(lock.version === pkg.version, `package-lock root version (${lock.version}) matches package.json version (${pkg.version})`);
   assert(lock.packages[""].version === pkg.version, `package-lock package version (${lock.packages[""].version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.3.1", `version is 10.3.1 (got ${version})`);
+  assert(version === "10.5.0", `version is 10.5.0 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -851,7 +851,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
   assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
 
   assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
-  assert(spec.includes("Version: 2.4"), "constitution-spec.md is at v2.4");
+  assert(spec.includes("Version: 2.6"), "constitution-spec.md is at v2.6");
   assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
 
   assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");
@@ -890,6 +890,122 @@ section("docs: AI-OS self-hosted lane carries Preventability review on every his
 
   const retrospectiveFiles = fs.readdirSync(baselineDir).filter((n) => /^BL-\d{8}-\d{6}-.*retrospective.*\.md$/i.test(n));
   assert(retrospectiveFiles.length >= 1, `at least one retrospective baseline-log exists (got ${retrospectiveFiles.length})`);
+}
+
+section("docs: v10.4 long-lived AI maintenance loop is documented and templated");
+
+{
+  const agents = read("AGENTS.md");
+  const readme = read("README.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const memoryTemplate = read("framework/.agents/templates/shared-root/memory.md");
+  const tasksTemplate = read("framework/.agents/templates/lane/tasks.yaml");
+  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
+  const ledger = read("docs/problem-ledger.md");
+  const maintainers = read("docs/maintainers.md");
+  const changelog = read("CHANGELOG.md");
+  const evalsReadme = read("evals/README.md");
+  const example = read("examples/long-lived-maintenance-loop.md");
+  const periodicEval = read("evals/periodic-refactor-without-drift-evidence.md");
+  const feedbackEval = read("evals/drift-signal-not-fed-back.md");
+  const doctor = read("bin/ai-os-doctor.js");
+
+  assert(agents.includes("长期维护"), "AGENTS.md adds long-lived maintenance behavior rule");
+  assert(agents.includes("drift evidence"), "AGENTS.md names drift evidence");
+  assert(agents.includes("不把定期大重构当默认闭环"), "AGENTS.md rejects periodic big refactor as default");
+
+  assert(readme.includes("Long-lived AI project maintenance"), "README documents long-lived AI maintenance section");
+  assert(readme.includes("evidence-triggered maintenance"), "README positions maintenance as evidence-triggered");
+  assert(readme.includes("do not schedule a big-bang refactor"), "README blocks big-bang refactor without evidence");
+
+  assert(artifacts.includes("Long-lived AI Project Maintenance Loop"), "artifacts.md documents the maintenance loop");
+  for (const field of ["maintenance_review", "drift_signals", "refactor_trigger", "contract_impact", "native_checks", "debt_disposition"]) {
+    assert(artifacts.includes(field), `artifacts docs include ${field}`);
+    assert(tasksTemplate.includes(field), `tasks template includes ${field}`);
+    assert(skill.includes(field), `skill wrapper includes ${field}`);
+  }
+  assert(artifacts.includes("不是 doctor 新警告"), "artifacts.md keeps maintenance loop outside doctor warnings");
+  assert(artifacts.includes("也不是第 13 类工件"), "artifacts.md keeps maintenance loop inside existing artifact categories");
+
+  assert(spec.includes("Long-lived AI Project Maintenance Loop"), "constitution spec records the v2.5 capability");
+  assert(spec.includes("不新增 CLI、runtime、doctor code 或 artifact category"), "constitution spec preserves product boundary");
+
+  assert(memoryTemplate.includes("long-lived-maintenance"), "memory template includes long-lived-maintenance debt type");
+  assert(memoryTemplate.includes("维护触发证据"), "memory template records maintenance trigger evidence");
+  assert(baselineTemplate.includes("Maintenance disposition"), "baseline template adds maintenance disposition to Preventability review");
+  assert(baselineTemplate.includes("无证据不得开启周期性大重构"), "baseline template blocks periodic refactor without evidence");
+
+  assert(matrixTemplate.includes("long-lived-maintenance-review"), "verification matrix has long-lived maintenance impact rule");
+  assert(matrixTemplate.includes("FM-MAINT-001"), "verification matrix covers periodic refactor without evidence");
+  assert(matrixTemplate.includes("FM-MAINT-002"), "verification matrix covers drift feedback loss");
+
+  assert(ledger.includes("PL-024"), "problem ledger registers PL-024");
+  assert(ledger.includes("漂移信号未证据化回流"), "problem ledger names drift feedback failure");
+  assert(maintainers.includes("v10.4.0"), "maintainers release matrix lists v10.4.0");
+  assert(changelog.includes("10.4.0"), "CHANGELOG records 10.4.0");
+  assert(changelog.includes("No new CLI command, runtime, doctor warning code"), "CHANGELOG preserves no-surface-expansion boundary");
+
+  assert(evalsReadme.includes("periodic-refactor-without-drift-evidence.md"), "evals README lists periodic refactor eval");
+  assert(evalsReadme.includes("drift-signal-not-fed-back.md"), "evals README lists drift feedback eval");
+  assert(example.includes("maintenance_review"), "long-lived maintenance example uses maintenance_review");
+  assert(example.includes("not the whole app"), "long-lived maintenance example keeps refactor scoped");
+  assert(periodicEval.includes("maintenance_review.refactor_trigger"), "periodic refactor eval checks refactor trigger evidence");
+  assert(feedbackEval.includes("maintenance_review.debt_disposition"), "drift feedback eval checks debt disposition");
+  assert(periodicEval.includes("CR-20260618-130813-long-lived-ai-maintenance-loop"), "periodic refactor eval references this baseline CR");
+  assert(feedbackEval.includes("CR-20260618-130813-long-lived-ai-maintenance-loop"), "drift feedback eval references this baseline CR");
+
+  assert(doctor.includes('["W070", "W071", "W072", "W074", "W076", "W077", "W078"]'), "doctor semantic warning range remains W070-W078");
+  assert(!doctor.includes("W079"), "doctor does not add W079 for maintenance loop");
+}
+
+section("docs: v10.5 boundary evolution policy is documented and tested");
+
+{
+  const agents = read("AGENTS.md");
+  const readme = read("README.md");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const maintainers = read("docs/maintainers.md");
+  const standards = read("docs/interop/standards-map.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const changelog = read("CHANGELOG.md");
+  const doctor = read("bin/ai-os-doctor.js");
+
+  assert(agents.includes("边界演进"), "AGENTS.md adds boundary evolution behavior rule");
+  assert(agents.includes("不把当前边界写成永久冻结"), "AGENTS.md rejects permanent-freeze boundary wording");
+
+  for (const term of ["Boundary Evolution Policy", "Kernel", "Controlled Extension", "Adapter", "Forbidden"]) {
+    assert(readme.includes(term), `README documents boundary layer ${term}`);
+    assert(artifacts.includes(term), `artifacts docs document boundary layer ${term}`);
+    assert(skill.includes(term), `skill wrapper documents boundary layer ${term}`);
+  }
+
+  assert(readme.includes("not a permanent freeze"), "README says boundary is not a permanent freeze");
+  assert(artifacts.includes("不是永久冻结承诺"), "artifacts.md says default boundary is not a permanent freeze");
+  assert(skill.includes("not a permanent freeze"), "skill wrapper says boundary is not a permanent freeze");
+
+  assert(spec.includes("Version: 2.6"), "constitution spec is bumped to v2.6");
+  assert(spec.includes("Boundary Evolution Policy"), "constitution spec records the v2.6 capability");
+  assert(spec.includes("未来如需扩展 product surface"), "constitution spec gates future product surface expansion");
+
+  assert(maintainers.includes("v10.5.0"), "maintainers release matrix lists v10.5.0");
+  assert(maintainers.includes("Boundary Decision Checklist"), "maintainers has Boundary Decision Checklist");
+  for (const term of ["新 doctor warning", "新 CLI 子命令", "新 adapter", "新工件类别"]) {
+    assert(maintainers.includes(term), `maintainers documents entry criteria for ${term}`);
+  }
+
+  assert(standards.includes("Boundary evolution"), "standards-map includes boundary evolution layer");
+  assert(standards.includes("optional, thin, and removable"), "standards-map keeps adapters optional");
+
+  assert(changelog.includes("10.5.0"), "CHANGELOG records 10.5.0");
+  assert(changelog.includes("Boundary Evolution Policy"), "CHANGELOG names the v10.5 release theme");
+  assert(changelog.includes("It adds no CLI command, runtime, doctor warning code"), "CHANGELOG preserves unchanged product surface");
+
+  assert(doctor.includes('["W070", "W071", "W072", "W074", "W076", "W077", "W078"]'), "doctor semantic warning range remains W070-W078");
+  assert(!doctor.includes("W079"), "doctor does not add W079 for boundary policy");
 }
 
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");
@@ -988,7 +1104,7 @@ section("docs: v10.1 restate-confirm gate + architecture guardrail");
   assert(example.includes("Restate-and-confirm gate"), "greenfield example demonstrates the restate-and-confirm gate");
 
   const exampleFiles = fs.readdirSync(path.join(repoRoot, "examples")).filter((f) => f.endsWith(".md") && f !== "README.md");
-  assert(exampleFiles.length === 8, `examples stay at 8 excluding README (got ${exampleFiles.length})`);
+  assert(exampleFiles.length === 9, `examples stay at 9 excluding README (got ${exampleFiles.length})`);
 }
 
 section("docs: v10.3 local zero-network doctor entry is documented");
@@ -1017,11 +1133,11 @@ section("docs: v10.3 local zero-network doctor entry is documented");
   assert(/zero (external request|network)/i.test(readme), "README states the daily flow makes zero external request");
 
   // Install commands are pinned to a release tag (cache-friendly + reproducible)
-  assert(readme.includes("github:royeedai/ai-os#v10.3.1"), "README pins install/skills commands to a release tag");
-  assert(gettingStarted.includes("github:royeedai/ai-os#v10.3.1"), "getting-started pins the install command");
+  assert(readme.includes("github:royeedai/ai-os#v10.5.0"), "README pins install/skills commands to a release tag");
+  assert(gettingStarted.includes("github:royeedai/ai-os#v10.5.0"), "getting-started pins the install command");
 
   // Release tracked
-  assert(changelog.includes("10.3.1"), "CHANGELOG records 10.3.1");
-  assert(maintainers.includes("v10.3.1"), "maintainers release matrix lists v10.3.1");
+  assert(changelog.includes("10.5.0"), "CHANGELOG records 10.5.0");
+  assert(maintainers.includes("v10.5.0"), "maintainers release matrix lists v10.5.0");
   assert(ledger.includes("PL-022"), "problem-ledger registers the zero-network doctor failure mode (PL-022)");
 }

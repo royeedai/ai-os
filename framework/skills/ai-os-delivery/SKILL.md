@@ -87,6 +87,8 @@ Confirmation stops are real approval boundaries, not ritual pauses. Stop only wh
 | Requirement change | Write lane `baseline-log/CR-*.md` with impact analysis **before** code edits; then update `MISSION.md` / `DESIGN.md` / `specs/`; before closing the CR, add a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard) |
 | Fix a bug | State root cause + reproduction path + impact scope + planned files; if the user already asked to fix and scope is clear, continue within that scope; otherwise **stop and wait for "go"** |
 | Verify | Cover normal / abnormal / permission denial / empty / timeout / regression; produce project-native static-check evidence |
+| Long-lived maintenance | At each delivery closeout, review drift evidence; open a maintenance CR or scoped refactor task only when evidence exists, and record `maintenance_review` rather than scheduling periodic big-bang refactors |
+| Boundary evolution | Keep the AI-OS kernel stable; allow doctor / CLI / adapter / artifact-category changes only after CR evidence, tests, and boundary review; reject runtime expansion by default |
 | Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute; before closing a lane, aggregate every CR's `## Preventability review` into a `BL-*-retrospective*.md` |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
 | Agent handoff return | Before marking a task done / verified / shipped, record `evidence_produced`; put implementation drift in `deviation_log` or a new CR |
@@ -106,6 +108,21 @@ For frontend screens, separate the UI target from the implementation path:
 - Fidelity levels: `strict` when the user demands design restoration, `practical` for business / admin UI with design input, `component-native` when no design exists.
 - Component-first does not skip logic: fields, API contracts, permissions, validation, loading / empty / error states, timeout paths, responsive behavior, and project-native verification still need acceptance coverage.
 - Product Design QA, prototype links, or share URLs are design evidence, not native verification. Project build / lint / typecheck / tests or equivalent checks still close delivery.
+
+## Long-lived AI project maintenance
+
+Long-lived AI projects should not default to calendar-based "refactor everything" cycles. Use continuous small maintenance: record `drift_signals`, evidence-backed `refactor_trigger`, `contract_impact`, `native_checks`, and `debt_disposition` in `tasks.yaml` `maintenance_review`. Stable findings flow back to `.ai-os/memory.md`, `verification-matrix.yaml`, or `evals/`; if there is no observed drift evidence, do not open a maintenance CR just to refresh code.
+
+## Boundary evolution
+
+Treat AI-OS boundaries as a reviewable policy, not a permanent freeze. Classify every proposed capability as `Kernel`, `Controlled Extension`, `Adapter`, or `Forbidden` before implementation.
+
+- Kernel stays stable: Activation Gate, 12 artifact categories, `AGENTS.md`, lane recovery, `memory.md`, project-native verification, local doctor, no telemetry, and no default external service.
+- Controlled Extension requires CR evidence, acceptance criteria, native checks, docs tests, and a verification guard or eval when the failure mode is repeatable.
+- Adapter work must stay optional, thin, removable, and non-blocking for agents that do not have that external tool.
+- Forbidden surfaces stay out of core: built-in agent runner, refactor scheduler, model router, auto-release platform, long-running service, telemetry collection, and IDE-only hard dependency.
+
+Entry criteria: a new doctor warning must be deterministic and structural; a new CLI subcommand must cover a high-frequency core operation that install / doctor cannot cover; a new adapter must not be a hard dependency; a new artifact category requires proof that the existing 12 categories cannot represent multiple real cases.
 
 ## Absolute prohibitions
 
@@ -163,4 +180,4 @@ When activated by an agent, this skill should:
 4. Decide whether the delivery task is align / design / decompose / implement / change / debug / verify / ship / resume / high-risk
 5. Apply the matching behavior rule from the routing table above and stop at confirmation points
 
-The skill does **not** introduce new commands, slash invocations, IDE plugins, agent runners, MCP servers, agent routers, worktree managers, or runtime dependencies. It is purely an open-format wrapper around the AI-OS constitution.
+The skill does **not** introduce new commands, slash invocations, IDE plugins, agent runners, MCP servers, agent routers, worktree managers, or runtime dependencies. It is purely an open-format wrapper around the AI-OS constitution. Future surface expansion is not impossible, but it must pass Boundary Evolution Policy review first.

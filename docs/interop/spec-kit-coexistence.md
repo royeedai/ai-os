@@ -24,7 +24,7 @@ Phase 1 (Spec-Kit):
   /speckit.implement       → code
 
 Phase 2 (AI-OS takes over):
-  npx --yes github:royeedai/ai-os#v10.3.1 .
+  npx --yes github:royeedai/ai-os#v10.5.0 .
   → AI-OS constitution governs verification, shipping, change, debug, recovery
 ```
 

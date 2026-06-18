@@ -2,7 +2,7 @@
 
 本文件记录 AI-OS 必须持续覆盖的稳定问题，以及它们在当前版本中的真实承接点。
 
-AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
+AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、长期 AI 项目无证据周期性大重构或漂移信号不回流、以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
 
 ## 当前覆盖
 
@@ -136,6 +136,12 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 - **场景**：用户已经明确要求“全面分析并修复”“修这个 bug”“验证并发布”，但 agent 仍按模板固定停等“go”，导致 Codex 这类前台执行代理无法一次性交付；或文档把 Claude Code pre-tool hook 的强制能力说成 Codex / shell agent 的同等宿主能力，误导用户以为所有表面都有 100% 阻断式 hook。
 - **AI-OS 必须保证**：Activation Gate 把明确的分析 / 修复 / 实现 / 验证 / 发布请求视为 delivery-affecting work，直接进入 L1；确认停点只阻塞未授权、模糊、高风险或越界工作。doctor 是同一条本地 guard 命令，但 Codex 中通常作为本地 / pre-commit / CI 证据门，不描述成宿主 pre-tool hook。
 - **当前覆盖锚点**：`AGENTS.md` Activation Gate 与确认停点、`framework/skills/ai-os-delivery/SKILL.md` 行为路由、`docs/constitution-spec.md` v2.4、README deterministic doctor 段、`docs/interop/claude-code.md` portable guard command、`test/docs.test.js`
+
+### PL-024 长期 AI 项目靠定期大重构防漂移，或漂移信号未证据化回流
+
+- **场景**：纯 AI / AI-assisted 项目经历多轮交付后，团队用“每隔一段时间大重构一次”作为默认维护方式；或者重复返工、同型缺陷、架构护栏未回流、验证矩阵过时、技术债无处置等漂移信号只留在聊天 / 总结里，没有进入 CR、任务证据、memory、verification guard 或 eval。
+- **AI-OS 必须保证**：长期维护按 drift evidence 触发。只有 observed drift signals 明确时才开启维护 CR 或 scoped refactor task；任务用 `maintenance_review` 记录 `drift_signals`、`refactor_trigger`、`contract_impact`、`native_checks`、`debt_disposition`；稳定发现必须回流 `.ai-os/memory.md`、`verification-matrix.yaml` 或 `evals/`。
+- **当前覆盖锚点**：`AGENTS.md`（行为规则 §长期维护）、`README.md`（Long-lived AI project maintenance）、`docs/artifacts.md`（Long-lived AI Project Maintenance Loop）、`docs/constitution-spec.md` v2.6、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`examples/long-lived-maintenance-loop.md`、`evals/periodic-refactor-without-drift-evidence.md`、`evals/drift-signal-not-fed-back.md`、`test/docs.test.js`
 
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 

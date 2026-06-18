@@ -43,8 +43,10 @@
 | v10.2.0 | Product Design optional bridge（minor） | `design_input` 记录 Product Design / Figma / URL / screenshot / existing-code / manual brief；Product Design 能力可完整用作设计证据，但不是插件硬依赖 |
 | v10.3.0 | Zero-network local doctor（minor） | install 把 doctor 入口 vendored 到目标项目 `.ai-os/bin/`（入 git），日常 / hook / CI 走 `node .ai-os/bin/ai-os-doctor.js .` 本地零外部请求；团队 clone 无 framework.toml 时按 committed VERSION 降级 E001；install / skills 命令 pin release tag；无新增 CLI / doctor code / 工件类别 |
 | v10.3.1 | Codex suitability + release metadata consistency（patch） | Activation Gate / bugfix stops 对明确授权的 Codex 前台执行请求不再二次反问；doctor guard 文案区分 host hook 与 Codex local / CI guard；补 package-lock 版本一致性检查 |
+| v10.4.0 | Long-lived AI Project Maintenance Loop（minor） | 长期 AI 项目按 drift evidence 触发维护 CR / scoped refactor task；`tasks.yaml` 可选 `maintenance_review`；verification matrix 增长期维护 guard；不新增 CLI / runtime / doctor warning / 工件类别 |
+| v10.5.0 | Boundary Evolution Policy（minor） | Kernel / Controlled Extension / Adapter / Forbidden 边界分类；future doctor / CLI / adapter / artifact-category changes require CR evidence, tests, and boundary review；本轮不新增产品 surface |
 
-各版本保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容（W070-W078 warning-only，可由 `doctor --strict` 升级为 error）。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）。
+Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。当前 doctor semantic warnings 为 W070-W078，可由 `doctor --strict` 升级为 error。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）；未来扩展必须先过 Boundary Decision Checklist。
 
 ## 发布前检查清单（公开口径）
 
@@ -57,7 +59,7 @@
 - [ ] README、`docs/cli.md`、`docs/artifacts.md` 与本次改动同步
 - [ ] `docs/constitution-spec.md` 在改动影响 spec 兼容性时已 bump
 - [ ] `CHANGELOG.md` 已新增本版本条目并写明 Added / Changed / Tests / Migration
-- [ ] `docs/problem-ledger.md` 已为本次新规则补登 PL-* 或 PG-*
+- [ ] `docs/problem-ledger.md` 已为本次新规则补登 PL-* / PG-*，或在 CR 中记录不补登原因
 - [ ] `git status` 干净
 - [ ] minor / major 发布在 push 完成后执行 `git tag -a vX.Y.Z -m "..."` 并 `git push origin vX.Y.Z`
 - [ ] 评估是否需要 npm publish（默认走 npx-from-GitHub 主路径，npm 可选）
@@ -85,6 +87,22 @@
 2. 任何“当前覆盖锚点”变化，都要同步更新 `docs/problem-ledger.md`
 3. 不要让单一 IDE 才能生效的机制进入根层治理
 4. root shared 与 lane current 的语义边界不能混写
+
+## Boundary Decision Checklist
+
+任何新增 AI-OS 产品 surface 前先分类：
+
+- **Kernel**：Activation Gate、12 组工件、`AGENTS.md`、lane 恢复、`memory.md`、项目原生验证、local doctor、无遥测、无默认外部服务。Kernel 改动必须按 minor / major 走完整 CR、docs、tests。
+- **Controlled Extension**：doctor warning、CLI 子命令、schema 字段、release check。必须有真实 failure mode 或高频维护需求、CR、验收、项目原生验证、docs tests，必要时补 `verification-matrix.yaml` guard 或 `evals/`。
+- **Adapter**：hooks、CI、MCP resources、IDE 指引、cloud-agent 映射、skills wrapper。必须可选、薄封装、可删除，不得成为核心运行时或唯一生效路径。
+- **Forbidden**：内置 agent runner、重构调度器、模型路由器、自动发版平台、长期后台服务、遥测收集、IDE 专属硬依赖。
+
+具体准入：
+
+- 新 doctor warning：必须是确定性结构检查，不能依赖 LLM 判断语义；需测试覆盖 `--strict` 行为。
+- 新 CLI 子命令：只有 install / doctor 无法覆盖高频核心操作时才允许；不得引入长期服务或外部依赖。
+- 新 adapter：只做文档、模板、skill 或薄脚本；无该外部工具时 AI-OS 仍完整可用。
+- 新工件类别：默认禁止；只有现有 12 类无法表达多个真实案例，且迁移 / 兼容成本被 CR 明确评估后才可讨论。
 
 ## 测试方式
 

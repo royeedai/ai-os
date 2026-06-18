@@ -45,7 +45,7 @@ trajectory_signature: "session-resume → skip-STATE.md → read-MISSION.md → 
 ---
 ```
 
-The field is **optional** and free-form (no enum). Existing 26 evals continue to pass without it. AI-OS itself does not run trajectories — it only catalogs the shape so that external trajectory-aware harnesses can ingest the same eval set without forking it. The mandatory frontmatter remains `trigger_source / first_baseline_id / risk_source / failure_mode / harm / artifact_gate`; if you don't have a clear trajectory pattern, omit `trajectory_signature` entirely.
+The field is **optional** and free-form (no enum). Existing evals continue to pass without it. AI-OS itself does not run trajectories — it only catalogs the shape so that external trajectory-aware harnesses can ingest the same eval set without forking it. The mandatory frontmatter remains `trigger_source / first_baseline_id / risk_source / failure_mode / harm / artifact_gate`; if you don't have a clear trajectory pattern, omit `trajectory_signature` entirely.
 
 ## Current baseline samples
 
@@ -89,6 +89,7 @@ Grouped by the five core requirements they enforce.
 ### R5: Recoverable project memory
 
 - `problem-ledger-coverage-regression.md` — Problem coverage regresses after refactor
+- `drift-signal-not-fed-back.md` — Long-lived AI project drift signals are not fed back to memory / verification / evals
 
 ### Cross-cutting: Fact-state explicitness (R1 + R4)
 
@@ -96,6 +97,7 @@ Hallucination guard via `fact_state_review` is enforced before tasks reach execu
 
 - `inferred-treated-as-fact-into-execution.md` — Inferred / unknown treated as confirmed and carried into execution or closure (W077)
 - `url-reverse-spec-backend-hallucination.md` — URL reverse-spec invents backend behavior without evidence
+- `periodic-refactor-without-drift-evidence.md` — Calendar-based big refactor starts without observed drift evidence
 
 ## Using evals
 

@@ -1,49 +1,50 @@
-# AI-OS v10.3.1 Codex Suitability Design
+# AI-OS v10.5.0 Boundary Evolution Policy Design
 
 ## 1. 设计目标
 
-- **本轮设计目标**：修正 AI-OS 对 Codex 前台执行代理不友好的确认停点描述、过度泛化的 doctor hook 强制性叙事，以及 release metadata / self-hosted lane 的自描述漂移。
-- **需要先锁定的关键页面 / 交互 / 接口**：关键对象是 Activation Gate、confirmation-stop semantics、doctor guard integration wording、version metadata parity、dogfood lane baseline。
-- **必须用户确认的核心设计决策**：用户已明确要求“全面分析并修复”，本轮可直接进入交付；仍不新增 Codex 专属 surface 或 runtime。
+- **本轮设计目标**：让 AI-OS 的长期边界从“每次发布不新增 X”的静态口径，升级为可复用、可验证、可审查的边界演进策略。
+- **需要先锁定的关键页面 / 交互 / 接口**：Boundary Evolution Policy、four-layer boundary taxonomy、extension gates、maintainer checklist、docs tests、version metadata。
+- **必须用户确认的核心设计决策**：用户已同意先计划后开始；本轮只增加边界决策规则，不新增 runtime / CLI / doctor warning / artifact category。
 
 ## 2. 信息架构（UI 项目必填）
 
-- **入口与导航骨架**：AGENTS 宪法 → skill wrapper → README / interop docs → spec / artifacts schema → tests → dogfood lane。
-- **一级 / 二级结构**：explicit delivery request routing → confirmation-stop boundaries → portable doctor guard wording → version parity → lane recovery state。
-- **关键信息优先级**：先保证 agent 行为不误拦明确交付请求，再保证对 Codex / hooks 的技术描述真实，最后同步自托管工件。
+- **入口与导航骨架**：AGENTS 宪法 → skill wrapper → README → artifacts schema → constitution spec → maintainers checklist → interop docs → tests。
+- **一级 / 二级结构**：kernel boundary → controlled extension → adapter layer → forbidden surfaces → entry criteria。
+- **关键信息优先级**：先明确核心边界不放松，再说明哪些扩展可被证据化接受，最后列永久禁止项。
 
 ## 3. 关键页面与交互（UI 项目必填）
 
 | 页面 / 入口 | 目标 | 关键元素 | 关键操作 | 是否核心决策 | 确认状态 |
 |---|---|---|---|---|---|
-| `AGENTS.md` | 分发宪法 | Activation Gate / 确认停点 / bugfix rule | 明确已授权请求不二次反问 | yes | confirmed |
-| `framework/skills/ai-os-delivery/SKILL.md` | agentskills wrapper | explicit delivery requests / confirmation stops | 让 Codex 等 spec-aware agent 按同一规则执行 | yes | confirmed |
-| README / Claude interop | 用户心智 | portable guard command / hook vs local guard | 不把 Codex 写成 host-level hook | yes | confirmed |
-| tests / version files | 发布一致性 | VERSION / package.json / package-lock | 锁住 metadata parity | yes | confirmed |
+| `AGENTS.md` | 分发宪法 | 边界演进行为规则 | 说明受控扩展必须有证据门 | yes | confirmed |
+| `README.md` | 用户心智 | Boundary Evolution Policy | 解释 AI-OS 不变胖但能有证据地演进 | yes | confirmed |
+| `docs/artifacts.md` | schema 语义 | four-layer boundary taxonomy | 说明本策略不新增工件类别 | yes | confirmed |
+| `docs/maintainers.md` | 维护者判断 | Boundary Decision Checklist | 判断 doctor / CLI / adapter / artifact category 准入 | yes | confirmed |
+| `test/docs.test.js` | 回归 guard | boundary assertions | 防止未来把边界写成永久冻结或无限扩张 | yes | confirmed |
 
 ## 4. 核心接口与数据模型（API 项目必填）
 
 | 接口 / 模型 | 用途 | 关键字段 | 状态流转 | 是否核心决策 | 确认状态 |
 |---|---|---|---|---|---|
-| Activation Gate Semantics | 判断是否读 lane | delivery-affecting / ordinary / ambiguous / explicit request | ordinary → no lane；ambiguous → one question；explicit delivery → L1 | yes | confirmed |
-| Confirmation Stop Semantics | 判断是否停等用户 | authorization / scope clarity / acceptance clarity / risk / boundary | authorized + clear → proceed；unclear / high-risk / out-of-scope → stop | yes | confirmed |
-| Doctor Guard Wording | 描述强制边界 | local command / host hook / pre-commit / CI / Codex local closure | command shared → enforcement depends on integration surface | yes | confirmed |
-| Version Metadata Parity | 发布一致性 | VERSION / package.json / package-lock root package | bump → tests assert all three match | yes | confirmed |
+| Kernel boundary | 永久核心 | Activation Gate / 12 artifacts / AGENTS / memory / local doctor / native verification / no telemetry | stable | yes | confirmed |
+| Controlled Extension | 受控扩展 | CR / evidence / native tests / docs tests / eval or verification guard | request → boundary review → CR → tests → release | yes | confirmed |
+| Adapter layer | 外部工具薄集成 | optional / thin / removable / no hard dependency | doc/spec/example → optional adoption | yes | confirmed |
+| Forbidden surfaces | 永久禁区 | agent runner / refactor scheduler / model router / auto-release platform / long-running service / telemetry / IDE-only dependency | blocked | yes | confirmed |
 
 ## 5. 关键流程
 
-1. 用户要求全面分析并修复 AI-OS 对 Codex 不友好或描述错误的点。
-2. agent 通过 Activation Gate，读取 L1/L2 工件并建立本轮 CR。
-3. agent 审计公开 docs、skill、tests、version metadata、自托管 lane 与 stale spec。
-4. agent 修正确认停点、doctor guard 文案、v9 残留、package-lock 版本和 lane 自描述。
-5. agent 运行 `npm test`、`npm run lint`、`node bin/create-ai-os.js doctor . --json --strict` 后收口。
+1. 用户确认 AI-OS 长期发展需要边界演进规则。
+2. agent 建立本轮 CR，基于 v10.4 已验证本地基线继续。
+3. agent 更新 AGENTS、skill、README、artifacts、constitution spec、maintainers、interop、tests、version metadata。
+4. agent 运行项目原生验证：`npm test`、`npm run lint`、`node bin/create-ai-os.js doctor . --json --strict`。
+5. 交付时拆分代码 / 数据 / 运行状态，并说明本轮没有新增任何运行面。
 
 ## 6. 共享基础设施审计（brownfield / change / reverse-spec 必填）
 
-- **受影响的共享组件**：AGENTS、README、docs/artifacts、docs/constitution-spec、docs/interop/claude-code、problem ledger、maintainers guide、official skill wrapper、docs tests、version metadata、self-hosted lane。
-- **受影响的接口 / 页面清单**：AI agent task routing、Activation Gate、bugfix flow、doctor guard setup guidance、release metadata checks。
-- **同仓正常实现对照**：v10.0 去版本化要求避免把 schema `9` 读成当前产品版本；v10.3 local doctor 要求日常 guard 零网络；v9.5 Activation Gate 要求普通对话不读 lane。
-- **副作用清单**：不改 CLI 行为；不新增 doctor warning；不新增 Codex-only files；不改变 canonical layout；历史 changelog / old CR 的版本事实保留。
+- **受影响的共享组件**：AGENTS、README、docs/artifacts、docs/constitution-spec、docs/maintainers、docs/interop/standards-map、official skill wrapper、docs tests、version metadata、self-hosted lane。
+- **受影响的接口 / 页面清单**：AI-OS product boundary language、extension gate semantics、maintainer release matrix、version pin docs、docs test assertions。
+- **同仓正常实现对照**：v10.1 / v10.2 / v10.3 / v10.4 均保持 no-runtime/no-surface expansion；本轮保留该事实，但避免把它写成永久冻结。
+- **副作用清单**：不改 CLI 行为；不新增 doctor warning；不新增 artifact category；不新增 runtime；历史 changelog / historical CR 版本事实保留。
 
 ## 7. UI Source Routing（前端 UI 项目必填）
 
@@ -54,30 +55,30 @@
 - **selection_reason**：not a frontend UI delivery
 - **fidelity_level**：component-native
 - **custom_required**：无 UI 实现
-- **design_input.provider**：none
+- **design_input.provider**：manual-brief
 - **design_input.capability_used**：manual
-- **design_input.evidence_refs**：用户 2026-06-18 请求 + 仓库实际文件审计
+- **design_input.evidence_refs**：用户 2026-06-18 边界决策请求 + repo artifact audit
 - **design_input.fallback_path**：existing-style
 
 ## 8. 对照参考（reverse-spec 必填）
 
-- **原始参考清单**：用户要求“全面分析该项目，有哪些不适合 Codex 的点，或者本身的描述错误。修复下”。
-- **字段级 / 行为级对照摘要**：确认停点从固定 wait 改为授权 / 风险 / 范围敏感；doctor guard 从同等 hook 改为 portable command；version metadata 从 VERSION/package-only 扩到 package-lock parity。
-- **仍待解决差异**：AI-OS 仍不检测 Codex 宿主能力；只能描述本地 command、pre-commit 和 CI 接入边界。
+- **原始参考清单**：用户确认的 “v10.5 Boundary Evolution Policy” 方案。
+- **字段级 / 行为级对照摘要**：计划要求核心边界不变，但允许证据化薄扩展；新增 boundary policy 文档和测试；不新增 runtime / CLI / doctor warning / artifact category。
+- **仍待解决差异**：未来真实扩展仍需另开 CR；本轮不提前实现任何扩展。
 
 ## 9. 验收标准
 
 | AC ID | 需求 ID | 验收描述 | 验证方式 | 证据 |
 |---|---|---|---|---|
-| AC-001 | REQ-001 | Explicit Codex-style delivery requests no longer force ritual re-confirmation | `npm test` | AGENTS / skill / artifacts / spec assertions |
-| AC-002 | REQ-002 | Doctor guard wording distinguishes hooks from Codex local / CI guard | `npm test` | README / claude-code assertions |
-| AC-003 | REQ-003 | VERSION / package.json / package-lock all match 10.3.1 | `npm test` | version parity assertions |
-| AC-004 | REQ-004 | Skill wrapper no longer calls current AI-OS “v9” | `npm test` | skill assertion |
-| AC-005 | REQ-005 | Dogfood lane and example spec no longer describe v10.2 / removed upgrade path as current | `doctor --strict` + review | self-hosted lane files |
+| AC-001 | REQ-001 | Public docs and skill describe Kernel / Controlled Extension / Adapter / Forbidden boundary layers | `npm test` | docs assertions |
+| AC-002 | REQ-002 | Doctor warning, CLI subcommand, interop adapter, and artifact-category entry criteria are documented | `npm test` | boundary checklist assertions |
+| AC-003 | REQ-003 | Docs avoid permanent freeze wording and describe evidence-gated extension | `npm test` + review | no-freeze assertions |
+| AC-004 | REQ-004 | Product surface remains unchanged in this release | `npm test` + strict doctor | no new bin / doctor warning assertions |
+| AC-005 | REQ-005 | VERSION / package.json / package-lock / docs pins all align to 10.5.0 and spec v2.6 | `npm test` | version assertions |
 | AC-006 | REQ-006 | Native verification passes | `npm test` + `npm run lint` + `doctor --strict` | command outputs |
 
 ## 10. 反述确认门（设计锁定前必经）
 
-- **agent 反述的关键设计理解**：这是 patch 级治理和文案准确性修复；用户已明确授权“分析并修复”，因此本轮可在写 CR 后继续执行。核心设计是让确认停点不误拦 Codex 明确交付请求，同时保留模糊 / 高风险 / 越界停点；doctor 强制性必须按接入面描述。
-- **用户确认 / 校正**：用户 2026-06-18 明确要求全面分析并修复。
+- **agent 反述的关键设计理解**：AI-OS 不该变胖，但也不该把当前边界写成永久冻结。本轮将边界拆成 Kernel / Controlled Extension / Adapter / Forbidden；未来新增 doctor / CLI / adapter / artifact category 必须有证据门和 CR，本轮本身不新增这些 surface。
+- **用户确认 / 校正**：用户 2026-06-18 表示“同意。计划后开始”。
 - **确认日期**：2026-06-18

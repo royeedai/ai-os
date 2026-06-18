@@ -10,6 +10,64 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 ---
 
+## 10.5.0 (2026-06-18) — Boundary Evolution Policy
+
+**Minor, backward compatible**. Adds an explicit Boundary Evolution Policy so AI-OS can evolve without becoming an IDE, runtime, scheduler, model router, or automation platform. This release changes docs, skill guidance, tests, version metadata, and self-hosted lane records only. It adds no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, artifact category, or schema layout change.
+
+### Added
+
+- **Boundary Evolution Policy**: AI-OS boundaries are classified as Kernel, Controlled Extension, Adapter, or Forbidden.
+- **Controlled extension gates**: future doctor warnings, CLI subcommands, adapter surfaces, and artifact-category changes require CR evidence, native checks, docs tests, and verification / eval guards when applicable.
+- **Maintainer checklist**: `docs/maintainers.md` now records concrete entry criteria for doctor, CLI, adapter, and artifact-category changes.
+
+### Changed
+
+- `docs/constitution-spec.md` bumped to **v2.6** for the boundary policy.
+- README, `docs/artifacts.md`, `docs/interop/standards-map.md`, the official skill wrapper, install pins, and self-hosted lane artifacts now describe v10.5.0.
+- Boundary wording now says default no surface expansion is a review policy, not a permanent freeze.
+
+### Tests
+
+- `test/docs.test.js` checks boundary layer vocabulary, controlled extension entry criteria, forbidden surfaces, unchanged product surface, and v2.6 spec wording.
+- Version assertions move 10.4.0 → 10.5.0 across docs/install/doctor/shared tests.
+- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+
+### Migration
+
+No action needed. Existing installs keep the same artifact layout and doctor behavior. Reinstall to pick up the v10.5.0 boundary guidance and docs pins.
+
+---
+
+## 10.4.0 (2026-06-18) — Long-lived AI Project Maintenance Loop
+
+**Minor, backward compatible**. Adds a long-lived maintenance loop for pure-AI / AI-assisted projects: continuous small maintenance, evidence-triggered scoped refactors, native evidence gates, and feedback into project memory / verification / evals. No new CLI command, runtime, doctor warning code, MCP server, IDE adapter, agent runner, artifact category, or schema layout change.
+
+### Added
+
+- **Long-lived AI Project Maintenance Loop**: AI-OS now explicitly rejects calendar-based "refactor everything every so often" as the default AI-project maintenance strategy. Maintenance starts from observed drift evidence.
+- **Optional `maintenance_review` task vocabulary**: `tasks.yaml` templates can record `drift_signals`, `refactor_trigger`, `contract_impact`, `native_checks`, and `debt_disposition`.
+- **Maintenance verification guards**: `verification-matrix.yaml` template adds `long-lived-maintenance-review` and failure modes for periodic refactor without evidence and drift signals that do not feed back.
+- **Framework feedback disposition**: baseline-log `Preventability review` guidance now includes `Maintenance disposition` for deciding whether a finding should become a maintenance CR, scoped refactor, memory entry, verification guard, or eval.
+- **Example and evals**: `examples/long-lived-maintenance-loop.md`, `evals/periodic-refactor-without-drift-evidence.md`, and `evals/drift-signal-not-fed-back.md` cover the new loop.
+
+### Changed
+
+- `docs/constitution-spec.md` bumped to **v2.5** for the long-lived maintenance loop.
+- `docs/problem-ledger.md` adds PL-024 for periodic big-bang refactors without drift evidence and drift signals not feeding back to project memory / guards / evals.
+- README, `docs/artifacts.md`, `docs/maintainers.md`, the official skill wrapper, templates, install pins, and self-hosted lane artifacts now describe v10.4.0.
+
+### Tests
+
+- `test/docs.test.js` checks the long-lived maintenance docs, `maintenance_review` template vocabulary, verification guards, PL-024, new example/evals, unchanged W070-W078 doctor range, and unchanged product surface.
+- Version assertions move 10.3.1 → 10.4.0 across docs/install/doctor/shared tests.
+- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+
+### Migration
+
+No action needed. Existing installs keep the same artifact layout and doctor behavior. Reinstall to pick up the enriched templates and v10.4.0 docs; adopted projects can add `maintenance_review` only to maintenance / drift-control tasks.
+
+---
+
 ## 10.3.1 (2026-06-18) — Codex suitability + release metadata consistency
 
 **Patch, backward compatible**. Clarifies AI-OS behavior for Codex-style foreground execution and fixes release metadata drift. No new CLI command, runtime, doctor warning code, MCP server, IDE adapter, artifact category, or schema layout change.

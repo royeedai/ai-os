@@ -12,5 +12,6 @@ Canonical AI-OS project scenarios. Each example is a **narrative walkthrough** s
 | [multi-tool-coexistence.md](multi-tool-coexistence.md) | Cursor + Claude Code + AI-OS converging on one trunk |
 | [non-delivery-discussion.md](non-delivery-discussion.md) | Ordinary discussion stays outside lane governance until the user enters delivery |
 | [background-agent-handoff.md](background-agent-handoff.md) | Background / cloud / PR agent work returns through `agent_run_review` before closure |
+| [long-lived-maintenance-loop.md](long-lived-maintenance-loop.md) | Long-lived AI project maintenance uses drift evidence, scoped refactors, and feedback to memory / guards / evals |
 
 See [../docs/getting-started.md](../docs/getting-started.md) to run any of these in your own repo.

@@ -275,6 +275,38 @@ AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改
 
 数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节（`git grep` + 可选 `framework-feedback` issue）；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。v9.8+ 起不再用 doctor 软检查提示 Preventability review — 由模板 schema 与 maintainer 复盘承载。
 
+## Long-lived AI Project Maintenance Loop（v10.4）
+
+长期纯 AI / AI-assisted 项目不靠固定周期大重构维持质量。AI-OS 的默认控制方式是每轮交付收口做 drift evidence review，只有证据明确时才进入维护 CR 或 scoped refactor task：
+
+- `drift_signals`：重复返工、同型缺陷、架构护栏未回流、验证矩阵过时、技术债无处置、共享契约漂移等 observed evidence
+- `refactor_trigger`：为什么现在需要维护 / 重构；必须是证据触发，不得是 calendar-based 或 "AI 写了一段时间所以重构"
+- `contract_impact`：对 `.ai-os/memory.md` 架构护栏、跨层契约、API / data / UI 状态、依赖策略的影响
+- `native_checks`：本项目原生 build / lint / typecheck / test / smoke / doctor 等证据
+- `debt_disposition`：resolved、写入 `.ai-os/memory.md`、加入 `verification-matrix.yaml` guard、升格 `evals/`、或作为技术债保留
+
+这些字段进入 `tasks.yaml` 的可选 `maintenance_review`。它不是 doctor 新警告，也不是第 13 类工件；普通功能任务可以删除该块。`verification-matrix.yaml` 用 `long-lived-maintenance-review` impact rule 覆盖维护任务，baseline-log `## Preventability review` 用 `Maintenance disposition` 决定是否需要维护 CR / 小步重构 / memory / guard / eval 回流。
+
+外部工具只作为可移植实践来源：Spec-Kit / Kiro / OpenSpec 的持久 spec、Copilot cloud agent 的 branch / PR / log 可审查、Cursor / Claude / Kiro 的精简规则与按需加载、OpenAI agent improvement loop 的 feedback / eval 思路，都映射到现有 AI-OS 工件；AI-OS 不新增 IDE adapter、runtime runner、重构调度器或遥测。
+
+## Boundary Evolution Policy（v10.5）
+
+AI-OS 的边界不是永久冻结，也不是开放式扩张。任何新能力先按四层分类：
+
+- **Kernel**：Activation Gate、12 组工件、`AGENTS.md`、lane 恢复、`memory.md`、项目原生验证、local doctor、无遥测、无默认外部服务。Kernel 默认稳定，改动按 minor / major 走完整 CR、docs、tests。
+- **Controlled Extension**：doctor warning、CLI 子命令、schema 字段、release check 等。准入条件是：有真实 failure mode 或高频维护需求；现有 install / doctor / 12 工件不能充分表达；有 CR、验收、项目原生验证、docs tests，必要时有 `verification-matrix.yaml` guard 或 `evals/`。
+- **Adapter**：hooks、CI、MCP resources、IDE 指引、cloud-agent 映射、skills wrapper。必须可选、薄封装、可删除，不得成为 AI-OS 核心运行时或唯一生效路径。
+- **Forbidden**：内置 agent runner、重构调度器、模型路由器、自动发版平台、长期后台服务、遥测收集、IDE 专属硬依赖。这些不进入 AI-OS core。
+
+具体准入规则：
+
+- **新增 doctor warning**：必须是确定性结构检查，不能依赖 LLM 判断语义；需要 PL / CR 证据、测试和 `--strict` 语义说明。
+- **新增 CLI 子命令**：只有 install / doctor 无法覆盖高频核心操作时才允许；不得引入长期服务或外部依赖。
+- **新增 adapter**：只能作为文档、模板、skill 或薄脚本；核心治理必须仍可在无该工具时完成。
+- **新增工件类别**：默认禁止；只有现有 12 类无法表达多个真实案例，且迁移 / 兼容成本被 CR 明确评估后才可讨论。
+
+因此，release notes 里的“本轮不新增 CLI / runtime / doctor warning / 工件类别”是默认边界，不是永久冻结承诺。
+
 ## 反述确认 / 双向对齐门（v10.1）
 
 frontier 模型会更快、更大规模地放大模糊目标，所以 AI-OS 在「目标确认优先」之上补一个显式的反述动作，而不是新增 runtime 或第二套提示词：

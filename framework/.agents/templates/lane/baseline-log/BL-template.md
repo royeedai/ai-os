@@ -30,6 +30,7 @@
 - `If yes, root cause`：AI-OS 第一次 session 没让用户做的事、没问的问题或没锁的设计（自由文字）
 - `Maps to`：已有的 `PL-*` / `PG-*` 编号；若框架尚未登记，标 `unmapped`
 - `Suggested guard`：如果要在 AI-OS 框架里防住，应改哪个工件 / 行为规则 / doctor 检查（自由文字）
+- `Maintenance disposition`：是否进入维护 CR、小步重构、`memory.md` 技术债、`verification-matrix.yaml` guard 或 `evals/`；无 drift evidence 时标 `none`
 
 数据纯本地、入版本控制；AI-OS maintainer 通过 `git grep` 与 dogfooding 通道定时归并到 `docs/problem-ledger.md`，不做任何遥测或上报。
 
@@ -54,5 +55,6 @@ retrospective 文件命名规则与 CR 相同，只是 slug 必须以 `retrospec
 - `expected_return`：期望返回的 diff / PR / 测试 / review / 运行证据
 - `fact_state_review`：把任务依据拆成 `observed` / `confirmed` / `inferred` / `unknown`
 - `agent_run_review`：长时程 / 后台 / 并行 agent 的执行面、run_refs、write_scope、progress_checkpoints、return_packet 和 human_review_status
+- `maintenance_review`：长期维护 / drift 控制任务的 drift_signals、refactor_trigger、contract_impact、native_checks 和 debt_disposition；无证据不得开启周期性大重构
 - `evidence_produced`：任务关闭时实际产出的证据
 - `deviation_log`：实现偏离、范围变化或需升级为 CR 的记录

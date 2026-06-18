@@ -41,7 +41,7 @@ When Anthropic ships native `AGENTS.md` support (open feature request), the `CLA
 `framework/skills/ai-os-delivery/SKILL.md` follows the [agentskills.io spec v1.0](https://agentskills.io/specification). Install it project-locally:
 
 ```bash
-npx skills add github:royeedai/ai-os#v10.3.1
+npx skills add github:royeedai/ai-os#v10.5.0
 ```
 
 This loads `framework/skills/ai-os-delivery/SKILL.md` into your skill manager. To stay fully offline after cloning, copy `framework/skills/ai-os-delivery` into `.claude/skills/` manually instead of fetching.
@@ -113,7 +113,7 @@ The exit code is the contract wherever the command is wired into a blocking surf
 `create-ai-os` writes `CLAUDE.md` as a lightweight pointer by default. The stub is short (≤10 lines, no rule duplication) so it remains pure routing. To skip:
 
 ```bash
-npx --yes github:royeedai/ai-os#v10.3.1 --no-ide-files
+npx --yes github:royeedai/ai-os#v10.5.0 --no-ide-files
 ```
 
 ## See also

@@ -41,7 +41,7 @@ For repos that mix Cursor with Claude Code / Codex / Gemini CLI, install the off
 
 ```bash
 # Recommended: load via the agentskills.io standard (pin a release)
-npx skills add github:royeedai/ai-os#v10.3.1
+npx skills add github:royeedai/ai-os#v10.5.0
 
 # Offline alternative (from a cloned ai-os repo): copy the skill folder, no network
 mkdir -p .cursor/skills && cp -R framework/skills/ai-os-delivery .cursor/skills/
@@ -130,7 +130,7 @@ When the two disagree, the project artifacts win — a design you confirmed in t
 
 1. Move project conventions and AI rules into `AGENTS.md`
 2. Reduce `.cursorrules` (or `.cursor/rules/*.mdc`) to trigger shells with links
-3. Run `npx --yes github:royeedai/ai-os#v10.3.1 .` to add the AI-OS layout
+3. Run `npx --yes github:royeedai/ai-os#v10.5.0 .` to add the AI-OS layout
 4. Run the local `node .ai-os/bin/ai-os-doctor.js . --strict` to catch any broken references (offline)
 
 ## See also

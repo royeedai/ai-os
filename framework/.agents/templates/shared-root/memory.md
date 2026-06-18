@@ -51,10 +51,11 @@
 
 #### TD-001: [债务标题]
 
-- **类型**：pattern-drift / missing-test / architecture-violation / deprecated-dependency
+- **类型**：pattern-drift / missing-test / architecture-violation / deprecated-dependency / long-lived-maintenance
 - **严重度**：high / medium / low
 - **影响范围**：
 - **消除计划**：
+- **维护触发证据**：[drift_signals / refactor_trigger / native_checks；无证据不得登记周期性大重构]
 - **日期**：
 
 ### 6. 跨层契约登记表

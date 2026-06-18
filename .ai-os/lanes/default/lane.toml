@@ -1,6 +1,6 @@
 id = "default"
 title = "默认交付线"
 status = "active"
-baseline_id = "CR-20260618-114948-codex-suitability-doc-accuracy"
+baseline_id = "CR-20260618-132214-boundary-evolution-policy"
 quality_tier = "standard"
 risk_tier = "medium"

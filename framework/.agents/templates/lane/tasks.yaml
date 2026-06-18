@@ -67,6 +67,17 @@ tasks:
         - "[user-confirmed or artifact-confirmed fact]"
       inferred: []
       unknown: []
+    # maintenance_review：长期维护 / 重构 / drift 控制任务可保留；普通功能任务可删除此块。无 drift evidence 时不得开启周期性大重构。
+    maintenance_review:
+      drift_signals:
+        - "[observed repeated defect / contract drift / stale guard / recurring rework]"
+      refactor_trigger: "[evidence-backed trigger; not calendar-based]"
+      contract_impact:
+        - "[memory.md guardrail / API contract / data shape / UI state affected]"
+      native_checks:
+        - "[project-native static check / test / runtime smoke required]"
+      debt_disposition:
+        - "[resolved / added to memory.md / added to verification-matrix.yaml / promoted to eval / left as tracked debt]"
     impact_tags:
       - "entrypoint"
       - "schema"
@@ -125,6 +136,13 @@ tasks:
         - "[confirmed design / scope / acceptance source]"
       inferred: []
       unknown: []
+    # maintenance_review：若本实现是维护 / 重构 / drift 控制任务，记录证据；否则删除此块
+    maintenance_review:
+      drift_signals: []
+      refactor_trigger: ""
+      contract_impact: []
+      native_checks: []
+      debt_disposition: []
     impact_tags:
       - "transport"
       - "mapping"

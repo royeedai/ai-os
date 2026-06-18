@@ -38,6 +38,13 @@ impact_rules:
       - "[Product Design evidence review when available: brief / selected visual option / prototype / design QA / share]"
       - "[no-plugin fallback review: figma / screenshot / url-reverse-spec / component-first / existing-style]"
       - "[native verification review: Product Design evidence does not replace project checks]"
+  - when: "long-lived-maintenance-review"
+    run:
+      - "[maintenance_review drift_signals evidence review]"
+      - "[refactor_trigger review: evidence-backed, not calendar-based]"
+      - "[contract_impact review against memory.md architecture guardrails]"
+      - "[native_checks review before done / verified / shipped]"
+      - "[debt_disposition review: memory.md / verification-matrix.yaml / evals feedback when stable]"
 
 failure_modes:
   - id: FM-001
@@ -100,6 +107,14 @@ failure_modes:
     scenario: "Product Design prototype、design QA 或 share URL 替代了项目原生 build / lint / typecheck / test"
     expected: "Product Design 产物只作为 evidence_refs / evidence_produced；交付仍需项目原生静态校验证据"
     guard: "tasks.yaml evidence_required + native verification"
+  - id: FM-MAINT-001
+    scenario: "长期 AI 项目被要求按固定周期做一次大重构，但没有 drift_signals、contract_impact 或 native check 证据"
+    expected: "不得把周期性大重构作为默认闭环；必须先登记 drift evidence，再开维护 CR 或 scoped refactor task"
+    guard: "tasks.yaml maintenance_review + baseline-log CR + native verification"
+  - id: FM-MAINT-002
+    scenario: "多轮 AI 交付后出现重复返工、同型缺陷或架构漂移，但结果只留在聊天或总结里，没有回流 memory.md / verification-matrix.yaml / evals"
+    expected: "稳定漂移信号必须进入 memory guardrail、verification guard 或 promoted eval；未达升格阈值也要进入 debt_disposition"
+    guard: "maintenance_review.debt_disposition + stable failure mode rule"
 
 guards:
   - "[evidence path or eval reference]"

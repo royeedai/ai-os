@@ -77,6 +77,8 @@
 - **需求变化**：先写当前 lane `baseline-log/CR-*.md` 做影响分析，再更新 `MISSION.md` / `DESIGN.md` / `specs/`；CR 关闭前补 `## Preventability review`，标 `yes` / `no` / `partial`
 - **修复 bug**：先给出根因、复现路径、影响范围、计划修改文件；若用户已明确要求修复且范围清楚，可在同一轮继续执行，否则等用户确认“可执行”
 - **验证阶段**：逐项对照根层共享上下文、当前 lane 工件和 `.ai-os/memory.md` 架构护栏 / 工程约束，覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
+- **长期维护**：每轮交付收口检查 drift evidence；只有证据明确时才开维护 CR 或小步重构任务，不把定期大重构当默认闭环
+- **边界演进**：AI-OS kernel 保持稳定；CLI / doctor / adapter / 工件类别等扩展必须先过 CR、证据、测试和边界审查，不把当前边界写成永久冻结
 - **交付收口**：输出“已实现 / 未纳入 / 验证结果 / 回滚条件 / AI 已完成 vs 需人工执行”双清单；lane 关闭前对本 lane 所有 CR 的 Preventability review 做一次 retrospective 聚合
 - **Session 恢复**：先读 `.ai-os/lanes/default/STATE.md`，再扩展到 lane `MISSION.md`、最新 baseline-log 和根层 `.ai-os/MISSION.md`
 - **稳定失败模式**：首次发现登记到当前 lane `verification-matrix.yaml`；同一 root cause 命中 ≥3 次时必须升格到 `evals/`，记录 `trigger_source` 与首次出现的 baseline-log ID

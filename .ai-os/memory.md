@@ -76,6 +76,22 @@
 - **确认来源**：2026-06-18 用户要求“全面分析该项目，有哪些不适合 Codex 的点，或者本身的描述错误。修复下”
 - **日期**：2026-06-18
 
+#### DD-010: 长期 AI 项目维护按漂移证据触发，不按周期大重构
+
+- **决策**：AI-OS v10.4 用现有工件承接 Long-lived AI Project Maintenance Loop：每轮交付收口检查 drift evidence；只有证据明确时才开维护 CR 或 scoped refactor task；`tasks.yaml` 可用 `maintenance_review` 记录 drift_signals、refactor_trigger、contract_impact、native_checks 和 debt_disposition。
+- **原因**：长期纯 AI 项目真正的风险是需求、契约、验证和记忆漂移；无证据的定期大重构会扩大风险并绕过 AI-OS 的目标确认、设计锁定和证据化完成门。
+- **影响范围**：AGENTS、skill wrapper、tasks template、verification-matrix、baseline-log、problem ledger、examples、evals、docs tests
+- **确认来源**：2026-06-18 用户要求实现长期维护防漂移控制方案
+- **日期**：2026-06-18
+
+#### DD-011: AI-OS 边界按四层策略演进，不永久冻结也不扩成运行平台
+
+- **决策**：AI-OS v10.5 将边界拆成 Kernel / Controlled Extension / Adapter / Forbidden。Kernel 保持稳定；Controlled Extension 需要 CR、证据、测试和 boundary review；Adapter 必须可选、薄封装、可删除；Forbidden 不进入 core。
+- **原因**：长期发展需要避免两种偏差：把“本轮不新增 CLI / runtime / doctor / 工件类别”误读成永久冻结，或把边界演进误读成可以扩成 IDE / runtime / scheduler。
+- **影响范围**：AGENTS、README、docs/artifacts、docs/constitution-spec、docs/maintainers、docs/interop/standards-map、skill wrapper、docs tests
+- **确认来源**：2026-06-18 用户同意 Boundary Evolution Policy 并要求计划后开始
+- **日期**：2026-06-18
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

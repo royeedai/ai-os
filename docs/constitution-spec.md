@@ -1,12 +1,14 @@
-# AI Delivery Constitution Spec v2.4
+# AI Delivery Constitution Spec v2.6
 
 Status: Stable  
-Version: 2.4
+Version: 2.6
 Last updated: 2026-06-18
 Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 ## Changelog
 
+- 2.6 (2026-06-18) — Boundary Evolution Policy：AI-OS 边界拆成 Kernel / Controlled Extension / Adapter / Forbidden；未来 doctor / CLI / adapter / artifact category 扩展必须走 CR、证据、测试和边界审查；本版本不新增产品 surface。
+- 2.5 (2026-06-18) — Long-lived AI Project Maintenance Loop：长期 AI 项目按 drift evidence 触发维护 CR 或 scoped refactor task；`tasks.yaml` 可选 `maintenance_review`，`verification-matrix.yaml` 增加 long-lived maintenance guard；不新增 CLI、runtime、doctor code 或 artifact category。
 - 2.4 (2026-06-18) — Codex / foreground executor confirmation semantics：明确“分析并修复 / 实现 / 验证 / 发布”等请求已通过 Activation Gate；确认停点只阻塞未授权、模糊、高风险或越界工作；Codex 场景中的 doctor 是本地 / CI guard，不被描述成宿主 pre-tool hook。
 - 2.3 (2026-06-13) — Product Design optional design-evidence bridge：`design_input` 记录 Product Design / Figma / URL / screenshot / existing-code / manual brief 来源；插件能力可完整使用，但不是核心硬依赖，不新增 doctor code。
 - 2.2 (2026-06-08) — Restate-and-confirm alignment gate（反述确认门，强化 §1 目标确认 / §2 设计锁定）+ architecture guardrail 定位到 `memory.md` §2；行为 + 工件强化，不新增 doctor code。
@@ -97,6 +99,10 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 Product Design 可作为可选设计证据提供方：brief、ideation、prototype、image-to-code、design QA、share 产物进入 `design_input.evidence_refs` 或 task evidence；无插件时同字段接受 Figma、截图、URL reverse-spec、existing-code、component-first、existing-style 或 manual brief fallback。Product Design 证据不替代项目原生验证。
 
+长期 AI 项目维护使用 Long-lived AI Project Maintenance Loop：每轮交付收口检查 drift evidence；只有 observed drift signals 明确时才开维护 CR 或 scoped refactor task；禁止把固定周期大重构作为默认策略。维护证据进入 `tasks.yaml` 可选 `maintenance_review`，稳定发现回流 `.ai-os/memory.md`、`verification-matrix.yaml` 或 `evals/`；无新增 doctor code。
+
+Boundary Evolution Policy（v2.6）：AI-OS kernel 保持稳定；doctor / CLI / adapter / artifact category 等 controlled extension 只有在 CR、证据、项目原生验证、docs tests 和必要 guard 满足时才可进入；adapter 必须可选、薄封装、可删除；agent runner、refactor scheduler、model router、auto-release platform、long-running service、telemetry、IDE-only hard dependency 属于 forbidden surface。
+
 ## 7. Canonical layout
 
 - 只有一种 canonical layout：`shared-root-default-lane`（共享根 + `.ai-os/lanes/default/`）
@@ -120,7 +126,7 @@ Activation Gate 通过后渐进加载：L1 入口（`STATE.md` / `lane.toml`）�
 | MCP resources | `aios://` scheme — [`docs/interop/mcp-resources.md`](interop/mcp-resources.md) |
 | A2A / Memory tool / EU AI Act / 工具共存 | [`docs/interop/standards-map.md`](interop/standards-map.md) |
 
-AI-OS 默认 install 不 ship 任何 server / client / runtime。
+AI-OS 默认 install 不 ship 任何 server / client / runtime。未来如需扩展 product surface，必须先通过 Boundary Evolution Policy 审查。
 
 ## 11. Failure mode 升格
 
@@ -140,8 +146,10 @@ AI-OS 默认 install 不 ship 任何 server / client / runtime。
 - Restate-and-confirm gate（v2.2）— lane `MISSION.md` §2 主流程 / 异常反述、`DESIGN.md` §10 反述确认门 + `memory.md` §2 架构护栏；行为门，无 doctor code
 - Product Design optional bridge（v2.3）— `DESIGN.md` `design_input` provider / capability / evidence / fallback；可选设计证据，不是插件硬依赖
 - Foreground executor confirmation semantics（v2.4）— 明确授权的 Codex / shell-agent 交付请求直接进入 L1；确认停点按授权、风险、范围和验收清晰度判断；不新增 doctor code
+- Long-lived AI Project Maintenance Loop（v2.5）— `tasks.yaml` 可选 `maintenance_review`、`verification-matrix.yaml` long-lived maintenance guard、baseline-log maintenance disposition；不新增 doctor code
+- Boundary Evolution Policy（v2.6）— Kernel / Controlled Extension / Adapter / Forbidden 边界分类；future doctor / CLI / adapter / artifact-category changes require CR evidence, native checks, docs tests, and guards when applicable
 
-**Doctor 语义警告（v9.8+）**：`W070`–`W078` 为 `--strict` 可升级的确定性检查（基线一致性、owner、AC 覆盖、高风险工件、handoff 证据、事实状态、长时程回收）。CR delta 字段完整性、URL confidence 标注、Preventability review 提示由工件模板与 `AGENTS.md` 行为规则承载，不再由 doctor 软检查重复。
+**Doctor 语义警告（v9.8+）**：当前 `W070`–`W078` 为 `--strict` 可升级的确定性检查（基线一致性、owner、AC 覆盖、高风险工件、handoff 证据、事实状态、长时程回收）。新增 doctor warning 必须是确定性结构检查，并先通过 Boundary Evolution Policy；CR delta 字段完整性、URL confidence 标注、Preventability review 提示由工件模板与 `AGENTS.md` 行为规则承载。
 
 ## 13. EU AI Act 工程叙事（非合规承诺）
 

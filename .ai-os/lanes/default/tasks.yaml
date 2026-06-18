@@ -1,40 +1,40 @@
 version: 3
-baseline_id: "CR-20260618-114948-codex-suitability-doc-accuracy"
+baseline_id: "CR-20260618-132214-boundary-evolution-policy"
 scope:
   mode: "change+brownfield"
-  focus: "codex-suitability-doc-accuracy"
-  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260618-114948-codex-suitability-doc-accuracy"
+  focus: "boundary-evolution-policy"
+  baseline_source: "lane MISSION.md + DESIGN.md + CR-20260618-132214-boundary-evolution-policy"
   quality_tier: "standard"
 
 milestones:
   - id: M1
-    title: "Audit And Baseline Locked"
-    goal: "Codex-hostile wording and self-description drift are identified and baselined"
-    scope: "AGENTS, skill, README, docs, version metadata, self-hosted lane"
-    acceptance_goal: "Concrete affected artifacts and acceptance criteria are recorded before edits"
+    title: "Boundary Baseline Locked"
+    goal: "AI-OS boundary evolution decision is baselined"
+    scope: "self-hosted lane, CR, design"
+    acceptance_goal: "CR and acceptance criteria are recorded before edits"
     target_window: "2026-06-18"
   - id: M2
-    title: "Docs Skill And Lane Fixed"
-    goal: "Public behavior rules and dogfood lane are updated without expanding product surface"
-    scope: "AGENTS, README, docs, skill, lane, memory, tests"
-    acceptance_goal: "Codex explicit delivery requests, doctor guard wording, and stale self-description are corrected"
+    title: "Boundary Docs Updated"
+    goal: "Public docs and skill express four-layer boundary policy"
+    scope: "AGENTS, README, docs, skill"
+    acceptance_goal: "Kernel / Controlled Extension / Adapter / Forbidden are documented"
     target_window: "2026-06-18"
   - id: M3
-    title: "Version And Verification Closed"
-    goal: "v10.3.1 metadata and project-native verification close the patch"
-    scope: "VERSION, package metadata, changelog, tests, lint, doctor"
+    title: "Version And Tests Updated"
+    goal: "v10.5.0 metadata and docs tests close the policy"
+    scope: "VERSION, package metadata, changelog, tests"
     acceptance_goal: "npm test, npm run lint, and strict doctor pass"
     target_window: "2026-06-18"
   - id: M4
-    title: "Published Online"
-    goal: "v10.3.1 patch is committed, pushed to main, and tagged for GitHub npx consumption"
-    scope: "git commit, origin/main push, v10.3.1 tag"
-    acceptance_goal: "origin/main contains the patch commit and tag v10.3.1 is pushed"
+    title: "Local Delivery Ready"
+    goal: "Implementation is ready for review; publish/tag remains manual unless requested"
+    scope: "working tree summary, code/data/runtime status"
+    acceptance_goal: "final response includes implemented / not included / verification / rollback conditions"
     target_window: "2026-06-18"
 
 tasks:
-  - id: TASK-AI-1101
-    title: "审计 Codex 适配与描述漂移并建立 CR"
+  - id: TASK-AI-1301
+    title: "建立 Boundary Evolution Policy CR 与 lane 基线"
     milestone: M1
     status: done
     owner: AI
@@ -51,49 +51,57 @@ tasks:
       - "AC-002"
       - "AC-003"
       - "AC-004"
-      - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
       - "AGENTS.md"
-      - "README.md"
-      - "framework/skills/ai-os-delivery/SKILL.md"
-      - "docs/constitution-spec.md"
-      - "docs/artifacts.md"
-      - "docs/interop/claude-code.md"
-      - "package.json"
-      - "package-lock.json"
+      - ".ai-os/lanes/default/STATE.md"
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
+      - ".ai-os/MISSION.md"
+      - "docs/artifacts.md"
+      - "docs/constitution-spec.md"
+      - "docs/maintainers.md"
     expected_return:
-      - "CR with root cause, affected artifacts, acceptance delta, and preventability review"
-      - "bounded fix plan for docs / skill / tests / lane"
+      - "CR with current behavior, proposed delta, affected artifacts, acceptance delta, and Preventability review"
+      - "updated self-hosted lane MISSION/DESIGN/STATE/tasks/risk/release/verification artifacts"
     fact_state_review:
       observed:
-        - "AGENTS, README, skill wrapper, constitution spec, artifacts docs, Claude interop, package metadata, package-lock, test docs assertions, and self-hosted lane artifacts inspected"
-        - "package-lock root metadata was 10.2.0 while VERSION and package.json were 10.3.0 before edits"
-        - "skill wrapper described the current framework as AI-OS v9 before edits"
-        - "README and Claude interop over-generalized hook enforcement semantics before edits"
+        - "v10.4 local changes are verified but uncommitted"
+        - "Current docs preserve no-runtime/no-surface boundaries release-by-release"
       confirmed:
-        - "user requested full project analysis for Codex-unsuitable points or description errors and asked to fix them"
+        - "user agreed boundary policy and asked to plan then start on 2026-06-18"
+        - "this turn does not request commit, push, tag, or publish"
       inferred: []
       unknown: []
+    maintenance_review:
+      drift_signals:
+        - "boundary wording can be misread as a permanent freeze"
+      refactor_trigger: "documentation/test governance delta, not codebase refactor"
+      contract_impact:
+        - "kernel boundary remains stable"
+        - "current release still adds no product surface"
+      native_checks:
+        - "npm test passed: 1284 passed, 0 failed"
+        - "npm run lint passed"
+        - "node bin/create-ai-os.js doctor . --json --strict passed with ok=true and no issues"
+      debt_disposition:
+        - "add boundary policy docs and tests; no PL until a real boundary-strictness failure appears"
     impact_tags:
       - "baseline-log"
-      - "docs"
-      - "skill"
-      - "version"
       - "self-hosted-lane"
+      - "boundary-policy"
     evidence_required:
       - "baseline-record"
+      - "design-lock"
       - "affected-artifact-list"
     evidence_produced:
-      - ".ai-os/lanes/default/baseline-log/CR-20260618-114948-codex-suitability-doc-accuracy.md"
+      - ".ai-os/lanes/default/baseline-log/CR-20260618-132214-boundary-evolution-policy.md"
       - ".ai-os/lanes/default/MISSION.md"
       - ".ai-os/lanes/default/DESIGN.md"
     deviation_log: []
 
-  - id: TASK-AI-1102
-    title: "修复 Codex 行为语义、doctor 文案与自托管工件"
+  - id: TASK-AI-1302
+    title: "更新边界策略 docs 与 skill"
     milestone: M2
     status: done
     owner: AI
@@ -101,70 +109,72 @@ tasks:
     wave: 2
     approval_required: false
     depends_on:
-      - "TASK-AI-1101"
+      - "TASK-AI-1301"
     requirement_refs:
       - "REQ-001"
       - "REQ-002"
+      - "REQ-003"
       - "REQ-004"
-      - "REQ-005"
     acceptance_refs:
       - "AC-001"
       - "AC-002"
+      - "AC-003"
       - "AC-004"
-      - "AC-005"
     handoff_to: "Codex local agent"
     context_refs:
       - "AGENTS.md"
       - "README.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
-      - "docs/interop/claude-code.md"
-      - "docs/problem-ledger.md"
       - "docs/maintainers.md"
+      - "docs/interop/standards-map.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
-      - ".ai-os/memory.md"
-      - ".ai-os/lanes/default/specs/example.spec.md"
     expected_return:
-      - "updated Activation Gate and confirmation-stop wording"
-      - "portable doctor guard wording that distinguishes hooks from Codex local / CI guards"
-      - "de-versioned skill wrapper current-framework wording"
-      - "dogfood lane and stale example spec aligned to v10.3.1"
+      - "public docs describe Kernel / Controlled Extension / Adapter / Forbidden"
+      - "entry criteria exist for doctor, CLI, adapter, and artifact category changes"
+      - "docs state this release adds no new product surface"
     fact_state_review:
       observed:
-        - "AGENTS and skill wording changed to treat explicit analyze / fix / implement / verify / ship requests as delivery-affecting"
-        - "README and Claude interop wording changed from equal hook enforcement to portable guard command"
-        - "problem ledger PL-023 added"
+        - "README currently says AI-OS is not an IDE, harness, orchestration layer, runtime runner, agent router, or code generator"
+        - "docs/maintainers.md currently has guard escalation order but not a public four-layer boundary policy"
       confirmed:
-        - "DESIGN.md AC-001, AC-002, AC-004, and AC-005 define the required behavior"
+        - "DESIGN.md AC-001 through AC-004 define required boundary behavior"
       inferred: []
       unknown: []
+    maintenance_review:
+      drift_signals:
+        - "boundary language needs a reusable evolution policy"
+      refactor_trigger: "artifact update only; no CLI/runtime refactor"
+      contract_impact:
+        - "does not alter canonical layout"
+        - "does not alter doctor warning range"
+      native_checks:
+        - "npm test passed after boundary docs and skill updates"
+        - "strict doctor passed after boundary docs and skill updates"
+      debt_disposition:
+        - "no new problem-ledger entry until a real failure appears"
     impact_tags:
       - "docs"
       - "skill"
-      - "problem-ledger"
-      - "memory"
-      - "self-hosted-lane"
+      - "maintainers"
+      - "boundary-policy"
     evidence_required:
       - "docs-test"
-      - "lane-review"
+      - "boundary-checklist-review"
     evidence_produced:
       - "AGENTS.md"
       - "README.md"
       - "docs/artifacts.md"
       - "docs/constitution-spec.md"
-      - "docs/interop/claude-code.md"
-      - "docs/problem-ledger.md"
       - "docs/maintainers.md"
+      - "docs/interop/standards-map.md"
       - "framework/skills/ai-os-delivery/SKILL.md"
       - ".ai-os/memory.md"
-      - ".ai-os/lanes/default/specs/example.spec.md"
-      - ".ai-os/lanes/default/risk-register.md"
-      - ".ai-os/lanes/default/release-plan.md"
-      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - "test/docs.test.js"
     deviation_log: []
 
-  - id: TASK-AI-1103
-    title: "更新 v10.3.1 版本元数据并完成验证"
+  - id: TASK-AI-1303
+    title: "更新 v10.5.0 版本元数据与测试断言"
     milestone: M3
     status: done
     owner: AI
@@ -172,12 +182,12 @@ tasks:
     wave: 3
     approval_required: false
     depends_on:
-      - "TASK-AI-1102"
+      - "TASK-AI-1302"
     requirement_refs:
-      - "REQ-003"
+      - "REQ-005"
       - "REQ-006"
     acceptance_refs:
-      - "AC-003"
+      - "AC-005"
       - "AC-006"
     handoff_to: "Codex local agent"
     context_refs:
@@ -186,26 +196,39 @@ tasks:
       - "package-lock.json"
       - "CHANGELOG.md"
       - "test/docs.test.js"
-      - ".ai-os/lanes/default/verification-matrix.yaml"
+      - "test/install.test.js"
+      - "test/doctor.test.js"
+      - "test/shared.test.js"
     expected_return:
-      - "version metadata says 10.3.1 across VERSION, package.json, package-lock.json"
+      - "version metadata says 10.5.0 across VERSION, package.json, package-lock.json"
+      - "docs/install pins updated to v10.5.0"
       - "native verification logs"
-      - "strict doctor clean"
     fact_state_review:
       observed:
-        - "VERSION, package.json, package-lock.json, changelog, docs tests, and verification matrix inspected before closeout"
-        - "npm test passed: 1163 passed, 0 failed"
-        - "npm run lint passed with exit code 0"
-        - "node bin/create-ai-os.js doctor . --json --strict passed with ok true, issues [], semantic_warnings []"
+        - "VERSION, package.json, package-lock.json, install tests, doctor tests, shared tests, and docs tests currently reference 10.4.0 before this edit"
       confirmed:
-        - "DESIGN.md AC-003 and AC-006 define metadata and verification behavior"
+        - "DESIGN.md AC-005 and AC-006 define version and verification behavior"
       inferred: []
       unknown: []
+    maintenance_review:
+      drift_signals:
+        - "release metadata must move together to prevent package-lock drift"
+      refactor_trigger: "minor version metadata update"
+      contract_impact:
+        - "framework_version in self-hosted framework.toml should match package VERSION"
+      native_checks:
+        - "npm test passed: 1284 passed, 0 failed"
+        - "npm run lint passed"
+        - "node bin/create-ai-os.js doctor . --json --strict passed with ok=true and no issues"
+      debt_disposition:
+        - "existing version parity docs tests retained"
     impact_tags:
       - "version"
       - "changelog"
+      - "tests"
       - "verification"
     evidence_required:
+      - "version-parity"
       - "npm-test"
       - "lint"
       - "doctor-strict"
@@ -213,28 +236,32 @@ tasks:
       - "VERSION"
       - "package.json"
       - "package-lock.json"
+      - ".ai-os/framework.toml"
       - "CHANGELOG.md"
+      - "docs/cli.md"
+      - "docs/getting-started.md"
+      - "docs/interop/claude-code.md"
+      - "docs/interop/cursor.md"
+      - "docs/interop/spec-kit-coexistence.md"
+      - "test/install.test.js"
+      - "test/doctor.test.js"
+      - "test/shared.test.js"
       - "test/docs.test.js"
-      - "npm test: 1163 passed, 0 failed"
-      - "npm run lint: passed"
-      - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
+      - "npm test"
+      - "npm run lint"
+      - "node bin/create-ai-os.js doctor . --json --strict"
     deviation_log: []
 
-  - id: TASK-AI-1104
-    title: "提交推送并发布 v10.3.1 tag"
+  - id: TASK-AI-1304
+    title: "完成本地交付收口"
     milestone: M4
-    status: in_progress
+    status: done
     owner: AI
     priority: P1
     wave: 4
-    approval_required: true
-    approval:
-      status: "approved"
-      approved_by: "project owner"
-      approved_at: "2026-06-18"
-      evidence: "用户明确要求：继续再次检查修复，并发布上线"
+    approval_required: false
     depends_on:
-      - "TASK-AI-1103"
+      - "TASK-AI-1303"
     requirement_refs:
       - "REQ-006"
     acceptance_refs:
@@ -247,31 +274,41 @@ tasks:
       - "CHANGELOG.md"
       - "VERSION"
     expected_return:
-      - "commit hash pushed to origin/main"
-      - "tag v10.3.1 pushed to origin"
-      - "final verification summary"
+      - "final code/data/runtime status"
+      - "implemented / not included / verification / rollback summary"
+      - "commit, push, and v10.5.0 tag once user requests publish"
     fact_state_review:
       observed:
-        - "origin/main was at acfbb48 before release commit"
-        - "local v10.* tags after fetch listed v10.0.0, v10.1.0, v10.1.1, v10.1.2"
-        - "publish-before verification passed: npm test 1163 passed / 0 failed, npm run lint exit 0, strict doctor ok true, git diff --check exit 0"
+        - "release-plan.md defines this delivery as local implementation, not publish/tag"
       confirmed:
-        - "user explicitly requested publish online on 2026-06-18"
-        - "release-plan.md defines manual GitHub release path"
+        - "user asked to implement after plan, then asked to review, fix, commit, and push the new version"
       inferred: []
       unknown: []
+    maintenance_review:
+      drift_signals:
+        - "self-hosted lane should not remain stale after implementation"
+      refactor_trigger: "closeout evidence only"
+      contract_impact:
+        - "STATE.md must record latest verification"
+      native_checks:
+        - "npm test passed: 1284 passed, 0 failed"
+        - "npm run lint passed"
+        - "node bin/create-ai-os.js doctor . --json --strict passed with ok=true and no semantic warnings"
+      debt_disposition:
+        - "no active technical debt expected after local verification"
     impact_tags:
-      - "release"
-      - "git-push"
-      - "tag"
+      - "closeout"
+      - "verification"
+      - "self-hosted-lane"
     evidence_required:
-      - "git-commit"
-      - "git-push"
-      - "git-tag"
-      - "verification-before-publish"
+      - "npm-test"
+      - "lint"
+      - "doctor-strict"
+      - "final-status"
     evidence_produced:
-      - "npm test: 1163 passed, 0 failed"
-      - "npm run lint: passed"
-      - "node bin/create-ai-os.js doctor . --json --strict: ok true, no issues, no semantic_warnings"
-      - "git diff --check: passed"
+      - ".ai-os/lanes/default/STATE.md"
+      - ".ai-os/lanes/default/tasks.yaml"
+      - ".ai-os/lanes/default/baseline-log/CR-20260618-132214-boundary-evolution-policy.md"
+      - ".ai-os/lanes/default/release-plan.md"
+      - "final response code/data/runtime status"
     deviation_log: []

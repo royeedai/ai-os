@@ -4,10 +4,10 @@
 
 ```bash
 # Install into a new project (pin a release: reproducible + cache-friendly)
-npx --yes github:royeedai/ai-os#v10.3.1 my-project
+npx --yes github:royeedai/ai-os#v10.5.0 my-project
 
 # Install into an existing repo
-npx --yes github:royeedai/ai-os#v10.3.1 .
+npx --yes github:royeedai/ai-os#v10.5.0 .
 
 # Check health — runs locally with zero network after install
 node .ai-os/bin/ai-os-doctor.js .
@@ -30,10 +30,23 @@ AI-OS is a cross-agent delivery constitution for projects that already use AI co
 - reverse-spec accessible websites into auditable evidence before rebuild work
 - separate observed / confirmed facts from inferred / unknown assumptions
 - review long-running, background, external, or parallel agent work before accepting it
+- keep long-lived AI projects from drifting through evidence-triggered maintenance, not periodic big-bang refactors
+- evolve AI-OS boundaries through evidence-gated review, not permanent freeze or surface creep
 - prove completion with project-level evidence
 - recover context across sessions without depending on chat history
 
 It is intentionally **not** an IDE, harness, orchestration layer, runtime runner, agent router, or code generator.
+
+## Boundary Evolution Policy
+
+AI-OS stays small by default, but its boundary is not a permanent freeze. New capabilities are classified before implementation:
+
+- **Kernel**: Activation Gate, 12 artifact categories, `AGENTS.md`, lane recovery, `memory.md`, project-native verification, local doctor, no telemetry, and no default external service
+- **Controlled Extension**: doctor warnings, CLI subcommands, schema fields, or release checks may evolve only through CR evidence, native tests, docs assertions, and eval / verification guards when applicable
+- **Adapter**: hooks, CI, MCP resources, IDE guidance, and cloud-agent mappings stay optional, thin, removable, and outside the core runtime
+- **Forbidden**: built-in agent runner, refactor scheduler, model router, auto-release platform, long-running background service, telemetry collection, or IDE-exclusive hard dependency
+
+This is why most releases still say "no new CLI / runtime / doctor warning / artifact category": that is the default boundary, not a claim that AI-OS can never grow.
 
 ## Canonical layout
 
@@ -124,6 +137,7 @@ Behavior is rule-driven by task type:
 | “Build this UI / page” | determine UI source first: design-led, component-first, existing-style, or hybrid; use existing or stack-appropriate components before custom UI |
 | “Delegate this to a background / cloud / PR agent” | record `agent_run_review` run refs, write scope, return packet, evidence, and human review before closing |
 | “Fix this bug” | state root cause + scope + files first; if the user already asked to fix and scope is clear, continue within that scope |
+| “This AI-built project is drifting” | record drift evidence in `maintenance_review`, open a maintenance CR only when evidence exists, and feed stable findings back to memory / verification / evals |
 | “Is it done?” | run project-native static check + regression + evidence review |
 | “I’m back” | resume from lane `STATE.md` first |
 
@@ -146,13 +160,24 @@ You always get `lanes/default/`. Most projects will only ever use that lane.
 
 Create more lanes only when you truly have separate long-lived delivery lines, release trains, or teams working in parallel with different current baselines.
 
+## Long-lived AI project maintenance
+
+AI-OS does not treat "refactor every few weeks" as a maintenance strategy. Long-lived AI projects stay stable by closing each delivery with a drift review:
+
+- collect observed drift signals such as repeated rework, same-root-cause defects, stale guards, contract drift, or debt with no disposition
+- open a maintenance CR or scoped refactor task only when those signals have evidence
+- record `maintenance_review` in `tasks.yaml`: `drift_signals`, `refactor_trigger`, `contract_impact`, `native_checks`, and `debt_disposition`
+- feed stable findings back into `.ai-os/memory.md`, `verification-matrix.yaml`, or `evals/`
+
+This keeps maintenance small, auditable, and test-backed. If there is no drift evidence, do not schedule a big-bang refactor just because the project has been AI-built for a while.
+
 ## Cross-agent loading via the `agentskills.io` standard
 
 For agents that prefer the [agentskills.io](https://agentskills.io/specification) skill format (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...), AI-OS publishes an official wrapper:
 
 ```bash
 # Pin a release; or vendor the folder offline once cloned (no network)
-npx skills add github:royeedai/ai-os#v10.3.1
+npx skills add github:royeedai/ai-os#v10.5.0
 ```
 
 This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the constitution into the open standard. It does not introduce a new command surface — it is a thin wrapper so any spec-compliant agent can pick AI-OS up without per-tool adapters. To stay fully offline after cloning, copy `framework/skills/ai-os-delivery` into `.claude/skills/` or `.cursor/skills/` instead of fetching.

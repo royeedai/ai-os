@@ -9,6 +9,8 @@
 | Resource discovery | MCP | `aios://` URI scheme ([mcp-resources.md](mcp-resources.md)) |
 | Capability wrapping | agentskills.io | `framework/skills/ai-os-delivery/SKILL.md` |
 | Design evidence | Product Design / Figma / URL / screenshot | `DESIGN.md` `design_input` |
+| Long-lived maintenance evidence | Spec-Kit / Kiro / OpenSpec / Copilot / Cursor / Claude practices | `tasks.yaml` `maintenance_review` + `memory.md` / `verification-matrix.yaml` / `evals/` feedback |
+| Boundary evolution | Cross-tool extension surfaces | Kernel / Controlled Extension / Adapter / Forbidden policy |
 | Inter-agent delegation | A2A v1.0 | Field map below |
 | Session / working memory | Memory tool / Memory MCP | Mount map below |
 
@@ -54,6 +56,21 @@ Delegated / background / cloud / external PR work records `agent_run_review` in 
 - Surfaces (examples only): Codex cloud, Cursor Background Agents, GitHub Copilot cloud agent, Google Jules, Claude Code subagents / hooks
 - **W078** in `doctor --strict` checks closure evidence; not an execution layer
 
+## Long-lived maintenance surfaces
+
+External spec / agent tools converge on durable requirements, short project rules, reviewable branches / logs, and feedback / eval loops. AI-OS maps those portable methods into existing artifacts:
+
+- Persistent specs / steering / OpenSpec deltas → `MISSION.md`, `DESIGN.md`, and baseline-log CRs
+- Short project rules → `AGENTS.md` plus `memory.md` architecture guardrails
+- Reviewable agent work → branch / PR / log refs captured in `tasks.yaml` evidence fields
+- Feedback / eval loops → `maintenance_review`, `verification-matrix.yaml`, and `evals/`
+
+AI-OS does not schedule periodic refactors. A maintenance CR or scoped refactor starts only from observed drift evidence.
+
+## Boundary evolution surfaces
+
+External tools may provide hooks, skills, MCP resources, cloud branches, PR logs, or CI checks. In AI-OS these are adapter surfaces unless they change the core artifact contract. Adapter surfaces must stay optional, thin, and removable. A controlled extension to doctor, CLI, or artifact schema requires a CR, native checks, docs tests, and a verification / eval guard when the failure mode is repeatable.
+
 ## Tool coexistence (summary)
 
 | Tool | Mode | Rule |
@@ -83,6 +100,8 @@ CI: `node .ai-os/bin/ai-os-doctor.js . --strict` (W070-W078; committed local ent
 4. Two parallel requirement truth sources — pick one, reference the other
 5. Encoding `fact_state_review` as a prompt string — keep structured in `tasks.yaml`
 6. Skipping `doctor --strict` because an external tool "already validated"
+7. Scheduling periodic big-bang refactors without `maintenance_review.drift_signals`
+8. Treating an optional adapter as an AI-OS core runtime dependency
 
 ## See also
 
