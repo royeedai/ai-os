@@ -67,10 +67,12 @@ tasks:
         - "[user-confirmed or artifact-confirmed fact]"
       inferred: []
       unknown: []
+    # field-feedback closeout uses existing evidence fields: release truthfulness, verification environment classification,
+    # task ledger conflict review, and baseline artifact interpretation belong in evidence_produced or deviation_log.
     # maintenance_review：长期维护 / 重构 / drift 控制任务可保留；普通功能任务可删除此块。无 drift evidence 时不得开启周期性大重构。
     maintenance_review:
       drift_signals:
-        - "[observed repeated defect / contract drift / stale guard / recurring rework]"
+        - "[observed repeated defect / contract drift / stale guard / recurring rework / release truth drift / verification environment misclassification]"
       refactor_trigger: "[evidence-backed trigger; not calendar-based]"
       contract_impact:
         - "[memory.md guardrail / API contract / data shape / UI state affected]"
@@ -150,6 +152,8 @@ tasks:
       - "build-log"
       - "test-log"
       - "runtime-check"
+      - "release-truth-review-if-release-requested"
+      - "verification-environment-classification-if-failure"
     evidence_produced: []
     deviation_log: []
     change_scope:

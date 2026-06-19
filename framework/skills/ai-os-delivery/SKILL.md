@@ -88,6 +88,7 @@ Confirmation stops are real approval boundaries, not ritual pauses. Stop only wh
 | Fix a bug | State root cause + reproduction path + impact scope + planned files; if the user already asked to fix and scope is clear, continue within that scope; otherwise **stop and wait for "go"** |
 | Verify | Cover normal / abnormal / permission denial / empty / timeout / regression; produce project-native static-check evidence |
 | Long-lived maintenance | At each delivery closeout, review drift evidence; open a maintenance CR or scoped refactor task only when evidence exists, and record `maintenance_review` rather than scheduling periodic big-bang refactors |
+| Field feedback closeout | Before claiming release / publish / deploy completion, align latest user request with `STATE.md`, `release-plan.md`, and `tasks.yaml`; classify verification failures as product-code / local-environment / external-service / production-state-unknown; review task ledger after git operations |
 | Boundary evolution | Keep the AI-OS kernel stable; allow doctor / CLI / adapter / artifact-category changes only after CR evidence, tests, and boundary review; reject runtime expansion by default |
 | Ship | Output dual checklist: implemented / out-of-scope / verification result / rollback condition / AI-done vs human-execute; before closing a lane, aggregate every CR's `## Preventability review` into a `BL-*-retrospective*.md` |
 | Session resume | Read lane `STATE.md` first → expand to lane `MISSION.md` → latest baseline-log → root `.ai-os/MISSION.md` |
@@ -112,6 +113,17 @@ For frontend screens, separate the UI target from the implementation path:
 ## Long-lived AI project maintenance
 
 Long-lived AI projects should not default to calendar-based "refactor everything" cycles. Use continuous small maintenance: record `drift_signals`, evidence-backed `refactor_trigger`, `contract_impact`, `native_checks`, and `debt_disposition` in `tasks.yaml` `maintenance_review`. Stable findings flow back to `.ai-os/memory.md`, `verification-matrix.yaml`, or `evals/`; if there is no observed drift evidence, do not open a maintenance CR just to refresh code.
+
+## Field feedback closeout
+
+When field feedback comes from Codex or another AI development surface, first decide whether it is a delivery-truth failure rather than a missing runtime feature. The recurring checks are:
+
+- release truthfulness: latest user request, `STATE.md`, `release-plan.md`, and `tasks.yaml` must agree before claiming release / publish / deploy completion
+- verification environment classification: failures are `product-code`, `local-environment`, `external-service`, or `production-state-unknown`; only product-code failures directly enter code repair
+- task ledger review: after pull / stash / rebase / branch switch, check task IDs, baseline alignment, status-without-evidence, and lost evidence
+- baseline artifact interpretation: generated or legacy files must be classified before they can drive current scope
+
+Use existing task evidence, `deviation_log`, release blockers, verification guards, problem-ledger entries, and evals. Do not add a doctor warning, CLI command, runtime, or artifact category unless the Boundary Evolution Policy is satisfied.
 
 ## Boundary evolution
 
@@ -164,6 +176,7 @@ Any user-asset write, permission / identity change, irreversible state transitio
 - Full constitution: `AGENTS.md` (≤150 lines, single source of truth)
 - Artifact schema with layer assignments: `docs/artifacts.md`
 - Framework feedback loop (CR Preventability review + lane retrospective): `docs/maintainers.md` (git grep 复盘)
+- Codex field feedback evidence: `docs/codex-aios-field-feedback.md`
 - URL reverse-spec intake protocol: `docs/reverse-spec-url-intake.md`
 - Constitution spec for cross-tool integration: `docs/constitution-spec.md`
 - MCP resources URI scheme: `docs/interop/mcp-resources.md`

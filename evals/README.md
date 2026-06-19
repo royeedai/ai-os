@@ -85,6 +85,10 @@ Grouped by the five core requirements they enforce.
 - `fix-complete-but-data-runtime-not-recovered.md` — Code fixed but data/runtime not
 - `e2e-journey-broken-by-single-point-pass.md` — Single endpoints pass, end-to-end journey broken
 - `task-handoff-evidence-not-returned.md` — Task handed off to executor agent but evidence not returned to artifacts (W076)
+- `release-truth-drift.md` — Release / publish request drifts from lane state and release artifacts
+- `verification-environment-misclassified.md` — Verification failure environment is confused with product-code failure
+- `task-ledger-conflict-drift.md` — Rebase / stash / branch conflict causes task evidence drift
+- `install-baseline-artifact-misread.md` — Generated or legacy baseline artifacts are misread as current scope
 
 ### R5: Recoverable project memory
 

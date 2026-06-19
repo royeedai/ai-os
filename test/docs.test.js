@@ -34,6 +34,7 @@ section("docs: key documentation files exist");
     "docs/artifacts.md",
     "docs/cli.md",
     "docs/constitution-spec.md",
+    "docs/codex-aios-field-feedback.md",
     "docs/maintainers.md",
     "docs/getting-started.md",
     "docs/reverse-spec-url-intake.md",
@@ -541,7 +542,7 @@ section("docs: VERSION and package.json are in sync");
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
   assert(lock.version === pkg.version, `package-lock root version (${lock.version}) matches package.json version (${pkg.version})`);
   assert(lock.packages[""].version === pkg.version, `package-lock package version (${lock.packages[""].version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.5.0", `version is 10.5.0 (got ${version})`);
+  assert(version === "10.5.1", `version is 10.5.1 (got ${version})`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -1008,6 +1009,77 @@ section("docs: v10.5 boundary evolution policy is documented and tested");
   assert(!doctor.includes("W079"), "doctor does not add W079 for boundary policy");
 }
 
+section("docs: Codex field feedback closeout is documented, templated, and eval-backed");
+
+{
+  const fieldFeedback = read("docs/codex-aios-field-feedback.md");
+  const readme = read("README.md");
+  const artifacts = read("docs/artifacts.md");
+  const maintainers = read("docs/maintainers.md");
+  const ledger = read("docs/problem-ledger.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const tasksTemplate = read("framework/.agents/templates/lane/tasks.yaml");
+  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const evalsReadme = read("evals/README.md");
+  const doctor = read("bin/ai-os-doctor.js");
+
+  const releaseEval = read("evals/release-truth-drift.md");
+  const environmentEval = read("evals/verification-environment-misclassified.md");
+  const ledgerEval = read("evals/task-ledger-conflict-drift.md");
+  const baselineEval = read("evals/install-baseline-artifact-misread.md");
+
+  assert(fieldFeedback.includes("Release Truthfulness Review"), "field feedback doc covers release truthfulness review");
+  assert(fieldFeedback.includes("Verification Environment Classification"), "field feedback doc covers verification environment classification");
+  assert(fieldFeedback.includes("Task Ledger Conflict Review"), "field feedback doc covers task ledger conflict review");
+  assert(fieldFeedback.includes("Install / Baseline Artifact Review"), "field feedback doc covers install / baseline artifact review");
+  assert(fieldFeedback.includes("Auto release / auto merge / auto publish"), "field feedback doc rejects auto release expansion");
+  assert(fieldFeedback.includes("New doctor warning") && fieldFeedback.includes("deferred"), "field feedback doc defers new doctor warning");
+  assert(fieldFeedback.includes("existing 12 artifacts"), "field feedback doc keeps the current artifact boundary");
+
+  assert(readme.includes("Codex field feedback closeout"), "README documents Codex field feedback closeout");
+  assert(readme.includes("docs/codex-aios-field-feedback.md"), "README links field feedback evidence doc");
+  assert(artifacts.includes("Codex Field Feedback Closeout"), "artifacts docs document field feedback closeout");
+  assert(skill.includes("Field feedback closeout"), "skill wrapper routes field feedback closeout");
+  assert(maintainers.includes("Codex field feedback closeout"), "maintainers release matrix notes field feedback closeout");
+  assert(maintainers.includes("只有确定性结构检查才允许"), "maintainers keeps doctor warnings deterministic");
+
+  assert(ledger.includes("PL-025"), "problem ledger registers PL-025");
+  for (const term of ["release truth drift", "verification environment", "task ledger", "baseline artifact"]) {
+    assert(ledger.includes(term), `problem ledger PL-025 includes ${term}`);
+  }
+
+  assert(matrixTemplate.includes("field-feedback-closeout"), "verification matrix template includes field feedback closeout impact rule");
+  for (const id of ["FM-FIELD-001", "FM-FIELD-002", "FM-FIELD-003", "FM-FIELD-004"]) {
+    assert(matrixTemplate.includes(id), `verification matrix template includes ${id}`);
+  }
+  assert(tasksTemplate.includes("release-truth-review-if-release-requested"), "tasks template asks for release truth review when release is requested");
+  assert(tasksTemplate.includes("verification-environment-classification-if-failure"), "tasks template asks for environment classification on verification failure");
+  assert(tasksTemplate.includes("evidence_produced or deviation_log"), "tasks template keeps field feedback in existing evidence fields");
+
+  for (const file of [
+    "release-truth-drift.md",
+    "verification-environment-misclassified.md",
+    "task-ledger-conflict-drift.md",
+    "install-baseline-artifact-misread.md",
+  ]) {
+    assert(evalsReadme.includes(file), `evals README lists ${file}`);
+  }
+
+  for (const content of [releaseEval, environmentEval, ledgerEval, baselineEval]) {
+    assert(content.includes("CR-20260619-225610-codex-aios-field-feedback"), "field feedback eval references the baseline CR");
+    assert(content.includes("docs/codex-aios-field-feedback.md"), "field feedback eval points to the evidence doc");
+    assert(content.includes("PL-025"), "field feedback eval points to PL-025");
+  }
+  assert(releaseEval.includes("STATE.md") && releaseEval.includes("release-plan.md"), "release truth eval checks lane and release artifacts");
+  assert(environmentEval.includes("product-code") && environmentEval.includes("local-environment"), "environment eval checks product-code and local-environment classes");
+  assert(ledgerEval.includes("baseline_id") && ledgerEval.includes("evidence_produced"), "task ledger eval checks baseline and evidence drift");
+  assert(baselineEval.includes("legacy") && baselineEval.includes("generated"), "baseline artifact eval checks legacy/generated classification");
+
+  assert(doctor.includes('["W070", "W071", "W072", "W074", "W076", "W077", "W078"]'), "doctor semantic warning range remains W070-W078");
+  assert(!doctor.includes("W079"), "doctor does not add W079 for field feedback");
+  assert(!doctor.includes("W080"), "doctor does not add W080 for field feedback");
+}
+
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");
 
 {
@@ -1133,11 +1205,11 @@ section("docs: v10.3 local zero-network doctor entry is documented");
   assert(/zero (external request|network)/i.test(readme), "README states the daily flow makes zero external request");
 
   // Install commands are pinned to a release tag (cache-friendly + reproducible)
-  assert(readme.includes("github:royeedai/ai-os#v10.5.0"), "README pins install/skills commands to a release tag");
-  assert(gettingStarted.includes("github:royeedai/ai-os#v10.5.0"), "getting-started pins the install command");
+  assert(readme.includes("github:royeedai/ai-os#v10.5.1"), "README pins install/skills commands to a release tag");
+  assert(gettingStarted.includes("github:royeedai/ai-os#v10.5.1"), "getting-started pins the install command");
 
   // Release tracked
-  assert(changelog.includes("10.5.0"), "CHANGELOG records 10.5.0");
-  assert(maintainers.includes("v10.5.0"), "maintainers release matrix lists v10.5.0");
+  assert(changelog.includes("10.5.1"), "CHANGELOG records 10.5.1");
+  assert(maintainers.includes("v10.5.1"), "maintainers release matrix lists v10.5.1");
   assert(ledger.includes("PL-022"), "problem-ledger registers the zero-network doctor failure mode (PL-022)");
 }

@@ -289,6 +289,36 @@ AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改
 
 外部工具只作为可移植实践来源：Spec-Kit / Kiro / OpenSpec 的持久 spec、Copilot cloud agent 的 branch / PR / log 可审查、Cursor / Claude / Kiro 的精简规则与按需加载、OpenAI agent improvement loop 的 feedback / eval 思路，都映射到现有 AI-OS 工件；AI-OS 不新增 IDE adapter、runtime runner、重构调度器或遥测。
 
+## Codex Field Feedback Closeout
+
+本机 Codex 项目实战反馈显示，AI-OS 的高频问题不一定来自缺少执行能力，而是来自交付真相和证据分类被写混。此类反馈按 `docs/codex-aios-field-feedback.md` 进入现有工件，不新增第 13 类工件。
+
+### Release truthfulness review
+
+收口前必须对齐最新用户请求、`STATE.md`、`release-plan.md` 与 `tasks.yaml`：
+
+- 用户要求 publish / release / submit / deploy / tag / push 时，`release-plan.md` 必须表达当前 release intent、blockers、manual steps 与 rollback。
+- 如果 release 未执行，必须写成 blocker、manual action 或 non-goal；不得把 local-only 验证包装成已发布。
+- `tasks.yaml` 中 release / publish 相关任务在 done / verified / shipped 前必须有 `evidence_required` 与 `evidence_produced`。
+- final closeout 继续拆成 code / data / runtime status。
+
+### Verification environment classification
+
+项目原生验证失败时，先分类再修复：
+
+- `product-code`：仓库源码、构建、测试或运行行为造成。
+- `local-environment`：本地 `.env`、DNS / proxy、SDK cache、simulator、shell、缺本地 key。
+- `external-service`：provider outage、cloud API、remote host、store / review system、第三方依赖。
+- `production-state-unknown`：deployment、signing、store、live data 或真实设备状态当前不可观察。
+
+分类写入 `tasks.yaml` 的 `evidence_produced` / `deviation_log`，或写入 `release-plan.md` blockers。只有 `product-code` 才直接进入代码修复；其他分类必须给出人工步骤、环境修复或外部 blocker。
+
+### Task ledger and baseline interpretation
+
+pull / stash / rebase / branch switch / lane migration 之后，检查 `tasks.yaml` 的 duplicate IDs、baseline alignment、status-without-evidence 和 conflict resolution evidence loss。install、模板、legacy baseline 或 generated placeholder 只在被当前 `STATE.md`、`lane.toml`、MISSION / DESIGN / tasks 绑定时才是当前范围；否则必须分类为 legacy、generated、non-goal 或 pending cleanup。
+
+这些规则默认由 docs、模板、problem ledger、evals 与 verification matrix 承载。新增 doctor warning 只有在规则能变成确定性结构检查时才进入 Boundary Evolution Policy。
+
 ## Boundary Evolution Policy（v10.5）
 
 AI-OS 的边界不是永久冻结，也不是开放式扩张。任何新能力先按四层分类：

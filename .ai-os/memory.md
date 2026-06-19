@@ -92,6 +92,14 @@
 - **确认来源**：2026-06-18 用户同意 Boundary Evolution Policy 并要求计划后开始
 - **日期**：2026-06-18
 
+#### DD-012: Codex 实战反馈先回流治理工件，不扩成执行平台
+
+- **决策**：本机 Codex 项目中反复出现的 release truth drift、verification environment misclassification、task ledger conflict drift、install / baseline artifact misread 进入 docs、problem-ledger、verification-matrix、evals 和模板；默认不新增 CLI、runtime、doctor warning 或工件类别。
+- **原因**：实战反馈证明主要风险是交付真相与证据分类被写混，而不是 AI-OS 缺少执行能力；现有 12 工件足以表达这些 guard。
+- **影响范围**：docs/codex-aios-field-feedback.md、docs/problem-ledger.md、docs/artifacts.md、framework skill、lane templates、evals、docs tests
+- **确认来源**：2026-06-19 用户要求基于本机 Codex AI-OS 使用记录与市面 AI 情况审核计划后开始执行
+- **日期**：2026-06-19
+
 ### 2. 工程约束
 
 #### EC-001: 核心治理能力必须能在已承诺环境稳定承接

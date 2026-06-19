@@ -1,69 +1,88 @@
 impact_rules:
-  - when: "boundary-evolution-policy"
+  - when: "field-feedback-closeout"
     run:
-      - "AGENTS / skill boundary evolution behavior review"
-      - "README boundary evolution policy review"
-      - "docs/artifacts.md boundary layer review"
-      - "docs/constitution-spec.md v2.6 review"
-      - "docs/maintainers.md boundary decision checklist review"
-      - "docs/interop/standards-map.md adapter boundary review"
-      - "version metadata parity check"
+      - "release truthfulness review: latest user request / STATE.md / release-plan.md / tasks.yaml"
+      - "verification environment classification: product-code / local-environment / external-service / production-state-unknown"
+      - "task ledger conflict review after pull / stash / rebase / branch switch"
+      - "generated / legacy baseline artifact interpretation review"
+      - "Boundary Evolution review before adding doctor / CLI / runtime / artifact category"
       - "npm test"
       - "npm run lint"
       - "node bin/create-ai-os.js doctor . --json --strict"
-  - when: "controlled-extension-review"
+  - when: "no-new-product-surface"
     run:
-      - "CR / evidence gate exists before extension"
-      - "doctor warning candidate is deterministic and structural"
-      - "CLI candidate cannot be covered by install / doctor"
-      - "adapter candidate is optional, thin, and removable"
-      - "artifact category candidate proves existing 12 categories cannot express the need"
-  - when: "product-surface-boundary"
+      - "no new CLI command in this pass"
+      - "no new runtime / agent runner in this pass"
+      - "no new doctor warning code in this pass"
+      - "no auto-release / auto-merge / auto-publish behavior in this pass"
+      - "no 13th artifact category in this pass"
+  - when: "docs-template-eval-sync"
     run:
-      - "no new CLI command in this release"
-      - "no new runtime / agent runner in this release"
-      - "no new doctor warning code in this release"
-      - "no adapter implementation in this release"
-      - "no 13th artifact category in this release"
+      - "docs/codex-aios-field-feedback.md review"
+      - "docs/problem-ledger.md PL-025 review"
+      - "evals README and four eval files review"
+      - "framework templates field-feedback-closeout review"
+      - "test/docs.test.js assertions"
+  - when: "release-audit-v10.5.1"
+    run:
+      - "VERSION / package.json / package-lock version parity"
+      - "README / docs / interop release pins point to v10.5.1"
+      - "CHANGELOG and docs/maintainers release matrix include v10.5.1"
+      - "npm test"
+      - "npm run lint"
+      - "node bin/create-ai-os.js doctor . --json --strict"
+      - "git diff --check"
+      - "git push origin main and git tag v10.5.1"
 
 failure_modes:
-  - id: FM-BOUNDARY-001
-    scenario: "AI-OS boundary docs say never add doctor / CLI / artifact category, blocking future evidence-backed evolution"
-    expected: "Docs say default no expansion, but controlled extension can pass boundary review with CR, evidence, tests, and guards"
-    guard: "test/docs.test.js boundary evolution assertions"
+  - id: FM-FIELD-001
+    scenario: "用户要求 release / publish / deploy / submit，但 STATE.md、release-plan.md 或 tasks.yaml 仍写 local-only、not requested 或旧 baseline"
+    expected: "收口前必须对齐最新用户请求、lane 状态、release plan 和任务证据；未执行发布必须写成 blocker / manual action / non-goal"
+    guard: "docs/codex-aios-field-feedback.md release truthfulness review + evals/release-truth-drift.md"
     acceptance_refs:
       - AC-001
-      - AC-003
-  - id: FM-BOUNDARY-002
-    scenario: "Boundary evolution policy is used to justify adding a runtime, scheduler, model router, auto-release platform, or telemetry"
-    expected: "Forbidden surfaces remain permanently blocked from AI-OS core"
-    guard: "README + artifacts + skill forbidden-surface assertions"
-    acceptance_refs:
-      - AC-001
-      - AC-004
-  - id: FM-BOUNDARY-003
-    scenario: "A new doctor warning, CLI subcommand, adapter, or artifact category is proposed without entry criteria"
-    expected: "Maintainer checklist requires deterministic signal / high-frequency need / optional thin adapter / proof existing artifacts cannot express the need"
-    guard: "docs/maintainers.md Boundary Decision Checklist"
+      - AC-005
+  - id: FM-FIELD-002
+    scenario: "本地 .env、DNS/proxy、SDK 网络、真实设备、签名、远端服务或 provider outage 被混成产品代码失败"
+    expected: "验证失败先分类为 product-code / local-environment / external-service / production-state-unknown；只有 product-code 直接进入代码修复"
+    guard: "verification environment classification + evals/verification-environment-misclassified.md"
     acceptance_refs:
       - AC-002
-  - id: FM-BOUNDARY-004
-    scenario: "版本 bump 到 10.5.0 但 package-lock、docs pin、install tests 或 self-hosted framework metadata 仍停在 10.4.0"
-    expected: "VERSION、package.json、package-lock、docs pin、tests 和 self-hosted framework metadata 一致"
-    guard: "test/docs.test.js + test/install.test.js + test/doctor.test.js + test/shared.test.js"
+      - AC-001
+      - AC-003
+  - id: FM-FIELD-003
+    scenario: "pull / stash / rebase / branch switch 后 tasks.yaml 复用旧 task ID、丢 evidence_produced 或 baseline_id 不一致"
+    expected: "git 操作后 review task ledger，检查 duplicate IDs、baseline alignment、status-without-evidence 和 conflict evidence loss"
+    guard: "task ledger conflict review + evals/task-ledger-conflict-drift.md"
+    acceptance_refs:
+      - AC-003
+      - AC-004
+  - id: FM-FIELD-004
+    scenario: "install / template / legacy baseline 生成物被当作当前交付范围"
+    expected: "生成或遗留 artifact 必须先分类为 current / legacy / generated / non-goal / pending cleanup，再决定是否进入当前 scope"
+    guard: "baseline artifact interpretation + evals/install-baseline-artifact-misread.md"
+    acceptance_refs:
+      - AC-003
+      - AC-004
+  - id: FM-FIELD-005
+    scenario: "field feedback 被用来新增 runtime、auto-release、CLI 或 doctor warning，但没有 deterministic structural evidence"
+    expected: "默认留在 docs / templates / problem-ledger / evals；新增 product surface 必须另过 Boundary Evolution Policy"
+    guard: "docs/maintainers.md Boundary Decision Checklist + docs tests"
     acceptance_refs:
       - AC-005
-  - id: FM-BOUNDARY-005
-    scenario: "文档和测试更新后未运行项目原生校验就声明完成"
-    expected: "必须记录 npm test、npm run lint、strict doctor 结果"
-    guard: "tasks.yaml evidence_required + final verification"
+      - AC-006
+  - id: FM-RELEASE-001
+    scenario: "发版时 VERSION、package.json、package-lock、README/docs pins、CHANGELOG 或 maintainer matrix 仍停在旧版本"
+    expected: "patch release 前所有版本真理源对齐 v10.5.1，并由 docs/install/doctor/shared tests 覆盖"
+    guard: "test/docs.test.js + test/install.test.js + test/doctor.test.js + test/shared.test.js"
     acceptance_refs:
       - AC-006
 
 guards:
   - "test/docs.test.js"
-  - "test/install.test.js"
-  - "test/doctor.test.js"
-  - "test/shared.test.js"
+  - "evals/release-truth-drift.md"
+  - "evals/verification-environment-misclassified.md"
+  - "evals/task-ledger-conflict-drift.md"
+  - "evals/install-baseline-artifact-misread.md"
   - "node bin/create-ai-os.js doctor . --json --strict"
   - "npm run lint"

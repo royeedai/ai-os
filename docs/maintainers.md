@@ -45,6 +45,7 @@
 | v10.3.1 | Codex suitability + release metadata consistency（patch） | Activation Gate / bugfix stops 对明确授权的 Codex 前台执行请求不再二次反问；doctor guard 文案区分 host hook 与 Codex local / CI guard；补 package-lock 版本一致性检查 |
 | v10.4.0 | Long-lived AI Project Maintenance Loop（minor） | 长期 AI 项目按 drift evidence 触发维护 CR / scoped refactor task；`tasks.yaml` 可选 `maintenance_review`；verification matrix 增长期维护 guard；不新增 CLI / runtime / doctor warning / 工件类别 |
 | v10.5.0 | Boundary Evolution Policy（minor） | Kernel / Controlled Extension / Adapter / Forbidden 边界分类；future doctor / CLI / adapter / artifact-category changes require CR evidence, tests, and boundary review；本轮不新增产品 surface |
+| v10.5.1 | Codex field feedback closeout（patch） | 发布真相、验证环境分类、task ledger 冲突、baseline artifact 误读进入 docs / templates / evals；不新增 CLI / runtime / doctor warning / 工件类别 |
 
 Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。当前 doctor semantic warnings 为 W070-W078，可由 `doctor --strict` 升级为 error。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）；未来扩展必须先过 Boundary Decision Checklist。
 
@@ -57,6 +58,7 @@ Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。
 - [ ] VERSION、package.json 与 package-lock.json 根版本一致并已升级（按 SemVer 选 patch / minor / major）
 - [ ] `AGENTS.md` ≤150 行
 - [ ] README、`docs/cli.md`、`docs/artifacts.md` 与本次改动同步
+- [ ] 若本次改动来自实战反馈，`docs/codex-aios-field-feedback.md` 或对应 evidence doc 已记录 accepted / rejected scope
 - [ ] `docs/constitution-spec.md` 在改动影响 spec 兼容性时已 bump
 - [ ] `CHANGELOG.md` 已新增本版本条目并写明 Added / Changed / Tests / Migration
 - [ ] `docs/problem-ledger.md` 已为本次新规则补登 PL-* / PG-*，或在 CR 中记录不补登原因
@@ -87,6 +89,7 @@ Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。
 2. 任何“当前覆盖锚点”变化，都要同步更新 `docs/problem-ledger.md`
 3. 不要让单一 IDE 才能生效的机制进入根层治理
 4. root shared 与 lane current 的语义边界不能混写
+5. 实战反馈先判断是 delivery-truth / evidence-classification 问题，还是确实需要产品 surface；默认用现有 12 工件表达
 
 ## Boundary Decision Checklist
 
@@ -157,8 +160,9 @@ git grep -n "Maps to: unmapped" .ai-os/lanes/
 从最稳到最重：
 
 1. AGENTS.md 行为规则补一行（首选，零工件成本，跨 IDE 直接生效）
-2. lane 工件模板新增字段（次选，影响所有新 install）
-3. doctor 新增 warning / info（再次，强制 / 提示力度可控）
-4. docs / examples 补充示例（最后，仅在前三种不合适时使用）
+2. lane 工件模板 / verification matrix guard（影响所有新 install，仍保持在现有 12 工件内）
+3. problem-ledger / evals（把真实 failure mode 固化为可回归样例）
+4. docs / examples 补充示例（适合语义分类、边界说明和采纳 / 拒绝理由）
+5. doctor 新增 warning / info（只有确定性结构检查才允许）
 
 任何升格都必须同步：`docs/problem-ledger.md` 新增 PL-* / PG-*、`docs/constitution-spec.md` 视影响 bump 版本、对应 minor 的 CHANGELOG。

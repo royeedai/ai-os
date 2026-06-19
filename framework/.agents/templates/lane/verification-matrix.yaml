@@ -45,6 +45,13 @@ impact_rules:
       - "[contract_impact review against memory.md architecture guardrails]"
       - "[native_checks review before done / verified / shipped]"
       - "[debt_disposition review: memory.md / verification-matrix.yaml / evals feedback when stable]"
+  - when: "field-feedback-closeout"
+    run:
+      - "[release truthfulness review: latest user request / STATE.md / release-plan.md / tasks.yaml]"
+      - "[verification environment classification: product-code / local-environment / external-service / production-state-unknown]"
+      - "[task ledger conflict review after pull / stash / rebase / branch switch]"
+      - "[generated / legacy baseline artifact interpretation review]"
+      - "[Boundary Evolution review before adding doctor / CLI / runtime / artifact category]"
 
 failure_modes:
   - id: FM-001
@@ -115,6 +122,22 @@ failure_modes:
     scenario: "多轮 AI 交付后出现重复返工、同型缺陷或架构漂移，但结果只留在聊天或总结里，没有回流 memory.md / verification-matrix.yaml / evals"
     expected: "稳定漂移信号必须进入 memory guardrail、verification guard 或 promoted eval；未达升格阈值也要进入 debt_disposition"
     guard: "maintenance_review.debt_disposition + stable failure mode rule"
+  - id: FM-FIELD-001
+    scenario: "用户要求 release / publish / deploy / submit，但 STATE.md、release-plan.md 或 tasks.yaml 仍写 local-only、not requested 或旧 baseline"
+    expected: "收口前必须对齐最新用户请求、lane 状态、release plan 和任务证据；未执行发布必须写成 blocker / manual action / non-goal"
+    guard: "docs/codex-aios-field-feedback.md release truthfulness review + evals/release-truth-drift.md"
+  - id: FM-FIELD-002
+    scenario: "本地 .env、DNS/proxy、SDK 网络、真实设备、签名、远端服务或 provider outage 被混成产品代码失败"
+    expected: "验证失败先分类为 product-code / local-environment / external-service / production-state-unknown；只有 product-code 直接进入代码修复"
+    guard: "verification environment classification + evals/verification-environment-misclassified.md"
+  - id: FM-FIELD-003
+    scenario: "pull / stash / rebase / branch switch 后 tasks.yaml 复用旧 task ID、丢 evidence_produced 或 baseline_id 不一致"
+    expected: "git 操作后 review task ledger，检查 duplicate IDs、baseline alignment、status-without-evidence 和 conflict evidence loss"
+    guard: "task ledger conflict review + evals/task-ledger-conflict-drift.md"
+  - id: FM-FIELD-004
+    scenario: "install / template / legacy baseline 生成物被当作当前交付范围"
+    expected: "生成或遗留 artifact 必须先分类为 current / legacy / generated / non-goal / pending cleanup，再决定是否进入当前 scope"
+    guard: "baseline artifact interpretation + evals/install-baseline-artifact-misread.md"
 
 guards:
   - "[evidence path or eval reference]"

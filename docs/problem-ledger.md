@@ -2,7 +2,7 @@
 
 本文件记录 AI-OS 必须持续覆盖的稳定问题，以及它们在当前版本中的真实承接点。
 
-AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、长期 AI 项目无证据周期性大重构或漂移信号不回流、以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
+AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、长期 AI 项目无证据周期性大重构或漂移信号不回流、Codex 实战反馈中的发布状态漂移 / 验证环境误分类 / task ledger 冲突 / baseline 误读，以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
 
 ## 当前覆盖
 
@@ -142,6 +142,12 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 - **场景**：纯 AI / AI-assisted 项目经历多轮交付后，团队用“每隔一段时间大重构一次”作为默认维护方式；或者重复返工、同型缺陷、架构护栏未回流、验证矩阵过时、技术债无处置等漂移信号只留在聊天 / 总结里，没有进入 CR、任务证据、memory、verification guard 或 eval。
 - **AI-OS 必须保证**：长期维护按 drift evidence 触发。只有 observed drift signals 明确时才开启维护 CR 或 scoped refactor task；任务用 `maintenance_review` 记录 `drift_signals`、`refactor_trigger`、`contract_impact`、`native_checks`、`debt_disposition`；稳定发现必须回流 `.ai-os/memory.md`、`verification-matrix.yaml` 或 `evals/`。
 - **当前覆盖锚点**：`AGENTS.md`（行为规则 §长期维护）、`README.md`（Long-lived AI project maintenance）、`docs/artifacts.md`（Long-lived AI Project Maintenance Loop）、`docs/constitution-spec.md` v2.6、`framework/skills/ai-os-delivery/SKILL.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`examples/long-lived-maintenance-loop.md`、`evals/periodic-refactor-without-drift-evidence.md`、`evals/drift-signal-not-fed-back.md`、`test/docs.test.js`
+
+### PL-025 Codex 实战反馈未回流，导致发布真相、验证环境、任务账本和 baseline 继续漂移
+
+- **场景**：本机多个 Codex 项目使用 AI-OS 后反复出现同型问题：用户已要求发布但 lane 工件仍写本地 / 未请求（release truth drift）；本地 `.env`、DNS / proxy、SDK 网络、真实设备、签名、远端服务等验证环境问题被混成产品代码问题（verification environment misclassification）；pull / stash / rebase 后 `tasks.yaml` 冲突或复用旧 task ID；install / legacy baseline 生成物被当成当前交付范围。
+- **AI-OS 必须保证**：实战反馈先进入证据包和问题台账，再用现有 12 工件表达：closeout 前做 release truthfulness review；验证失败先分类为 `product-code` / `local-environment` / `external-service` / `production-state-unknown`；分支 / stash / rebase 后检查 task ledger；生成或遗留 baseline artifact 必须被解释为 current / legacy / generated / non-goal / pending cleanup。默认不新增 CLI、runtime、artifact category 或 doctor warning；只有确定性结构检查才可走 Boundary Evolution Policy。
+- **当前覆盖锚点**：`docs/codex-aios-field-feedback.md`、`.ai-os/lanes/default/baseline-log/CR-20260619-225610-codex-aios-field-feedback.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/skills/ai-os-delivery/SKILL.md`、`evals/release-truth-drift.md`、`evals/verification-environment-misclassified.md`、`evals/task-ledger-conflict-drift.md`、`evals/install-baseline-artifact-misread.md`、`test/docs.test.js`
 
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 

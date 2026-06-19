@@ -10,6 +10,32 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 ---
 
+## 10.5.1 (2026-06-19) — Codex Field Feedback Closeout
+
+**Patch, backward compatible**. Turns local Codex AI-OS field feedback into auditable governance coverage for release truthfulness, verification environment classification, task ledger conflict review, and install / baseline artifact interpretation. This release changes docs, templates, evals, tests, version metadata, and self-hosted lane records only. It adds no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, auto-release behavior, artifact category, or schema layout change.
+
+### Added
+
+- `docs/codex-aios-field-feedback.md` records the field evidence summary, accepted optimizations, rejected / deferred surfaces, and future deterministic doctor candidates.
+- `docs/problem-ledger.md` adds PL-025 for Codex field feedback drift: release truth drift, verification environment misclassification, task ledger conflict drift, and baseline artifact misread.
+- New eval samples: `release-truth-drift.md`, `verification-environment-misclassified.md`, `task-ledger-conflict-drift.md`, and `install-baseline-artifact-misread.md`.
+- Lane verification template adds `field-feedback-closeout` and FM-FIELD-001 through FM-FIELD-004.
+
+### Changed
+
+- README, `docs/artifacts.md`, `docs/maintainers.md`, the official skill wrapper, and lane task template now explain how to carry field feedback inside existing evidence fields and verification guards.
+- Install pins, interop pins, package metadata, local framework metadata, and tests now point at v10.5.1.
+
+### Tests
+
+- `npm test`
+- `npm run lint`
+- `node bin/create-ai-os.js doctor . --json --strict`
+
+### Migration
+
+No action needed. Existing installs keep the same artifact layout and doctor behavior. Reinstall or update your pinned GitHub tag to pick up the v10.5.1 field-feedback closeout guidance.
+
 ## 10.5.0 (2026-06-18) — Boundary Evolution Policy
 
 **Minor, backward compatible**. Adds an explicit Boundary Evolution Policy so AI-OS can evolve without becoming an IDE, runtime, scheduler, model router, or automation platform. This release changes docs, skill guidance, tests, version metadata, and self-hosted lane records only. It adds no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, artifact category, or schema layout change.

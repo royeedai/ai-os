@@ -4,10 +4,10 @@
 
 ```bash
 # Install into a new project (pin a release: reproducible + cache-friendly)
-npx --yes github:royeedai/ai-os#v10.5.0 my-project
+npx --yes github:royeedai/ai-os#v10.5.1 my-project
 
 # Install into an existing repo
-npx --yes github:royeedai/ai-os#v10.5.0 .
+npx --yes github:royeedai/ai-os#v10.5.1 .
 
 # Check health — runs locally with zero network after install
 node .ai-os/bin/ai-os-doctor.js .
@@ -171,13 +171,26 @@ AI-OS does not treat "refactor every few weeks" as a maintenance strategy. Long-
 
 This keeps maintenance small, auditable, and test-backed. If there is no drift evidence, do not schedule a big-bang refactor just because the project has been AI-built for a while.
 
+## Codex field feedback closeout
+
+Real Codex projects using AI-OS showed recurring closeout drift: release requests not reflected in lane artifacts, verification failures blurred with local / external environment issues, `tasks.yaml` conflicts after git operations, and generated baseline artifacts being treated as current scope.
+
+AI-OS handles this inside the existing 12 artifacts:
+
+- compare the latest user request with `STATE.md`, `release-plan.md`, and `tasks.yaml` before claiming release / publish / deploy completion
+- classify failed verification as `product-code`, `local-environment`, `external-service`, or `production-state-unknown`
+- review task IDs, baseline alignment, and evidence after pull / stash / rebase / branch switch
+- classify generated or legacy artifacts as current, legacy, generated, non-goal, or pending cleanup before using them as scope
+
+See [docs/codex-aios-field-feedback.md](docs/codex-aios-field-feedback.md). This is deliberately not a new CLI command, doctor warning, runtime, or artifact category.
+
 ## Cross-agent loading via the `agentskills.io` standard
 
 For agents that prefer the [agentskills.io](https://agentskills.io/specification) skill format (Claude Code, Cursor, Codex, Gemini CLI, ADK, Hermes, ...), AI-OS publishes an official wrapper:
 
 ```bash
 # Pin a release; or vendor the folder offline once cloned (no network)
-npx skills add github:royeedai/ai-os#v10.5.0
+npx skills add github:royeedai/ai-os#v10.5.1
 ```
 
 This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the constitution into the open standard. It does not introduce a new command surface — it is a thin wrapper so any spec-compliant agent can pick AI-OS up without per-tool adapters. To stay fully offline after cloning, copy `framework/skills/ai-os-delivery` into `.claude/skills/` or `.cursor/skills/` instead of fetching.
@@ -207,6 +220,7 @@ Optional feedback path: file an issue with the `framework-feedback` label using 
 - [docs/artifacts.md](docs/artifacts.md)
 - [docs/cli.md](docs/cli.md)
 - [docs/constitution-spec.md](docs/constitution-spec.md)
+- [docs/codex-aios-field-feedback.md](docs/codex-aios-field-feedback.md)
 - [docs/getting-started.md](docs/getting-started.md)
 - [docs/reverse-spec-url-intake.md](docs/reverse-spec-url-intake.md)
 - [docs/maintainers.md](docs/maintainers.md)

@@ -48,7 +48,7 @@ section("install: default install into fresh dir");
   assert(exists(dir, ".ai-os/bin/shared.js"), "local doctor shared module vendored");
   assert(exists(dir, ".ai-os/bin/VERSION"), "local doctor VERSION vendored");
   const localDoctorVersion = readFile(dir, ".ai-os/bin/VERSION");
-  assert(localDoctorVersion && localDoctorVersion.trim() === "10.5.0", "local doctor VERSION matches framework version");
+  assert(localDoctorVersion && localDoctorVersion.trim() === "10.5.1", "local doctor VERSION matches framework version");
 
   assert(exists(dir, ".ai-os/lanes/default"), "default lane directory installed");
   assert(exists(dir, ".ai-os/lanes/default/lane.toml"), "lane.toml installed");
@@ -86,7 +86,7 @@ section("install: default install into fresh dir");
   const toml = readFile(dir, ".ai-os/framework.toml");
   assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "10.5.0"'), "framework.toml has version 10.5.0");
+  assert(toml && toml.includes('framework_version = "10.5.1"'), "framework.toml has version 10.5.1");
 
   cleanup(dir);
 }
@@ -155,7 +155,7 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "10.5.0", `--version outputs 10.5.0 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "10.5.1", `--version outputs 10.5.1 (got ${result.stdout.trim()})`);
 }
 
 section("install: removed subcommands fail instead of installing into a directory");
