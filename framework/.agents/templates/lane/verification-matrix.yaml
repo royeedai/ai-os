@@ -45,6 +45,11 @@ impact_rules:
       - "[contract_impact review against memory.md architecture guardrails]"
       - "[native_checks review before done / verified / shipped]"
       - "[debt_disposition review: memory.md / verification-matrix.yaml / evals feedback when stable]"
+  - when: "password-or-default-credential"
+    run:
+      - "[password policy review: uppercase + lowercase + symbol required]"
+      - "[default credential review: random, non-hardcoded, same complexity]"
+      - "[negative-path validation: weak / predictable passwords rejected]"
   - when: "field-feedback-closeout"
     run:
       - "[release truthfulness review: latest user request / STATE.md / release-plan.md / tasks.yaml]"
@@ -122,6 +127,10 @@ failure_modes:
     scenario: "多轮 AI 交付后出现重复返工、同型缺陷或架构漂移，但结果只留在聊天或总结里，没有回流 memory.md / verification-matrix.yaml / evals"
     expected: "稳定漂移信号必须进入 memory guardrail、verification guard 或 promoted eval；未达升格阈值也要进入 debt_disposition"
     guard: "maintenance_review.debt_disposition + stable failure mode rule"
+  - id: FM-CRED-001
+    scenario: "密码、初始凭证、默认账号或重置逻辑接受弱口令，或默认密码写死 / 可预测"
+    expected: "密码策略必须拒绝缺少大小写字母或符号的弱口令；默认 / 初始密码必须随机生成且包含大小写字母与符号"
+    guard: "verification-matrix password-or-default-credential impact rule + project-native password validation tests"
   - id: FM-FIELD-001
     scenario: "用户要求 release / publish / deploy / submit，但 STATE.md、release-plan.md 或 tasks.yaml 仍写 local-only、not requested 或旧 baseline"
     expected: "收口前必须对齐最新用户请求、lane 状态、release plan 和任务证据；未执行发布必须写成 blocker / manual action / non-goal"

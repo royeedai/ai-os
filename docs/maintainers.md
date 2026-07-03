@@ -1,6 +1,6 @@
 # AI-OS 仓库维护指南
 
-本文件只指导 AI-OS 母仓库自身开发。分发给用户项目的宪法位于根 `AGENTS.md`。
+本文件只指导 AI-OS 母仓库自身开发。分发给用户项目的宪法模板位于 `framework/.agents/templates/root/AGENTS.md`；仓库根 `AGENTS.md` 只是本源码仓库维护 guard。
 
 ## 产品方向
 
@@ -38,7 +38,7 @@
 | v9.9 | Design-aware component-first UI | 有设计稿按设计目标优先复用组件；无设计稿的后台 / PC / 移动业务 UI 默认组件库交付 |
 | v10.0.0 | Drop upgrade + legacy migration（major） | 移除 upgrade 命令与 v7/v8 迁移机制，CLI 收敛为 install + doctor |
 | v10.1.0 | Restate-confirm gate + architecture guardrail（minor） | AGENTS §1 反述确认门、lane MISSION §2 / DESIGN §10 反述字段、memory §2 架构护栏登记表、spec v2.2；吸收外部建议但守红线，不新增 CLI / doctor code / 工件类别 |
-| v10.1.1 | Consistency optimization（patch） | 修 mcp-resources 操作数 / CHANGELOG spec 版本号、补齐 v10.0.0 去版本化遗漏（doctor 输出 / 注释 / README）、dogfood lane 工件回正到当前交付 + mcp-resources 回归 guard；无新增 CLI / doctor code / 工件类别 |
+| v10.1.1 | Consistency optimization（patch） | 修 mcp-resources 操作数 / CHANGELOG spec 版本号、补齐 v10.0.0 去版本化遗漏（doctor 输出 / 注释 / README）、回正历史维护记录口径 + mcp-resources 回归 guard；无新增 CLI / doctor code / 工件类别 |
 | v10.1.2 | CLI defect fixes + restate-anchor unification（patch） | 修已移除子命令静默误装 / install --help / 目标为文件崩溃 / doctor 类型漏检与 EISDIR 崩溃 / 死导出；反述门锚点统一 DESIGN §10 并落节号级断言；清理 upgrade 与去版本化残留；greenfield 补设计层反述示范；无新增 CLI / doctor code / 工件类别 |
 | v10.2.0 | Product Design optional bridge（minor） | `design_input` 记录 Product Design / Figma / URL / screenshot / existing-code / manual brief；Product Design 能力可完整用作设计证据，但不是插件硬依赖 |
 | v10.3.0 | Zero-network local doctor（minor） | install 把 doctor 入口 vendored 到目标项目 `.ai-os/bin/`（入 git），日常 / hook / CI 走 `node .ai-os/bin/ai-os-doctor.js .` 本地零外部请求；团队 clone 无 framework.toml 时按 committed VERSION 降级 E001；install / skills 命令 pin release tag；无新增 CLI / doctor code / 工件类别 |
@@ -47,16 +47,16 @@
 | v10.5.0 | Boundary Evolution Policy（minor） | Kernel / Controlled Extension / Adapter / Forbidden 边界分类；future doctor / CLI / adapter / artifact-category changes require CR evidence, tests, and boundary review；本轮不新增产品 surface |
 | v10.5.1 | Codex field feedback closeout（patch） | 发布真相、验证环境分类、task ledger 冲突、baseline artifact 误读进入 docs / templates / evals；不新增 CLI / runtime / doctor warning / 工件类别 |
 
-Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。当前 doctor semantic warnings 为 W070-W078，可由 `doctor --strict` 升级为 error。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）；未来扩展必须先过 Boundary Decision Checklist。
+Kernel 默认保持零运行时依赖、分发 `AGENTS.md` ≤150 行、向后兼容。当前 doctor semantic warnings 为 W070-W078，可由 `doctor --strict` 升级为 error。CLI 子命令在 v9.x 为 3 个，v10.0.0 起收敛为 2 个（install + doctor）；未来扩展必须先过 Boundary Decision Checklist。
 
 ## 发布前检查清单（公开口径）
 
-任何 minor / patch / major 上 GitHub `main` 前必须依次通过。仓库自身的更详细负责人清单见仓库内 `.cursor/rules/project-lead.mdc`（仅本仓库维护者本地使用）。
+任何 minor / patch / major 上 GitHub `main` 前必须依次通过。仓库自身维护只依赖根 `AGENTS.md`、源码、模板、文档、测试和发布元数据；不再维护 IDE-only 负责人规则或本仓库 `.ai-os/` lane 状态。
 
 - [ ] `npm test` 全绿
 - [ ] `npm run lint` 0 错 0 警
 - [ ] VERSION、package.json 与 package-lock.json 根版本一致并已升级（按 SemVer 选 patch / minor / major）
-- [ ] `AGENTS.md` ≤150 行
+- [ ] 分发宪法模板 `framework/.agents/templates/root/AGENTS.md` ≤150 行；仓库根 `AGENTS.md` 保持极简维护 guard
 - [ ] README、`docs/cli.md`、`docs/artifacts.md` 与本次改动同步
 - [ ] 若本次改动来自实战反馈，`docs/codex-aios-field-feedback.md` 或对应 evidence doc 已记录 accepted / rejected scope
 - [ ] `docs/constitution-spec.md` 在改动影响 spec 兼容性时已 bump
@@ -68,8 +68,8 @@ Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。
 
 ## 目录结构
 
-- `AGENTS.md`：分发给用户项目的唯一交付宪法
-- `.ai-os/`：AI-OS 仓库自身的自托管工件
+- `framework/.agents/templates/root/AGENTS.md`：分发给用户项目的唯一交付宪法
+- `.ai-os/`：只由下游项目安装后生成和维护；AI-OS 源码仓库自身不提交
 - `framework/`：模板和 starter
 - `bin/`：CLI 源码
 - `docs/`：规范、维护和问题台账
@@ -80,7 +80,7 @@ Kernel 默认保持零运行时依赖、`AGENTS.md` ≤150 行、向后兼容。
 ## 维护规则
 
 1. 改动 canonical layout 时，必须同步修改：
-   - `AGENTS.md`
+   - `framework/.agents/templates/root/AGENTS.md`
    - `README.md`
    - `docs/artifacts.md`
    - `docs/constitution-spec.md`
@@ -127,7 +127,7 @@ npm run lint
 
 ## Framework feedback 复盘
 
-AI-OS 的迭代输入来自"用户在第一次开发后提出的修改中，哪些本可在 AI-OS 第一次 session 就拦掉"。v9.7 起这条反馈链不依赖任何 telemetry，全靠本地工件 + git + 定期复盘：
+AI-OS 的迭代输入来自"用户在第一次开发后提出的修改中，哪些本可在 AI-OS 第一次 session 就拦掉"。v9.7 起这条反馈链不依赖任何 telemetry，来自已安装项目的本地工件、显式 issue、docs tests、evals 与 maintainer 定期复盘。AI-OS 仓库自身不再提交 `.ai-os/` lane 状态或历史 lane 记录。
 
 ### 反馈数据进入工件
 
@@ -135,16 +135,16 @@ AI-OS 的迭代输入来自"用户在第一次开发后提出的修改中，哪�
 2. lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective.md`，聚合本 lane 内所有 `Preventability review`。
 3. v9.8+ 起不再用 doctor 提示 Preventability review 遗漏；靠模板 schema + maintainer `git grep` 复盘。
 
-### dogfooding 通道（主路径）
+### 反馈归集通道（主路径）
 
-每个 minor 发布前，maintainer 在 AI-OS 仓库自身的 lane 内执行：
+每个 minor 发布前，maintainer 汇总来自已安装项目或 issue 的 `Preventability review`，并在 AI-OS 仓库内检查已升格的 problem-ledger / eval / docs guard：
 
 ```bash
-git grep -n "Preventable: yes\|Preventable: partial" .ai-os/lanes/
-git grep -n "Maps to: unmapped" .ai-os/lanes/
+git grep -n "PL-\\|PG-" docs/problem-ledger.md evals/ docs/
+git grep -n "Preventability review" framework/.agents/templates docs/ README.md
 ```
 
-列出未归并条目，按下文"归并判断"决定是否升格为 `PL-*` / `PG-*`。
+列出已归并条目与模板覆盖点，按下文"归并判断"决定是否新增或收紧 `PL-*` / `PG-*`。
 
 ### 第三方通道（可选）
 
@@ -152,14 +152,14 @@ git grep -n "Maps to: unmapped" .ai-os/lanes/
 
 ### 归并判断
 
-- 同一 root cause 在 dogfooding + 第三方通道合计出现 ≥2 次 → 新增 `PL-*` 或 `PG-*` 到 `docs/problem-ledger.md`，并在下一个 minor 落 guard。
-- 单次偶发 → 留在 baseline-log 内不升格，避免误把个别项目特性写进框架。
+- 同一 root cause 在已安装项目反馈、issue 或 maintainer 复盘中合计出现 ≥2 次 → 新增 `PL-*` 或 `PG-*` 到 `docs/problem-ledger.md`，并在下一个 minor 落 guard。
+- 单次偶发 → 留在来源项目的 baseline-log / issue 内不升格，避免误把个别项目特性写进框架。
 
 ### Guard 落点优先级
 
 从最稳到最重：
 
-1. AGENTS.md 行为规则补一行（首选，零工件成本，跨 IDE 直接生效）
+1. 分发宪法模板 `framework/.agents/templates/root/AGENTS.md` 行为规则补一行（首选，零工件成本，跨 IDE 直接生效）
 2. lane 工件模板 / verification matrix guard（影响所有新 install，仍保持在现有 12 工件内）
 3. problem-ledger / evals（把真实 failure mode 固化为可回归样例）
 4. docs / examples 补充示例（适合语义分类、边界说明和采纳 / 拒绝理由）

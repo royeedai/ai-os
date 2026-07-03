@@ -9,7 +9,7 @@ The local scan covered 42 AI-OS-related Codex rollout summaries across 6 project
 - production web app governance: AI-OS vendoring, doctor, production release, governance refresh
 - local content / writing workflow: AI-OS-style planning and evidence closure
 - mobile app release verification: platform blockers, signing evidence, real-device constraints
-- AI-OS dogfooding: release, boundary, doctor, docs
+- AI-OS framework maintenance: release, boundary, doctor, docs
 - project-management workflow: lane / task governance
 - install / test workspace: local artifact behavior
 

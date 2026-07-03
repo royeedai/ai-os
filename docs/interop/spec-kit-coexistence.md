@@ -95,4 +95,4 @@ Spec-Kit moved LLM-driven work from "vibe coding" to "spec-driven". AI-OS takes 
 
 ## Reference implementation
 
-AI-OS's own repo demonstrates Mode B end-to-end. See [AGENTS.md](../../AGENTS.md) + [.ai-os/](../../.ai-os/).
+The AI-OS source repo is only the installer / framework source. To inspect Mode B end-to-end, run `create-ai-os install` in a sample downstream project and review the generated `AGENTS.md` + `.ai-os/` artifacts.

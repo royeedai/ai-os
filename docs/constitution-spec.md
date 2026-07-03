@@ -30,7 +30,7 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 
 符合本规范的项目必须至少包含：
 
-- 根 `AGENTS.md`
+- 安装后的根 `AGENTS.md`（源码模板：`framework/.agents/templates/root/AGENTS.md`）
 - `.ai-os/MISSION.md`、`.ai-os/memory.md`
 - `.ai-os/lanes/default/MISSION.md`、`.ai-os/lanes/default/DESIGN.md`
 - `.ai-os/lanes/default/baseline-log/`
@@ -43,7 +43,7 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 4. 证据化完成  
 5. 可恢复的项目记忆  
 
-完整行为规则见根 `AGENTS.md`（≤150 行）。
+完整行为规则见安装后的根 `AGENTS.md`（模板源：`framework/.agents/templates/root/AGENTS.md`，≤150 行）。AI-OS 源码仓库自己的根 `AGENTS.md` 只是维护 guard，不是分发宪法。
 
 ## 4. Canonical layout
 
@@ -98,6 +98,8 @@ Reference implementation: [create-ai-os](https://github.com/royeedai/ai-os)
 前端 UI 交付使用 Design-Aware Component-First UI：有设计稿时设计稿是目标、组件库是优先实现手段；无设计稿时后台、PC 业务系统和移动业务页默认采用项目现有或栈匹配组件库。组件优先不能替代字段、接口、权限、状态、异常和响应式验收。
 
 Product Design 可作为可选设计证据提供方：brief、ideation、prototype、image-to-code、design QA、share 产物进入 `design_input.evidence_refs` 或 task evidence；无插件时同字段接受 Figma、截图、URL reverse-spec、existing-code、component-first、existing-style 或 manual brief fallback。Product Design 证据不替代项目原生验证。
+
+密码 / 默认凭证交付必须拒绝弱口令：密码策略至少校验大小写字母与符号；默认 / 初始密码必须随机生成并满足同样复杂度，不得写死或可预测。该规则由分发 `AGENTS.md`、`verification-matrix.yaml` guard 和项目原生负向验证承载，不新增 doctor code。
 
 长期 AI 项目维护使用 Long-lived AI Project Maintenance Loop：每轮交付收口检查 drift evidence；只有 observed drift signals 明确时才开维护 CR 或 scoped refactor task；禁止把固定周期大重构作为默认策略。维护证据进入 `tasks.yaml` 可选 `maintenance_review`，稳定发现回流 `.ai-os/memory.md`、`verification-matrix.yaml` 或 `evals/`；无新增 doctor code。
 

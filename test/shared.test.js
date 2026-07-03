@@ -49,6 +49,9 @@ section("shared: replaceBaselineTokens");
 section("shared: canonical artifact lists");
 
 {
+  assert(shared.ROOT_TEMPLATE_ROOT.endsWith(path.join("framework", ".agents", "templates", "root")), "root template directory is under framework templates");
+  assert(shared.DISTRIBUTED_AGENTS_FILE.endsWith(path.join("framework", ".agents", "templates", "root", "AGENTS.md")), "distributed AGENTS template path is exported");
+  assert(fs.existsSync(shared.DISTRIBUTED_AGENTS_FILE), "distributed AGENTS template exists");
   assert(shared.SHARED_ROOT_FILES.includes("MISSION.md"), "shared root includes MISSION.md");
   assert(shared.SHARED_ROOT_FILES.includes("memory.md"), "shared root includes memory.md");
   assert(shared.LANE_CORE_FILES.includes("MISSION.md"), "lane core includes MISSION.md");

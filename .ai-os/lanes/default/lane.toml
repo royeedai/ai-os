@@ -1,6 +1,0 @@
-id = "default"
-title = "默认交付线"
-status = "active"
-baseline_id = "CR-20260619-230709-field-feedback-release-audit"
-quality_tier = "standard"
-risk_tier = "high"

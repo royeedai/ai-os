@@ -32,7 +32,7 @@
 - `Suggested guard`：如果要在 AI-OS 框架里防住，应改哪个工件 / 行为规则 / doctor 检查（自由文字）
 - `Maintenance disposition`：是否进入维护 CR、小步重构、`memory.md` 技术债、`verification-matrix.yaml` guard 或 `evals/`；无 drift evidence 时标 `none`
 
-数据纯本地、入版本控制；AI-OS maintainer 通过 `git grep` 与 dogfooding 通道定时归并到 `docs/problem-ledger.md`，不做任何遥测或上报。
+数据纯本地、入版本控制；AI-OS maintainer 可从已安装项目反馈、`framework-feedback` issue、docs tests 与 evals 定时归并到 `docs/problem-ledger.md`，不做任何遥测或上报。
 
 ## Lane 关闭 retrospective baseline-log
 

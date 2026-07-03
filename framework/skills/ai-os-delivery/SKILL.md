@@ -114,6 +114,10 @@ For frontend screens, separate the UI target from the implementation path:
 
 Long-lived AI projects should not default to calendar-based "refactor everything" cycles. Use continuous small maintenance: record `drift_signals`, evidence-backed `refactor_trigger`, `contract_impact`, `native_checks`, and `debt_disposition` in `tasks.yaml` `maintenance_review`. Stable findings flow back to `.ai-os/memory.md`, `verification-matrix.yaml`, or `evals/`; if there is no observed drift evidence, do not open a maintenance CR just to refresh code.
 
+## Password and default credential guard
+
+When a delivery touches passwords, initial credentials, default accounts, or reset flows, reject weak passwords. Password policy must require at least uppercase letters, lowercase letters, and symbols. Any default or initial password must be randomly generated, satisfy the same complexity rule, and avoid hardcoded or predictable values. Record negative-path validation under the lane verification evidence; use the `password-or-default-credential` guard when applicable.
+
 ## Field feedback closeout
 
 When field feedback comes from Codex or another AI development surface, first decide whether it is a delivery-truth failure rather than a missing runtime feature. The recurring checks are:

@@ -88,7 +88,9 @@ Root `.ai-os/MISSION.md` is the **shared host-project context**.
 4. Evidence-based completion
 5. Recoverable project memory
 
-Full text: [AGENTS.md](AGENTS.md)
+Installed-project constitution source: [framework/.agents/templates/root/AGENTS.md](framework/.agents/templates/root/AGENTS.md)
+
+This repository's own root [AGENTS.md](AGENTS.md) is only a maintainer guard for the AI-OS source repo; it is not the constitution installed into downstream projects.
 
 ## Two primary operations
 
@@ -117,7 +119,7 @@ This makes AI-OS the portable command contract behind Claude Code hooks, Cursor 
 
 ## How agents use AI-OS
 
-There are no slash commands. When an AI agent opens a repo with `AGENTS.md`, it should:
+There are no slash commands. When an AI agent opens an installed project with `AGENTS.md`, it should:
 
 - read `AGENTS.md`
 - run the Activation Gate before loading lane artifacts
@@ -205,17 +207,17 @@ A2A task delegation, Product Design optional evidence, Memory tool mounts, BMAD 
 
 ## Framework feedback loop (v9.7+)
 
-AI-OS itself iterates from "modifications proposed after the first AI-OS delivery that were preventable in the first session". The loop is **artifact + git only**, no telemetry:
+AI-OS iterates from "modifications proposed after the first AI-OS delivery that were preventable in the first session". The loop is **installed-project artifacts + explicit maintainer review only**, no telemetry:
 
 - Each `baseline-log/CR-*.md` carries a `## Preventability review` section (`Preventable: yes / no / partial` + root cause + maps-to + suggested guard).
 - A lane closing out aggregates findings into a `BL-*-retrospective*.md`.
-- Maintainer dogfooding via `git grep` — not doctor soft checks (v9.8+ removed W079a/b as redundant with stronger models + template schema).
+- The AI-OS repo does not commit its own `.ai-os/` lane state; recurring feedback is promoted from installed projects, issues, docs tests, and evals.
 
 Optional feedback path: file an issue with the `framework-feedback` label using [`.github/ISSUE_TEMPLATE/preventable-modification.md`](.github/ISSUE_TEMPLATE/preventable-modification.md) and paste your CR's section verbatim. The AI-OS maintainer merges recurring root causes into [`docs/problem-ledger.md`](docs/problem-ledger.md) (PL-012) and tightens AGENTS.md / artifact templates / doctor in the next minor. See [`docs/maintainers.md`](docs/maintainers.md#framework-feedback-复盘) for the merge flow.
 
 ## Further reading
 
-- [AGENTS.md](AGENTS.md)
+- [Distributed AGENTS template](framework/.agents/templates/root/AGENTS.md)
 - [PROJECT_PURPOSE.md](PROJECT_PURPOSE.md)
 - [docs/artifacts.md](docs/artifacts.md)
 - [docs/cli.md](docs/cli.md)

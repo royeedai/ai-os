@@ -2,7 +2,7 @@
 
 本文件记录 AI-OS 必须持续覆盖的稳定问题，以及它们在当前版本中的真实承接点。
 
-AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、长期 AI 项目无证据周期性大重构或漂移信号不回流、Codex 实战反馈中的发布状态漂移 / 验证环境误分类 / task ledger 冲突 / baseline 误读，以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点。
+AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求变化后基线脱节、设计未锁就实现、前端 UI 来源与组件库实现路径混淆、设计插件能力被误写成硬依赖、修复越界、完成声明缺项目级证据、session 切换丢上下文、隐式跨层契约漂移、弱类型洞擦除契约、单点合格但端到端 journey 未闭环、跨模块同型缺陷未升级、普通对话误触发治理、推断当事实进入交付、后台 agent 回收不可审查、开发者级与项目级记忆混写、长期 AI 项目无证据周期性大重构或漂移信号不回流、Codex 实战反馈中的发布状态漂移 / 验证环境误分类 / task ledger 冲突 / baseline 误读，以及首轮交付本可避免的返工。每条下方有编号与覆盖锚点；其中 `AGENTS.md` 指安装到下游项目的交付宪法模板，而不是 AI-OS 源码仓库的维护 guard。
 
 ## 当前覆盖
 
@@ -68,7 +68,7 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 ### PL-012 AI-OS 第一次开发未拦住本可避免的修改
 
 - **场景**：用户用 AI-OS 完成首轮交付后，又提出一批修改；这些修改的根因其实是 AI-OS 第一次 session 没问的问题、没锁的设计或没让用户确认的范围——本可在第一次就拦掉，却让框架进入了下一轮返工
-- **AI-OS 必须保证**：CR `baseline-log/CR-*.md` 提供 `## Preventability review` 段落（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补一条 `BL-*-retrospective*.md` 聚合本 lane 所有 Preventability findings；AI-OS maintainer 通过 dogfooding `git grep` 与 GitHub `framework-feedback` issue 定期归并到本台账，并按 guard 落点优先级（AGENTS.md > 工件模板 > doctor > docs）在下一个 minor 收紧
+- **AI-OS 必须保证**：CR `baseline-log/CR-*.md` 提供 `## Preventability review` 段落（`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`），lane 关闭前补一条 `BL-*-retrospective*.md` 聚合本 lane 所有 Preventability findings；AI-OS maintainer 通过已安装项目反馈、GitHub `framework-feedback` issue、docs tests 与 evals 定期归并到本台账，并按 guard 落点优先级（AGENTS.md > 工件模板 > doctor > docs）在下一个 minor 收紧
 - **当前覆盖锚点**：`AGENTS.md`（行为规则 §需求变化、§交付收口）、`framework/.agents/templates/lane/baseline-log/BL-template.md`、`docs/artifacts.md`、`docs/constitution-spec.md`（v2.2）、`docs/maintainers.md`（Framework feedback 复盘章节）、`.github/ISSUE_TEMPLATE/preventable-modification.md`
 
 ### PL-013 开发者级与项目级记忆混写，污染项目共享层或丢失个人偏好
@@ -147,7 +147,13 @@ AI-OS 拦截的真实交付失败模式包括：需求模糊就开工、需求�
 
 - **场景**：本机多个 Codex 项目使用 AI-OS 后反复出现同型问题：用户已要求发布但 lane 工件仍写本地 / 未请求（release truth drift）；本地 `.env`、DNS / proxy、SDK 网络、真实设备、签名、远端服务等验证环境问题被混成产品代码问题（verification environment misclassification）；pull / stash / rebase 后 `tasks.yaml` 冲突或复用旧 task ID；install / legacy baseline 生成物被当成当前交付范围。
 - **AI-OS 必须保证**：实战反馈先进入证据包和问题台账，再用现有 12 工件表达：closeout 前做 release truthfulness review；验证失败先分类为 `product-code` / `local-environment` / `external-service` / `production-state-unknown`；分支 / stash / rebase 后检查 task ledger；生成或遗留 baseline artifact 必须被解释为 current / legacy / generated / non-goal / pending cleanup。默认不新增 CLI、runtime、artifact category 或 doctor warning；只有确定性结构检查才可走 Boundary Evolution Policy。
-- **当前覆盖锚点**：`docs/codex-aios-field-feedback.md`、`.ai-os/lanes/default/baseline-log/CR-20260619-225610-codex-aios-field-feedback.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/skills/ai-os-delivery/SKILL.md`、`evals/release-truth-drift.md`、`evals/verification-environment-misclassified.md`、`evals/task-ledger-conflict-drift.md`、`evals/install-baseline-artifact-misread.md`、`test/docs.test.js`
+- **当前覆盖锚点**：`docs/codex-aios-field-feedback.md`、`framework/.agents/templates/lane/tasks.yaml`、`framework/.agents/templates/lane/verification-matrix.yaml`、`framework/skills/ai-os-delivery/SKILL.md`、`evals/release-truth-drift.md`、`evals/verification-environment-misclassified.md`、`evals/task-ledger-conflict-drift.md`、`evals/install-baseline-artifact-misread.md`、`test/docs.test.js`
+
+### PL-026 弱口令或可预测默认密码进入交付
+
+- **场景**：用户项目新增密码、初始凭证、默认账号或重置逻辑时，只做非空 / 长度校验，接受缺少大小写字母或符号的弱口令；或者把默认密码写死、复用、按用户名 / 日期 / 固定模式生成，导致安装后即可被猜到。
+- **AI-OS 必须保证**：分发给下游项目的行为规则要求拒绝弱口令；密码策略至少校验大小写字母与符号；默认 / 初始密码必须随机生成并满足同样复杂度，不得写死或可预测。该要求进入 lane verification guard 和项目原生负向验证，不进入 AI-OS 源仓根维护规则。
+- **当前覆盖锚点**：`framework/.agents/templates/root/AGENTS.md`（密码与默认凭证）、`framework/.agents/templates/lane/verification-matrix.yaml`（password-or-default-credential / FM-CRED-001）、`docs/artifacts.md`、`docs/constitution-spec.md`、`framework/skills/ai-os-delivery/SKILL.md`、`test/docs.test.js`
 
 ### PG-001 新问题没有独立登记，重构后覆盖漂移
 

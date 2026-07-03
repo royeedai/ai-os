@@ -8,21 +8,62 @@ const fs = require("fs");
 const path = require("path");
 const { assert, repoRoot, section } = require("./helpers");
 
+const DISTRIBUTED_AGENTS_TEMPLATE = "framework/.agents/templates/root/AGENTS.md";
+
 function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), "utf8");
 }
 
-section("docs: AGENTS.md exists and is within 150 lines");
+section("docs: repo AGENTS.md is a pure maintainer guard");
 
 {
   const p = path.join(repoRoot, "AGENTS.md");
   assert(fs.existsSync(p), "AGENTS.md exists at repo root");
   const content = fs.readFileSync(p, "utf8");
   const lines = content.split(/\r?\n/).length;
-  assert(lines <= 150, `AGENTS.md within 150 lines (got ${lines})`);
+  assert(lines <= 80, `repo AGENTS.md is compact (got ${lines})`);
+  assert(content.includes("AI-OS 仓库维护规则"), "repo AGENTS.md identifies itself as maintainer guidance");
+  assert(content.includes("不在本仓库创建、恢复或维护 `.ai-os/`"), "repo AGENTS.md forbids repo .ai-os state");
+  assert(content.includes(DISTRIBUTED_AGENTS_TEMPLATE), "repo AGENTS.md points to distributed constitution template");
+  assert(content.includes("npm test"), "repo AGENTS.md uses project-native tests for closure");
+  assert(!content.includes("当前交付基线在 `.ai-os/lanes/default/MISSION.md`"), "repo AGENTS.md does not route this repo through lane recovery");
+}
+
+section("docs: distributed AGENTS template exists and is within 150 lines");
+
+{
+  const p = path.join(repoRoot, DISTRIBUTED_AGENTS_TEMPLATE);
+  assert(fs.existsSync(p), "distributed AGENTS template exists");
+  const content = fs.readFileSync(p, "utf8");
+  const lines = content.split(/\r?\n/).length;
+  assert(lines <= 150, `distributed AGENTS template within 150 lines (got ${lines})`);
   assert(content.includes("五条核心要求"), "AGENTS.md contains 'five core requirements' section");
   assert(content.includes("绝对禁止"), "AGENTS.md contains 'absolute prohibitions' section");
   assert(content.includes(".ai-os/lanes/default/MISSION.md"), "AGENTS.md references lane mission");
+}
+
+section("docs: downstream password/default credential guard is documented and templated");
+
+{
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
+  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
+  const artifacts = read("docs/artifacts.md");
+  const spec = read("docs/constitution-spec.md");
+  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
+  const ledger = read("docs/problem-ledger.md");
+  const changelog = read("CHANGELOG.md");
+
+  assert(agents.includes("密码与默认凭证"), "distributed AGENTS template names password/default credential guard");
+  assert(agents.includes("大小写字母与符号"), "distributed AGENTS template requires uppercase/lowercase letters and symbols");
+  assert(agents.includes("随机生成"), "distributed AGENTS template requires random default passwords");
+  assert(!read("AGENTS.md").includes("密码与默认凭证"), "repo maintainer AGENTS.md does not carry downstream password governance");
+  assert(matrix.includes("password-or-default-credential"), "verification matrix includes password/default credential impact rule");
+  assert(matrix.includes("FM-CRED-001"), "verification matrix includes credential failure mode");
+  assert(artifacts.includes("Password and default credential guard"), "artifacts docs document password/default credential guard");
+  assert(spec.includes("密码 / 默认凭证交付必须拒绝弱口令"), "constitution spec documents password/default credential guard");
+  assert(skill.includes("Password and default credential guard"), "skill wrapper documents password/default credential guard");
+  assert(ledger.includes("PL-026 弱口令或可预测默认密码进入交付"), "problem ledger tracks weak password/default credential failure");
+  assert(changelog.includes("password / default credential"), "CHANGELOG records downstream password/default credential guard");
 }
 
 section("docs: key documentation files exist");
@@ -89,8 +130,10 @@ section("docs: framework templates contain shared-root and lane starters");
 {
   const sharedRoot = path.join(repoRoot, "framework/.agents/templates/shared-root");
   const lane = path.join(repoRoot, "framework/.agents/templates/lane");
+  const root = path.join(repoRoot, "framework/.agents/templates/root");
   const sharedRequired = ["MISSION.md", "memory.md"];
   const laneRequired = ["lane.toml", "MISSION.md", "DESIGN.md", "STATE.md", "tasks.yaml", "risk-register.md", "release-plan.md", "verification-matrix.yaml"];
+  assert(fs.existsSync(path.join(root, "AGENTS.md")), "root template AGENTS.md exists");
   for (const file of sharedRequired) {
     assert(fs.existsSync(path.join(sharedRoot, file)), `shared-root template ${file} exists`);
   }
@@ -240,7 +283,7 @@ section("docs: agent handoff evidence loop fields are documented and templated")
 section("docs: hallucination guard fact-state vocabulary is documented and checked");
 
 {
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const tasks = read("framework/.agents/templates/lane/tasks.yaml");
   const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
   const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
@@ -367,7 +410,7 @@ section("docs: long-horizon agent review is documented and checked");
 section("docs: activation gate keeps ordinary conversation outside lane governance");
 
 {
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const readme = read("README.md");
   const artifacts = read("docs/artifacts.md");
   const spec = read("docs/constitution-spec.md");
@@ -418,7 +461,7 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
 section("docs: design-aware component-first UI routing is documented and templated");
 
 {
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const readme = read("README.md");
   const artifacts = read("docs/artifacts.md");
   const spec = read("docs/constitution-spec.md");
@@ -552,6 +595,8 @@ section("docs: package.json bin field is minimal");
   const binKeys = Object.keys(pkg.bin || {});
   assert(binKeys.length === 1, `package.json has exactly 1 bin entry (got ${binKeys.length})`);
   assert(binKeys[0] === "create-ai-os", `package.json bin key is create-ai-os (got ${binKeys[0]})`);
+  assert((pkg.files || []).includes("framework"), "package files include framework templates");
+  assert(!(pkg.files || []).includes("AGENTS.md"), "package files do not ship repo maintainer AGENTS.md as the distributed constitution");
 }
 
 section("docs: product surface wording stays precise");
@@ -601,11 +646,9 @@ section("docs: problem-ledger current coverage only references existing files");
   const content = read("docs/problem-ledger.md");
   const current = content.split("## 历史归档")[0];
   const refs = [...current.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-  // Session-local files are gitignored by design; doctor recreates them.
-  const sessionLocalSuffixes = ["lanes/default/STATE.md"];
   for (const ref of refs) {
     if (!ref.includes("/") || ref.includes("*")) continue;
-    if (sessionLocalSuffixes.some((suffix) => ref.endsWith(suffix))) continue;
+    if (ref.startsWith(".ai-os/")) continue;
     assert(fs.existsSync(path.join(repoRoot, ref)), `${ref} exists`);
   }
 }
@@ -621,12 +664,12 @@ section("docs: artifacts.md declares progressive-disclosure layers");
   }
 }
 
-section("docs: AGENTS.md declares progressive-disclosure rule");
+section("docs: distributed AGENTS template declares progressive-disclosure rule");
 
 {
-  const content = read("AGENTS.md");
-  assert(content.includes("L1/L2/L3"), "AGENTS.md mentions L1/L2/L3 progressive disclosure");
-  assert(content.includes("trigger_source"), "AGENTS.md cites failure-mode trigger_source field");
+  const content = read(DISTRIBUTED_AGENTS_TEMPLATE);
+  assert(content.includes("L1/L2/L3"), "distributed AGENTS template mentions L1/L2/L3 progressive disclosure");
+  assert(content.includes("trigger_source"), "distributed AGENTS template cites failure-mode trigger_source field");
 }
 
 section("docs: every eval has trigger_source frontmatter");
@@ -823,7 +866,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
 
 {
   const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const artifacts = read("docs/artifacts.md");
   const spec = read("docs/constitution-spec.md");
   const cli = read("docs/cli.md");
@@ -843,8 +886,8 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
     assert(baselineTemplate.includes(term), `BL-template includes ${term}`);
   }
 
-  assert(agents.includes("Preventability review"), "AGENTS.md behavior rule mentions Preventability review");
-  assert(agents.includes("retrospective"), "AGENTS.md behavior rule mentions retrospective aggregation");
+  assert(agents.includes("Preventability review"), "distributed AGENTS template behavior rule mentions Preventability review");
+  assert(agents.includes("retrospective"), "distributed AGENTS template behavior rule mentions retrospective aggregation");
   assert(read("framework/skills/ai-os-delivery/SKILL.md").includes("Preventability review"), "skill wrapper routes CR Preventability review before close");
 
   assert(artifacts.includes("Framework Feedback Loop"), "artifacts.md documents Framework Feedback Loop section");
@@ -860,7 +903,7 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
 
   assert(maintainers.includes("Framework feedback 复盘"), "maintainers.md adds Framework feedback 复盘 section");
   assert(maintainers.includes("Framework feedback loop"), "maintainers.md release matrix lists Framework feedback loop");
-  assert(maintainers.includes("Preventable: yes"), "maintainers.md shows git grep example for Preventable: yes");
+  assert(maintainers.includes("已安装项目的本地工件"), "maintainers.md routes feedback through installed-project artifacts");
   assert(maintainers.includes("framework-feedback"), "maintainers.md mentions framework-feedback issue label");
 
   assert(ledger.includes("PL-012"), "problem-ledger.md registers PL-012");
@@ -876,27 +919,25 @@ section("docs: framework feedback loop is documented and templated (v9.7)");
   assert(changelog.includes("PL-012"), "CHANGELOG references PL-012");
 }
 
-section("docs: AI-OS self-hosted lane carries Preventability review on every historical CR");
+section("docs: AI-OS repo does not commit lane state");
 
 {
-  const baselineDir = path.join(repoRoot, ".ai-os", "lanes", "default", "baseline-log");
-  const files = fs.readdirSync(baselineDir).filter((n) => /^CR-\d{8}-\d{6}-.*\.md$/.test(n));
-  assert(files.length >= 6, `at least 6 historical CRs exist (got ${files.length})`);
-  for (const file of files) {
-    const content = fs.readFileSync(path.join(baselineDir, file), "utf8");
-    assert(/^##\s+Preventability\s+review\s*$/im.test(content), `${file} has ## Preventability review section`);
-    assert(/Preventable\*{0,2}:\s*\*{0,2}(yes|no|partial)/.test(content), `${file} declares Preventable: yes/no/partial`);
-    assert(/Maps to\*{0,2}:/.test(content), `${file} declares Maps to:`);
-  }
+  assert(!fs.existsSync(path.join(repoRoot, ".ai-os")), "AI-OS repository has no committed .ai-os artifacts");
+  assert(fs.existsSync(path.join(repoRoot, "framework/.agents/templates/lane/baseline-log/BL-template.md")), "install lane baseline template still exists");
+  assert(fs.existsSync(path.join(repoRoot, "framework/.agents/templates/lane/tasks.yaml")), "install lane tasks template still exists");
 
-  const retrospectiveFiles = fs.readdirSync(baselineDir).filter((n) => /^BL-\d{8}-\d{6}-.*retrospective.*\.md$/i.test(n));
-  assert(retrospectiveFiles.length >= 1, `at least one retrospective baseline-log exists (got ${retrospectiveFiles.length})`);
+  const readme = read("README.md");
+  const maintainers = read("docs/maintainers.md");
+  const artifacts = read("docs/artifacts.md");
+  assert(readme.includes("does not commit its own `.ai-os/` lane state"), "README documents no repo lane state");
+  assert(maintainers.includes("不再提交 `.ai-os/` lane 状态"), "maintainers guide documents no repo lane state");
+  assert(artifacts.includes("不提交 `.ai-os/` lane 状态"), "artifacts docs document no repo lane state");
 }
 
 section("docs: v10.4 long-lived AI maintenance loop is documented and templated");
 
 {
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const readme = read("README.md");
   const artifacts = read("docs/artifacts.md");
   const spec = read("docs/constitution-spec.md");
@@ -965,7 +1006,7 @@ section("docs: v10.4 long-lived AI maintenance loop is documented and templated"
 section("docs: v10.5 boundary evolution policy is documented and tested");
 
 {
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const readme = read("README.md");
   const artifacts = read("docs/artifacts.md");
   const spec = read("docs/constitution-spec.md");
@@ -1132,7 +1173,7 @@ section("docs: v9.8 content slimming narrative and removed legacy paths");
 section("docs: v10.1 restate-confirm gate + architecture guardrail");
 
 {
-  const agents = read("AGENTS.md");
+  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const laneMission = read("framework/.agents/templates/lane/MISSION.md");
   const design = read("framework/.agents/templates/lane/DESIGN.md");
   const memory = read("framework/.agents/templates/shared-root/memory.md");

@@ -10,9 +10,25 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 ---
 
+## Unreleased
+
+### Changed
+
+- AI-OS repository maintenance no longer commits repository-local `.ai-os/` lane state or historical lane records. AI-OS remains the installer/framework that creates those artifacts inside downstream projects.
+- Framework feedback now flows from installed-project artifacts, explicit `framework-feedback` issues, docs tests, and evals instead of repository-local lane records.
+- The distributed delivery constitution now lives at `framework/.agents/templates/root/AGENTS.md`; repository-root `AGENTS.md` is only a compact maintainer guard for this source repo.
+- Downstream password / default credential delivery now carries a weak-password guard in the distributed constitution, artifacts docs, verification matrix, skill guidance, and problem ledger without changing source-repo maintenance rules.
+
+### Removed
+
+- Removed the repository-local `.ai-os/` shared context, default lane, baseline-log, specs, tasks, risk/release, verification, parity, eval, and memory records.
+- Removed the stale `.cursor/rules/project-lead.mdc` source-repo rule; cross-agent maintenance guidance now lives only in root `AGENTS.md`.
+
+---
+
 ## 10.5.1 (2026-06-19) — Codex Field Feedback Closeout
 
-**Patch, backward compatible**. Turns local Codex AI-OS field feedback into auditable governance coverage for release truthfulness, verification environment classification, task ledger conflict review, and install / baseline artifact interpretation. This release changes docs, templates, evals, tests, version metadata, and self-hosted lane records only. It adds no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, auto-release behavior, artifact category, or schema layout change.
+**Patch, backward compatible**. Turns local Codex AI-OS field feedback into auditable governance coverage for release truthfulness, verification environment classification, task ledger conflict review, and install / baseline artifact interpretation. This release changed docs, templates, evals, tests, version metadata, and then-current source-repo maintenance records only. It added no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, auto-release behavior, artifact category, or schema layout change.
 
 ### Added
 
@@ -30,7 +46,7 @@ This file tracks releases from v9.5 onward (current line: v10.x). For v8.0.0 –
 
 - `npm test`
 - `npm run lint`
-- `node bin/create-ai-os.js doctor . --json --strict`
+- At the time, then-current source-repo doctor validation was still used as a repository-local validation check; Unreleased removes that source-repo practice.
 
 ### Migration
 
@@ -38,7 +54,7 @@ No action needed. Existing installs keep the same artifact layout and doctor beh
 
 ## 10.5.0 (2026-06-18) — Boundary Evolution Policy
 
-**Minor, backward compatible**. Adds an explicit Boundary Evolution Policy so AI-OS can evolve without becoming an IDE, runtime, scheduler, model router, or automation platform. This release changes docs, skill guidance, tests, version metadata, and self-hosted lane records only. It adds no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, artifact category, or schema layout change.
+**Minor, backward compatible**. Adds an explicit Boundary Evolution Policy so AI-OS can evolve without becoming an IDE, runtime, scheduler, model router, or automation platform. This release changed docs, skill guidance, tests, version metadata, and then-current source-repo maintenance records only. It adds no CLI command, runtime, doctor warning code, MCP server, IDE adapter implementation, agent runner, artifact category, or schema layout change.
 
 ### Added
 
@@ -49,14 +65,14 @@ No action needed. Existing installs keep the same artifact layout and doctor beh
 ### Changed
 
 - `docs/constitution-spec.md` bumped to **v2.6** for the boundary policy.
-- README, `docs/artifacts.md`, `docs/interop/standards-map.md`, the official skill wrapper, install pins, and self-hosted lane artifacts now describe v10.5.0.
+- README, `docs/artifacts.md`, `docs/interop/standards-map.md`, the official skill wrapper, install pins, and then-current source-repo maintenance records described v10.5.0.
 - Boundary wording now says default no surface expansion is a review policy, not a permanent freeze.
 
 ### Tests
 
 - `test/docs.test.js` checks boundary layer vocabulary, controlled extension entry criteria, forbidden surfaces, unchanged product surface, and v2.6 spec wording.
 - Version assertions move 10.4.0 → 10.5.0 across docs/install/doctor/shared tests.
-- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+- At the time, release validation still included then-current source-repo doctor validation; Unreleased removes that source-repo practice.
 
 ### Migration
 
@@ -80,13 +96,13 @@ No action needed. Existing installs keep the same artifact layout and doctor beh
 
 - `docs/constitution-spec.md` bumped to **v2.5** for the long-lived maintenance loop.
 - `docs/problem-ledger.md` adds PL-024 for periodic big-bang refactors without drift evidence and drift signals not feeding back to project memory / guards / evals.
-- README, `docs/artifacts.md`, `docs/maintainers.md`, the official skill wrapper, templates, install pins, and self-hosted lane artifacts now describe v10.4.0.
+- README, `docs/artifacts.md`, `docs/maintainers.md`, the official skill wrapper, templates, install pins, and then-current source-repo maintenance records described v10.4.0.
 
 ### Tests
 
 - `test/docs.test.js` checks the long-lived maintenance docs, `maintenance_review` template vocabulary, verification guards, PL-024, new example/evals, unchanged W070-W078 doctor range, and unchanged product surface.
 - Version assertions move 10.3.1 → 10.4.0 across docs/install/doctor/shared tests.
-- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+- At the time, release validation still included then-current source-repo doctor validation; Unreleased removes that source-repo practice.
 
 ### Migration
 
@@ -104,7 +120,7 @@ No action needed. Existing installs keep the same artifact layout and doctor beh
 - **Doctor enforcement wording**: README and Claude Code interop no longer imply Codex has the same host-level pre-tool hook semantics as Claude Code. `doctor --strict` is the portable local guard command; hard blocking comes from the surfaces it is wired into, such as Claude hooks, Cursor hooks, pre-commit, or CI.
 - **Version metadata drift**: `package-lock.json` root package version now matches `VERSION` and `package.json`; docs tests check the lockfile too.
 - **Residual version wording**: the public `ai-os-delivery` skill no longer says it packages "AI-OS v9" as the current framework version.
-- **Dogfood lane drift**: self-hosted lane artifacts now describe the current Codex suitability / doc accuracy audit instead of the closed v10.2 Product Design bridge, and the stale `specs/example.spec.md` no longer describes the removed `upgrade` path.
+- **Historical source-repo maintenance drift**: then-current maintenance records were aligned to the Codex suitability / doc accuracy audit instead of the closed v10.2 Product Design bridge, and the stale `specs/example.spec.md` no longer described the removed `upgrade` path.
 
 ### Changed
 
@@ -115,7 +131,7 @@ No action needed. Existing installs keep the same artifact layout and doctor beh
 ### Tests
 
 - `test/docs.test.js` checks v2.4 spec wording, PL-023, package-lock version parity, Codex local / CI guard wording, and explicit delivery-request Activation Gate semantics.
-- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+- At the time, release validation still included then-current source-repo doctor validation; Unreleased removes that source-repo practice.
 
 ### Migration
 
@@ -141,7 +157,7 @@ No action needed. Existing installs keep the same artifact layout and doctor beh
 ### Tests
 
 - `test/shared.test.js` covers `installLocalDoctor` (verbatim vendoring + VERSION) and the new `managed-files.tsv` `.ai-os/bin/` entries; `test/install.test.js` asserts the vendored files land and stay out of `.gitignore`; `test/doctor.test.js` adds local-entry parity, the team-clone-without-`framework.toml` case, and `--strict` parity; `test/docs.test.js` enforces the local-entry docs + release tracking. Version assertions move 10.2.0 → 10.3.0.
-- Release validation requires `npm test`, `npm run lint`, and `node bin/ai-os-doctor.js .`.
+- Release validation requires `npm test`, `npm run lint`, and then-current source-repo doctor validation.
 
 ### Migration
 
@@ -168,7 +184,7 @@ No action needed. Re-install (`npx --yes github:royeedai/ai-os#v10.3.0 install .
 ### Tests
 
 - `test/docs.test.js` adds Product Design optional bridge checks across README, artifacts, interop docs, skill wrapper, lane templates, verification matrix, problem ledger, maintainers guide, changelog, and product-surface boundaries.
-- Release validation requires `npm test`, `npm run lint`, and `node bin/create-ai-os.js doctor . --json --strict`.
+- Release validation requires `npm test`, `npm run lint`, and then-current source-repo doctor validation.
 
 ### Migration
 
@@ -178,7 +194,7 @@ No action needed. Installed projects keep passing `doctor`; reinstall to pick up
 
 ## 10.1.2 (2026-06-10) — CLI defect fixes + restate-gate anchor unification
 
-**Patch, backward compatible; defect fixes / docs / dogfood-artifact only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
+**Patch, backward compatible; defect fixes / docs / maintenance-record only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
 
 ### Fixed
 
@@ -194,7 +210,7 @@ No action needed. Installed projects keep passing `doctor`; reinstall to pick up
 
 - **`examples/greenfield-guided-product.md`** now demonstrates the design-layer restate-and-confirm gate (DESIGN §10) in Step 2 — previously only the MISSION-layer restatement was shown despite the v10.1.0 entry claiming it; the acceptance-criteria pointer also corrected from "Section 8" to Section 9. `evals/missing-user-confirmation.md` and `evals/logic-right-but-product-shape-wrong.md` update the pre-v10.1 term "设计确认记录" to "反述确认门（§10）确认记录".
 - **`docs/cli.md`** documents the removed-subcommand error, `install --help`, the file-as-target failure, and the two-directional `E022` semantics.
-- **Dogfood lane advanced** to this delivery (`CR-20260610-024200-cli-defects-restate-anchor-fixes`), including renaming the self-hosted `DESIGN.md` §10 to the template's "反述确认门" section name; the CR's Preventability review records the root causes (AC-vs-implementation divergence without a `deviation_log` entry; removing a CLI entrypoint without guarding the old route).
+- **Source-repo maintenance records advanced** to this delivery (`CR-20260610-024200-cli-defects-restate-anchor-fixes`), including renaming the then-current `DESIGN.md` §10 to the template's "反述确认门" section name; the CR's Preventability review records the root causes (AC-vs-implementation divergence without a `deviation_log` entry; removing a CLI entrypoint without guarding the old route).
 
 ### Tests
 
@@ -202,13 +218,13 @@ No action needed. Installed projects keep passing `doctor`; reinstall to pick up
 
 ### Migration
 
-No action needed — defect fixes / wording / dogfood-artifact only; CLI surface, doctor warning-code range, and canonical layout schema (`9`) unchanged. Previously-misused `create-ai-os upgrade` invocations now fail with guidance instead of creating an `./upgrade/` directory. Already-installed projects keep passing `doctor`.
+No action needed — defect fixes / wording / maintenance-record only; CLI surface, doctor warning-code range, and canonical layout schema (`9`) unchanged. Previously-misused `create-ai-os upgrade` invocations now fail with guidance instead of creating an `./upgrade/` directory. Already-installed projects keep passing `doctor`.
 
 ---
 
 ## 10.1.1 (2026-06-09) — Consistency optimization
 
-**Patch, backward compatible; docs / wording / dogfood-artifact only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
+**Patch, backward compatible; docs / wording / maintenance-record only**. No new feature, CLI command, flag, doctor warning code, or artifact category. 2 primary product operations, 12 artifact categories, zero runtime dependencies, `AGENTS.md` ≤150 lines, canonical layout schema `9`, and constitution-spec v2.2 are all unchanged.
 
 ### Fixed
 
@@ -218,15 +234,15 @@ No action needed — defect fixes / wording / dogfood-artifact only; CLI surface
 
 ### Changed
 
-- **Dogfood lane re-synced**: the self-hosted `.ai-os/lanes/default/` working artifacts (`DESIGN.md`, `tasks.yaml`, `verification-matrix.yaml`) were frozen at the v9.9 design-aware-UI delivery while `MISSION.md` had advanced to v10.1.0. They now describe the current v10.1.1 consistency delivery and point at `CR-20260609-032059-consistency-optimization`. The v9.9 / v10.0.0 / v10.1.0 history stays captured in their own baseline-log CRs.
+- **Source-repo maintenance records re-synced**: the then-current `.ai-os/lanes/default/` working artifacts (`DESIGN.md`, `tasks.yaml`, `verification-matrix.yaml`) were frozen at the v9.9 design-aware-UI delivery while `MISSION.md` had advanced to v10.1.0. They now describe the current v10.1.1 consistency delivery and point at `CR-20260609-032059-consistency-optimization`. The v9.9 / v10.0.0 / v10.1.0 history stays captured in their own baseline-log CRs.
 
 ### Tests
 
-- `test/docs.test.js` adds a regression guard asserting `docs/interop/mcp-resources.md` states two primary product operations and no longer lists `upgrade`; version assertions bumped to 10.1.1 across `test/docs.test.js`, `test/doctor.test.js`, `test/shared.test.js`, `test/install.test.js`. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+- `test/docs.test.js` adds a regression guard asserting `docs/interop/mcp-resources.md` states two primary product operations and no longer lists `upgrade`; version assertions bumped to 10.1.1 across `test/docs.test.js`, `test/doctor.test.js`, `test/shared.test.js`, `test/install.test.js`. `npm test` + `npm run lint` + then-current source-repo doctor validation source-repo validation required before release.
 
 ### Migration
 
-No action needed — wording / docs / dogfood-artifact only; CLI behavior, doctor warning codes, and canonical layout schema (`9`) unchanged. Already-installed projects keep passing `doctor`.
+No action needed — wording / docs / maintenance-record only; CLI behavior, doctor warning codes, and canonical layout schema (`9`) unchanged. Already-installed projects keep passing `doctor`.
 
 ---
 
@@ -247,7 +263,7 @@ No action needed — wording / docs / dogfood-artifact only; CLI behavior, docto
 
 ### Tests
 
-- `test/docs.test.js` adds a v10.1 section (restate gate across AGENTS / templates / artifacts / spec / standards-map / ledger / example; asserts no `.ai-os-rules`; examples stay at 8); version assertions bumped to 10.1.0 and spec to v2.2. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+- `test/docs.test.js` adds a v10.1 section (restate gate across AGENTS / templates / artifacts / spec / standards-map / ledger / example; asserts no `.ai-os-rules`; examples stay at 8); version assertions bumped to 10.1.0 and spec to v2.2. `npm test` + `npm run lint` + then-current source-repo doctor validation source-repo validation required before release.
 
 ### Migration
 
@@ -280,7 +296,7 @@ No action needed — behavior-rule and artifact-template enrichment only; canoni
 
 ### Tests
 
-- `bin/` is now 3 scripts; version assertions bumped to 10.0.0; `test/docs.test.js` asserts `migrate-to-v9.md` removed and the 2-operation wording. `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+- `bin/` is now 3 scripts; version assertions bumped to 10.0.0; `test/docs.test.js` asserts `migrate-to-v9.md` removed and the 2-operation wording. `npm test` + `npm run lint` + then-current source-repo doctor validation source-repo validation required before release.
 
 ### Migration
 
@@ -344,7 +360,7 @@ None. Existing projects do not need to change. The new contract only guides futu
 
 - `test/doctor.test.js` replaces W073/W075/W079 sections with a single "soft checks removed" assertion.
 - `test/docs.test.js` updated for standards-map, spec v2.0, version 9.8.0, removed file list.
-- `npm test` + `npm run lint` + `node bin/ai-os-doctor.js .` self-check required before release.
+- `npm test` + `npm run lint` + then-current source-repo doctor validation source-repo validation required before release.
 
 ### Migration
 
@@ -360,7 +376,7 @@ None required for existing projects. `doctor --strict` no longer warns on incomp
 
 - **H1 upgrade data-loss**: `upgrade` no longer deletes the entire `.cursor/rules` + `.cursor/skills` directories. AI-OS never generates files under `.cursor/`, so the old blanket cleanup only destroyed user-authored Cursor config. `cleanupIdeAutoGenerated` is removed.
 - **H2 W010 threshold**: the `AGENTS.md` line-count warning now fires above the documented `<=150` target (previously only `>200`, so 151–200-line files were never flagged).
-- **H3 approval_required schema**: the lane `tasks.yaml` template and the self-hosted lane now use boolean `approval_required` (previously a string that `hasHighRiskTask` could never match); high-risk tasks set `true`.
+- **H3 approval_required schema**: the lane `tasks.yaml` template and the source-repo maintenance records now use boolean `approval_required` (previously a string that `hasHighRiskTask` could never match); high-risk tasks set `true`.
 - **H4 hidden alias**: the undocumented `--force-framework` alias is removed; use `--force`.
 - **H5 W074 high-risk detection**: `hasHighRiskLane` now also recognizes `quality_tier = "high-risk"`, not only `risk_tier = "high"`.
 - **H6 doctor wording**: W070 uses `当前基线 ID`, W077 uses `fact_state_review` (not "hallucination guard"), and the non-AI-OS hint suggests `create-ai-os install`.
@@ -383,7 +399,7 @@ None required. Projects that previously relied on `upgrade` clearing `.cursor/` 
 
 ### Fixed
 
-- **Problem-ledger numbering**: `PL-010` / `PL-011` were each registered twice (v9.4/v9.5 handoff & hallucination vs. v9.5.1/v9.6 activation gate & long-horizon). The second pair is renumbered to **PL-014** (non-delivery misactivation) and **PL-015** (long-horizon agent recovery). References in `CHANGELOG.md`, `test/docs.test.js`, and the self-hosted `baseline-log/` are synced.
+- **Problem-ledger numbering**: `PL-010` / `PL-011` were each registered twice (v9.4/v9.5 handoff & hallucination vs. v9.5.1/v9.6 activation gate & long-horizon). The second pair is renumbered to **PL-014** (non-delivery misactivation) and **PL-015** (long-horizon agent recovery). References in `CHANGELOG.md`, `test/docs.test.js`, and then-current `baseline-log/` records are synced.
 - **Orphaned eval references**: four evals referenced `PL-033`~`PL-036`, which only exist in the v7 archive. They are now formally registered as **PL-016**~**PL-019** (implicit cross-layer contract / weak-type hole / single-point-pass vs. end-to-end journey / cross-module defect escalation), and the evals are re-grounded on current v9 artifacts instead of removed legacy template fields.
 - **Wrong ledger anchors**: `PL-008` (had cited AGENTS.md 绝对禁止 §13) and `PL-010` (§12) now point at the correct sections.
 - **Doctor range narration**: `README.md`, `docs/interop/claude-code.md`, and `docs/interop/bmad.md` updated from `W070-W077` to `W070-W078` (W078 shipped in v9.6).
@@ -447,12 +463,12 @@ None required. This is documentation-only; existing installs are unaffected.
 
 - `framework/.agents/templates/lane/baseline-log/BL-template.md` documents a `## Preventability review` section (`Preventable` / `If yes, root cause` / `Maps to` / `Suggested guard`) and the `BL-YYYYMMDD-HHMMSS-retrospective*.md` aggregation convention.
 - `bin/ai-os-doctor.js` adds `checkPreventabilityReview` (W079a) and `checkLaneRetrospective` (W079b); both emit at **info** level only, are excluded from `SEMANTIC_WARNING_CODES`, and are not upgraded by `--strict`.
-- `docs/maintainers.md` adds a "Framework feedback 复盘" section documenting the dogfooding `git grep` flow, the optional third-party `framework-feedback` issue label, the merge criteria (same root cause ≥2 times → new PL-* / PG-*), and the guard-landing priority (AGENTS.md > artifact template > doctor > docs).
+- `docs/maintainers.md` adds a "Framework feedback 复盘" section documenting the installed-project feedback `git grep` flow, the optional third-party `framework-feedback` issue label, the merge criteria (same root cause ≥2 times → new PL-* / PG-*), and the guard-landing priority (AGENTS.md > artifact template > doctor > docs).
 - `docs/problem-ledger.md` registers `PL-012` for "AI-OS first delivery failed to prevent a modification that was preventable".
 - `docs/constitution-spec.md` bumps to **v1.9** with a Framework feedback loop section (non-breaking optional section).
 - `docs/artifacts.md` adds a Framework Feedback Loop section without introducing a 13th artifact category.
 - `.github/ISSUE_TEMPLATE/preventable-modification.md` is a new optional intake for users to paste their CR's `## Preventability review` section under the `framework-feedback` label.
-- `.ai-os/lanes/default/baseline-log/BL-20260525-140000-retrospective-v9-recap.md` aggregates the 6 historical CRs (v8-constitution-refactor through hallucination-guard) as the dogfooding starting data set; every historical CR is backfilled with `## Preventability review`.
+- `.ai-os/lanes/default/baseline-log/BL-20260525-140000-retrospective-v9-recap.md` aggregates the 6 historical CRs (v8-constitution-refactor through hallucination-guard) as the installed-project feedback starting data set; every historical CR is backfilled with `## Preventability review`.
 - `.ai-os/lanes/default/baseline-log/CR-20260525-141500-framework-feedback-loop.md` records this v9.7 change with its own `## Preventability review`.
 
 ### Changed
@@ -463,7 +479,7 @@ None required. This is documentation-only; existing installs are unaffected.
 
 ### Tests
 
-- `test/docs.test.js` adds two new sections: "framework feedback loop is documented and templated (v9.7)" and "AI-OS self-hosted lane carries Preventability review on every historical CR".
+- `test/docs.test.js` adds two new sections: "framework feedback loop is documented and templated (v9.7)" and "AI-OS source-repo maintenance records carries Preventability review on every historical CR".
 - `test/doctor.test.js` adds three new sections covering W079a fires + clears, W079b fires + clears, and clean install reports no W079a / W079b.
 - `test/install.test.js` adds "BL-template ships framework feedback loop schema (v9.7)".
 - All previously hardcoded 9.6.0 version strings (in `test/shared.test.js`, `test/install.test.js`, `test/doctor.test.js`, `test/docs.test.js`) bumped to 9.7.0.

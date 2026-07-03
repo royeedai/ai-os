@@ -264,7 +264,7 @@ AI-OS 对抗 AI 开发幻觉的方式不是追加第二套提示词，而是把�
 
 ## Framework Feedback Loop（v9.7）
 
-AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改中，哪些本可在第一次 session 就拦掉"。这条反馈链不引入任何 telemetry，全靠本地工件 + git：
+AI-OS 的迭代输入来自"用户在 AI 第一次开发后提出的修改中，哪些本可在第一次 session 就拦掉"。这条反馈链不引入任何 telemetry，来自已安装项目的本地工件、显式 issue、docs tests、evals 与 maintainer 复盘；AI-OS 仓库自身不提交 `.ai-os/` lane 状态或历史 lane 记录：
 
 - `baseline-log/CR-*.md` 在 lifecycle 末尾追加 `## Preventability review`：
   - `Preventable`：`yes` / `no` / `partial`
@@ -273,7 +273,7 @@ AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改
   - `Suggested guard`：建议在框架内落点（AGENTS / 工件 / doctor / docs）
 - lane `status` 切到 `closed` 前补一条 `BL-YYYYMMDD-HHMMSS-retrospective*.md`，聚合本 lane 全部 Preventability findings、`unmapped` 高频根因与建议的 framework changes。
 
-数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节（`git grep` + 可选 `framework-feedback` issue）；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。v9.8+ 起不再用 doctor 软检查提示 Preventability review — 由模板 schema 与 maintainer 复盘承载。
+数据归集流程见 `docs/maintainers.md` 的 "Framework feedback 复盘" 章节（来源项目 review / 可选 `framework-feedback` issue / eval）；用户主动反馈通道为 `.github/ISSUE_TEMPLATE/preventable-modification.md`。v9.8+ 起不再用 doctor 软检查提示 Preventability review — 由模板 schema 与 maintainer 复盘承载。
 
 ## Long-lived AI Project Maintenance Loop（v10.4）
 
@@ -312,6 +312,10 @@ AI-OS 自身的迭代输入来自"用户在 AI 第一次开发后提出的修改
 - `production-state-unknown`：deployment、signing、store、live data 或真实设备状态当前不可观察。
 
 分类写入 `tasks.yaml` 的 `evidence_produced` / `deviation_log`，或写入 `release-plan.md` blockers。只有 `product-code` 才直接进入代码修复；其他分类必须给出人工步骤、环境修复或外部 blocker。
+
+### Password and default credential guard
+
+涉及密码、初始凭证、默认账号或重置逻辑时，AI-OS 要求下游项目拒绝弱口令。密码策略至少必须校验大小写字母与符号；如果产品需要默认 / 初始密码，必须随机生成并满足同样复杂度，不得写死、复用或生成可预测值。对应交付证据进入 `verification-matrix.yaml` 的 `password-or-default-credential` impact rule 与项目原生负向验证。
 
 ### Task ledger and baseline interpretation
 

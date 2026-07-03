@@ -13,10 +13,11 @@ const path = require("path");
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const FRAMEWORK_ROOT = path.join(PACKAGE_ROOT, "framework");
+const ROOT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "root");
 const SHARED_ROOT_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "shared-root");
 const LANE_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "lane");
 const IDE_POINTERS_TEMPLATE_ROOT = path.join(FRAMEWORK_ROOT, ".agents", "templates", "ide-pointers");
-const ROOT_AGENTS_FILE = path.join(PACKAGE_ROOT, "AGENTS.md");
+const DISTRIBUTED_AGENTS_FILE = path.join(ROOT_TEMPLATE_ROOT, "AGENTS.md");
 
 const PROJECT_STATE_ROOT = ".ai-os";
 const LANES_ROOT = "lanes";
@@ -175,10 +176,10 @@ function renderTemplate(srcPath, baseline) {
 function installAgentsMd(targetDir, { overwrite = false } = {}) {
   const destPath = path.join(targetDir, "AGENTS.md");
   if (fileExists(destPath) && !overwrite) return false;
-  if (!fileExists(ROOT_AGENTS_FILE)) {
-    fail(`Missing source AGENTS.md at ${ROOT_AGENTS_FILE}`);
+  if (!fileExists(DISTRIBUTED_AGENTS_FILE)) {
+    fail(`Missing source AGENTS.md template at ${DISTRIBUTED_AGENTS_FILE}`);
   }
-  fs.copyFileSync(ROOT_AGENTS_FILE, destPath);
+  fs.copyFileSync(DISTRIBUTED_AGENTS_FILE, destPath);
   return true;
 }
 
@@ -469,10 +470,11 @@ module.exports = {
   // constants
   PACKAGE_ROOT,
   FRAMEWORK_ROOT,
+  ROOT_TEMPLATE_ROOT,
   SHARED_ROOT_TEMPLATE_ROOT,
   LANE_TEMPLATE_ROOT,
   IDE_POINTERS_TEMPLATE_ROOT,
-  ROOT_AGENTS_FILE,
+  DISTRIBUTED_AGENTS_FILE,
   PROJECT_STATE_ROOT,
   LANES_ROOT,
   DEFAULT_LANE_ID,

@@ -13,6 +13,7 @@ const {
   cleanup,
   readFile,
   exists,
+  repoRoot,
   listBaselineRecords,
   BASELINE_RECORD_NAME_PATTERN,
   section,
@@ -74,7 +75,15 @@ section("install: default install into fresh dir");
 
   const agents = readFile(dir, "AGENTS.md");
   assert(agents && agents.includes("AI 交付宪法"), "AGENTS.md contains constitution marker");
+  assert(agents && agents.includes("密码与默认凭证"), "AGENTS.md carries downstream password/default credential guard");
   assert(agents && agents.split("\n").length <= 150, "AGENTS.md is within 150 lines");
+  const distributedAgents = fs.readFileSync(path.join(repoRoot, "framework/.agents/templates/root/AGENTS.md"), "utf8");
+  const repoAgents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
+  assert(agents === distributedAgents, "installed AGENTS.md is copied from distributed template");
+  assert(agents !== repoAgents, "installed AGENTS.md is not copied from repo maintainer guard");
+
+  const verificationMatrix = readFile(dir, ".ai-os/lanes/default/verification-matrix.yaml");
+  assert(verificationMatrix && verificationMatrix.includes("password-or-default-credential"), "installed verification matrix carries password/default credential guard");
 
   const gitignore = readFile(dir, ".gitignore");
   assert(gitignore && gitignore.includes(".ai-os/lanes/*/STATE.md"), ".gitignore excludes lane STATE.md");
