@@ -21,7 +21,7 @@
 
 #### EC-001: [约束标题]
 
-- **类型**：return-contract / must-reuse-abstraction / forbidden-antipattern / dependency-policy
+- **类型**：return-contract / must-reuse-abstraction / forbidden-antipattern / dependency-policy / implicit-mechanism / technology-profile / high-risk-state-flow
 - **约束**：
 - **原因**：
 - **影响范围**：

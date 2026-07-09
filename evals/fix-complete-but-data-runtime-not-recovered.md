@@ -35,5 +35,4 @@ artifact_gate: constitution-gate
 
 - `AGENTS.md`（五条核心要求 §4"代码状态 / 数据状态 / 运行状态"三段拆分；行为规则节"修复 bug"、"实现阶段"、"验证阶段"、"交付收口"）
 - `framework/.agents/templates/lane/tasks.yaml`
-- `framework/.agents/templates/lane/verification-matrix.yaml`
-- `framework/.agents/templates/lane/release-plan.md`
+- `docs/artifacts.md`（release-plan / verification-matrix 按需工件 schema）

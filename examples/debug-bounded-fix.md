@@ -55,7 +55,7 @@ Because the fix touches shared infrastructure (wrapper) and multiple modules, it
 Agent fills the `change_scope` field in `.ai-os/lanes/default/tasks.yaml`:
 
 - `change_scope`: only these 5 files are in scope to edit
-- scope boundary recorded as "do not refactor, rename, or touch unrelated code"; any deviation goes to `deviation_log`
+- scope boundary recorded as "do not refactor, rename, or touch unrelated code"; any deviation goes to a new `baseline-log/CR-*.md`
 
 ## 6. Verify
 
@@ -69,7 +69,7 @@ Agent fills the `change_scope` field in `.ai-os/lanes/default/tasks.yaml`:
 
 ## 7. Stable failure mode guard
 
-The wrapper name drift is a stable failure pattern. Agent adds to `.ai-os/lanes/default/verification-matrix.yaml`:
+The wrapper name drift is a stable failure pattern. Agent creates `.ai-os/lanes/default/verification-matrix.yaml` (on-demand artifact) and adds:
 
 ```yaml
 failure_modes:

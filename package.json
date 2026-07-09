@@ -1,6 +1,6 @@
 {
   "name": "create-ai-os",
-  "version": "10.5.1",
+  "version": "11.0.0",
   "description": "AI Delivery Constitution installer. Install the canonical lane-first artifact layout into any project.",
   "repository": {
     "type": "git",

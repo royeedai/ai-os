@@ -1,24 +1,18 @@
 # 本模板所有内容必须严格基于用户确认的需求基准生成，禁止擅自超出范围、脑补内容。
-version: 3
+version: 4
 baseline_id: "{{INITIAL_BASELINE_ID}}"
 scope:
   mode: "change"
   focus: "example-lane"
-  baseline_source: "lane MISSION.md + specs/"
+  baseline_source: "lane MISSION.md"
 
 milestones:
   - id: M1
     title: "Design Locked"
     goal: "关键设计与逻辑已确认"
-    scope: "[本里程碑覆盖范围]"
-    acceptance_goal: "[本里程碑通过标准]"
-    target_window: "[计划时间窗口]"
   - id: M2
     title: "Built and Verified"
     goal: "实现、验证和交付证据已就绪"
-    scope: "[本里程碑覆盖范围]"
-    acceptance_goal: "[本里程碑通过标准]"
-    target_window: "[计划时间窗口]"
 
 tasks:
   - id: TASK-AI-001
@@ -27,135 +21,30 @@ tasks:
     status: todo
     owner: AI
     priority: P1
-    wave: 1
-    approval_required: false  # 布尔；high-risk 任务设 true 触发审批门（doctor W074）
+    approval_required: false  # 布尔；high-risk 任务设 true 触发审批门
     depends_on: []
-    requirement_refs:
-      - "REQ-001"
     acceptance_refs:
       - "AC-001"
-    handoff_to: "[AI / human / external-agent]"
-    context_refs:
-      - ".ai-os/lanes/default/MISSION.md"
-      - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/specs/example.spec.md"
-    expected_return:
-      - "[design note / spec delta / review note]"
-      - "[optional design_input evidence: Product Design brief / selected visual option / prototype URL / QA screenshot / Figma frame / screenshot / URL capture / manual brief]"
-    # agent_run_review：仅 delegated / background / cloud / external / parallel 执行时需要；本地前台任务可删除此块
-    agent_run_review:
-      execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
-      run_refs: []
-      write_scope:
-        owned:
-          - "[file or module owned by this run]"
-        out_of_scope:
-          - "[file or module explicitly not owned]"
-      progress_checkpoints:
-        - "[plan accepted / diff produced / tests run / blocker surfaced / review requested]"
-      return_packet:
-        summary: "[what came back from the long-horizon run]"
-        changed_files: []
-        tests: []
-        unresolved_risks: []
-        follow_up_needed: []
-      human_review_status: "pending"
-    fact_state_review:
-      observed:
-        - "[code / docs / runtime evidence actually inspected]"
-      confirmed:
-        - "[user-confirmed or artifact-confirmed fact]"
-      inferred: []
-      unknown: []
-    # field-feedback closeout uses existing evidence fields: release truthfulness, verification environment classification,
-    # task ledger conflict review, and baseline artifact interpretation belong in evidence_produced or deviation_log.
-    # maintenance_review：长期维护 / 重构 / drift 控制任务可保留；普通功能任务可删除此块。无 drift evidence 时不得开启周期性大重构。
-    maintenance_review:
-      drift_signals:
-        - "[observed repeated defect / contract drift / stale guard / recurring rework / release truth drift / verification environment misclassification]"
-      refactor_trigger: "[evidence-backed trigger; not calendar-based]"
-      contract_impact:
-        - "[memory.md guardrail / API contract / data shape / UI state affected]"
-      native_checks:
-        - "[project-native static check / test / runtime smoke required]"
-      debt_disposition:
-        - "[resolved / added to memory.md / added to verification-matrix.yaml / promoted to eval / left as tracked debt]"
-    impact_tags:
-      - "entrypoint"
-      - "schema"
     evidence_required:
       - "design-note"
-      - "spec-update"
-      - "design-input-evidence-or-fallback"
     evidence_produced: []
-    deviation_log: []
     change_scope:
       - ".ai-os/lanes/default/DESIGN.md"
-      - ".ai-os/lanes/default/specs/example.spec.md"
   - id: TASK-AI-002
     title: "按已锁定设计完成实现与验证"
     milestone: M2
     status: todo
     owner: AI
     priority: P0
-    wave: 2
     approval_required: false
     depends_on:
       - "TASK-AI-001"
-    requirement_refs:
-      - "REQ-001"
     acceptance_refs:
       - "AC-001"
-    handoff_to: "[AI / human / external-agent]"
-    context_refs:
-      - ".ai-os/lanes/default/tasks.yaml"
-      - ".ai-os/lanes/default/verification-matrix.yaml"
-    expected_return:
-      - "[code diff / test log / runtime evidence]"
-      - "[Product Design output or fallback evidence if this is UI / prototype work]"
-    # agent_run_review：仅 delegated / background / cloud / external / parallel 执行时需要；本地前台任务可删除此块
-    agent_run_review:
-      execution_surface: "[local_foreground / cloud_background / external_pr_agent / human]"
-      run_refs: []
-      write_scope:
-        owned:
-          - "[file or module owned by this run]"
-        out_of_scope:
-          - "[file or module explicitly not owned]"
-      progress_checkpoints:
-        - "[plan accepted / diff produced / tests run / blocker surfaced / review requested]"
-      return_packet:
-        summary: "[what came back from the long-horizon run]"
-        changed_files: []
-        tests: []
-        unresolved_risks: []
-        follow_up_needed: []
-      human_review_status: "pending"
-    fact_state_review:
-      observed:
-        - "[test / lint / runtime result actually observed]"
-      confirmed:
-        - "[confirmed design / scope / acceptance source]"
-      inferred: []
-      unknown: []
-    # maintenance_review：若本实现是维护 / 重构 / drift 控制任务，记录证据；否则删除此块
-    maintenance_review:
-      drift_signals: []
-      refactor_trigger: ""
-      contract_impact: []
-      native_checks: []
-      debt_disposition: []
-    impact_tags:
-      - "transport"
-      - "mapping"
     evidence_required:
       - "build-log"
       - "test-log"
-      - "runtime-check"
-      - "release-truth-review-if-release-requested"
-      - "verification-environment-classification-if-failure"
     evidence_produced: []
-    deviation_log: []
     change_scope:
       - "[src path]"
       - "[test path]"

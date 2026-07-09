@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Install tests: default create-ai-os produces the v9 canonical layout.
+ * Install tests: default create-ai-os produces the v10 canonical layout
+ * (core artifacts only; extension artifacts are on-demand).
  */
 
 const fs = require("fs");
@@ -49,7 +50,7 @@ section("install: default install into fresh dir");
   assert(exists(dir, ".ai-os/bin/shared.js"), "local doctor shared module vendored");
   assert(exists(dir, ".ai-os/bin/VERSION"), "local doctor VERSION vendored");
   const localDoctorVersion = readFile(dir, ".ai-os/bin/VERSION");
-  assert(localDoctorVersion && localDoctorVersion.trim() === "10.5.1", "local doctor VERSION matches framework version");
+  assert(localDoctorVersion && localDoctorVersion.trim() === "11.0.0", "local doctor VERSION matches framework version");
 
   assert(exists(dir, ".ai-os/lanes/default"), "default lane directory installed");
   assert(exists(dir, ".ai-os/lanes/default/lane.toml"), "lane.toml installed");
@@ -57,17 +58,15 @@ section("install: default install into fresh dir");
   assert(exists(dir, ".ai-os/lanes/default/DESIGN.md"), "lane DESIGN.md installed");
   assert(exists(dir, ".ai-os/lanes/default/STATE.md"), "lane STATE.md installed");
   assert(exists(dir, ".ai-os/lanes/default/baseline-log"), "lane baseline-log dir installed");
-  assert(exists(dir, ".ai-os/lanes/default/specs"), "lane specs dir installed");
   assert(exists(dir, ".ai-os/lanes/default/tasks.yaml"), "lane tasks.yaml installed");
-  assert(exists(dir, ".ai-os/lanes/default/risk-register.md"), "lane risk-register.md installed");
-  assert(exists(dir, ".ai-os/lanes/default/release-plan.md"), "lane release-plan.md installed");
-  assert(exists(dir, ".ai-os/lanes/default/verification-matrix.yaml"), "lane verification-matrix.yaml installed");
-  assert(exists(dir, ".ai-os/lanes/default/design-pack"), "lane design-pack dir installed");
-  assert(exists(dir, ".ai-os/lanes/default/evals"), "lane evals dir installed");
-  assert(exists(dir, ".ai-os/lanes/default/specs/example.spec.md"), "lane example spec installed");
-  assert(exists(dir, ".ai-os/lanes/default/specs/bugfix.spec.md"), "lane bugfix spec installed");
-  assert(exists(dir, ".ai-os/lanes/default/design-pack/parity-map.md"), "lane parity-map installed");
-  assert(exists(dir, ".ai-os/lanes/default/evals/eval-example.md"), "lane eval example installed");
+
+  // on-demand artifacts must NOT be installed by default
+  assert(!exists(dir, ".ai-os/lanes/default/specs"), "lane specs dir not installed (on-demand)");
+  assert(!exists(dir, ".ai-os/lanes/default/risk-register.md"), "lane risk-register.md not installed (on-demand)");
+  assert(!exists(dir, ".ai-os/lanes/default/release-plan.md"), "lane release-plan.md not installed (on-demand)");
+  assert(!exists(dir, ".ai-os/lanes/default/verification-matrix.yaml"), "lane verification-matrix.yaml not installed (on-demand)");
+  assert(!exists(dir, ".ai-os/lanes/default/design-pack"), "lane design-pack dir not installed (on-demand)");
+  assert(!exists(dir, ".ai-os/lanes/default/evals"), "lane evals dir not installed (on-demand)");
 
   const records = listBaselineRecords(dir);
   assert(records.length === 1, "exactly one lane baseline record created");
@@ -75,15 +74,12 @@ section("install: default install into fresh dir");
 
   const agents = readFile(dir, "AGENTS.md");
   assert(agents && agents.includes("AI 交付宪法"), "AGENTS.md contains constitution marker");
-  assert(agents && agents.includes("密码与默认凭证"), "AGENTS.md carries downstream password/default credential guard");
+  assert(agents && agents.includes("按需工件"), "AGENTS.md documents on-demand artifacts");
   assert(agents && agents.split("\n").length <= 150, "AGENTS.md is within 150 lines");
   const distributedAgents = fs.readFileSync(path.join(repoRoot, "framework/.agents/templates/root/AGENTS.md"), "utf8");
   const repoAgents = fs.readFileSync(path.join(repoRoot, "AGENTS.md"), "utf8");
   assert(agents === distributedAgents, "installed AGENTS.md is copied from distributed template");
   assert(agents !== repoAgents, "installed AGENTS.md is not copied from repo maintainer guard");
-
-  const verificationMatrix = readFile(dir, ".ai-os/lanes/default/verification-matrix.yaml");
-  assert(verificationMatrix && verificationMatrix.includes("password-or-default-credential"), "installed verification matrix carries password/default credential guard");
 
   const gitignore = readFile(dir, ".gitignore");
   assert(gitignore && gitignore.includes(".ai-os/lanes/*/STATE.md"), ".gitignore excludes lane STATE.md");
@@ -93,9 +89,9 @@ section("install: default install into fresh dir");
   assert(gitattributes && gitattributes.includes("memory.md merge=union"), ".gitattributes uses union merge for memory.md");
 
   const toml = readFile(dir, ".ai-os/framework.toml");
-  assert(toml && toml.includes('schema_version = "9"'), "framework.toml has schema_version=9");
+  assert(toml && toml.includes('schema_version = "10"'), "framework.toml has schema_version=10");
   assert(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
-  assert(toml && toml.includes('framework_version = "10.5.1"'), "framework.toml has version 10.5.1");
+  assert(toml && toml.includes('framework_version = "11.0.0"'), "framework.toml has version 11.0.0");
 
   cleanup(dir);
 }
@@ -164,7 +160,7 @@ section("install: version flag");
 {
   const result = runInstall(["--version"]);
   assert(result.status === 0, "--version exits 0");
-  assert(result.stdout.trim() === "10.5.1", `--version outputs 10.5.1 (got ${result.stdout.trim()})`);
+  assert(result.stdout.trim() === "11.0.0", `--version outputs 11.0.0 (got ${result.stdout.trim()})`);
 }
 
 section("install: removed subcommands fail instead of installing into a directory");
@@ -204,7 +200,7 @@ section("install: target path that is an existing file fails cleanly");
   cleanup(dir);
 }
 
-section("install: BL-template ships framework feedback loop schema (v9.7)");
+section("install: BL-template ships framework feedback loop schema");
 
 {
   const dir = tmpDir();
@@ -216,7 +212,6 @@ section("install: BL-template ships framework feedback loop schema (v9.7)");
     "Preventability review",
     "Preventable",
     "If yes, root cause",
-    "Maps to",
     "Suggested guard",
     "BL-YYYYMMDD-HHMMSS-retrospective",
   ]) {

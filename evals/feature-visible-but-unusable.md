@@ -34,5 +34,4 @@ artifact_gate: constitution-gate
 ## 若需改 framework，优先检查
 
 - `AGENTS.md`（五条核心要求 §4 四道门）
-- `framework/.agents/templates/lane/verification-matrix.yaml`
-- `framework/.agents/templates/lane/specs/example.spec.md`
+- `docs/artifacts.md`（specs / verification-matrix 按需工件 schema）

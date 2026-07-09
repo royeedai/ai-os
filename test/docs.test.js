@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Documentation / constitution consistency checks for v9.
+ * Documentation / constitution consistency checks for the v10 layout
+ * (core default artifacts + on-demand extension artifacts).
  */
 
 const fs = require("fs");
@@ -9,6 +10,7 @@ const path = require("path");
 const { assert, repoRoot, section } = require("./helpers");
 
 const DISTRIBUTED_AGENTS_TEMPLATE = "framework/.agents/templates/root/AGENTS.md";
+const CURRENT_VERSION = "11.0.0";
 
 function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), "utf8");
@@ -29,7 +31,7 @@ section("docs: repo AGENTS.md is a pure maintainer guard");
   assert(!content.includes("当前交付基线在 `.ai-os/lanes/default/MISSION.md`"), "repo AGENTS.md does not route this repo through lane recovery");
 }
 
-section("docs: distributed AGENTS template exists and is within 150 lines");
+section("docs: distributed AGENTS template is compact and core/on-demand structured");
 
 {
   const p = path.join(repoRoot, DISTRIBUTED_AGENTS_TEMPLATE);
@@ -39,34 +41,26 @@ section("docs: distributed AGENTS template exists and is within 150 lines");
   assert(lines <= 150, `distributed AGENTS template within 150 lines (got ${lines})`);
   assert(content.includes("五条核心要求"), "AGENTS.md contains 'five core requirements' section");
   assert(content.includes("绝对禁止"), "AGENTS.md contains 'absolute prohibitions' section");
+  assert(content.includes("核心工件"), "AGENTS.md contains core artifact table");
+  assert(content.includes("按需工件"), "AGENTS.md documents on-demand artifacts");
   assert(content.includes(".ai-os/lanes/default/MISSION.md"), "AGENTS.md references lane mission");
+  assert(content.includes("Activation Gate"), "AGENTS.md names Activation Gate");
+  assert(content.includes("这是先讨论，还是要进入项目交付流程？"), "AGENTS.md includes the one confirmation question");
+  assert(content.includes("反述"), "AGENTS.md keeps the restate-and-confirm gate");
+  assert(content.includes("高风险动作"), "AGENTS.md keeps the high-risk escalation rule");
+  assert(content.includes("隐式机制"), "AGENTS.md defines implicit mechanism guardrails");
+  assert(content.includes("执行顺序"), "AGENTS.md requires implicit mechanism execution order");
+  assert(content.includes("高风险状态流"), "AGENTS.md names high-risk state flow");
+  assert(content.includes("不默认新增隐式机制"), "AGENTS.md forbids default implicit mechanism creation");
+  // on-demand artifacts named with their triggers
+  for (const term of ["risk-register.md", "release-plan.md", "verification-matrix.yaml", "specs/", "design-pack/", "evals/"]) {
+    assert(content.includes(term), `AGENTS.md names on-demand artifact ${term}`);
+  }
+  // business-specific rules must not be hard-coded into the universal constitution
+  assert(!content.includes("密码与默认凭证"), "AGENTS.md no longer carries the password/default credential business rule");
 }
 
-section("docs: downstream password/default credential guard is documented and templated");
-
-{
-  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const ledger = read("docs/problem-ledger.md");
-  const changelog = read("CHANGELOG.md");
-
-  assert(agents.includes("密码与默认凭证"), "distributed AGENTS template names password/default credential guard");
-  assert(agents.includes("大小写字母与符号"), "distributed AGENTS template requires uppercase/lowercase letters and symbols");
-  assert(agents.includes("随机生成"), "distributed AGENTS template requires random default passwords");
-  assert(!read("AGENTS.md").includes("密码与默认凭证"), "repo maintainer AGENTS.md does not carry downstream password governance");
-  assert(matrix.includes("password-or-default-credential"), "verification matrix includes password/default credential impact rule");
-  assert(matrix.includes("FM-CRED-001"), "verification matrix includes credential failure mode");
-  assert(artifacts.includes("Password and default credential guard"), "artifacts docs document password/default credential guard");
-  assert(spec.includes("密码 / 默认凭证交付必须拒绝弱口令"), "constitution spec documents password/default credential guard");
-  assert(skill.includes("Password and default credential guard"), "skill wrapper documents password/default credential guard");
-  assert(ledger.includes("PL-026 弱口令或可预测默认密码进入交付"), "problem ledger tracks weak password/default credential failure");
-  assert(changelog.includes("password / default credential"), "CHANGELOG records downstream password/default credential guard");
-}
-
-section("docs: key documentation files exist");
+section("docs: key documentation files exist and deleted docs stay deleted");
 
 {
   const docs = [
@@ -74,20 +68,11 @@ section("docs: key documentation files exist");
     "README.md",
     "docs/artifacts.md",
     "docs/cli.md",
-    "docs/constitution-spec.md",
-    "docs/codex-aios-field-feedback.md",
     "docs/maintainers.md",
     "docs/getting-started.md",
-    "docs/reverse-spec-url-intake.md",
-    "docs/problem-ledger.md",
-    "docs/change-evaluation-template.md",
-    "docs/interop/spec-kit-coexistence.md",
-    "docs/interop/claude-code.md",
-    "docs/interop/cursor.md",
-    "docs/interop/product-design.md",
-    "docs/interop/mcp-resources.md",
-    "docs/interop/standards-map.md",
+    "docs/interop.md",
     "CHANGELOG.md",
+    "CHANGELOG-archive.md",
     "CONTRIBUTING.md",
     "LICENSE",
     "VERSION",
@@ -96,6 +81,19 @@ section("docs: key documentation files exist");
   for (const rel of docs) {
     assert(fs.existsSync(path.join(repoRoot, rel)), `${rel} exists`);
   }
+  const removed = [
+    "docs/constitution-spec.md",
+    "docs/problem-ledger.md",
+    "docs/codex-aios-field-feedback.md",
+    "docs/reverse-spec-url-intake.md",
+    "docs/change-evaluation-template.md",
+    "docs/interop",
+  ];
+  for (const rel of removed) {
+    assert(!fs.existsSync(path.join(repoRoot, rel)), `${rel} stays removed`);
+  }
+  const docsDir = fs.readdirSync(path.join(repoRoot, "docs")).sort();
+  assert(docsDir.length === 5, `docs/ has exactly 5 files (got ${docsDir.length}: ${docsDir.join(", ")})`);
 }
 
 section("docs: default layout narrative is consistent");
@@ -104,7 +102,6 @@ section("docs: default layout narrative is consistent");
   const files = [
     "README.md",
     "docs/artifacts.md",
-    "docs/constitution-spec.md",
     "docs/getting-started.md",
     "docs/cli.md",
     "docs/maintainers.md",
@@ -113,6 +110,41 @@ section("docs: default layout narrative is consistent");
     const content = read(rel);
     assert(content.includes(".ai-os/lanes/default/"), `${rel} references lanes/default`);
     assert(content.includes(".ai-os/MISSION.md"), `${rel} references shared root mission`);
+  }
+}
+
+section("docs: no doc references deleted files or removed doctor codes");
+
+{
+  const targets = [
+    "README.md",
+    "PROJECT_PURPOSE.md",
+    "docs/artifacts.md",
+    "docs/cli.md",
+    "docs/getting-started.md",
+    "docs/maintainers.md",
+    "docs/interop.md",
+    DISTRIBUTED_AGENTS_TEMPLATE,
+    "framework/skills/ai-os-delivery/SKILL.md",
+  ];
+  const forbidden = [
+    "docs/constitution-spec.md",
+    "docs/problem-ledger.md",
+    "docs/codex-aios-field-feedback.md",
+    "docs/reverse-spec-url-intake.md",
+    "docs/change-evaluation-template.md",
+    "docs/interop/",
+    "W072",
+    "W074",
+    "W076",
+    "W077",
+    "W078",
+  ];
+  for (const rel of targets) {
+    const content = read(rel);
+    for (const term of forbidden) {
+      assert(!content.includes(term), `${rel} does not reference removed ${term}`);
+    }
   }
 }
 
@@ -125,286 +157,114 @@ section("docs: bin contains exactly 3 scripts");
   assert(JSON.stringify(files) === JSON.stringify(expected), `bin/ has exactly 3 scripts: ${files.join(", ")}`);
 }
 
-section("docs: framework templates contain shared-root and lane starters");
+section("docs: doctor semantic warnings are exactly W070 and W071");
+
+{
+  const doctor = read("bin/ai-os-doctor.js");
+  assert(doctor.includes('["W070", "W071"]'), "doctor semantic warning range is W070-W071");
+  for (const code of ["W072", "W074", "W076", "W077", "W078", "W079"]) {
+    assert(!doctor.includes(code), `doctor does not contain removed code ${code}`);
+  }
+  const cli = read("docs/cli.md");
+  assert(cli.includes("W070"), "cli.md documents W070");
+  assert(cli.includes("W071"), "cli.md documents W071");
+}
+
+section("docs: framework templates ship core artifacts only");
 
 {
   const sharedRoot = path.join(repoRoot, "framework/.agents/templates/shared-root");
   const lane = path.join(repoRoot, "framework/.agents/templates/lane");
   const root = path.join(repoRoot, "framework/.agents/templates/root");
-  const sharedRequired = ["MISSION.md", "memory.md"];
-  const laneRequired = ["lane.toml", "MISSION.md", "DESIGN.md", "STATE.md", "tasks.yaml", "risk-register.md", "release-plan.md", "verification-matrix.yaml"];
   assert(fs.existsSync(path.join(root, "AGENTS.md")), "root template AGENTS.md exists");
-  for (const file of sharedRequired) {
+  for (const file of ["MISSION.md", "memory.md"]) {
     assert(fs.existsSync(path.join(sharedRoot, file)), `shared-root template ${file} exists`);
   }
-  for (const file of laneRequired) {
+  for (const file of ["lane.toml", "MISSION.md", "DESIGN.md", "STATE.md", "tasks.yaml"]) {
     assert(fs.existsSync(path.join(lane, file)), `lane template ${file} exists`);
   }
   assert(fs.existsSync(path.join(lane, "baseline-log", "BL-template.md")), "lane baseline-log template exists");
-  assert(fs.existsSync(path.join(lane, "specs", "example.spec.md")), "lane spec template exists");
-  assert(fs.existsSync(path.join(lane, "design-pack", "parity-map.md")), "lane design-pack template exists");
-}
-
-section("docs: URL reverse-spec intake protocol is documented");
-
-{
-  const intake = read("docs/reverse-spec-url-intake.md");
-  const requiredTerms = [
-    "1440px",
-    "768px",
-    "390px",
-    "DOM topology",
-    "Computed CSS",
-    "Network/API",
-    "Evidence Package Adaptation Matrix",
-    "trace.zip",
-    "network log / HAR",
-    "DOM snapshots",
-    "rawHtml",
-    "structured JSON",
-    "Must redact",
-    "API Observation Record",
-    "Backend Behavior Record",
-    "observed",
-    "inferred",
-    "unknown",
-  ];
-  for (const term of requiredTerms) {
-    assert(intake.includes(term), `reverse-spec intake doc includes ${term}`);
+  // on-demand artifacts must not have default templates
+  for (const removed of ["risk-register.md", "release-plan.md", "verification-matrix.yaml", "specs", "design-pack", "evals"]) {
+    assert(!fs.existsSync(path.join(lane, removed)), `lane template ${removed} stays removed (on-demand)`);
   }
-  assert(intake.includes("AI-OS does not run the browser"), "reverse-spec intake doc preserves no-runtime boundary");
+  const laneEntries = fs.readdirSync(lane).sort();
+  assert(
+    JSON.stringify(laneEntries) === JSON.stringify(["DESIGN.md", "MISSION.md", "STATE.md", "baseline-log", "lane.toml", "tasks.yaml"]),
+    `lane template dir contains exactly the core set (got ${laneEntries.join(", ")})`,
+  );
 }
 
-section("docs: URL reverse-spec fields are present in lane templates");
+section("docs: tasks.yaml template is minimal");
 
 {
-  const spec = read("framework/.agents/templates/lane/specs/example.spec.md");
-  const bugfixSpec = read("framework/.agents/templates/lane/specs/bugfix.spec.md");
+  const tasks = read("framework/.agents/templates/lane/tasks.yaml");
+  for (const field of ["id:", "title:", "milestone:", "status:", "owner:", "priority:", "approval_required:", "depends_on:", "acceptance_refs:", "evidence_required:", "evidence_produced:", "change_scope:"]) {
+    assert(tasks.includes(field), `tasks template includes ${field}`);
+  }
+  for (const removed of ["agent_run_review", "fact_state_review", "maintenance_review", "handoff_to", "context_refs", "expected_return", "impact_tags", "deviation_log"]) {
+    assert(!tasks.includes(removed), `tasks template no longer includes ${removed}`);
+  }
+  const lines = tasks.split(/\r?\n/).length;
+  assert(lines <= 60, `tasks template stays compact (got ${lines} lines)`);
+}
+
+section("docs: BL-template ships CR delta lifecycle and framework feedback schema");
+
+{
   const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const parity = read("framework/.agents/templates/lane/design-pack/parity-map.md");
-  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
-
-  for (const term of [
-    "Spec route",
-    "Reverse-spec evidence sources",
-    "Evidence package adaptation",
-    "trace.zip",
-    "API observation records",
-    "Backend behavior records",
-    "auth_signal",
-    "evidence_source",
-    "implementation_requirement",
-    "observed / inferred / unknown",
-  ]) {
-    assert(spec.includes(term), `example spec includes ${term}`);
-  }
-
-  for (const term of [
-    "Bugfix Spec",
-    "Root cause",
-    "Reproduction",
-    "Blast radius",
-    "Planned files",
-    "Regression guard",
-    "Code status",
-    "Data status",
-    "Runtime status",
-  ]) {
-    assert(bugfixSpec.toLowerCase().includes(term.toLowerCase()), `bugfix spec includes ${term}`);
-  }
-
   for (const term of [
     "Current behavior",
     "Proposed delta",
     "Affected artifacts",
     "Acceptance delta",
     "Close/archive condition",
+    "Preventability review",
+    "Preventable",
+    "If yes, root cause",
+    "Suggested guard",
+    "BL-YYYYMMDD-HHMMSS-retrospective",
   ]) {
-    assert(baselineTemplate.includes(term), `baseline template includes CR delta field ${term}`);
+    assert(baselineTemplate.includes(term), `BL-template includes ${term}`);
   }
-
-  for (const term of [
-    "URL reverse-spec capture manifest",
-    "Evidence package adaptation matrix",
-    "Visual parity",
-    "Interaction parity",
-    "API / interface parity",
-    "Backend behavior parity",
-    "Error paths",
-    "Confidence",
-  ]) {
-    assert(parity.includes(term), `parity-map template includes ${term}`);
-  }
-
-  assert(matrix.includes("url-reverse-spec-intake"), "verification matrix includes URL reverse-spec impact rule");
-  assert(matrix.includes("Network/API observation review"), "verification matrix includes Network/API guard");
-  assert(matrix.includes("backend behavior confidence review"), "verification matrix includes backend behavior confidence guard");
-  assert(matrix.includes("evidence package redaction + confidence review"), "verification matrix includes evidence package guard");
 }
 
-section("docs: agent handoff evidence loop fields are documented and templated");
+section("docs: artifacts.md declares core + on-demand split and progressive disclosure");
 
 {
-  const tasks = read("framework/.agents/templates/lane/tasks.yaml");
-  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const cli = read("docs/cli.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const changelog = read("CHANGELOG.md");
-
-  for (const term of [
-    "handoff_to",
-    "context_refs",
-    "expected_return",
-    "evidence_produced",
-    "deviation_log",
-  ]) {
-    assert(tasks.includes(term), `tasks template includes ${term}`);
-    assert(baselineTemplate.includes(term), `baseline template explains ${term}`);
-    assert(artifacts.includes(term), `artifacts docs include ${term}`);
+  const content = read("docs/artifacts.md");
+  assert(content.includes("核心工件（默认安装）"), "artifacts.md has core artifact section");
+  assert(content.includes("按需工件（默认不安装）"), "artifacts.md has on-demand artifact section");
+  for (const artifact of ["risk-register.md", "release-plan.md", "verification-matrix.yaml", "specs/", "design-pack/", "evals/"]) {
+    assert(content.includes(artifact), `artifacts.md documents on-demand artifact ${artifact}`);
   }
-
-  assert(spec.includes("W076"), "constitution spec cites W076 for handoff loop");
-  assert(spec.includes("docs/artifacts.md"), "constitution spec defers handoff schema to artifacts.md");
-
-  assert(matrix.includes("agent-handoff-evidence-loop"), "verification matrix includes agent handoff impact rule");
-  assert(matrix.includes("FM-HANDOFF-001"), "verification matrix includes handoff failure mode");
-  assert(cli.includes("W076"), "CLI docs include W076");
-  assert(cli.includes("W070-W078"), "CLI docs semantic_warnings range includes W078");
-  assert(skill.includes("record `evidence_produced`"), "skill wrapper tells agents to record produced evidence");
-  assert(artifacts.includes("它不接管执行"), "artifacts docs keep handoff outside execution");
-  const archive = read("CHANGELOG-archive.md");
-  assert(archive.includes("Agent Handoff + Evidence Loop"), "CHANGELOG-archive records v9.4 handoff release");
-  assert(changelog.includes("W076") || archive.includes("W076"), "CHANGELOG records W076");
+  assert(content.includes("触发"), "artifacts.md documents on-demand triggers");
+  assert(content.includes("加载分层（progressive disclosure）"), "artifacts.md has progressive disclosure section");
+  for (const layer of ["L1", "L2", "L3"]) {
+    assert(content.includes(`**${layer} —`), `artifacts.md describes ${layer} loading tier`);
+  }
+  assert(content.includes("Activation Gate"), "artifacts.md documents Activation Gate");
+  assert(content.includes("普通对话"), "artifacts.md excludes ordinary conversation from lane governance");
+  assert(content.includes("反述确认"), "artifacts.md documents the restate-and-confirm gate");
+  assert(content.includes("隐式机制"), "artifacts.md documents implicit mechanism audit placement");
+  assert(content.includes("不是新默认 artifact"), "artifacts.md keeps implicit mechanism audit out of default artifacts");
+  assert(content.includes("CR-YYYYMMDD-HHMMSS"), "artifacts.md documents CR naming convention");
 }
 
-section("docs: hallucination guard fact-state vocabulary is documented and checked");
+section("docs: templates carry implicit mechanism audit anchors");
 
 {
-  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const tasks = read("framework/.agents/templates/lane/tasks.yaml");
-  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const cli = read("docs/cli.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const changelog = read("CHANGELOG.md");
+  const design = read("framework/.agents/templates/lane/DESIGN.md");
+  const memory = read("framework/.agents/templates/shared-root/memory.md");
 
-  for (const term of [
-    "fact_state_review",
-    "observed",
-    "confirmed",
-    "inferred",
-    "unknown",
-  ]) {
-    assert(tasks.includes(term), `tasks template includes ${term}`);
-    assert(baselineTemplate.includes(term), `baseline template explains ${term}`);
-    assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(skill.includes(term), `skill wrapper includes ${term}`);
+  assert(design.includes("隐式机制 / 高风险状态流审计"), "DESIGN.md includes implicit mechanism audit section");
+  assert(design.includes("触发入口"), "DESIGN.md asks for implicit mechanism trigger entry");
+  assert(design.includes("执行顺序"), "DESIGN.md asks for execution order");
+  assert(design.includes("重复请求路径"), "DESIGN.md asks for duplicate-request path");
+
+  for (const type of ["implicit-mechanism", "technology-profile", "high-risk-state-flow"]) {
+    assert(memory.includes(type), `memory.md engineering constraint types include ${type}`);
   }
-
-  assert(spec.includes("W077"), "constitution spec cites W077 for fact-state review");
-  assert(spec.includes("fact_state_review"), "constitution spec names fact_state_review");
-
-  assert(agents.includes("未观察、未确认、未验证"), "AGENTS.md blocks unverified facts from being presented as facts");
-  assert(matrix.includes("hallucination-guard"), "verification matrix includes hallucination guard impact rule");
-  assert(matrix.includes("FM-HALLUCINATION-001"), "verification matrix includes hallucination failure mode");
-  assert(cli.includes("W077"), "CLI docs include W077");
-  assert(changelog.includes("Hallucination Guard"), "CHANGELOG records hallucination guard release");
-  assert(changelog.includes("W077"), "CHANGELOG records W077");
-}
-
-section("docs: v9.4/v9.5 governance closure tracked in ledger, maintainers guide, and evals");
-
-{
-  const ledger = read("docs/problem-ledger.md");
-  assert(ledger.includes("PL-010"), "problem-ledger.md registers PL-010 (handoff evidence not returned)");
-  assert(ledger.includes("PL-011"), "problem-ledger.md registers PL-011 (inferred treated as fact)");
-  assert(ledger.includes("fact_state_review"), "problem-ledger.md PL-011 uses fact_state_review vocabulary");
-  assert(ledger.includes("evidence_produced"), "problem-ledger.md PL-010 uses evidence_produced vocabulary");
-
-  const maintainers = read("docs/maintainers.md");
-  assert(maintainers.includes("Release 能力对照"), "maintainers.md has the release capability matrix");
-  assert(maintainers.includes("发布前检查清单（公开口径）"), "maintainers.md has public-facing release checklist");
-  assert(maintainers.includes("Hallucination guard"), "maintainers.md mentions hallucination guard");
-  assert(maintainers.includes("Agent handoff + evidence loop"), "maintainers.md mentions agent handoff + evidence loop");
-  assert(maintainers.includes("URL reverse-spec intake"), "maintainers.md mentions URL reverse-spec intake");
-  assert(maintainers.includes("External learning fusion"), "maintainers.md mentions external learning fusion");
-  assert(maintainers.includes("git tag -a vX.Y.Z"), "maintainers.md release checklist mentions git tag step");
-
-  const evalsReadme = read("evals/README.md");
-  assert(evalsReadme.includes("task-handoff-evidence-not-returned.md"), "evals/README.md lists handoff eval");
-  assert(evalsReadme.includes("inferred-treated-as-fact-into-execution.md"), "evals/README.md lists fact-state eval");
-  assert(evalsReadme.includes("Cross-cutting: Fact-state explicitness"), "evals/README.md groups fact-state evals");
-
-  const handoffEval = read("evals/task-handoff-evidence-not-returned.md");
-  assert(/trigger_source:\s*manual/.test(handoffEval), "handoff eval uses manual trigger_source");
-  assert(handoffEval.includes("CR-20260502-224147-agent-handoff-evidence-loop"), "handoff eval references its baseline CR");
-  assert(handoffEval.includes("evidence_produced"), "handoff eval requires evidence_produced field");
-  assert(handoffEval.includes("W076"), "handoff eval references W076 doctor warning");
-
-  const factEval = read("evals/inferred-treated-as-fact-into-execution.md");
-  assert(/trigger_source:\s*manual/.test(factEval), "fact-state eval uses manual trigger_source");
-  assert(factEval.includes("CR-20260507-092708-hallucination-guard"), "fact-state eval references its baseline CR");
-  assert(factEval.includes("fact_state_review"), "fact-state eval requires fact_state_review");
-  assert(factEval.includes("W077"), "fact-state eval references W077 doctor warning");
-}
-
-section("docs: long-horizon agent review is documented and checked");
-
-{
-  const tasks = read("framework/.agents/templates/lane/tasks.yaml");
-  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const matrix = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const cli = read("docs/cli.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const readme = read("README.md");
-  const interop = read("docs/interop/standards-map.md");
-  const example = read("examples/background-agent-handoff.md");
-  const ledger = read("docs/problem-ledger.md");
-  const changelog = read("CHANGELOG.md");
-
-  for (const term of [
-    "agent_run_review",
-    "execution_surface",
-    "run_refs",
-    "write_scope",
-    "progress_checkpoints",
-    "return_packet",
-    "human_review_status",
-  ]) {
-    assert(tasks.includes(term), `tasks template includes ${term}`);
-    assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(skill.includes(term), `skill wrapper includes ${term}`);
-    assert(interop.includes(term), `long-horizon interop includes ${term}`);
-    assert(example.includes(term), `background handoff example includes ${term}`);
-  }
-
-  assert(spec.includes("W078"), "constitution spec cites W078 for long-horizon review");
-  assert(baselineTemplate.includes("agent_run_review"), "baseline template explains agent_run_review");
-  assert(matrix.includes("long-horizon-agent-run"), "verification matrix includes long-horizon impact rule");
-  assert(matrix.includes("FM-LONGRUN-001"), "verification matrix includes orphaned background run failure mode");
-  assert(matrix.includes("overlap"), "verification matrix covers overlapping write scopes");
-  assert(cli.includes("W078"), "CLI docs include W078");
-  assert(spec.includes("Version: 2.6"), "constitution spec is at v2.6");
-  assert(spec.includes("docs/artifacts.md"), "constitution spec references artifacts.md as schema truth source");
-  assert(spec.includes("不 ship 任何 server"), "constitution spec preserves no-runtime boundary");
-  assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
-  assert(readme.includes("Delegate this to a background / cloud / PR agent"), "README includes background agent routing row");
-  assert(interop.includes("Codex"), "long-horizon interop covers Codex");
-  assert(interop.includes("Cursor Background Agents"), "long-horizon interop covers Cursor Background Agents");
-  assert(interop.includes("GitHub Copilot cloud agent"), "long-horizon interop covers GitHub Copilot cloud agent");
-  assert(interop.includes("Google Jules"), "long-horizon interop covers Jules");
-  assert(interop.includes("Claude Code subagents / hooks"), "long-horizon interop covers Claude Code subagents/hooks");
-  assert(example.includes("doctor --strict emits W078"), "background handoff example names W078 close rule");
-  assert(ledger.includes("PL-015 长时程 / 后台 agent 交付回收不可审查"), "problem ledger tracks long-horizon agent review");
-  assert(changelog.includes("Long-Horizon Agent Reliability"), "CHANGELOG records v9.6 long-horizon release");
-  assert(changelog.includes("W078"), "CHANGELOG records W078");
 }
 
 section("docs: activation gate keeps ordinary conversation outside lane governance");
@@ -412,171 +272,53 @@ section("docs: activation gate keeps ordinary conversation outside lane governan
 {
   const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
   const readme = read("README.md");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
   const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const ledger = read("docs/problem-ledger.md");
-  const example = read("examples/non-delivery-discussion.md");
-  const changelog = read("CHANGELOG.md");
 
-  assert(agents.includes("Activation Gate"), "AGENTS.md names Activation Gate");
   assert(agents.includes("delivery-affecting work"), "AGENTS.md gates on delivery-affecting work");
-  assert(agents.includes("确认前不得读取或写入 `.ai-os/lanes/*`"), "AGENTS.md forbids lane access before activation confirmation");
-  assert(agents.includes("用户已明确要求分析、修复、实现、验证或发布当前项目时，视为已进入交付流程"), "AGENTS.md lets explicit delivery requests enter governance without re-asking");
-  assert(agents.includes("确认停点"), "AGENTS.md defines confirmation-stop semantics");
-  assert(agents.includes("这是先讨论，还是要进入项目交付流程？"), "AGENTS.md includes the one confirmation question");
+  assert(agents.includes("不读写 `.ai-os/lanes/*`") || agents.includes("不读取或写入"), "AGENTS.md forbids lane access for ordinary conversation");
+  assert(agents.includes("用户已明确要求分析、修复、实现、验证或发布时视为已进入交付"), "AGENTS.md lets explicit delivery requests enter governance without re-asking");
 
   assert(readme.includes("run the Activation Gate before loading lane artifacts"), "README routes agents through Activation Gate before lane loading");
   assert(readme.includes("Just discuss / brainstorm / explain"), "README includes ordinary conversation row");
   assert(readme.includes("do not read or write lane artifacts"), "README tells agents not to touch lane artifacts for discussion");
   assert(readme.includes("if the user already asked to fix and scope is clear"), "README does not force a second go on already-authorized fixes");
 
-  assert(artifacts.includes("Activation Gate（v9.5.1）"), "artifacts docs include Activation Gate section");
-  assert(artifacts.includes("普通对话不进入 lane governance"), "artifacts docs exclude ordinary conversation from lane governance");
-  assert(artifacts.includes("确认前不加载 L1 / L2 / L3 lane 工件"), "artifacts docs block progressive disclosure before confirmation");
-  assert(artifacts.includes("用户已明确要求分析、修复、实现、验证或发布当前项目时"), "artifacts docs treat explicit project work as delivery-affecting");
-
-  assert(spec.includes("Version: 2.6"), "constitution spec remains at latest v2.6");
-  assert(spec.includes("Activation Gate"), "constitution spec includes Activation Gate section");
-  assert(spec.includes("普通对话不得读取或写入"), "constitution spec blocks ordinary conversation from lane access");
-  assert(spec.includes("确认前不加载 L1/L2/L3"), "constitution spec blocks lane loading before delivery confirmation");
-  assert(spec.includes("确认停点语义"), "constitution spec defines confirmation-stop semantics");
-  assert(spec.includes("用户已经明确要求分析、修复、实现、验证或发布当前项目时，不再反问"), "constitution spec routes explicit delivery requests to L1");
-
-  assert(skill.includes("## Activation Gate"), "skill wrapper includes Activation Gate section");
   assert(skill.includes("Run the Activation Gate before reading L1"), "skill invocation contract runs gate before L1");
   assert(skill.includes("ordinary conversation"), "skill wrapper excludes ordinary conversation");
-  assert(skill.includes("do not read or write `.ai-os/lanes/*`"), "skill wrapper blocks lane artifact access for ordinary conversation");
   assert(skill.includes("Explicit delivery requests"), "skill wrapper recognizes explicit delivery requests");
-  assert(skill.includes("Confirmation stops are real approval boundaries"), "skill wrapper defines non-ritual confirmation stops");
-  assert(!skill.includes("AI-OS v9 delivery constitution"), "skill wrapper does not describe v9 as the current framework version");
-
-  assert(ledger.includes("PL-014 非交付对话误触发治理"), "problem ledger tracks non-delivery misactivation");
-  assert(ledger.includes("PL-023 前台执行代理被确认停点误拦"), "problem ledger tracks Codex confirmation-stop overblocking");
-  assert(example.includes("Does not read `.ai-os/lanes/default/STATE.md`"), "non-delivery example shows no lane read");
-  assert(example.includes("现在进入实现"), "non-delivery example shows explicit transition into delivery");
-  assert(changelog.includes("Activation Gate"), "CHANGELOG records activation gate release");
 }
 
-section("docs: design-aware component-first UI routing is documented and templated");
-
-{
-  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const readme = read("README.md");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const designTemplate = read("framework/.agents/templates/lane/DESIGN.md");
-  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const ledger = read("docs/problem-ledger.md");
-  const maintainers = read("docs/maintainers.md");
-  const changelog = read("CHANGELOG.md");
-
-  assert(agents.includes("前端 UI 先判定 UI 来源"), "AGENTS.md requires frontend UI source routing");
-  assert(agents.includes("有设计稿以设计稿为目标且优先复用项目组件"), "AGENTS.md keeps design target and component reuse together");
-  assert(agents.includes("不能用“组件库开发”跳过业务逻辑"), "AGENTS.md blocks component-first from skipping business logic");
-
-  assert(readme.includes("Design-aware component-first UI"), "README documents design-aware component-first UI");
-  assert(readme.includes("With a design: the design is the target"), "README says design files define target effect");
-  assert(readme.includes("Without a design: use the project's existing component library"), "README says no-design UI uses existing component library");
-  assert(readme.includes("Existing project style wins"), "README prioritizes existing project style");
-  for (const term of ["Element Plus", "Ant Design", "Vant", "Ant Design Mobile", "uView", "uni-ui", "NutUI", "TDesign", "Arco Design"]) {
-    assert(readme.includes(term), `README includes default component library ${term}`);
-  }
-
-  assert(artifacts.includes("Design-Aware Component-First UI"), "artifacts.md documents UI source routing section");
-  for (const term of ["ui_source", "surface", "frontend_stack", "component_library", "selection_reason", "fidelity_level", "custom_required"]) {
-    assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(designTemplate.includes(term), `DESIGN template includes ${term}`);
-  }
-  assert(artifacts.includes("已有组件库 > 用户指定 > 项目生态匹配 > 国内团队熟悉度"), "artifacts docs define component library priority");
-  assert(artifacts.includes("强视觉页面"), "artifacts docs keep strong-visual consumer pages from default component-native handling");
-
-  assert(spec.includes("Version: 2.6"), "constitution spec is at v2.6 (UI routing changelog stays v2.1)");
-  assert(spec.includes("Design-aware component-first UI"), "constitution spec references UI routing");
-  assert(spec.includes("组件优先不能替代字段、接口、权限、状态、异常和响应式验收"), "constitution spec preserves business acceptance coverage");
-
-  assert(skill.includes("Frontend UI source routing"), "skill wrapper includes frontend UI source routing section");
-  assert(skill.includes("existing project components first"), "skill wrapper prioritizes existing components with designs");
-  assert(skill.includes("Vue PC → Element Plus"), "skill wrapper includes China-friendly Vue PC default");
-  assert(skill.includes("React PC → Ant Design"), "skill wrapper includes China-friendly React PC default");
-  assert(skill.includes("Component-first does not skip logic"), "skill wrapper preserves logic and state coverage");
-
-  assert(designTemplate.includes("## 7. UI Source Routing"), "DESIGN template has UI Source Routing section");
-  assert(matrixTemplate.includes("design-aware-component-first-ui"), "verification matrix template has UI routing impact rule");
-  assert(matrixTemplate.includes("FM-UI-001"), "verification matrix template covers design/component mismatch");
-  assert(matrixTemplate.includes("FM-UI-002"), "verification matrix template covers skipped business states");
-
-  assert(ledger.includes("PL-020 前端 UI 来源与组件库实现路径混淆"), "problem ledger registers PL-020");
-  assert(maintainers.includes("v9.9"), "maintainers release matrix lists v9.9");
-  assert(changelog.includes("9.9.0"), "CHANGELOG records 9.9.0");
-  assert(changelog.includes("Design-Aware Component-First UI"), "CHANGELOG names the v9.9 release theme");
-  assert(changelog.includes("without expanding the CLI, runtime, doctor warning range, or page template surface"), "CHANGELOG preserves no-runtime/no-doctor expansion boundary");
-}
-
-section("docs: Product Design optional bridge is documented with no-plugin fallback");
+section("docs: on-demand artifacts documented consistently across surfaces");
 
 {
   const readme = read("README.md");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const productDesign = read("docs/interop/product-design.md");
-  const standards = read("docs/interop/standards-map.md");
+  const cli = read("docs/cli.md");
   const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const designTemplate = read("framework/.agents/templates/lane/DESIGN.md");
-  const tasksTemplate = read("framework/.agents/templates/lane/tasks.yaml");
-  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const ledger = read("docs/problem-ledger.md");
-  const maintainers = read("docs/maintainers.md");
-  const changelog = read("CHANGELOG.md");
+  const gettingStarted = read("docs/getting-started.md");
 
-  assert(readme.includes("Product Design"), "README mentions Product Design as optional design evidence");
-  assert(readme.includes("same `design_input` contract"), "README names the portable design_input contract");
-  assert(readme.includes("docs/interop/product-design.md"), "README links to Product Design interop doc");
-
-  for (const term of ["design_input", "provider", "capability_used", "evidence_refs", "fallback_path"]) {
-    assert(artifacts.includes(term), `artifacts docs include ${term}`);
-    assert(designTemplate.includes(term), `DESIGN template includes ${term}`);
+  assert(readme.includes("On-demand artifacts"), "README documents on-demand artifacts");
+  assert(cli.includes("on-demand"), "cli.md documents on-demand artifacts");
+  assert(skill.includes("On-demand artifacts"), "skill wrapper documents on-demand artifacts");
+  assert(gettingStarted.includes("created on demand"), "getting-started documents on-demand artifacts");
+  for (const surface of [readme, cli, skill]) {
+    assert(surface.includes("docs/artifacts.md") || surface.includes("artifacts.md"), "surface points to artifacts.md for schemas");
   }
-  for (const term of ["product-design", "figma", "url", "screenshot", "existing-code", "manual-brief", "none"]) {
-    assert(artifacts.includes(term), `artifacts docs include design_input provider ${term}`);
-    assert(productDesign.includes(term), `Product Design interop includes provider/fallback ${term}`);
-  }
-  for (const term of ["brief", "ideation", "prototype", "image-to-code", "design-qa", "share", "manual"]) {
-    assert(artifacts.includes(term), `artifacts docs include Product Design capability ${term}`);
-    assert(productDesign.includes(term), `Product Design interop maps capability ${term}`);
-  }
-  for (const term of ["figma", "screenshot", "url-reverse-spec", "component-first", "existing-style"]) {
-    assert(productDesign.includes(term), `Product Design interop includes no-plugin fallback ${term}`);
-  }
-
-  assert(productDesign.includes("optional design-evidence provider"), "Product Design interop frames plugin as optional evidence provider");
-  assert(productDesign.includes("AI-OS does not install Product Design"), "Product Design interop preserves no-install boundary");
-  assert(productDesign.includes("No new CLI command, runtime, doctor warning, MCP server, IDE adapter, or Product Design hard dependency"), "Product Design interop preserves product surface boundary");
-  assert(productDesign.includes("Product Design evidence does not replace project-native verification"), "Product Design interop keeps native verification required");
-
-  assert(tasksTemplate.includes("Product Design brief"), "tasks template accepts Product Design brief as expected return evidence");
-  assert(tasksTemplate.includes("design-input-evidence-or-fallback"), "tasks template requires design input evidence or fallback");
-  assert(skill.includes("If Product Design is available"), "skill wrapper routes through Product Design when available");
-  assert(skill.includes("If Product Design is not available"), "skill wrapper routes no-plugin fallback");
-  assert(skill.includes("Product Design QA, prototype links, or share URLs are design evidence, not native verification"), "skill wrapper preserves native verification boundary");
-
-  assert(matrixTemplate.includes("product-design-optional-bridge"), "verification matrix template includes Product Design optional bridge impact rule");
-  assert(matrixTemplate.includes("FM-PD-001"), "verification matrix template covers Product Design hard dependency failure");
-  assert(matrixTemplate.includes("FM-PD-002"), "verification matrix template covers Product Design replacing native verification");
-
-  assert(spec.includes("Product Design optional design-evidence bridge"), "constitution spec records Product Design optional bridge");
-  assert(spec.includes("Product Design 证据不替代项目原生验证"), "constitution spec keeps native verification boundary");
-  assert(standards.includes("Product Design evidence"), "standards-map includes Product Design evidence layer");
-  assert(standards.includes("product-design.md"), "standards-map links Product Design interop doc");
-
-  assert(ledger.includes("PL-021 Product Design 能力被误写成单一 IDE 硬依赖"), "problem ledger registers PL-021");
-  assert(maintainers.includes("v10.2.0"), "maintainers release matrix lists v10.2.0");
-  assert(changelog.includes("10.2.0"), "CHANGELOG records 10.2.0");
-  assert(changelog.includes("Product Design optional bridge"), "CHANGELOG names Product Design optional bridge release");
 }
 
-section("docs: VERSION and package.json are in sync");
+section("docs: interop.md consolidates all tool coexistence guidance");
+
+{
+  const interop = read("docs/interop.md");
+  for (const term of ["Cursor", "Claude Code", "Spec-Kit", "Product Design", "aios://", "A2A"]) {
+    assert(interop.includes(term), `interop.md covers ${term}`);
+  }
+  assert(interop.includes("薄壳"), "interop.md keeps tool surfaces as thin shells");
+  assert(interop.includes("doctor --strict"), "interop.md documents doctor as the cross-IDE guard");
+  const lines = interop.split(/\r?\n/).length;
+  assert(lines <= 120, `interop.md stays compact (got ${lines} lines)`);
+}
+
+section("docs: VERSION, package.json, and install pins are in sync");
 
 {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
@@ -585,7 +327,14 @@ section("docs: VERSION and package.json are in sync");
   assert(version === pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
   assert(lock.version === pkg.version, `package-lock root version (${lock.version}) matches package.json version (${pkg.version})`);
   assert(lock.packages[""].version === pkg.version, `package-lock package version (${lock.packages[""].version}) matches package.json version (${pkg.version})`);
-  assert(version === "10.5.1", `version is 10.5.1 (got ${version})`);
+  assert(version === CURRENT_VERSION, `version is ${CURRENT_VERSION} (got ${version})`);
+
+  const readme = read("README.md");
+  const gettingStarted = read("docs/getting-started.md");
+  assert(readme.includes(`github:royeedai/ai-os#v${CURRENT_VERSION}`), "README pins install commands to the current release tag");
+  assert(gettingStarted.includes(`github:royeedai/ai-os#v${CURRENT_VERSION}`), "getting-started pins the install command");
+  const changelog = read("CHANGELOG.md");
+  assert(changelog.includes(CURRENT_VERSION), `CHANGELOG records ${CURRENT_VERSION}`);
 }
 
 section("docs: package.json bin field is minimal");
@@ -604,30 +353,30 @@ section("docs: product surface wording stays precise");
 {
   const readme = read("README.md");
   const cli = read("docs/cli.md");
-  const mcp = read("docs/interop/mcp-resources.md");
-  const changelog = read("CHANGELOG.md");
 
   assert(readme.includes("Two primary operations"), "README describes product operations, not command count");
   assert(readme.includes("No proprietary AI-OS skill system"), "README distinguishes proprietary skill systems from open adapters");
   assert(readme.includes("open-standard adapter"), "README describes agentskills.io wrapper as an open-standard adapter");
-  assert(!readme.includes("No skill system."), "README does not imply the agentskills.io wrapper is forbidden");
+  assert(readme.includes("runtime runner, agent router"), "README preserves no-runtime / no-router boundary");
 
   assert(cli.includes("2 primary product operations"), "CLI docs describe 2 primary product operations");
   assert(cli.includes("explicit alias"), "CLI docs identify create-ai-os install as an alias");
-  assert(cli.includes("does not add a third product operation"), "CLI docs prevent install alias from becoming a third operation");
+}
 
-  assert(mcp.includes("does **not** ship or start an MCP server"), "MCP docs preserve default serverless boundary");
-  assert(mcp.includes("two primary product operations"), "MCP docs state two primary product operations (install/doctor)");
-  assert(!mcp.includes("upgrade"), "MCP docs no longer list the removed upgrade command");
-  assert(mcp.includes("Illustrative reference snippet"), "MCP docs describe the Node sample as an illustrative snippet");
-  assert(mcp.includes("not a packaged AI-OS server"), "MCP docs clarify the sample is not shipped runtime surface");
-  assert(!mcp.includes("Reference implementation"), "MCP docs avoid implying a packaged reference implementation");
-  assert(!mcp.includes("reference MCP server"), "MCP docs avoid implying a shipped reference MCP server");
+section("docs: local zero-network doctor entry is documented");
 
-  const archive = read("CHANGELOG-archive.md");
-  assert(changelog.includes("three primary product operations") || archive.includes("three primary product operations"), "CHANGELOG uses primary product operation wording");
-  assert(changelog.includes("open-standard adapter") || archive.includes("open-standard adapter"), "CHANGELOG records skill wrapper wording");
-  assert(changelog.includes("illustrative reference snippet") || archive.includes("illustrative reference snippet"), "CHANGELOG records MCP snippet wording");
+{
+  const readme = read("README.md");
+  const cli = read("docs/cli.md");
+  const gettingStarted = read("docs/getting-started.md");
+  const interop = read("docs/interop.md");
+
+  assert(readme.includes("node .ai-os/bin/ai-os-doctor.js ."), "README uses the local doctor entry");
+  assert(gettingStarted.includes("node .ai-os/bin/ai-os-doctor.js ."), "getting-started uses the local doctor entry");
+  assert(cli.includes("Local doctor entry"), "cli.md documents the local doctor entry section");
+  assert(cli.includes(".ai-os/bin/"), "cli.md lists the committed .ai-os/bin/ entry");
+  assert(interop.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "interop hooks call the local doctor entry");
+  assert(/zero (external request|network)/i.test(readme), "README states the daily flow makes zero external request");
 }
 
 section("docs: maintainers guide only references existing examples");
@@ -635,490 +384,46 @@ section("docs: maintainers guide only references existing examples");
 {
   const content = read("docs/maintainers.md");
   const refs = [...content.matchAll(/`(examples\/[^`]+)`/g)].map((m) => m[1]);
+  assert(refs.length >= 1, "maintainers guide lists at least one example");
   for (const rel of refs) {
     assert(fs.existsSync(path.join(repoRoot, rel)), `${rel} exists`);
   }
 }
 
-section("docs: problem-ledger current coverage only references existing files");
+section("docs: examples contain exactly 3 scenarios and reference current pins");
 
 {
-  const content = read("docs/problem-ledger.md");
-  const current = content.split("## 历史归档")[0];
-  const refs = [...current.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-  for (const ref of refs) {
-    if (!ref.includes("/") || ref.includes("*")) continue;
-    if (ref.startsWith(".ai-os/")) continue;
-    assert(fs.existsSync(path.join(repoRoot, ref)), `${ref} exists`);
+  const examplesDir = path.join(repoRoot, "examples");
+  const files = fs.readdirSync(examplesDir).filter((f) => f.endsWith(".md") && f !== "README.md").sort();
+  const expected = ["brownfield-change-journey.md", "debug-bounded-fix.md", "greenfield-guided-product.md"];
+  assert(JSON.stringify(files) === JSON.stringify(expected), `examples/ has exactly 3 scenarios (got ${files.join(", ")})`);
+  const readme = read("examples/README.md");
+  for (const file of expected) {
+    assert(readme.includes(file), `examples/README.md lists ${file}`);
   }
 }
 
-section("docs: artifacts.md declares progressive-disclosure layers");
-
-{
-  const content = read("docs/artifacts.md");
-  assert(content.includes("加载层级"), "artifacts.md declares loading layer for each artifact");
-  assert(content.includes("加载分层（progressive disclosure）"), "artifacts.md has progressive disclosure section");
-  for (const layer of ["L1", "L2", "L3"]) {
-    assert(content.includes(`### ${layer} —`), `artifacts.md describes ${layer} loading tier`);
-  }
-}
-
-section("docs: distributed AGENTS template declares progressive-disclosure rule");
-
-{
-  const content = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  assert(content.includes("L1/L2/L3"), "distributed AGENTS template mentions L1/L2/L3 progressive disclosure");
-  assert(content.includes("trigger_source"), "distributed AGENTS template cites failure-mode trigger_source field");
-}
-
-section("docs: every eval has trigger_source frontmatter");
+section("docs: every eval has valid frontmatter and no stale references");
 
 {
   const evalsDir = path.join(repoRoot, "evals");
   const files = fs.readdirSync(evalsDir).filter((f) => f.endsWith(".md") && f !== "README.md");
-  assert(files.length >= 20, `evals/ has at least 20 failure-mode samples (found ${files.length})`);
+  assert(files.length === 11, `evals/ has exactly 11 failure-mode samples (found ${files.length})`);
+  const evalsReadme = read("evals/README.md");
+  assert(evalsReadme.includes("implicit-mechanism-change-gate-missed.md"), "evals/README.md lists implicit mechanism change gate eval");
   for (const file of files) {
     const content = fs.readFileSync(path.join(evalsDir, file), "utf8");
     assert(content.startsWith("---\n"), `${file} starts with YAML frontmatter`);
     assert(/trigger_source:\s*(manual|promoted-from-verification-matrix)/.test(content), `${file} declares valid trigger_source`);
-    assert(content.includes("first_baseline_id:"), `${file} declares first_baseline_id field`);
-    assert(content.includes("risk_source:"), `${file} declares risk_source field`);
-    assert(content.includes("failure_mode:"), `${file} declares failure_mode field`);
-    assert(content.includes("harm:"), `${file} declares harm field`);
-    assert(content.includes("artifact_gate:"), `${file} declares artifact_gate field`);
+    for (const field of ["first_baseline_id:", "risk_source:", "failure_mode:", "harm:", "artifact_gate:"]) {
+      assert(content.includes(field), `${file} declares ${field} field`);
+    }
+    assert(evalsReadme.includes(file), `evals/README.md lists ${file}`);
+    // no references to removed doctor codes or deleted docs/templates
+    for (const stale of ["W072", "W074", "W076", "W077", "W078", "docs/problem-ledger.md", "docs/constitution-spec.md", "docs/codex-aios-field-feedback.md", "framework/.agents/templates/lane/verification-matrix.yaml", "framework/.agents/templates/lane/specs", "framework/.agents/templates/lane/release-plan.md"]) {
+      assert(!content.includes(stale), `${file} does not reference removed ${stale}`);
+    }
   }
-  const urlEval = read("evals/url-reverse-spec-backend-hallucination.md");
-  assert(urlEval.includes("CR-20260502-204346-url-reverse-spec-intake"), "URL reverse-spec eval references its baseline CR");
-  assert(urlEval.includes("API observation record"), "URL reverse-spec eval checks API observation records");
-  assert(urlEval.includes("Backend behavior record"), "URL reverse-spec eval checks backend behavior records");
-}
-
-section("docs: interop folder has core docs plus consolidated standards-map");
-
-{
-  const required = [
-    "docs/interop/spec-kit-coexistence.md",
-    "docs/interop/claude-code.md",
-    "docs/interop/cursor.md",
-    "docs/interop/product-design.md",
-    "docs/interop/mcp-resources.md",
-    "docs/interop/standards-map.md",
-  ];
-  for (const rel of required) {
-    const content = read(rel);
-    const lines = content.split(/\r?\n/).length;
-    assert(lines <= 200, `${rel} stays within 200 lines (got ${lines})`);
-  }
-}
-
-section("docs: MCP resources URI scheme covers all 12 artifacts");
-
-{
-  const content = read("docs/interop/mcp-resources.md");
-  const requiredUris = [
-    "aios://shared/MISSION",
-    "aios://shared/memory",
-    "aios://shared/framework",
-    "aios://shared/managed-files",
-    "aios://lane/{laneId}/lane-toml",
-    "aios://lane/{laneId}/MISSION",
-    "aios://lane/{laneId}/DESIGN",
-    "aios://lane/{laneId}/STATE",
-    "aios://lane/{laneId}/tasks",
-    "aios://lane/{laneId}/verification-matrix",
-    "aios://lane/{laneId}/risk-register",
-    "aios://lane/{laneId}/release-plan",
-    "aios://lane/{laneId}/parity-map",
-    "aios://lane/{laneId}/baseline-log/{id}",
-    "aios://lane/{laneId}/spec/{slug}",
-    "aios://lane/{laneId}/eval/{slug}",
-  ];
-  for (const uri of requiredUris) {
-    assert(content.includes(uri), `mcp-resources.md declares ${uri}`);
-  }
-  assert(content.includes("Illustrative reference snippet"), "mcp-resources.md documents an illustrative reference snippet");
-  assert(content.includes("lastModified"), "mcp-resources.md documents lastModified annotations");
-  assert(content.includes('"subscribe": true'), "mcp-resources.md declares resource subscribe capability");
-  assert(content.includes('"listChanged": true'), "mcp-resources.md declares resource listChanged capability");
-}
-
-section("docs: standards-map consolidates open-standard wire formats");
-
-{
-  const map = read("docs/interop/standards-map.md");
-  const readme = read("README.md");
-
-  for (const field of [
-    "handoff_to",
-    "context_refs",
-    "expected_return",
-    "evidence_produced",
-    "fact_state_review",
-    "agent_run_review",
-    "execution_surface",
-  ]) {
-    assert(map.includes(field), `standards-map.md maps ${field}`);
-  }
-
-  for (const term of [
-    "A2A",
-    "Product Design",
-    "Memory tool",
-    "BMAD-METHOD",
-    "OpenSpec",
-    "Kiro",
-    "EU AI Act",
-    "Anti-patterns",
-    "W076",
-    "W078",
-  ]) {
-    assert(map.includes(term), `standards-map.md references ${term}`);
-  }
-
-  assert(map.includes("does **not** ship"), "standards-map.md preserves no-runtime boundary");
-  assert(map.includes("Product Design") && map.includes("design_input"), "standards-map.md maps Product Design onto design_input");
-  assert(map.includes("2 primary product operations"), "standards-map.md restates 2-primary-operation surface");
-  assert(map.includes("mcp-resources.md"), "standards-map.md links to mcp-resources.md");
-  assert(map.includes("Read-only mount"), "standards-map.md mandates read-only Memory mount");
-
-  assert(readme.includes("Open standards map"), "README documents Open standards map section");
-  assert(readme.includes("docs/interop/standards-map.md"), "README links to standards-map.md");
-}
-
-section("docs: deterministic-guard narrative distinguishes hooks from Codex local guards");
-
-{
-  const readme = read("README.md");
-  const claude = read("docs/interop/claude-code.md");
-
-  assert(readme.includes("Why deterministic"), "README adds deterministic-guard narrative section");
-  assert(readme.includes("W070-W078"), "README narrative cites the W070-W078 doctor warning range");
-  assert(readme.includes("`pre-tool-use`") || readme.includes("pre-tool-use"), "README narrative shows Claude Code pre-tool-use mapping");
-  assert(readme.includes("45427") || readme.includes("RFC #45427"), "README narrative cites the 2026 hooks-vs-prompts RFC");
-  assert(readme.includes("ai-os-doctor.js . --strict"), "README narrative uses the committed local doctor --strict invocation");
-  assert(readme.includes("Codex / Gemini / shell agents"), "README lists Codex-style agents separately from hook surfaces");
-  assert(readme.includes("Enforcement strength depends on where you wire the command"), "README avoids claiming identical host-hook enforcement across IDEs");
-  assert(readme.includes("Codex local checks"), "README names Codex local checks as portable guards");
-
-  assert(claude.includes("Doctor as cross-IDE deterministic guard"), "claude-code.md adds doctor-as-deterministic-guard section");
-  assert(claude.includes("subagent bypass") || claude.includes("hook-bypass"), "claude-code.md surfaces 2026 hook-bypass failure modes");
-  assert(claude.includes("W070-W078"), "claude-code.md cites the W070-W078 doctor warning range");
-  assert(claude.includes("portable guard command"), "claude-code.md describes doctor as a portable guard command");
-  assert(claude.includes("not a promise that every host has the same hook API"), "claude-code.md avoids overgeneralizing hook semantics");
-  assert(claude.includes("Codex / Gemini / shell agents"), "claude-code.md documents Codex-style local guard use");
-}
-
-section("docs: Cursor 2.0+ subagent / cloud agent fields align to v9.4 handoff");
-
-{
-  const cursor = read("docs/interop/cursor.md");
-
-  assert(cursor.includes("Cursor 2.0+ subagents"), "cursor.md adds 2.0+ subagent / cloud agent section");
-  for (const field of [
-    "handoff_to",
-    "context_refs",
-    "expected_return",
-    "evidence_produced",
-    "deviation_log",
-    "acceptance_refs",
-  ]) {
-    assert(cursor.includes(field), `cursor.md maps Cursor concept onto ${field}`);
-  }
-  assert(cursor.includes("worktree"), "cursor.md mentions Cursor worktree-based parallel execution");
-  assert(cursor.includes("W076"), "cursor.md routes PR-without-evidence through existing W076");
-  assert(cursor.includes("standards-map.md"), "cursor.md links to standards-map.md for non-Cursor delegation");
-}
-
-section("docs: trajectory_signature is opt-in and does not break existing evals");
-
-{
-  const evalsReadme = read("evals/README.md");
-  assert(evalsReadme.includes("trajectory_signature"), "evals/README.md documents the optional trajectory_signature field");
-  assert(evalsReadme.includes("ATBench") || evalsReadme.includes("Claw-Eval") || evalsReadme.includes("AgentRx"), "evals/README.md cites at least one trajectory-aware harness");
-  assert(/optional/i.test(evalsReadme.split("trajectory_signature")[1] || ""), "evals/README.md marks trajectory_signature as optional");
-  assert(/free-form|no enum/i.test(evalsReadme), "evals/README.md states trajectory_signature is free-form");
-
-  const evalsDir = path.join(repoRoot, "evals");
-  const files = fs.readdirSync(evalsDir).filter((f) => f.endsWith(".md") && f !== "README.md");
-  for (const file of files) {
-    const content = fs.readFileSync(path.join(evalsDir, file), "utf8");
-    assert(/trigger_source:\s*(manual|promoted-from-verification-matrix)/.test(content), `${file} still has required trigger_source after trajectory_signature addition`);
-  }
-}
-
-section("docs: 9.5.2 release notes cover all five open-standards expansions");
-
-{
-  const changelog = read("CHANGELOG.md");
-  assert(changelog.includes("9.5.2"), "CHANGELOG records 9.5.2");
-  assert(changelog.includes("Open-standards interop expansion"), "CHANGELOG names the v9.5.2 release theme");
-  for (const ref of [
-    "Doctor as cross-IDE deterministic guard",
-    "Cursor 2.0+ subagents",
-    "trajectory_signature",
-  ]) {
-    assert(changelog.includes(ref), `CHANGELOG 9.5.2 mentions ${ref}`);
-  }
-}
-
-section("docs: framework feedback loop is documented and templated (v9.7)");
-
-{
-  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const cli = read("docs/cli.md");
-  const maintainers = read("docs/maintainers.md");
-  const ledger = read("docs/problem-ledger.md");
-  const issueTemplate = read(".github/ISSUE_TEMPLATE/preventable-modification.md");
-  const changelog = read("CHANGELOG.md");
-
-  for (const term of [
-    "Preventability review",
-    "Preventable",
-    "If yes, root cause",
-    "Maps to",
-    "Suggested guard",
-    "BL-YYYYMMDD-HHMMSS-retrospective",
-  ]) {
-    assert(baselineTemplate.includes(term), `BL-template includes ${term}`);
-  }
-
-  assert(agents.includes("Preventability review"), "distributed AGENTS template behavior rule mentions Preventability review");
-  assert(agents.includes("retrospective"), "distributed AGENTS template behavior rule mentions retrospective aggregation");
-  assert(read("framework/skills/ai-os-delivery/SKILL.md").includes("Preventability review"), "skill wrapper routes CR Preventability review before close");
-
-  assert(artifacts.includes("Framework Feedback Loop"), "artifacts.md documents Framework Feedback Loop section");
-  assert(artifacts.includes("Preventability review"), "artifacts.md describes Preventability review schema");
-  assert(!artifacts.includes("W079a"), "artifacts.md no longer cites removed W079a doctor check");
-
-  assert(spec.includes("Framework feedback loop"), "constitution-spec.md references Framework feedback loop");
-  assert(spec.includes("Version: 2.6"), "constitution-spec.md is at v2.6");
-  assert(spec.includes("docs/artifacts.md"), "constitution-spec.md points to artifacts.md for schema");
-
-  assert(!cli.includes("W079a"), "cli.md no longer documents removed W079a");
-  assert(cli.includes("W070-W078"), "cli.md still scopes semantic_warnings to W070-W078");
-
-  assert(maintainers.includes("Framework feedback 复盘"), "maintainers.md adds Framework feedback 复盘 section");
-  assert(maintainers.includes("Framework feedback loop"), "maintainers.md release matrix lists Framework feedback loop");
-  assert(maintainers.includes("已安装项目的本地工件"), "maintainers.md routes feedback through installed-project artifacts");
-  assert(maintainers.includes("framework-feedback"), "maintainers.md mentions framework-feedback issue label");
-
-  assert(ledger.includes("PL-012"), "problem-ledger.md registers PL-012");
-  assert(ledger.includes("Preventability review"), "PL-012 uses Preventability review vocabulary");
-
-  assert(issueTemplate, ".github/ISSUE_TEMPLATE/preventable-modification.md exists");
-  assert(issueTemplate.includes("framework-feedback"), "issue template uses framework-feedback label");
-  assert(issueTemplate.includes("Preventability review"), "issue template asks for Preventability review section");
-
-  assert(changelog.includes("9.7.0"), "CHANGELOG records 9.7.0");
-  assert(changelog.includes("Framework feedback loop") || changelog.includes("Framework Feedback Loop"), "CHANGELOG names the v9.7 release theme");
-  assert(changelog.includes("9.7.0") || changelog.includes("Framework feedback"), "CHANGELOG records framework feedback release");
-  assert(changelog.includes("PL-012"), "CHANGELOG references PL-012");
-}
-
-section("docs: AI-OS repo does not commit lane state");
-
-{
-  assert(!fs.existsSync(path.join(repoRoot, ".ai-os")), "AI-OS repository has no committed .ai-os artifacts");
-  assert(fs.existsSync(path.join(repoRoot, "framework/.agents/templates/lane/baseline-log/BL-template.md")), "install lane baseline template still exists");
-  assert(fs.existsSync(path.join(repoRoot, "framework/.agents/templates/lane/tasks.yaml")), "install lane tasks template still exists");
-
-  const readme = read("README.md");
-  const maintainers = read("docs/maintainers.md");
-  const artifacts = read("docs/artifacts.md");
-  assert(readme.includes("does not commit its own `.ai-os/` lane state"), "README documents no repo lane state");
-  assert(maintainers.includes("不再提交 `.ai-os/` lane 状态"), "maintainers guide documents no repo lane state");
-  assert(artifacts.includes("不提交 `.ai-os/` lane 状态"), "artifacts docs document no repo lane state");
-}
-
-section("docs: v10.4 long-lived AI maintenance loop is documented and templated");
-
-{
-  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const readme = read("README.md");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const memoryTemplate = read("framework/.agents/templates/shared-root/memory.md");
-  const tasksTemplate = read("framework/.agents/templates/lane/tasks.yaml");
-  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const baselineTemplate = read("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  const ledger = read("docs/problem-ledger.md");
-  const maintainers = read("docs/maintainers.md");
-  const changelog = read("CHANGELOG.md");
-  const evalsReadme = read("evals/README.md");
-  const example = read("examples/long-lived-maintenance-loop.md");
-  const periodicEval = read("evals/periodic-refactor-without-drift-evidence.md");
-  const feedbackEval = read("evals/drift-signal-not-fed-back.md");
-  const doctor = read("bin/ai-os-doctor.js");
-
-  assert(agents.includes("长期维护"), "AGENTS.md adds long-lived maintenance behavior rule");
-  assert(agents.includes("drift evidence"), "AGENTS.md names drift evidence");
-  assert(agents.includes("不把定期大重构当默认闭环"), "AGENTS.md rejects periodic big refactor as default");
-
-  assert(readme.includes("Long-lived AI project maintenance"), "README documents long-lived AI maintenance section");
-  assert(readme.includes("evidence-triggered maintenance"), "README positions maintenance as evidence-triggered");
-  assert(readme.includes("do not schedule a big-bang refactor"), "README blocks big-bang refactor without evidence");
-
-  assert(artifacts.includes("Long-lived AI Project Maintenance Loop"), "artifacts.md documents the maintenance loop");
-  for (const field of ["maintenance_review", "drift_signals", "refactor_trigger", "contract_impact", "native_checks", "debt_disposition"]) {
-    assert(artifacts.includes(field), `artifacts docs include ${field}`);
-    assert(tasksTemplate.includes(field), `tasks template includes ${field}`);
-    assert(skill.includes(field), `skill wrapper includes ${field}`);
-  }
-  assert(artifacts.includes("不是 doctor 新警告"), "artifacts.md keeps maintenance loop outside doctor warnings");
-  assert(artifacts.includes("也不是第 13 类工件"), "artifacts.md keeps maintenance loop inside existing artifact categories");
-
-  assert(spec.includes("Long-lived AI Project Maintenance Loop"), "constitution spec records the v2.5 capability");
-  assert(spec.includes("不新增 CLI、runtime、doctor code 或 artifact category"), "constitution spec preserves product boundary");
-
-  assert(memoryTemplate.includes("long-lived-maintenance"), "memory template includes long-lived-maintenance debt type");
-  assert(memoryTemplate.includes("维护触发证据"), "memory template records maintenance trigger evidence");
-  assert(baselineTemplate.includes("Maintenance disposition"), "baseline template adds maintenance disposition to Preventability review");
-  assert(baselineTemplate.includes("无证据不得开启周期性大重构"), "baseline template blocks periodic refactor without evidence");
-
-  assert(matrixTemplate.includes("long-lived-maintenance-review"), "verification matrix has long-lived maintenance impact rule");
-  assert(matrixTemplate.includes("FM-MAINT-001"), "verification matrix covers periodic refactor without evidence");
-  assert(matrixTemplate.includes("FM-MAINT-002"), "verification matrix covers drift feedback loss");
-
-  assert(ledger.includes("PL-024"), "problem ledger registers PL-024");
-  assert(ledger.includes("漂移信号未证据化回流"), "problem ledger names drift feedback failure");
-  assert(maintainers.includes("v10.4.0"), "maintainers release matrix lists v10.4.0");
-  assert(changelog.includes("10.4.0"), "CHANGELOG records 10.4.0");
-  assert(changelog.includes("No new CLI command, runtime, doctor warning code"), "CHANGELOG preserves no-surface-expansion boundary");
-
-  assert(evalsReadme.includes("periodic-refactor-without-drift-evidence.md"), "evals README lists periodic refactor eval");
-  assert(evalsReadme.includes("drift-signal-not-fed-back.md"), "evals README lists drift feedback eval");
-  assert(example.includes("maintenance_review"), "long-lived maintenance example uses maintenance_review");
-  assert(example.includes("not the whole app"), "long-lived maintenance example keeps refactor scoped");
-  assert(periodicEval.includes("maintenance_review.refactor_trigger"), "periodic refactor eval checks refactor trigger evidence");
-  assert(feedbackEval.includes("maintenance_review.debt_disposition"), "drift feedback eval checks debt disposition");
-  assert(periodicEval.includes("CR-20260618-130813-long-lived-ai-maintenance-loop"), "periodic refactor eval references this baseline CR");
-  assert(feedbackEval.includes("CR-20260618-130813-long-lived-ai-maintenance-loop"), "drift feedback eval references this baseline CR");
-
-  assert(doctor.includes('["W070", "W071", "W072", "W074", "W076", "W077", "W078"]'), "doctor semantic warning range remains W070-W078");
-  assert(!doctor.includes("W079"), "doctor does not add W079 for maintenance loop");
-}
-
-section("docs: v10.5 boundary evolution policy is documented and tested");
-
-{
-  const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const readme = read("README.md");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const maintainers = read("docs/maintainers.md");
-  const standards = read("docs/interop/standards-map.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const changelog = read("CHANGELOG.md");
-  const doctor = read("bin/ai-os-doctor.js");
-
-  assert(agents.includes("边界演进"), "AGENTS.md adds boundary evolution behavior rule");
-  assert(agents.includes("不把当前边界写成永久冻结"), "AGENTS.md rejects permanent-freeze boundary wording");
-
-  for (const term of ["Boundary Evolution Policy", "Kernel", "Controlled Extension", "Adapter", "Forbidden"]) {
-    assert(readme.includes(term), `README documents boundary layer ${term}`);
-    assert(artifacts.includes(term), `artifacts docs document boundary layer ${term}`);
-    assert(skill.includes(term), `skill wrapper documents boundary layer ${term}`);
-  }
-
-  assert(readme.includes("not a permanent freeze"), "README says boundary is not a permanent freeze");
-  assert(artifacts.includes("不是永久冻结承诺"), "artifacts.md says default boundary is not a permanent freeze");
-  assert(skill.includes("not a permanent freeze"), "skill wrapper says boundary is not a permanent freeze");
-
-  assert(spec.includes("Version: 2.6"), "constitution spec is bumped to v2.6");
-  assert(spec.includes("Boundary Evolution Policy"), "constitution spec records the v2.6 capability");
-  assert(spec.includes("未来如需扩展 product surface"), "constitution spec gates future product surface expansion");
-
-  assert(maintainers.includes("v10.5.0"), "maintainers release matrix lists v10.5.0");
-  assert(maintainers.includes("Boundary Decision Checklist"), "maintainers has Boundary Decision Checklist");
-  for (const term of ["新 doctor warning", "新 CLI 子命令", "新 adapter", "新工件类别"]) {
-    assert(maintainers.includes(term), `maintainers documents entry criteria for ${term}`);
-  }
-
-  assert(standards.includes("Boundary evolution"), "standards-map includes boundary evolution layer");
-  assert(standards.includes("optional, thin, and removable"), "standards-map keeps adapters optional");
-
-  assert(changelog.includes("10.5.0"), "CHANGELOG records 10.5.0");
-  assert(changelog.includes("Boundary Evolution Policy"), "CHANGELOG names the v10.5 release theme");
-  assert(changelog.includes("It adds no CLI command, runtime, doctor warning code"), "CHANGELOG preserves unchanged product surface");
-
-  assert(doctor.includes('["W070", "W071", "W072", "W074", "W076", "W077", "W078"]'), "doctor semantic warning range remains W070-W078");
-  assert(!doctor.includes("W079"), "doctor does not add W079 for boundary policy");
-}
-
-section("docs: Codex field feedback closeout is documented, templated, and eval-backed");
-
-{
-  const fieldFeedback = read("docs/codex-aios-field-feedback.md");
-  const readme = read("README.md");
-  const artifacts = read("docs/artifacts.md");
-  const maintainers = read("docs/maintainers.md");
-  const ledger = read("docs/problem-ledger.md");
-  const skill = read("framework/skills/ai-os-delivery/SKILL.md");
-  const tasksTemplate = read("framework/.agents/templates/lane/tasks.yaml");
-  const matrixTemplate = read("framework/.agents/templates/lane/verification-matrix.yaml");
-  const evalsReadme = read("evals/README.md");
-  const doctor = read("bin/ai-os-doctor.js");
-
-  const releaseEval = read("evals/release-truth-drift.md");
-  const environmentEval = read("evals/verification-environment-misclassified.md");
-  const ledgerEval = read("evals/task-ledger-conflict-drift.md");
-  const baselineEval = read("evals/install-baseline-artifact-misread.md");
-
-  assert(fieldFeedback.includes("Release Truthfulness Review"), "field feedback doc covers release truthfulness review");
-  assert(fieldFeedback.includes("Verification Environment Classification"), "field feedback doc covers verification environment classification");
-  assert(fieldFeedback.includes("Task Ledger Conflict Review"), "field feedback doc covers task ledger conflict review");
-  assert(fieldFeedback.includes("Install / Baseline Artifact Review"), "field feedback doc covers install / baseline artifact review");
-  assert(fieldFeedback.includes("Auto release / auto merge / auto publish"), "field feedback doc rejects auto release expansion");
-  assert(fieldFeedback.includes("New doctor warning") && fieldFeedback.includes("deferred"), "field feedback doc defers new doctor warning");
-  assert(fieldFeedback.includes("existing 12 artifacts"), "field feedback doc keeps the current artifact boundary");
-
-  assert(readme.includes("Codex field feedback closeout"), "README documents Codex field feedback closeout");
-  assert(readme.includes("docs/codex-aios-field-feedback.md"), "README links field feedback evidence doc");
-  assert(artifacts.includes("Codex Field Feedback Closeout"), "artifacts docs document field feedback closeout");
-  assert(skill.includes("Field feedback closeout"), "skill wrapper routes field feedback closeout");
-  assert(maintainers.includes("Codex field feedback closeout"), "maintainers release matrix notes field feedback closeout");
-  assert(maintainers.includes("只有确定性结构检查才允许"), "maintainers keeps doctor warnings deterministic");
-
-  assert(ledger.includes("PL-025"), "problem ledger registers PL-025");
-  for (const term of ["release truth drift", "verification environment", "task ledger", "baseline artifact"]) {
-    assert(ledger.includes(term), `problem ledger PL-025 includes ${term}`);
-  }
-
-  assert(matrixTemplate.includes("field-feedback-closeout"), "verification matrix template includes field feedback closeout impact rule");
-  for (const id of ["FM-FIELD-001", "FM-FIELD-002", "FM-FIELD-003", "FM-FIELD-004"]) {
-    assert(matrixTemplate.includes(id), `verification matrix template includes ${id}`);
-  }
-  assert(tasksTemplate.includes("release-truth-review-if-release-requested"), "tasks template asks for release truth review when release is requested");
-  assert(tasksTemplate.includes("verification-environment-classification-if-failure"), "tasks template asks for environment classification on verification failure");
-  assert(tasksTemplate.includes("evidence_produced or deviation_log"), "tasks template keeps field feedback in existing evidence fields");
-
-  for (const file of [
-    "release-truth-drift.md",
-    "verification-environment-misclassified.md",
-    "task-ledger-conflict-drift.md",
-    "install-baseline-artifact-misread.md",
-  ]) {
-    assert(evalsReadme.includes(file), `evals README lists ${file}`);
-  }
-
-  for (const content of [releaseEval, environmentEval, ledgerEval, baselineEval]) {
-    assert(content.includes("CR-20260619-225610-codex-aios-field-feedback"), "field feedback eval references the baseline CR");
-    assert(content.includes("docs/codex-aios-field-feedback.md"), "field feedback eval points to the evidence doc");
-    assert(content.includes("PL-025"), "field feedback eval points to PL-025");
-  }
-  assert(releaseEval.includes("STATE.md") && releaseEval.includes("release-plan.md"), "release truth eval checks lane and release artifacts");
-  assert(environmentEval.includes("product-code") && environmentEval.includes("local-environment"), "environment eval checks product-code and local-environment classes");
-  assert(ledgerEval.includes("baseline_id") && ledgerEval.includes("evidence_produced"), "task ledger eval checks baseline and evidence drift");
-  assert(baselineEval.includes("legacy") && baselineEval.includes("generated"), "baseline artifact eval checks legacy/generated classification");
-
-  assert(doctor.includes('["W070", "W071", "W072", "W074", "W076", "W077", "W078"]'), "doctor semantic warning range remains W070-W078");
-  assert(!doctor.includes("W079"), "doctor does not add W079 for field feedback");
-  assert(!doctor.includes("W080"), "doctor does not add W080 for field feedback");
 }
 
 section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");
@@ -1134,123 +439,41 @@ section("docs: official ai-os-delivery SKILL.md follows agentskills.io spec");
   const nameMatch = fm.match(/^name:\s*(\S+)\s*$/m);
   assert(nameMatch && nameMatch[1] === "ai-os-delivery", "SKILL.md name equals parent dir 'ai-os-delivery'");
   assert(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(nameMatch[1]), "SKILL.md name uses lowercase a-z, 0-9, hyphens only");
-  assert(!nameMatch[1].includes("--"), "SKILL.md name has no consecutive hyphens");
-  assert(nameMatch[1].length <= 64, "SKILL.md name <=64 chars");
   const descMatch = fm.match(/^description:\s*(.*)$/m);
   assert(descMatch, "SKILL.md declares description");
   assert(descMatch[1].length <= 1024, `SKILL.md description <=1024 chars (got ${descMatch[1].length})`);
   const body = content.slice(fmEnd + 5);
   const bodyLines = body.split(/\r?\n/).length;
-  assert(bodyLines <= 500, `SKILL.md body within 500 lines (got ${bodyLines})`);
+  assert(bodyLines <= 200, `SKILL.md body stays compact (got ${bodyLines} lines)`);
+  assert(body.includes("Five core requirements"), "SKILL.md carries the five core requirements");
+  assert(body.includes("On-demand artifacts"), "SKILL.md documents on-demand artifacts");
+  assert(body.includes("Implicit mechanism change gate"), "SKILL.md documents implicit mechanism change gate");
+  assert(body.includes("High-risk state flow"), "SKILL.md documents high-risk state flow");
 }
 
-section("docs: v9.8 content slimming narrative and removed legacy paths");
+section("docs: AI-OS repo does not commit lane state");
 
 {
-  const purpose = read("PROJECT_PURPOSE.md");
+  assert(!fs.existsSync(path.join(repoRoot, ".ai-os")), "AI-OS repository has no committed .ai-os artifacts");
+  assert(fs.existsSync(path.join(repoRoot, "framework/.agents/templates/lane/baseline-log/BL-template.md")), "install lane baseline template still exists");
+  assert(fs.existsSync(path.join(repoRoot, "framework/.agents/templates/lane/tasks.yaml")), "install lane tasks template still exists");
+
   const readme = read("README.md");
-  const changelog = read("CHANGELOG.md");
-  const spec = read("docs/constitution-spec.md");
-
-  assert(purpose.includes("GPT-5.5"), "PROJECT_PURPOSE cites GPT-5.5 era");
-  assert(purpose.includes("Opus 4.8"), "PROJECT_PURPOSE cites Opus 4.8 era");
-  assert(purpose.includes("脚手架层越该收敛"), "PROJECT_PURPOSE argues scaffolding should converge");
-
-  assert(readme.includes("GPT-5.5"), "README cites GPT-5.5 era positioning");
-  assert(readme.includes("standards-map.md"), "README links to standards-map");
-
-  assert(changelog.includes("9.8.0"), "CHANGELOG records 9.8.0");
-  assert(changelog.includes("Content slimming"), "CHANGELOG names v9.8 content slimming theme");
-  assert(changelog.includes("standards-map.md"), "CHANGELOG references standards-map");
-
-  assert(spec.split(/\r?\n/).length <= 160, `constitution-spec.md slimmed (got ${spec.split(/\r?\n/).length} lines)`);
-  assert(!fs.existsSync(path.join(repoRoot, "docs/migrate-v7-to-v8.md")), "migrate-v7-to-v8 stub removed");
-  assert(!fs.existsSync(path.join(repoRoot, "docs/problems.md")), "problems.md duplicate removed");
-  assert(!fs.existsSync(path.join(repoRoot, "docs/interop/a2a.md")), "a2a.md merged into standards-map");
-  assert(!fs.existsSync(path.join(repoRoot, "docs/migrate-to-v9.md")), "migrate-to-v9 removed in v10 (upgrade command dropped)");
+  const maintainers = read("docs/maintainers.md");
+  assert(readme.includes("does not commit its own `.ai-os/` lane state"), "README documents no repo lane state");
+  assert(maintainers.includes("不提交"), "maintainers guide documents no repo lane state");
 }
 
-section("docs: v10.1 restate-confirm gate + architecture guardrail");
+section("docs: framework feedback loop is documented");
 
 {
   const agents = read(DISTRIBUTED_AGENTS_TEMPLATE);
-  const laneMission = read("framework/.agents/templates/lane/MISSION.md");
-  const design = read("framework/.agents/templates/lane/DESIGN.md");
-  const memory = read("framework/.agents/templates/shared-root/memory.md");
-  const artifacts = read("docs/artifacts.md");
-  const spec = read("docs/constitution-spec.md");
-  const map = read("docs/interop/standards-map.md");
-  const ledger = read("docs/problem-ledger.md");
-  const example = read("examples/greenfield-guided-product.md");
-
-  assert(agents.includes("反述"), "AGENTS.md introduces the restate-and-confirm gate");
-  assert(agents.includes("结构化方式反述"), "AGENTS.md §1 requires structured restatement before lock/implementation");
-  assert(agents.includes("架构护栏"), "AGENTS.md verification rule cross-checks memory architecture guardrails");
-
-  assert(laneMission.includes("核心主流程（步骤化反述）"), "lane MISSION template has a restated core-main-flow field");
-  assert(laneMission.includes("关键异常 / 边界分支"), "lane MISSION template has a key exception / boundary branch field");
-  assert(design.includes("契约层"), "DESIGN template names section 4 as the contract layer");
-  assert(design.includes("## 9. 验收标准"), "DESIGN template keeps acceptance criteria at section 9");
-  assert(design.includes("## 10. 反述确认门"), "DESIGN template section 10 is the restate-and-confirm gate");
-
-  assert(memory.includes("架构护栏 / 编码契约登记表"), "memory template names section 2 as the architecture guardrail registry");
-  assert(memory.includes("return-contract"), "memory guardrail registry carries a type field");
-  assert(!fs.existsSync(path.join(repoRoot, ".ai-os-rules")), "no second-truth-source .ai-os-rules file is introduced");
-
-  assert(artifacts.includes("反述确认 / 双向对齐门"), "artifacts.md documents the restate-and-confirm / double-loop gate");
-  assert(artifacts.includes("不引入 doctor warning code"), "artifacts.md keeps the restate gate as a behavior gate, not a doctor code");
-  assert(spec.includes("反述确认门（v2.2）"), "constitution spec v2.2 names the restate-and-confirm gate");
-  assert(map.includes("Architecture style guide"), "standards-map maps an external style guide onto memory section 2");
-  assert(map.includes("second truth-source"), "standards-map keeps memory section 2 as the single guardrail truth source");
-
-  assert(ledger.includes("§1 反述确认门"), "problem-ledger PL-001 anchors the restate-confirm gate");
-
-  // The design-layer restate gate is template section 10 (section 9 is
-  // acceptance criteria). Docs must reference the same section number.
-  for (const [name, content] of [["artifacts.md", artifacts], ["constitution-spec.md", spec], ["problem-ledger.md", ledger]]) {
-    assert(!/§9[^\n]*反述确认门|反述确认门[^\n]*§9/.test(content), `docs/${name} does not anchor the restate gate to DESIGN section 9`);
-  }
-  assert(artifacts.includes("`DESIGN.md` §10（反述确认门）"), "artifacts.md anchors the design-layer restate gate to section 10");
-  assert(spec.includes("`DESIGN.md` §10"), "constitution spec anchors the design-layer restate gate to section 10");
-  assert(ledger.includes("§10 反述确认门"), "problem-ledger anchors the design-layer restate gate to section 10");
-
-  assert(example.includes("Restate-and-confirm gate"), "greenfield example demonstrates the restate-and-confirm gate");
-
-  const exampleFiles = fs.readdirSync(path.join(repoRoot, "examples")).filter((f) => f.endsWith(".md") && f !== "README.md");
-  assert(exampleFiles.length === 9, `examples stay at 9 excluding README (got ${exampleFiles.length})`);
-}
-
-section("docs: v10.3 local zero-network doctor entry is documented");
-
-{
-  const readme = read("README.md");
-  const cli = read("docs/cli.md");
-  const gettingStarted = read("docs/getting-started.md");
-  const claude = read("docs/interop/claude-code.md");
-  const cursor = read("docs/interop/cursor.md");
-  const multiTool = read("examples/multi-tool-coexistence.md");
-  const changelog = read("CHANGELOG.md");
   const maintainers = read("docs/maintainers.md");
-  const ledger = read("docs/problem-ledger.md");
+  const issueTemplate = read(".github/ISSUE_TEMPLATE/preventable-modification.md");
 
-  // Daily / hook / CI use the committed local entry (zero external request)
-  assert(readme.includes("node .ai-os/bin/ai-os-doctor.js ."), "README uses the local doctor entry");
-  assert(gettingStarted.includes("node .ai-os/bin/ai-os-doctor.js ."), "getting-started uses the local doctor entry");
-  assert(cli.includes("Local doctor entry"), "cli.md documents the local doctor entry section");
-  assert(cli.includes(".ai-os/bin/"), "cli.md lists the committed .ai-os/bin/ entry");
-  assert(claude.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "claude-code hook calls the local doctor entry");
-  assert(cursor.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "cursor hook calls the local doctor entry");
-  assert(multiTool.includes("node .ai-os/bin/ai-os-doctor.js . --strict"), "multi-tool CI calls the local doctor entry");
-
-  // No-external-request narrative
-  assert(/zero (external request|network)/i.test(readme), "README states the daily flow makes zero external request");
-
-  // Install commands are pinned to a release tag (cache-friendly + reproducible)
-  assert(readme.includes("github:royeedai/ai-os#v10.5.1"), "README pins install/skills commands to a release tag");
-  assert(gettingStarted.includes("github:royeedai/ai-os#v10.5.1"), "getting-started pins the install command");
-
-  // Release tracked
-  assert(changelog.includes("10.5.1"), "CHANGELOG records 10.5.1");
-  assert(maintainers.includes("v10.5.1"), "maintainers release matrix lists v10.5.1");
-  assert(ledger.includes("PL-022"), "problem-ledger registers the zero-network doctor failure mode (PL-022)");
+  assert(agents.includes("Preventability review"), "distributed AGENTS template behavior rule mentions Preventability review");
+  assert(maintainers.includes("Framework feedback 复盘"), "maintainers.md has Framework feedback 复盘 section");
+  assert(maintainers.includes("framework-feedback"), "maintainers.md mentions framework-feedback issue label");
+  assert(issueTemplate.includes("framework-feedback"), "issue template uses framework-feedback label");
+  assert(issueTemplate.includes("Preventability review"), "issue template asks for Preventability review section");
 }

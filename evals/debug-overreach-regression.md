@@ -36,4 +36,3 @@ artifact_gate: constitution-gate
 
 - `AGENTS.md`（绝对禁止 §5"bug 修复越界改无关代码"；行为规则节"修复 bug"和"需求变化"）
 - `framework/.agents/templates/lane/tasks.yaml`
-- `framework/.agents/templates/lane/verification-matrix.yaml`

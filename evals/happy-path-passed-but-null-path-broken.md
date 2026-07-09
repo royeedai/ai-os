@@ -34,4 +34,4 @@ artifact_gate: constitution-gate
 ## 若需改 framework，优先检查
 
 - `AGENTS.md`（五条核心要求 §4；行为规则节"验证阶段"覆盖六类路径）
-- `framework/.agents/templates/lane/verification-matrix.yaml`
+- `docs/artifacts.md`（verification-matrix 按需工件 schema）

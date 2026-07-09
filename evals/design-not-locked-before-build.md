@@ -34,6 +34,5 @@ artifact_gate: constitution-gate
 
 ## 若需改 framework，优先检查
 
-- `AGENTS.md`（五条核心要求 §2；绝对禁止 §1、§11；行为规则节"关键设计未锁"和"实现阶段"）
+- `AGENTS.md`（五条核心要求 §2；绝对禁止 §1、§2；行为规则节"关键设计未锁"和"实现阶段"）
 - `framework/.agents/templates/lane/DESIGN.md`
-- `framework/.agents/templates/lane/verification-matrix.yaml`

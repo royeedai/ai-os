@@ -15,7 +15,7 @@ section("shared: readFrameworkVersion");
 {
   const version = shared.readFrameworkVersion();
   assert(typeof version === "string" && /^\d+\.\d+\.\d+/.test(version), `version is semver (${version})`);
-  assert(version.startsWith("10."), `version starts with 10 (${version})`);
+  assert(version.startsWith("11."), `version starts with 11 (${version})`);
 }
 
 section("shared: readPackageJson");
@@ -23,7 +23,7 @@ section("shared: readPackageJson");
 {
   const pkg = shared.readPackageJson();
   assert(pkg && pkg.name === "create-ai-os", "package name is create-ai-os");
-  assert(pkg.version === "10.5.1", `package version is 10.5.1 (got ${pkg.version})`);
+  assert(pkg.version === "11.0.0", `package version is 11.0.0 (got ${pkg.version})`);
 }
 
 section("shared: generateInitialBaseline");
@@ -58,12 +58,12 @@ section("shared: canonical artifact lists");
   assert(shared.LANE_CORE_FILES.includes("DESIGN.md"), "lane core includes DESIGN.md");
   assert(shared.LANE_CORE_FILES.includes("STATE.md"), "lane core includes STATE.md");
   assert(shared.LANE_CORE_DIRS.includes("baseline-log"), "lane core dirs include baseline-log");
-  assert(shared.LANE_EXTENSION_FILES.includes("tasks.yaml"), "lane extension includes tasks.yaml");
-  assert(shared.LANE_EXTENSION_DIRS.includes("specs"), "lane extension dirs include specs");
+  assert(shared.LANE_EXTENSION_FILES.length === 1 && shared.LANE_EXTENSION_FILES[0] === "tasks.yaml", "lane extension files contain only tasks.yaml");
+  assert(shared.LANE_EXTENSION_DIRS.length === 0, "lane extension dirs are empty (on-demand artifacts are not installed)");
   assert(shared.SESSION_LOCAL_FILES.includes("STATE.md"), "STATE.md remains session-local");
 }
 
-section("shared: installArtifacts creates canonical v9 layout");
+section("shared: installArtifacts creates canonical v10 layout");
 
 {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-os-unit-"));
@@ -81,10 +81,10 @@ section("shared: writeMetadata and readMetadata roundtrip");
 
 {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-os-unit-"));
-  shared.writeMetadata(dir, { version: "9.0.0" });
+  shared.writeMetadata(dir, { version: "11.0.0" });
   const meta = shared.readMetadata(dir);
-  assert(meta && meta.framework_version === "9.0.0", `framework_version round-trips (${meta && meta.framework_version})`);
-  assert(meta && meta.schema_version === "9", `schema_version round-trips (${meta && meta.schema_version})`);
+  assert(meta && meta.framework_version === "11.0.0", `framework_version round-trips (${meta && meta.framework_version})`);
+  assert(meta && meta.schema_version === "10", `schema_version round-trips (${meta && meta.schema_version})`);
   assert(meta && meta.layout_mode === "shared-root-default-lane", `layout mode round-trips (${meta && meta.layout_mode})`);
   fs.rmSync(dir, { recursive: true, force: true });
 }
@@ -147,7 +147,7 @@ section("shared: appendGitignoreEntries is idempotent");
   assert(first === true, "first call returns true");
   assert(second === false, "second call returns false (idempotent)");
   const content = fs.readFileSync(path.join(dir, ".gitignore"), "utf8");
-  const count = (content.match(/AI-OS v9 managed/g) || []).length;
+  const count = (content.match(/AI-OS managed/g) || []).length;
   assert(count === 1, `gitignore header appears exactly once (count=${count})`);
   assert(content.includes(".ai-os/lanes/*/STATE.md"), "gitignore includes lane STATE ignore");
   fs.rmSync(dir, { recursive: true, force: true });

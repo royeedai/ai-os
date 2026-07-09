@@ -6,7 +6,7 @@ Scenario: you have a 2-year-old SaaS app. A new requirement comes in: "Add CSV b
 
 ```bash
 cd my-existing-app
-npx --yes github:royeedai/ai-os#v10.3.0 .
+npx --yes github:royeedai/ai-os#v11.0.0 .
 ```
 
 The agent now reads `AGENTS.md` on every session.
@@ -66,7 +66,7 @@ Agent runs:
 - Project-native static check (`pnpm build`, `pnpm typecheck`)
 - Regression: all existing tests still pass (no new failures introduced)
 - Edge cases: empty CSV, malformed CSV, duplicate SKUs, 10k+ rows, permission denied
-- Writes results to `.ai-os/lanes/default/verification-matrix.yaml` with failure-mode guards
+- Writes results to `.ai-os/lanes/default/verification-matrix.yaml` (on-demand artifact, created when the first failure-mode guard is registered)
 
 ## 6. Ship
 

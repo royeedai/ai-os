@@ -26,7 +26,7 @@ const {
   parseMissionBaselineId,
 } = require("./shared");
 
-const SEMANTIC_WARNING_CODES = ["W070", "W071", "W072", "W074", "W076", "W077", "W078"];
+const SEMANTIC_WARNING_CODES = ["W070", "W071"];
 
 function printHelp() {
   process.stdout.write(`create-ai-os doctor — Check artifact completeness
@@ -73,10 +73,6 @@ function isRegularFile(absPath) {
   } catch {
     return false;
   }
-}
-
-function readTextFile(absPath) {
-  return isRegularFile(absPath) ? fs.readFileSync(absPath, "utf8") : "";
 }
 
 function checkMetadata(meta, version) {
@@ -201,40 +197,10 @@ function checkDefaultLane(paths) {
     label: `${prefix}/baseline-log`,
     category: "core",
   }));
-  issues.push(...checkArtifact(paths.laneSpecs, {
-    required: false,
-    type: "dir",
-    label: `${prefix}/specs`,
-  }));
   issues.push(...checkArtifact(paths.laneTasks, {
     required: false,
     type: "file",
     label: `${prefix}/tasks.yaml`,
-  }));
-  issues.push(...checkArtifact(paths.laneRiskRegister, {
-    required: false,
-    type: "file",
-    label: `${prefix}/risk-register.md`,
-  }));
-  issues.push(...checkArtifact(paths.laneReleasePlan, {
-    required: false,
-    type: "file",
-    label: `${prefix}/release-plan.md`,
-  }));
-  issues.push(...checkArtifact(paths.laneVerificationMatrix, {
-    required: false,
-    type: "file",
-    label: `${prefix}/verification-matrix.yaml`,
-  }));
-  issues.push(...checkArtifact(paths.laneDesignPack, {
-    required: false,
-    type: "dir",
-    label: `${prefix}/design-pack`,
-  }));
-  issues.push(...checkArtifact(paths.laneEvals, {
-    required: false,
-    type: "dir",
-    label: `${prefix}/evals`,
   }));
   return issues;
 }
@@ -378,13 +344,6 @@ function collectTopLevelTasks(tasksContent) {
   return tasks;
 }
 
-function hasMeaningfulTaskField(task, field) {
-  const values = task.fields[field] || [];
-  return values.some((value) => {
-    return hasMeaningfulTaskValue(value);
-  });
-}
-
 function hasMeaningfulTaskValue(value) {
   const normalized = normalizeTaskScalar(value).replace(/^-\s*/, "").trim();
   if (!normalized || normalized === "[]" || normalized === "{}") return false;
@@ -392,113 +351,9 @@ function hasMeaningfulTaskValue(value) {
   return !normalized.includes("[") && !normalized.includes("]");
 }
 
-function taskStatus(task) {
-  const values = task.fields.status || [];
-  return normalizeTaskScalar(values[0] || "");
-}
-
-function hasMeaningfulHandoff(task) {
-  return hasMeaningfulTaskField(task, "handoff_to");
-}
-
-function collectNestedTaskFieldValues(task, field, nestedKeys) {
-  const wanted = new Set(nestedKeys);
+function hasMeaningfulTaskField(task, field) {
   const values = task.fields[field] || [];
-  const found = new Map(nestedKeys.map((key) => [key, []]));
-  let currentKey = "";
-  for (const value of values) {
-    const keyMatch = value.match(/^([a-zA-Z_][a-zA-Z0-9_]*):\s*(.*)$/);
-    if (keyMatch) {
-      if (wanted.has(keyMatch[1])) {
-        currentKey = keyMatch[1];
-      } else if (currentKey && keyMatch[2].trim()) {
-        found.get(currentKey).push(`${keyMatch[1]}: ${keyMatch[2].trim()}`);
-        continue;
-      } else {
-        currentKey = "";
-      }
-      if (currentKey && keyMatch[2].trim()) {
-        found.get(currentKey).push(keyMatch[2].trim());
-      }
-      continue;
-    }
-    if (currentKey) found.get(currentKey).push(value);
-  }
-  if (Object.prototype.hasOwnProperty.call(task.fields, field)) {
-    for (const key of nestedKeys) {
-      for (const value of task.fields[key] || []) {
-        found.get(key).push(value);
-      }
-    }
-  }
-  return found;
-}
-
-function hasFactStateReview(task) {
-  return Object.prototype.hasOwnProperty.call(task.fields, "fact_state_review");
-}
-
-function hasObservedOrConfirmedFactState(task) {
-  const values = collectNestedTaskFieldValues(task, "fact_state_review", ["observed", "confirmed"]);
-  return ["observed", "confirmed"].some((key) => values.get(key).some(hasMeaningfulTaskValue));
-}
-
-function unresolvedFactStateKeys(task) {
-  const values = collectNestedTaskFieldValues(task, "fact_state_review", ["inferred", "unknown"]);
-  return ["inferred", "unknown"].filter((key) => values.get(key).some(hasMeaningfulTaskValue));
-}
-
-function agentRunReviewValues(task, nestedKeys) {
-  return collectNestedTaskFieldValues(task, "agent_run_review", nestedKeys);
-}
-
-function hasMeaningfulAgentRunReviewField(task, field) {
-  if (agentRunReviewValues(task, [field]).get(field).some(hasMeaningfulTaskValue)) return true;
-  if (field === "run_refs") {
-    return ["branch", "pr", "pull_request", "issue", "external_task_url", "task_url", "agent_session_id", "session_id"]
-      .some((key) => hasMeaningfulTaskField(task, key));
-  }
-  if (field === "write_scope") {
-    return ["owned", "out_of_scope", "owned_files", "owned_modules"]
-      .some((key) => hasMeaningfulTaskField(task, key));
-  }
-  if (field === "return_packet") {
-    return ["summary", "changed_files", "tests", "unresolved_risks", "follow_up_needed"]
-      .some((key) => hasMeaningfulTaskField(task, key));
-  }
-  return false;
-}
-
-function taskFieldValues(task, field) {
-  return (task.fields[field] || []).map(normalizeTaskScalar).filter(Boolean);
-}
-
-function isLongHorizonSurfaceValue(value) {
-  const normalized = normalizeTaskScalar(value).toLowerCase();
-  if (!hasMeaningfulTaskValue(value)) return false;
-  if (normalized === "local_foreground" || normalized === "human") return false;
-  return /\b(cloud_background|external_pr_agent|background|cloud|external|parallel|delegated|subagent)\b/.test(normalized);
-}
-
-function taskDeclaresLongHorizonExecution(task) {
-  const executionSurface = agentRunReviewValues(task, ["execution_surface"]).get("execution_surface");
-  if (executionSurface.some(isLongHorizonSurfaceValue)) return true;
-  return taskFieldValues(task, "handoff_to").some(isLongHorizonSurfaceValue);
-}
-
-function hasExpectedReturn(task) {
-  return hasMeaningfulTaskField(task, "expected_return")
-    || hasMeaningfulAgentRunReviewField(task, "expected_return");
-}
-
-function hasAcceptedHumanReview(task) {
-  const values = agentRunReviewValues(task, ["human_review_status"]).get("human_review_status");
-  return values.some((value) => /^(reviewed|accepted)$/i.test(normalizeTaskScalar(value)));
-}
-
-function hasUnresolvedAgentRunRisk(task) {
-  const values = agentRunReviewValues(task, ["unresolved_risks"]).get("unresolved_risks");
-  return values.some(hasMeaningfulTaskValue);
+  return values.some((value) => hasMeaningfulTaskValue(value));
 }
 
 // W071: tasks.yaml 中每个 task（仅在 tasks: 顶级块下）必须有 owner 字段
@@ -515,186 +370,6 @@ function checkTaskOwners(paths) {
   if (tasksWithoutOwner.length > 0) {
     issues.push(issue("warning", "W071",
       `tasks.yaml has ${tasksWithoutOwner.length} task(s) without an owner field: ${tasksWithoutOwner.join(", ")}`));
-  }
-  return issues;
-}
-
-// W076: tasks should preserve handoff context and close evidence loops.
-function checkTaskEvidenceLoops(paths) {
-  const issues = [];
-  if (!isRegularFile(paths.laneTasks)) return issues;
-  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
-  const missing = [];
-  for (const task of collectTopLevelTasks(tasksContent)) {
-    if (!hasMeaningfulTaskField(task, "acceptance_refs")) {
-      missing.push(`${task.id}: acceptance_refs`);
-    }
-    if (!hasMeaningfulTaskField(task, "evidence_required")) {
-      missing.push(`${task.id}: evidence_required`);
-    }
-    if (hasMeaningfulHandoff(task)) {
-      if (!hasMeaningfulTaskField(task, "context_refs")) {
-        missing.push(`${task.id}: context_refs`);
-      }
-      if (!hasMeaningfulTaskField(task, "expected_return")) {
-        missing.push(`${task.id}: expected_return`);
-      }
-    }
-    if (/^(done|verified|shipped)$/i.test(taskStatus(task)) && !hasMeaningfulTaskField(task, "evidence_produced")) {
-      missing.push(`${task.id}: evidence_produced`);
-    }
-  }
-  if (missing.length > 0) {
-    issues.push(issue("warning", "W076",
-      `tasks.yaml has incomplete agent handoff / evidence loop field(s): ${missing.join(", ")}.`));
-  }
-  return issues;
-}
-
-// W077: tasks in execution / completion need explicit fact-state review.
-function checkTaskHallucinationGuards(paths) {
-  const issues = [];
-  if (!isRegularFile(paths.laneTasks)) return issues;
-  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
-  const missing = [];
-  const unresolved = [];
-  for (const task of collectTopLevelTasks(tasksContent)) {
-    const status = taskStatus(task);
-    if (/^(in_progress|done|verified|shipped)$/i.test(status)
-      && (!hasFactStateReview(task) || !hasObservedOrConfirmedFactState(task))) {
-      missing.push(`${task.id}: fact_state_review observed/confirmed`);
-    }
-    if (/^(done|verified|shipped)$/i.test(status)) {
-      for (const key of unresolvedFactStateKeys(task)) {
-        unresolved.push(`${task.id}: fact_state_review ${key}`);
-      }
-    }
-  }
-  const details = [];
-  if (missing.length > 0) details.push(`missing source state: ${missing.join(", ")}`);
-  if (unresolved.length > 0) details.push(`unresolved inference/unknown at close: ${unresolved.join(", ")}`);
-  if (details.length > 0) {
-    issues.push(issue("warning", "W077",
-      `tasks.yaml has incomplete fact_state_review(s): ${details.join("; ")}.`));
-  }
-  return issues;
-}
-
-// W078: long-horizon / background agent work needs a reviewable return packet.
-function checkLongHorizonAgentRunReviews(paths) {
-  const issues = [];
-  if (!isRegularFile(paths.laneTasks)) return issues;
-  const tasksContent = fs.readFileSync(paths.laneTasks, "utf8");
-  const missing = [];
-  const unresolved = [];
-  for (const task of collectTopLevelTasks(tasksContent)) {
-    if (!taskDeclaresLongHorizonExecution(task)) continue;
-    if (!hasMeaningfulAgentRunReviewField(task, "run_refs")) {
-      missing.push(`${task.id}: agent_run_review.run_refs`);
-    }
-    if (!hasMeaningfulAgentRunReviewField(task, "write_scope")) {
-      missing.push(`${task.id}: agent_run_review.write_scope`);
-    }
-    if (!hasExpectedReturn(task)) {
-      missing.push(`${task.id}: expected_return`);
-    }
-    if (/^(done|verified|shipped)$/i.test(taskStatus(task))) {
-      if (!hasMeaningfulTaskField(task, "evidence_produced")) {
-        missing.push(`${task.id}: evidence_produced`);
-      }
-      if (!hasMeaningfulAgentRunReviewField(task, "return_packet")) {
-        missing.push(`${task.id}: agent_run_review.return_packet`);
-      }
-      if (!hasAcceptedHumanReview(task)) {
-        missing.push(`${task.id}: agent_run_review.human_review_status`);
-      }
-      if (hasUnresolvedAgentRunRisk(task)) {
-        unresolved.push(`${task.id}: agent_run_review.return_packet.unresolved_risks`);
-      }
-    }
-  }
-  const details = [];
-  if (missing.length > 0) details.push(`missing long-horizon review field(s): ${missing.join(", ")}`);
-  if (unresolved.length > 0) details.push(`unresolved risk at close: ${unresolved.join(", ")}`);
-  if (details.length > 0) {
-    issues.push(issue("warning", "W078",
-      `tasks.yaml has incomplete long-horizon agent run review(s): ${details.join("; ")}.`));
-  }
-  return issues;
-}
-
-// W072: lane DESIGN.md 已填的 AC 必须至少有一项被 verification-matrix.yaml 引用
-function checkAcceptanceCoverage(paths) {
-  const issues = [];
-  if (!isRegularFile(paths.laneDesign) || !isRegularFile(paths.laneVerificationMatrix)) return issues;
-  const designContent = fs.readFileSync(paths.laneDesign, "utf8");
-  const matrixContent = fs.readFileSync(paths.laneVerificationMatrix, "utf8");
-  const acIds = [];
-  for (const line of designContent.split(/\r?\n/)) {
-    if (!line.startsWith("|")) continue;
-    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
-    if (cells.length < 3) continue;
-    if (!/^AC-\d+/.test(cells[0])) continue;
-    const desc = cells[2] || "";
-    if (!desc || desc.includes("[")) continue; // skip placeholder / template rows
-    acIds.push(cells[0]);
-  }
-  if (acIds.length === 0) return issues;
-  const missing = acIds.filter((id) => !matrixContent.includes(id));
-  if (missing.length > 0) {
-    issues.push(issue("warning", "W072",
-      `verification-matrix.yaml does not reference ${missing.length} acceptance criteria from DESIGN.md: ${missing.join(", ")}.`));
-  }
-  return issues;
-}
-
-function hasHighRiskTask(tasksContent) {
-  return /^(\s+)approval_required:\s*(true|"true"|'true')\s*$/m.test(tasksContent);
-}
-
-function hasHighRiskLane(laneTomlContent) {
-  return /^risk_tier\s*=\s*"high"\s*$/m.test(laneTomlContent) ||
-    /^quality_tier\s*=\s*"high-risk"\s*$/m.test(laneTomlContent);
-}
-
-function hasFilledRiskRegister(content) {
-  return /\|\s*R-[^|]+\|/.test(content) && !content.includes("[风险描述]") && !content.includes("[影响范围]");
-}
-
-function hasFilledReleasePlan(content) {
-  return !content.includes("[步骤]") && !content.includes("[条件]") && /回滚条件/.test(content);
-}
-
-function hasRealVerificationGuard(content) {
-  return content.split(/\r?\n/).some((line) => {
-    const match = line.match(/^\s+guard:\s*(.*)$/);
-    if (!match) return false;
-    const value = match[1].trim().replace(/^["']|["']$/g, "");
-    return value.length > 0 && !value.includes("[") && !value.includes("]");
-  });
-}
-
-// W074: high-risk lanes/tasks require populated risk, release, and guard artifacts.
-function checkHighRiskArtifacts(paths) {
-  const issues = [];
-  const laneToml = readTextFile(paths.laneToml);
-  const tasks = readTextFile(paths.laneTasks);
-  const highRisk = hasHighRiskLane(laneToml) || hasHighRiskTask(tasks);
-  if (!highRisk) return issues;
-
-  const missing = [];
-  if (!hasFilledRiskRegister(readTextFile(paths.laneRiskRegister))) {
-    missing.push("risk-register.md");
-  }
-  if (!hasFilledReleasePlan(readTextFile(paths.laneReleasePlan))) {
-    missing.push("release-plan.md");
-  }
-  if (!hasRealVerificationGuard(readTextFile(paths.laneVerificationMatrix))) {
-    missing.push("verification-matrix.yaml guard");
-  }
-  if (missing.length > 0) {
-    issues.push(issue("warning", "W074",
-      `high-risk lane/task is missing populated artifact(s): ${missing.join(", ")}.`));
   }
   return issues;
 }
@@ -756,11 +431,6 @@ function main() {
   issues.push(...checkLanes(paths));
   issues.push(...checkBaselineConsistency(paths));
   issues.push(...checkTaskOwners(paths));
-  issues.push(...checkTaskEvidenceLoops(paths));
-  issues.push(...checkTaskHallucinationGuards(paths));
-  issues.push(...checkLongHorizonAgentRunReviews(paths));
-  issues.push(...checkAcceptanceCoverage(paths));
-  issues.push(...checkHighRiskArtifacts(paths));
   issues.push(...checkGitignore(targetDir));
 
   const errors = issues.filter((item) => item.level === "error");

@@ -2,7 +2,7 @@
 
 AI-OS provides **2 primary product operations**: install and doctor.
 
-Install has two equivalent entrypoints: the default positional form (`create-ai-os [target-dir]`) and the explicit alias (`create-ai-os install [target-dir]`). The alias does not add a third product operation.
+Install has two equivalent entrypoints: the default positional form (`create-ai-os [target-dir]`) and the explicit alias (`create-ai-os install [target-dir]`).
 
 ## Quick reference
 
@@ -16,7 +16,7 @@ create-ai-os -v | --version
 
 ## Install: `create-ai-os [target-dir]` / `create-ai-os install [target-dir]`
 
-Installs the v9 canonical layout:
+Installs the v10 canonical layout:
 
 - `AGENTS.md`
 - `.ai-os/MISSION.md`
@@ -24,9 +24,11 @@ Installs the v9 canonical layout:
 - `.ai-os/framework.toml`
 - `.ai-os/managed-files.tsv`
 - `.ai-os/bin/` local doctor entry (`ai-os-doctor.js` + `shared.js` + `VERSION`, committed)
-- `.ai-os/lanes/default/` full starter set
+- `.ai-os/lanes/default/` core lane set (`lane.toml`, `MISSION.md`, `DESIGN.md`, `STATE.md`, `baseline-log/`, `tasks.yaml`)
 
-Pin a release for reproducible, cache-friendly installs: `npx --yes github:royeedai/ai-os#v10.5.1 .`. The install is the only step that needs the network.
+Extension artifacts (`risk-register.md`, `release-plan.md`, `verification-matrix.yaml`, `specs/`, `design-pack/`, `evals/`) are **on-demand**: created by the agent when their trigger condition is hit (see `docs/artifacts.md`), never installed by default.
+
+Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v11.0.0 .`. The install is the only step that needs the network.
 
 ### Options
 
@@ -37,7 +39,7 @@ Pin a release for reproducible, cache-friendly installs: `npx --yes github:royee
 
 ### Removed subcommands
 
-Subcommands dropped in earlier majors fail fast instead of being treated as a target directory: `create-ai-os upgrade` exits with an error pointing to `create-ai-os install . --force` (the `upgrade` command was removed in v10). A target path that exists but is a regular file also fails cleanly instead of crashing.
+`create-ai-os upgrade` exits with an error pointing to `create-ai-os install . --force` (removed in v10). A target path that exists but is a regular file also fails cleanly instead of crashing.
 
 ## `create-ai-os doctor [target-dir]`
 
@@ -45,8 +47,7 @@ Checks:
 
 - `AGENTS.md` exists
 - root shared artifacts exist
-- `.ai-os/lanes/default/` exists
-- lane core artifacts exist
+- `.ai-os/lanes/default/` exists with core lane artifacts
 - baseline log naming is valid
 - `.gitignore` contains lane `STATE.md` and generated file ignores
 - layout mode is canonical
@@ -59,29 +60,20 @@ Checks:
 node .ai-os/bin/ai-os-doctor.js . --strict
 ```
 
-Because `.ai-os/bin/` is committed (unlike the gitignored `.ai-os/framework.toml`), teammates and CI that clone the repo run doctor offline without re-installing — the committed `.ai-os/bin/VERSION` supplies the framework version. Re-run `install` (or `install . --force`) to refresh the vendored entry after upgrading the framework.
-
-The legacy remote form `npx --yes github:royeedai/ai-os#v10.5.1 doctor .` still works for a one-time audit of a project you have not installed into; it is not for daily use.
+Because `.ai-os/bin/` is committed (unlike the gitignored `.ai-os/framework.toml`), teammates and CI that clone the repo run doctor offline without re-installing — the committed `.ai-os/bin/VERSION` supplies the framework version. Re-run `install . --force` to refresh the vendored entry after upgrading the framework.
 
 ### Structural & metadata codes
 
-Beyond the semantic warnings below, doctor also emits structural / metadata codes for layout health: `E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (artifact path has the wrong type — expected file is a directory, or expected directory is a file), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing managed-file ignores), and `I020` (session-local `STATE.md` absent — informational). These run on every invocation; the authoritative list lives in `bin/ai-os-doctor.js`.
+`E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (artifact path has the wrong type), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing managed-file ignores), `W050` (lane missing `lane.toml`), and `I020` (session-local `STATE.md` absent — informational). The authoritative list lives in `bin/ai-os-doctor.js`.
 
-### Semantic consistency warnings (v9.1+)
+### Semantic consistency warnings
 
-In addition to layout health, doctor emits warnings when artifacts drift apart in meaning. These are warnings (non-blocking) by default; `--strict` upgrades them to errors.
+Warnings (non-blocking) by default; `--strict` upgrades them to errors.
 
 - **W070** — lane `MISSION.md` references a `当前基线 ID` that has no matching file in `baseline-log/`
 - **W071** — `tasks.yaml` has tasks under the top-level `tasks:` block without an `owner` field
-- **W072** — each non-placeholder AC in `DESIGN.md` must be referenced in `verification-matrix.yaml`
-- **W074** — high-risk lanes or tasks must have populated `risk-register.md`, `release-plan.md`, and a real verification guard
-- **W076** — task handoff / evidence loops should include `acceptance_refs`, `evidence_required`, handoff `context_refs` / `expected_return`, and produced evidence before `done` / `verified` / `shipped`
-- **W077** — tasks in execution / completion should include `fact_state_review`, and closed tasks must not retain unresolved `inferred` / `unknown` entries
-- **W078** — long-horizon / background / external / parallel agent work should include `agent_run_review` run refs, write scope, expected return, produced evidence, return packet, human review, and no unresolved risks before closure
 
-These are skipped on a clean default install (template placeholders are detected and ignored).
-
-CR delta lifecycle fields, URL evidence confidence, and Framework feedback `## Preventability review` are carried by artifact templates and `AGENTS.md` behavior rules — not doctor soft checks (removed in v9.8 as redundant with stronger frontier models). Maintainer aggregation: `docs/maintainers.md` (Framework feedback 复盘).
+On-demand artifacts (risk-register, verification-matrix, etc.) are not structurally checked by doctor; their correct use is carried by `AGENTS.md` behavior rules and artifact schemas.
 
 ### Options
 
@@ -95,4 +87,4 @@ CR delta lifecycle fields, URL evidence confidence, and Framework feedback `## P
 - `layout_version`
 - `layout_mode`
 - `issues[]`
-- `semantic_warnings[]` — convenience filter of `issues[]` containing W070-W078 semantic warning codes
+- `semantic_warnings[]` — convenience filter of `issues[]` containing W070/W071 semantic warning codes

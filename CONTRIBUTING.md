@@ -39,7 +39,7 @@ npm test
 3. 它更适合进入 `framework/`、CLI、示例 / 文档，还是不纳入？
 4. 它是在减少错误交付，还是只是在叠加新概念？
 
-详细模板见 [docs/change-evaluation-template.md](docs/change-evaluation-template.md)。
+默认答案是"不纳入"（见 [PROJECT_PURPOSE.md](PROJECT_PURPOSE.md) 的新需求筛选法）。
 
 ## 编码规范
 

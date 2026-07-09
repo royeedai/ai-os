@@ -33,7 +33,6 @@ artifact_gate: constitution-gate
 
 ## 若需改 framework，优先检查
 
-- `AGENTS.md`（绝对禁止 §7"共享层改动没有副作用影响清单就进入实现"）
+- `AGENTS.md`（绝对禁止 §6"共享层改动没有副作用影响清单就进入实现"）
 - `AGENTS.md`（行为规则节"关键设计未锁"、"任务拆解"、"实现阶段"、"验证阶段"）
 - `framework/.agents/templates/lane/DESIGN.md`
-- `framework/.agents/templates/lane/verification-matrix.yaml`

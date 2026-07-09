@@ -5,7 +5,7 @@ Scenario: you have an idea ("I want a photo-sharing app for nature photographers
 ## 0. Install
 
 ```bash
-npx --yes github:royeedai/ai-os#v10.3.0 my-nature-photos
+npx --yes github:royeedai/ai-os#v11.0.0 my-nature-photos
 cd my-nature-photos
 ```
 
@@ -51,7 +51,7 @@ Agent rule: key design must be confirmed before broad implementation.
 ## 3. Planning
 
 1. Agent writes `.ai-os/lanes/default/tasks.yaml` with waves W1 (foundation) → W2 (core features) → W3 (verification)
-2. Each task has `owner`, `acceptance_refs`, `evidence_required`, `fact_state_review`
+2. Each task has `owner`, `acceptance_refs`, `evidence_required`
 3. Agent asks for task/acceptance confirmation
 
 ## 4. Build + verify (evidence-gated)
@@ -63,7 +63,7 @@ Agent rule: key design must be confirmed before broad implementation.
 
 ## 5. Ship
 
-Agent produces `.ai-os/lanes/default/release-plan.md`:
+Agent creates `.ai-os/lanes/default/release-plan.md` (on-demand artifact, created at ship time):
 
 - Implemented: REQ-001...REQ-007
 - NOT included: pro workflows (explicitly out-of-scope)

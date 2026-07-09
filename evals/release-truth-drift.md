@@ -36,7 +36,6 @@ artifact_gate: release-plan
 
 ## 若需改 framework，优先检查
 
-- `docs/codex-aios-field-feedback.md`
-- `framework/.agents/templates/lane/verification-matrix.yaml`
+- `AGENTS.md`（行为规则：交付收口；高风险动作）
 - `framework/.agents/templates/lane/tasks.yaml`
-- `docs/problem-ledger.md`（PL-025）
+- `docs/artifacts.md`（release-plan 按需工件 schema）

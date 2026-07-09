@@ -24,7 +24,7 @@ const LANES_ROOT = "lanes";
 const DEFAULT_LANE_ID = "default";
 const METADATA_FILE = "framework.toml";
 const MANAGED_FILES_MANIFEST = "managed-files.tsv";
-const LAYOUT_VERSION = "9";
+const LAYOUT_VERSION = "10";
 const LAYOUT_MODE_DEFAULT = "shared-root-default-lane";
 
 // Initial baseline placeholders
@@ -33,13 +33,16 @@ const TEMPLATE_TOKEN_INITIAL_BASELINE_FILE = "{{INITIAL_BASELINE_FILE}}";
 const TEMPLATE_TOKEN_INITIAL_BASELINE_DATE = "{{INITIAL_BASELINE_DATE}}";
 const INITIAL_BASELINE_SLUG = "initial-baseline";
 
-// Shared root artifacts (v9)
+// Shared root artifacts (v10)
 const SHARED_ROOT_FILES = [
   "MISSION.md",
   "memory.md",
 ];
 
-// Lane artifacts (v9)
+// Lane artifacts (v10). Extension artifacts beyond tasks.yaml (risk-register,
+// release-plan, verification-matrix, specs/, design-pack/, evals/) are
+// on-demand: created by the agent when their trigger condition is hit, never
+// installed by default. Their schemas live in docs/artifacts.md.
 const LANE_CORE_FILES = [
   "MISSION.md",
   "DESIGN.md",
@@ -50,15 +53,8 @@ const LANE_CORE_DIRS = [
 ];
 const LANE_EXTENSION_FILES = [
   "tasks.yaml",
-  "risk-register.md",
-  "release-plan.md",
-  "verification-matrix.yaml",
 ];
-const LANE_EXTENSION_DIRS = [
-  "specs",
-  "design-pack",
-  "evals",
-];
+const LANE_EXTENSION_DIRS = [];
 const ALL_LANE_FILES = [...LANE_CORE_FILES, ...LANE_EXTENSION_FILES];
 const ALL_LANE_DIRS = [...LANE_CORE_DIRS, ...LANE_EXTENSION_DIRS];
 
@@ -372,7 +368,7 @@ function installLocalDoctor(targetDir) {
 // .gitignore and .gitattributes (team collaboration)
 // ---------------------------------------------------------------------------
 
-const GITIGNORE_SECTION_HEADER = "# AI-OS v9 managed (session-local and generated files)";
+const GITIGNORE_SECTION_HEADER = "# AI-OS managed (session-local and generated files)";
 const GITIGNORE_ENTRIES = [
   GITIGNORE_SECTION_HEADER,
   `${PROJECT_STATE_ROOT}/${LANES_ROOT}/*/STATE.md`,
@@ -380,7 +376,7 @@ const GITIGNORE_ENTRIES = [
   `${PROJECT_STATE_ROOT}/${MANAGED_FILES_MANIFEST}`,
 ];
 
-const GITATTRIBUTES_SECTION_HEADER = "# AI-OS v9 managed (append-only knowledge)";
+const GITATTRIBUTES_SECTION_HEADER = "# AI-OS managed (append-only knowledge)";
 const GITATTRIBUTES_ENTRIES = [
   GITATTRIBUTES_SECTION_HEADER,
   `${PROJECT_STATE_ROOT}/memory.md merge=union`,
@@ -449,13 +445,7 @@ function getArtifactPaths(targetDir) {
     laneDesign: path.join(defaultLane, "DESIGN.md"),
     laneState: path.join(defaultLane, "STATE.md"),
     laneBaselineLog: path.join(defaultLane, "baseline-log"),
-    laneSpecs: path.join(defaultLane, "specs"),
     laneTasks: path.join(defaultLane, "tasks.yaml"),
-    laneRiskRegister: path.join(defaultLane, "risk-register.md"),
-    laneReleasePlan: path.join(defaultLane, "release-plan.md"),
-    laneVerificationMatrix: path.join(defaultLane, "verification-matrix.yaml"),
-    laneDesignPack: path.join(defaultLane, "design-pack"),
-    laneEvals: path.join(defaultLane, "evals"),
     lanes: path.join(aiOsDir, LANES_ROOT),
     metadata: path.join(aiOsDir, METADATA_FILE),
     managedFiles: path.join(aiOsDir, MANAGED_FILES_MANIFEST),

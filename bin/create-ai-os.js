@@ -57,13 +57,12 @@ Installed artifacts (always, no profiles):
   .ai-os/lanes/default/DESIGN.md              Key design + acceptance
   .ai-os/lanes/default/STATE.md               Session recovery entry (gitignored)
   .ai-os/lanes/default/baseline-log/          Change and baseline records
-  .ai-os/lanes/default/specs/                 Local contracts
-  .ai-os/lanes/default/tasks.yaml             Tasks with owners + handoff evidence
-  .ai-os/lanes/default/risk-register.md       High-risk register
-  .ai-os/lanes/default/release-plan.md        Release plan
-  .ai-os/lanes/default/verification-matrix.yaml Regression assertions
-  .ai-os/lanes/default/design-pack/           Reverse-spec parity artifacts
-  .ai-os/lanes/default/evals/                 Project-level failure-mode samples
+  .ai-os/lanes/default/tasks.yaml             Tasks with owners + evidence
+
+On-demand artifacts (created by the agent when triggered, see docs/artifacts.md):
+  risk-register.md + release-plan.md          High-risk work
+  verification-matrix.yaml                    Stable failure modes / regression guards
+  specs/  design-pack/  evals/                Large projects, reverse-spec, promoted evals
 
 Docs: https://github.com/royeedai/ai-os
 `);

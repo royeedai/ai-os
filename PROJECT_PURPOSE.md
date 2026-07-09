@@ -70,7 +70,7 @@ AI 必须能跨会话恢复项目目标、当前阶段、已确认设计、待�
 
 AI-OS 的产品不是一堆 CLI 命令，是**一份可跨 agent 通用的 AI 交付宪法 + 最小工件集 + 参考实现**。
 
-- 规范：`AGENTS.md`（≤150 行）+ 12 组工件 schema（`docs/artifacts.md`）
+- 规范：`AGENTS.md`（≤150 行）+ 核心 / 按需工件 schema（`docs/artifacts.md`）
 - 参考实现：零依赖 Node.js CLI，2 个命令（`install` / `doctor`）
 - 生态：可被 Kiro / spec-kit / Cursor / Claude Code 集成
 
@@ -86,7 +86,7 @@ AI-OS 的产品不是一堆 CLI 命令，是**一份可跨 agent 通用的 AI �
 允许的结论只有 4 类：
 
 - 进入 AGENTS.md 宪法
-- 进入工件 schema（12 组之一）
+- 进入工件 schema（核心或按需工件之一）
 - 进入 CLI 或 `docs/`
 - 明确不纳入
 
@@ -98,8 +98,8 @@ AI-OS 的产品不是一堆 CLI 命令，是**一份可跨 agent 通用的 AI �
 
 - 用 shared-root + `lanes/default/` 固定 canonical layout
 - 让 install / doctor / docs / examples / tests 只表达一套默认真相
+- 默认安装只保留核心工件；扩展能力（high-risk / reverse-spec / 回归 guard）通过按需工件承载
 - 保持内核表面积最小，同时提升多人协作和跨 session 恢复的一致性
 - 明确根层共享工件与当前 lane 工件的职责边界
-- 保持 12 组工件的完整能力，不牺牲 brownfield / high-risk / reverse-spec 的可靠性
 
-更多见 `docs/getting-started.md` 和 `docs/constitution-spec.md`。
+更多见 `docs/getting-started.md` 和 `docs/artifacts.md`。

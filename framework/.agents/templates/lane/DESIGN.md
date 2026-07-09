@@ -42,6 +42,21 @@
 - **同仓正常实现对照**：
 - **副作用清单**：
 
+### 6.1 隐式机制 / 高风险状态流审计（命中时必填）
+
+- **触发入口**：[middleware / interceptor / guard / hook / job / event / codegen / global state / platform profile / other]
+- **生效范围**：
+- **执行顺序**：
+- **失败时表现**：
+- **高风险域**：[权限 / 身份 / 资金 / 订单 / 用户资产 / 外部系统 / 生产配置 / none]
+- **正常路径**：
+- **重复请求路径**：
+- **权限拒绝路径**：
+- **部分失败路径**：
+- **回滚或补偿路径**：
+- **并发或重复执行后果**：
+- **最小验证证据**：
+
 ## 7. UI Source Routing（前端 UI 项目必填）
 
 - **ui_source**：design-led / component-first / existing-style / hybrid

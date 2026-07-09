@@ -3,7 +3,7 @@
 ## 1. Install
 
 ```bash
-npx --yes github:royeedai/ai-os#v10.5.1 .
+npx --yes github:royeedai/ai-os#v11.0.0 .
 ```
 
 Pinning a release tag keeps installs reproducible and cache-friendly. This is the only step that needs the network.
@@ -12,7 +12,9 @@ This creates:
 
 - `AGENTS.md`
 - shared root `.ai-os/MISSION.md` and `.ai-os/memory.md`
-- `.ai-os/lanes/default/` with the current delivery artifacts
+- `.ai-os/lanes/default/` with the core delivery artifacts (`lane.toml`, `MISSION.md`, `DESIGN.md`, `STATE.md`, `baseline-log/`, `tasks.yaml`)
+
+Extension artifacts (risk-register, release-plan, verification-matrix, specs, design-pack, evals) are created on demand by the agent — see `docs/artifacts.md`.
 
 ## 2. First read order
 
@@ -46,4 +48,4 @@ Install vendors the doctor into `.ai-os/bin/` (committed), so the daily check ru
 node .ai-os/bin/ai-os-doctor.js .
 ```
 
-To audit a repo you have not installed into yet, a one-time remote run still works: `npx --yes github:royeedai/ai-os#v10.5.1 doctor .`
+To audit a repo you have not installed into yet, a one-time remote run still works: `npx --yes github:royeedai/ai-os#v11.0.0 doctor .`

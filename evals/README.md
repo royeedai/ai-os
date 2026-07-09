@@ -17,9 +17,7 @@ artifact_gate: MISSION                  # artifact gate that should catch it
 ---
 ```
 
-`trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` 稳定失败模式 rule: same root cause hit ≥3 times → promote here).
-
-The taxonomy fields are optional for external adopters but used by this repo's own evals. They make the sample set searchable by risk source, failure pattern, harm, and the artifact gate that should intercept the issue.
+`trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in a downstream project's `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` 稳定失败模式 rule: same root cause hit ≥3 times → promote here).
 
 After the frontmatter, every eval answers 5 questions:
 
@@ -29,23 +27,7 @@ After the frontmatter, every eval answers 5 questions:
 4. **Minimum evidence**: which artifacts should contain proof
 5. **If AI-OS needs changes**: where in `AGENTS.md` to strengthen the rule
 
-### Optional: `trajectory_signature` (added v9.5.2)
-
-Some failure modes are not triggered by a specific input or output shape but by an **execution trajectory** — the order of tool calls, file reads, or agent decisions that lead to the failure. Trajectory-aware evaluation frameworks emerging in 2026 (ATBench, Claw-Eval, AgentRx, HINTBench) consume exactly this signal. For these cases an eval **may** add an optional `trajectory_signature` field describing the minimum trajectory shape that reproduces the failure:
-
-```yaml
----
-trigger_source: manual
-first_baseline_id: ""
-risk_source: delivery-governance
-failure_mode: example
-harm: wrong-work
-artifact_gate: STATE
-trajectory_signature: "session-resume → skip-STATE.md → read-MISSION.md → write-code"
----
-```
-
-The field is **optional** and free-form (no enum). Existing evals continue to pass without it. AI-OS itself does not run trajectories — it only catalogs the shape so that external trajectory-aware harnesses can ingest the same eval set without forking it. The mandatory frontmatter remains `trigger_source / first_baseline_id / risk_source / failure_mode / harm / artifact_gate`; if you don't have a clear trajectory pattern, omit `trajectory_signature` entirely.
+An optional free-form `trajectory_signature` field may describe the execution-trajectory shape that reproduces the failure (e.g. `"session-resume → skip-STATE.md → write-code"`); omit it when there is no clear trajectory pattern.
 
 ## Current baseline samples
 
@@ -55,61 +37,27 @@ Grouped by the five core requirements they enforce.
 
 - `missing-user-confirmation.md` — AI proceeds without user confirmation
 - `change-request-before-code.md` — AI changes code before updating baseline
-- `configurable-meant-operable-gap.md` — "Configurable" requirements without operational closure
+- `inferred-treated-as-fact-into-execution.md` — Inferred / unknown treated as confirmed and carried into execution or closure
 
 ### R2: Key design and logic locked first
 
 - `design-not-locked-before-build.md` — Implementation before design confirmed
-- `ui-looks-right-but-logic-wrong.md` — UI renders but business logic broken
-- `logic-right-but-product-shape-wrong.md` — Logic correct but IA / product shape off
-- `interaction-mode-misclassified.md` — Streaming / long-running UX built as sync
-- `brownfield-infrastructure-audit-missed.md` — Shared infrastructure not audited
 - `shared-layer-side-effect-audit-missed.md` — No side-effect list for shared-layer changes
-- `parity-before-reuse-skipped.md` — Abstraction reused without parity check
-- `implicit-cross-layer-contract-undocumented.md` — Cross-layer contract not registered in `memory.md`
-- `weak-type-hole-erodes-contract.md` — Map/Any/untyped catch erodes contract
+- `implicit-mechanism-change-gate-missed.md` — Implicit mechanism changed without entry / scope / order / failure audit
 
 ### R3: Adaptive governance
 
-- `sensitive-flow-not-escalated.md` — High-risk signal not escalated
 - `debug-overreach-regression.md` — Bug fix scopes creep into unrelated code
-- `read-only-analysis-before-edit.md` — Agent starts editing before read-only analysis
-- `cross-module-same-defect-not-escalated.md` — Same bug shape across modules, fixed singly
 
 ### R4: Evidence-based completion
 
-- `fallback-evidence-used-as-delivery.md` — Fallback / stub treated as delivered
 - `feature-visible-but-unusable.md` — UI entry exists but not functional
 - `happy-path-passed-but-null-path-broken.md` — Happy path passes, edges crash
-- `cross-layer-change-missed-linkage.md` — Cross-layer change misses impact surface
 - `fix-complete-but-data-runtime-not-recovered.md` — Code fixed but data/runtime not
-- `e2e-journey-broken-by-single-point-pass.md` — Single endpoints pass, end-to-end journey broken
-- `task-handoff-evidence-not-returned.md` — Task handed off to executor agent but evidence not returned to artifacts (W076)
 - `release-truth-drift.md` — Release / publish request drifts from lane state and release artifacts
-- `verification-environment-misclassified.md` — Verification failure environment is confused with product-code failure
-- `task-ledger-conflict-drift.md` — Rebase / stash / branch conflict causes task evidence drift
-- `install-baseline-artifact-misread.md` — Generated or legacy baseline artifacts are misread as current scope
-
-### R5: Recoverable project memory
-
-- `problem-ledger-coverage-regression.md` — Problem coverage regresses after refactor
-- `drift-signal-not-fed-back.md` — Long-lived AI project drift signals are not fed back to memory / verification / evals
-
-### Cross-cutting: Fact-state explicitness (R1 + R4)
-
-Hallucination guard via `fact_state_review` is enforced before tasks reach execution / closure (R1) and at evidence review (R4). The dedicated cases:
-
-- `inferred-treated-as-fact-into-execution.md` — Inferred / unknown treated as confirmed and carried into execution or closure (W077)
-- `url-reverse-spec-backend-hallucination.md` — URL reverse-spec invents backend behavior without evidence
-- `periodic-refactor-without-drift-evidence.md` — Calendar-based big refactor starts without observed drift evidence
 
 ## Using evals
 
 - When you propose any change to `AGENTS.md`, check if an eval would break.
 - When you hit a new real-world failure mode, add a new eval with the 5-question template.
 - When a failure mode becomes inert (e.g., covered by model-level self-verification in a future upgrade), archive rather than delete the eval.
-
-## Notes
-
-- The v7 lane-machinery evals (`legacy-to-lanes-migration-skipped`, `lane-archive-without-shared-reflux`) were removed when lanes became the single canonical layout (`lanes/default/` always installed; extra lanes optional).
-- v9.1.1 realigned every eval's "若需改 framework，优先检查" pointers to the v9 surface: rules live in root `AGENTS.md` behavior-rule sections; per-lane structure lives under `framework/.agents/templates/lane/`; shared root structure lives under `framework/.agents/templates/shared-root/`. No eval should still reference `framework/.agents/workflows/*` or `framework/.agents/skills/*` (those were the v7 surface).
