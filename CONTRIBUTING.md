@@ -44,5 +44,5 @@ npm test
 ## 编码规范
 
 - 仅使用 Node.js 内置模块，禁止引入 npm 依赖
-- CLI 脚本放在 `bin/` 下，公共逻辑放在 `bin/shared.js`
+- CLI 脚本放在 `bin/` 下；安装逻辑集中在 `bin/installer.js`，可分发的只读 doctor 辅助逻辑集中在 `bin/doctor-shared.js`
 - 不添加只是描述代码行为的注释

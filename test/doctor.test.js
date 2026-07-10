@@ -6,15 +6,59 @@
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("node:child_process");
 const {
   test,
   assert,
   runInstall,
   runDoctor,
   runLocalDoctor,
-  tmpDir,
+  tmpDir: rawTmpDir,
   cleanup,
 } = require("./helpers");
+
+const DOCTOR_CLI = path.resolve(__dirname, "..", "bin", "ai-os-doctor.js");
+
+function tmpDir() {
+  return fs.realpathSync.native(rawTmpDir());
+}
+
+test("doctor: requiring from a temporary cwd is inert and main returns a status", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    const source = String.raw`
+      const fs = require("node:fs");
+      const doctor = require(process.argv[1]);
+      const writes = { stdout: "", stderr: "" };
+      const io = {
+        stdout: { write(value) { writes.stdout += String(value); } },
+        stderr: { write(value) { writes.stderr += String(value); } },
+      };
+      const status = doctor.main(["--help"], io);
+      process.stdout.write(JSON.stringify({
+        main: typeof doctor.main,
+        status,
+        writes,
+        entries: fs.readdirSync(".").sort(),
+      }));
+    `;
+    const result = spawnSync(process.execPath, ["-e", source, DOCTOR_CLI], {
+      cwd: dir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.main, "function");
+    assert.equal(payload.status, 0);
+    assert.equal(payload.writes.stderr, "");
+    assert.match(payload.writes.stdout, /Usage:/);
+    assert.deepEqual(payload.entries, []);
+  } finally {
+    cleanup(dir);
+  }
+});
 
 test("doctor: clean install returns 0", () => {
   const dir = tmpDir();
@@ -109,7 +153,7 @@ test("doctor: --json output includes layout metadata", () => {
     assert.notEqual(parsed, null, "--json output is valid JSON");
     assert.equal(parsed && parsed.ok, true, "JSON ok=true on clean install");
     assert.equal(parsed && parsed.version, "11.0.0", "JSON reports version 11.0.0");
-    assert.equal(parsed && parsed.layout_version, "10", "JSON reports layout_version=10");
+    assert.equal(parsed && parsed.layout_version, "11", "JSON reports layout_version=11");
     assert.equal(parsed && parsed.layout_mode, "shared-root-default-lane", "JSON reports canonical layout mode");
   } finally {
     cleanup(dir);
@@ -135,10 +179,10 @@ test("doctor: schema_version mismatch is an error", () => {
   try {
     runInstall([dir]);
     const tomlPath = path.join(dir, ".ai-os", "framework.toml");
-    const toml = fs.readFileSync(tomlPath, "utf8").replace('schema_version = "10"', 'schema_version = "9"');
+    const toml = fs.readFileSync(tomlPath, "utf8").replace('schema_version = "11"', 'schema_version = "9"');
     fs.writeFileSync(tomlPath, toml);
     const result = runDoctor([dir]);
-    assert.equal(result.status, 1, "doctor exits 1 when schema_version != 10");
+    assert.equal(result.status, 1, "doctor exits 1 when schema_version != 11");
     assert.ok(result.stdout.includes("E002"), "doctor reports E002 on wrong schema");
   } finally {
     cleanup(dir);
@@ -151,7 +195,10 @@ test("doctor: W070 fires when MISSION baseline_id has no record", () => {
     runInstall([dir]);
     const missionPath = path.join(dir, ".ai-os", "lanes", "default", "MISSION.md");
     let mission = fs.readFileSync(missionPath, "utf8");
-    mission = mission.replace(/BL-\d{8}-\d{6}-initial-baseline/, "CR-20260430-000000-orphan");
+    mission = mission.replace(
+      /BL-\d{8}-\d{6}-(?:initial-baseline|bootstrap-unconfirmed)/,
+      "CR-20260430-000000-orphan",
+    );
     fs.writeFileSync(missionPath, mission);
     const result = runDoctor([dir, "--json"]);
     const parsed = JSON.parse(result.stdout);
@@ -230,12 +277,12 @@ test("doctor: vendored local entry runs offline with no external request", () =>
   }
 });
 
-test("doctor: local entry survives a team clone with gitignored framework.toml removed", () => {
+test("doctor: embedded entry uses adjacent VERSION when metadata is missing", () => {
   const dir = tmpDir();
   try {
     runInstall([dir]);
-    // framework.toml is gitignored; a teammate / CI clone never ran install and
-    // has no framework.toml. The committed .ai-os/bin/ must still run doctor.
+    // Missing framework metadata is damage, but the committed local doctor still
+    // has an adjacent VERSION and can complete its read-only structural checks.
     fs.unlinkSync(path.join(dir, ".ai-os", "framework.toml"));
     const result = runLocalDoctor(dir, [dir, "--json"]);
     assert.equal(result.status, 0, "local doctor exits 0 without framework.toml");
@@ -244,6 +291,28 @@ test("doctor: local entry survives a team clone with gitignored framework.toml r
     const e001 = parsed.issues.find((it) => it.code === "E001");
     assert.ok(!e001, "local doctor does not report E001 in embedded mode without framework.toml");
     assert.equal(parsed.installedVersion, "11.0.0", "local doctor falls back to committed VERSION as installed version");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("doctor: W041 checks only session-local STATE ignore", () => {
+  const dir = tmpDir();
+  try {
+    runInstall([dir]);
+    fs.writeFileSync(path.join(dir, ".gitignore"), [
+      "# intentionally wrong AI-OS ignore contract",
+      ".ai-os/framework.toml",
+      ".ai-os/managed-files.tsv",
+      "",
+    ].join("\n"));
+    const result = runDoctor([dir, "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const warnings = JSON.parse(result.stdout).issues.filter((item) => item.code === "W041");
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0].message, /[.]ai-os\/lanes\/[*]\/STATE[.]md/);
+    assert.match(warnings[0].message, /session-local/i);
+    assert.doesNotMatch(warnings[0].message, /managed files/i);
   } finally {
     cleanup(dir);
   }

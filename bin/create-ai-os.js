@@ -1,36 +1,28 @@
 #!/usr/bin/env node
 
-/**
- * AI-OS installer
- *
- * One default install form. No profiles, no flags for "what to include".
- * All artifacts are installed into the canonical layout:
- * shared root + .ai-os/lanes/default/.
- *
- * Primary operations:
- *   create-ai-os [target-dir]       Default install (the only supported form)
- *   create-ai-os install [target]   Explicit install alias (same behavior)
- *   create-ai-os doctor  [target]   Check artifact completeness
- */
-
 "use strict";
 
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
+const {
+  InstallConflictError,
+  InstallFilesystemError,
+  InstallPlannerError,
+  installProject,
+} = require("./installer");
 
-const SUBCOMMANDS = {
-  install: null, // handled below (same as default)
-  doctor: "./ai-os-doctor",
-};
+const PINNED_PUBLIC_INSTALL = "npx --yes github:royeedai/ai-os#v10.5.1 .";
 
-// Subcommands that existed in earlier majors. Without this guard they would
-// fall through to the default route and be treated as a target directory
-// (e.g. `create-ai-os upgrade` silently installing into ./upgrade/).
-const REMOVED_SUBCOMMANDS = {
-  upgrade: "the `upgrade` command was removed in v10. Run `npx create-ai-os install . --force` to refresh managed artifacts instead.",
-};
+function readFrameworkVersion() {
+  try {
+    return fs.readFileSync(path.resolve(__dirname, "..", "VERSION"), "utf8").trim();
+  } catch {
+    return "0.0.0";
+  }
+}
 
-function printHelp(version) {
-  process.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
+function printHelp(io, version) {
+  io.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
 
 Usage:
   create-ai-os [target-dir]               Install AI-OS into the target (default: current dir)
@@ -42,168 +34,112 @@ Primary operations:
   doctor    Layout health and constitution compliance checks
 
 Options:
-  --force          Overwrite existing managed artifacts
+  --force          Refresh framework-owned artifacts; preserve project/session files
   --no-team-config Skip .gitignore / .gitattributes setup
   --no-ide-files   Skip CLAUDE.md / GEMINI.md generation
   -h, --help       Show this help
   -v, --version    Show version
 
-Installed artifacts (always, no profiles):
-  AGENTS.md                                   Delivery constitution
-  .ai-os/MISSION.md                           Shared host-project context
-  .ai-os/memory.md                            Shared stable decisions + conventions
-  .ai-os/lanes/default/lane.toml              Default delivery-lane metadata
-  .ai-os/lanes/default/MISSION.md             Current delivery baseline
-  .ai-os/lanes/default/DESIGN.md              Key design + acceptance
-  .ai-os/lanes/default/STATE.md               Session recovery entry (gitignored)
-  .ai-os/lanes/default/baseline-log/          Change and baseline records
-  .ai-os/lanes/default/tasks.yaml             Tasks with owners + evidence
-
-On-demand artifacts (created by the agent when triggered, see docs/artifacts.md):
-  risk-register.md + release-plan.md          High-risk work
-  verification-matrix.yaml                    Stable failure modes / regression guards
-  specs/  design-pack/  evals/                Large projects, reverse-spec, promoted evals
+The safe installer plans the complete change before writing and applies it transactionally.
+Daily zero-network health check after install:
+  node .ai-os/bin/ai-os-doctor.js .
 
 Docs: https://github.com/royeedai/ai-os
 `);
 }
 
-function runInstall(argv) {
-  const fs = require("fs");
-  const {
-    PROJECT_STATE_ROOT,
-    readFrameworkVersion,
-    readPackageJson,
-    ensureDir,
-    fail,
-    installAgentsMd,
-    installArtifacts,
-    writeMetadata,
-    writeManagedFilesManifest,
-    installIdeFiles,
-    installLocalDoctor,
-    appendGitignoreEntries,
-    appendGitattributesEntries,
-    LAYOUT_MODE_DEFAULT,
-  } = require("./shared");
+function parseInstallArgs(argv) {
+  const options = { force: false, teamConfig: true, ideFiles: true };
+  let target = null;
 
-  let targetArg = "";
-  let force = false;
-  let noTeamConfig = false;
-  let noIdeFiles = false;
-
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === "-h" || arg === "--help") { printHelp(readFrameworkVersion()); return; }
-    if (arg === "--force") { force = true; continue; }
-    if (arg === "--no-team-config") { noTeamConfig = true; continue; }
-    if (arg === "--no-ide-files") { noIdeFiles = true; continue; }
-    if (arg.startsWith("-")) fail(`unknown option: ${arg}`);
-    if (targetArg) fail(`unexpected argument: ${arg}`);
-    targetArg = arg;
+  for (const arg of argv) {
+    if (arg === "-h" || arg === "--help") return { help: true, options, target };
+    if (arg === "--force") {
+      options.force = true;
+      continue;
+    }
+    if (arg === "--no-team-config") {
+      options.teamConfig = false;
+      continue;
+    }
+    if (arg === "--no-ide-files") {
+      options.ideFiles = false;
+      continue;
+    }
+    if (arg.startsWith("-")) throw new Error(`unknown option: ${arg}`);
+    if (target !== null) throw new Error(`unexpected argument: ${arg}`);
+    target = arg;
   }
 
-  const version = readFrameworkVersion();
-  const pkg = readPackageJson();
-  const targetDir = path.resolve(targetArg || ".");
-  if (fs.existsSync(targetDir) && !fs.statSync(targetDir).isDirectory()) {
-    fail(`target path exists but is not a directory: ${targetDir}`);
-  }
-  ensureDir(targetDir);
+  return { help: false, options, target };
+}
 
-  const aiOsDir = path.join(targetDir, PROJECT_STATE_ROOT);
-  const isExistingAiOs = fs.existsSync(aiOsDir);
+function installResultReport(targetDir, result) {
+  const warnings = Array.isArray(result.warnings) && result.warnings.length > 0
+    ? `\nWarnings:\n${result.warnings.map((warning) => `  - ${warning}`).join("\n")}\n`
+    : "";
+  return `Installation complete.
 
-  process.stdout.write(`Installing AI-OS v${version} into ${targetDir}${isExistingAiOs ? " (existing project)" : ""}\n`);
-
-  const agentsInstalled = installAgentsMd(targetDir, { overwrite: force });
-  const { installed, baseline } = installArtifacts(targetDir, { overwrite: force });
-  writeMetadata(targetDir, { version, layoutMode: LAYOUT_MODE_DEFAULT });
-  writeManagedFilesManifest(targetDir);
-  // Local zero-network doctor entry: always (re)written to stay in sync with the
-  // installed framework version, so daily/hook/CI doctor runs need no network.
-  const localDoctorInstalled = installLocalDoctor(targetDir);
-
-  let ideInstalled = [];
-  if (!noIdeFiles) {
-    ideInstalled = installIdeFiles(targetDir, { overwrite: force });
-  }
-
-  let gitignoreUpdated = false;
-  let gitattributesUpdated = false;
-  if (!noTeamConfig) {
-    gitignoreUpdated = appendGitignoreEntries(targetDir);
-    gitattributesUpdated = appendGitattributesEntries(targetDir);
-  }
-
-  process.stdout.write(`
-Installation complete.
-
-  Framework: ${pkg.name}@${version}
   Target:    ${targetDir}
-  Baseline:  ${baseline.id}
-  Layout:    shared-root + .ai-os/lanes/default/
-
-  AGENTS.md:       ${agentsInstalled ? "installed" : "already present (use --force to overwrite)"}
-  Artifacts:       ${installed.length} file(s) written under .ai-os/
-  Local doctor:    ${localDoctorInstalled.length} file(s) under .ai-os/bin/ (run offline)
-  IDE pointers:    ${ideInstalled.length > 0 ? ideInstalled.join(", ") : "skipped or already present"}
-  .gitignore:      ${gitignoreUpdated ? "updated" : "already configured or skipped"}
-  .gitattributes:  ${gitattributesUpdated ? "updated" : "already configured or skipped"}
-
-Next steps:
-  1. Read AGENTS.md (≤150 lines) — the delivery constitution
-  2. Fill in .ai-os/MISSION.md — your shared host-project context
-  3. Fill in .ai-os/lanes/default/MISSION.md — your current delivery baseline
-  4. Behavior is rule-driven; AI agents will follow AGENTS.md to route work
-
-Daily health check (zero network, commit .ai-os/bin/ so teammates + CI share it):
+  Baseline:  ${result.baselineId}
+  Layout:    ${result.layoutVersion}
+  Created:   ${result.created}
+  Replaced:  ${result.replaced}
+  Preserved: ${result.preserved}
+${warnings}
+Daily health check (zero network):
   node .ai-os/bin/ai-os-doctor.js .
-
-Primary operations:
-  create-ai-os            Install AI-OS (default entrypoint)
-  create-ai-os install    Install AI-OS (explicit alias)
-  create-ai-os doctor    Check artifact completeness
-`);
+`;
 }
 
-function main() {
-  const argv = process.argv.slice(2);
-  const { readFrameworkVersion, fail } = require("./shared");
-
-  if (argv.length === 0 || argv[0] === "-h" || argv[0] === "--help") {
-    if (argv.length === 0) {
-      // default: install into current dir
-      runInstall([]);
-      return;
-    }
-    printHelp(readFrameworkVersion());
-    return;
-  }
-
-  if (argv[0] === "-v" || argv[0] === "--version") {
-    process.stdout.write(`${readFrameworkVersion()}\n`);
-    return;
-  }
-
-  const sub = argv[0];
-  if (Object.prototype.hasOwnProperty.call(REMOVED_SUBCOMMANDS, sub)) {
-    fail(REMOVED_SUBCOMMANDS[sub]);
-  }
-  if (Object.prototype.hasOwnProperty.call(SUBCOMMANDS, sub)) {
-    const handler = SUBCOMMANDS[sub];
-    if (handler) {
-      process.argv.splice(2, 1); // drop subcommand, keep remaining args
-      require(handler);
-      return;
-    }
-    // install (explicit)
-    runInstall(argv.slice(1));
-    return;
-  }
-
-  // Default: treat first positional as target dir
-  runInstall(argv);
+function oneLineDiagnostic(error) {
+  const knownInstallError = error instanceof InstallConflictError
+    || error instanceof InstallFilesystemError
+    || error instanceof InstallPlannerError;
+  const raw = knownInstallError || error instanceof Error ? error.message : String(error);
+  return String(raw || "unknown failure").replace(/[\r\n]+/g, " ").trim();
 }
 
-main();
+function runInstall(argv, io, install) {
+  const parsed = parseInstallArgs(argv);
+  if (parsed.help) {
+    printHelp(io, readFrameworkVersion());
+    return 0;
+  }
+
+  const targetDir = path.resolve(parsed.target || ".");
+  const result = install(targetDir, parsed.options);
+  io.stdout.write(installResultReport(targetDir, result));
+  return 0;
+}
+
+function main(argv = process.argv.slice(2), io = process, install = installProject) {
+  try {
+    if (argv[0] === "-h" || argv[0] === "--help") {
+      printHelp(io, readFrameworkVersion());
+      return 0;
+    }
+    if (argv[0] === "-v" || argv[0] === "--version") {
+      io.stdout.write(`${readFrameworkVersion()}\n`);
+      return 0;
+    }
+    if (argv[0] === "upgrade") {
+      throw new Error(
+        `the \`upgrade\` command was removed in v10. Run \`${PINNED_PUBLIC_INSTALL}\` to install the pinned public release instead.`,
+      );
+    }
+    if (argv[0] === "doctor") {
+      const doctor = require("./ai-os-doctor");
+      return doctor.main(argv.slice(1), io);
+    }
+    if (argv[0] === "install") return runInstall(argv.slice(1), io, install);
+    return runInstall(argv, io, install);
+  } catch (error) {
+    io.stderr.write(`Error: ${oneLineDiagnostic(error)}\n`);
+    return 1;
+  }
+}
+
+if (require.main === module) process.exitCode = main();
+
+module.exports = { main };

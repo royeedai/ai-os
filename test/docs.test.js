@@ -147,11 +147,25 @@ test("docs: no doc references deleted files or removed doctor codes", () => {
   }
 });
 
-test("docs: bin contains exactly 5 scripts", () => {
+test("docs: bin contains exactly 4 scripts", () => {
   const binDir = path.join(repoRoot, "bin");
   const files = fs.readdirSync(binDir).sort();
-  const expected = ["ai-os-doctor.js", "create-ai-os.js", "doctor-shared.js", "installer.js", "shared.js"];
-  assert.deepEqual(files, expected, `bin/ has exactly 5 scripts: ${files.join(", ")}`);
+  const expected = ["ai-os-doctor.js", "create-ai-os.js", "doctor-shared.js", "installer.js"];
+  assert.deepEqual(files, expected, `bin/ has exactly 4 scripts: ${files.join(", ")}`);
+});
+
+test("docs: CLI reference describes the v11 safe installer boundary", () => {
+  const cli = read("docs/cli.md");
+  assert.ok(cli.includes("v11 canonical layout"));
+  assert.ok(cli.includes("doctor-shared.js"));
+  assert.ok(cli.includes("framework-owned"), "force is scoped to framework ownership");
+  assert.ok(cli.includes("framework.toml") && cli.includes("committed"));
+  assert.ok(cli.includes("managed-files.tsv") && cli.includes("committed"));
+  assert.ok(cli.includes("only session-local"));
+  assert.ok(cli.includes("npx --yes github:royeedai/ai-os#v10.5.1 ."));
+  assert.ok(!cli.includes("`shared.js`"));
+  assert.ok(!cli.includes("v10 canonical layout"));
+  assert.ok(!cli.includes("generated file ignores"));
 });
 
 test("docs: doctor semantic warnings are exactly W070 and W071", () => {

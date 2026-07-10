@@ -16,30 +16,30 @@ create-ai-os -v | --version
 
 ## Install: `create-ai-os [target-dir]` / `create-ai-os install [target-dir]`
 
-Installs the v10 canonical layout:
+Installs the v11 canonical layout:
 
 - `AGENTS.md`
 - `.ai-os/MISSION.md`
 - `.ai-os/memory.md`
 - `.ai-os/framework.toml`
 - `.ai-os/managed-files.tsv`
-- `.ai-os/bin/` local doctor entry (`ai-os-doctor.js` + `shared.js` + `VERSION`, committed)
+- `.ai-os/bin/` local doctor runtime (`ai-os-doctor.js` + `doctor-shared.js` + `VERSION`, committed)
 - `.ai-os/lanes/default/` core lane set (`lane.toml`, `MISSION.md`, `DESIGN.md`, `STATE.md`, `baseline-log/`, `tasks.yaml`)
 
 Extension artifacts (`risk-register.md`, `release-plan.md`, `verification-matrix.yaml`, `specs/`, `design-pack/`, `evals/`) are **on-demand**: created by the agent when their trigger condition is hit (see `docs/artifacts.md`), never installed by default.
 
-Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v10.5.1 .`. The install is the only step that needs the network.
+Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v10.5.1 .`. The install is the only step that needs the network. The CLI delegates one complete plan to the transactional safe installer; conflicts and filesystem failures stop with no partial install.
 
 ### Options
 
-- `--force`
+- `--force` — refresh recognized framework-owned files only; project-owned and session-owned bytes are preserved
 - `--no-team-config`
 - `--no-ide-files`
 - `-h, --help` (also works after the explicit `install` alias)
 
 ### Removed subcommands
 
-`create-ai-os upgrade` exits with an error because the subcommand was removed in v10. A target path that exists but is a regular file also fails cleanly instead of crashing.
+`create-ai-os upgrade` exits with an error because the subcommand was removed in v10 and points to the exact pinned public install form above. It never recommends a destructive force refresh. Unknown options, conflicts, unsafe paths, an active install lock, and a target path that is a regular file fail with one concise diagnostic and no partial writes.
 
 ## `create-ai-os doctor [target-dir]`
 
@@ -49,7 +49,7 @@ Checks:
 - root shared artifacts exist
 - `.ai-os/lanes/default/` exists with core lane artifacts
 - baseline log naming is valid
-- `.gitignore` contains lane `STATE.md` and generated file ignores
+- `.gitignore` contains the only session-local ignore, lane `STATE.md`
 - layout mode is canonical
 
 ### Local doctor entry (zero external request)
@@ -60,11 +60,15 @@ Checks:
 node .ai-os/bin/ai-os-doctor.js . --strict
 ```
 
-Because `.ai-os/bin/` is committed (unlike the gitignored `.ai-os/framework.toml`), teammates and CI that clone the repo run doctor offline without re-installing — the committed `.ai-os/bin/VERSION` supplies the framework version. A fresh install from the pinned release vendors the matching entry.
+The local runtime is deliberately small: `ai-os-doctor.js`, its read-only `doctor-shared.js` helper, and `VERSION`. `.ai-os/bin/`, `.ai-os/framework.toml`, and `.ai-os/managed-files.tsv` are committed so teammates and CI share the same doctor and framework identity. The AI-OS-managed ignore block contains only session-local lane `STATE.md`. A fresh install from the pinned release vendors the matching entry.
 
 ### Structural & metadata codes
 
-`E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (artifact path has the wrong type), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing managed-file ignores), `W050` (lane missing `lane.toml`), and `I020` (session-local `STATE.md` absent — informational). The authoritative list lives in `bin/ai-os-doctor.js`.
+`E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (artifact path has the wrong type), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing the session-local `STATE.md` ignore), `W050` (lane missing `lane.toml`), and `I020` (session-local `STATE.md` absent — informational). The authoritative list lives in `bin/ai-os-doctor.js`.
+
+### Package boundary
+
+The packaged tarball contains four `bin/` scripts: the thin `create-ai-os.js` entry, the transactional `installer.js`, and the read-only doctor pair `ai-os-doctor.js` / `doctor-shared.js`. Installed projects receive only the doctor pair plus `VERSION`; installer code is never copied into `.ai-os/bin/`.
 
 ### Semantic consistency warnings
 

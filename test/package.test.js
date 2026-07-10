@@ -34,10 +34,14 @@ test("package: tarball contains and installs the complete distribution", () => {
       "VERSION",
       "docs/artifacts.md",
       "framework/.agents/templates/root/AGENTS.md",
+      "framework/.agents/compat/v10-template-hashes.json",
       "bin/create-ai-os.js",
       "bin/ai-os-doctor.js",
+      "bin/doctor-shared.js",
+      "bin/installer.js",
     ];
     for (const name of required) assert.ok(files.includes(name), `package contains ${name}`);
+    assert.ok(!files.includes("bin/shared.js"), "package excludes the removed legacy installer helper");
     assert.ok(!files.includes("AGENTS.md"), "repo maintainer guard is not distributed");
     assert.ok(!files.includes("RELEASED_VERSION"), "repository release metadata is not distributed");
     assert.ok(!files.some((name) => name.startsWith("docs/superpowers/")), "maintainer plans are not distributed");
@@ -51,10 +55,13 @@ test("package: tarball contains and installs the complete distribution", () => {
     });
     assert.equal(listed.status, 0, listed.stderr);
     const expectedFiles = listed.stdout.split("\n").filter((name) => (
-      name.startsWith("bin/")
-      || name.startsWith("framework/")
-      || /^docs\/[^/]+[.]md$/.test(name)
-      || ["LICENSE", "README.md", "VERSION"].includes(name)
+      fs.existsSync(path.join(repoRoot, name))
+      && (
+        name.startsWith("bin/")
+        || name.startsWith("framework/")
+        || /^docs\/[^/]+[.]md$/.test(name)
+        || ["LICENSE", "README.md", "VERSION"].includes(name)
+      )
     ));
     expectedFiles.push("package.json");
     assert.deepEqual(files.sort(), expectedFiles.sort(), "package contains exactly the allowlisted files");
@@ -156,6 +163,11 @@ test("package: tarball contains and installs the complete distribution", () => {
     assert.equal(installed.status, 0, installed.stderr);
     assert.ok(fs.existsSync(path.join(cliProjectDir, "AGENTS.md")));
     assert.ok(fs.existsSync(path.join(cliProjectDir, ".ai-os/lanes/default/lane.toml")));
+    assert.deepEqual(
+      fs.readdirSync(path.join(cliProjectDir, ".ai-os", "bin")).sort(),
+      ["VERSION", "ai-os-doctor.js", "doctor-shared.js"],
+      "packaged CLI vendors only the local doctor runtime",
+    );
 
     const doctor = spawnSync(process.execPath, [
       path.join(cliProjectDir, ".ai-os/bin/ai-os-doctor.js"), cliProjectDir, "--json",

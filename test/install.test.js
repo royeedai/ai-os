@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Install tests: default create-ai-os produces the v10 canonical layout
+ * Install tests: default create-ai-os produces the v11 canonical layout
  * (core artifacts only; extension artifacts are on-demand).
  */
 
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("node:child_process");
 const {
   FILE_SPECS,
   OWNERSHIP,
@@ -21,7 +22,7 @@ const {
   test,
   assert,
   runInstall,
-  tmpDir,
+  tmpDir: rawTmpDir,
   cleanup,
   readFile,
   readRepo,
@@ -34,6 +35,226 @@ const {
 const FIXED_BOOTSTRAP_DATE = "2026-07-10T12:34:56.789Z";
 const FIXED_BOOTSTRAP_ID = "BL-20260710-123456-bootstrap-unconfirmed";
 const FIXED_BOOTSTRAP_FILE = `${FIXED_BOOTSTRAP_ID}.md`;
+const CREATE_CLI = path.join(repoRoot, "bin", "create-ai-os.js");
+const INSTALLER = path.join(repoRoot, "bin", "installer.js");
+const PINNED_PUBLIC_INSTALL = "npx --yes github:royeedai/ai-os#v10.5.1 .";
+
+function tmpDir() {
+  return fs.realpathSync.native(rawTmpDir());
+}
+
+function assertSingleCliError(result, pattern) {
+  assert.equal(result.status, 1, `command exits 1: ${result.stderr}`);
+  assert.equal(result.stdout, "", "failure writes nothing to stdout");
+  assert.match(result.stderr, /^Error: [^\r\n]+\n$/, "failure is exactly one Error line");
+  assert.match(result.stderr, pattern);
+  assert.doesNotMatch(result.stderr, /\n\s+at\s|\b(?:InstallConflictError|InstallFilesystemError):/);
+}
+
+function assertCliFailurePreserves(root, args, pattern) {
+  const before = snapshotTree(root);
+  const result = runInstall(args, root);
+  assertSingleCliError(result, pattern);
+  assert.deepEqual(snapshotTree(root), before, "failure leaves the complete fixture byte-identical");
+}
+
+function runMainProbe(argv, scenario, cwd) {
+  const source = String.raw`
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const cli = require(process.argv[1]);
+    const { InstallFilesystemError } = require(process.argv[2]);
+    const argv = JSON.parse(process.argv[3]);
+    const scenario = process.argv[4];
+    const writes = { stdout: "", stderr: "" };
+    const io = {
+      stdout: { write(value) { writes.stdout += String(value); } },
+      stderr: { write(value) { writes.stderr += String(value); } },
+    };
+    const calls = [];
+    const install = (target, options) => {
+      calls.push({ target, options, targetExists: fs.existsSync(target) });
+      if (scenario === "filesystem-error") {
+        throw new InstallFilesystemError(
+          "injected write",
+          ".ai-os/framework.toml",
+          new Error("injected filesystem failure"),
+        );
+      }
+      return {
+        created: 3,
+        replaced: 2,
+        preserved: 7,
+        warnings: [],
+        baselineId: "BL-20260710-123456-bootstrap-unconfirmed",
+        layoutVersion: "11",
+      };
+    };
+    const status = cli.main(argv, io, install);
+    process.stdout.write(JSON.stringify({
+      status,
+      writes,
+      calls,
+      cwd: process.cwd(),
+      targetExistsAfter: calls[0] ? fs.existsSync(calls[0].target) : null,
+      targetBasename: calls[0] ? path.basename(calls[0].target) : null,
+    }));
+  `;
+  return spawnSync(process.execPath, [
+    "-e",
+    source,
+    CREATE_CLI,
+    INSTALLER,
+    JSON.stringify(argv),
+    scenario,
+  ], {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+test("install CLI: requiring from a temporary cwd is inert and exports main", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  try {
+    const before = snapshotTree(root);
+    const source = String.raw`
+      const fs = require("node:fs");
+      const cli = require(process.argv[1]);
+      process.stdout.write(JSON.stringify({
+        main: typeof cli.main,
+        entries: fs.readdirSync(".").sort(),
+      }));
+    `;
+    const result = spawnSync(process.execPath, ["-e", source, CREATE_CLI], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+    assert.equal(result.stdout, JSON.stringify({ main: "function", entries: [] }));
+    assert.deepEqual(snapshotTree(root), before, "requiring the CLI leaves cwd byte-identical");
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: main delegates once with exact flags and reports the InstallResult", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  try {
+    const result = runMainProbe([
+      "install",
+      "relative target",
+      "--force",
+      "--no-team-config",
+      "--no-ide-files",
+    ], "success", root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.status, 0);
+    assert.equal(payload.writes.stderr, "");
+    assert.equal(payload.calls.length, 1, "main delegates exactly once");
+    assert.deepEqual(payload.calls[0], {
+      target: path.join(root, "relative target"),
+      options: { force: true, teamConfig: false, ideFiles: false },
+      targetExists: false,
+    });
+    assert.equal(payload.targetExistsAfter, false, "CLI does not pre-create the target");
+    assert.match(payload.writes.stdout, /Installation complete/);
+    assert.match(payload.writes.stdout, /Baseline:\s+BL-20260710-123456-bootstrap-unconfirmed/);
+    assert.match(payload.writes.stdout, /Layout:\s+11/);
+    assert.match(payload.writes.stdout, /Created:\s+3/);
+    assert.match(payload.writes.stdout, /Replaced:\s+2/);
+    assert.match(payload.writes.stdout, /Preserved:\s+7/);
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: injected InstallFilesystemError is one line with no target write", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  try {
+    const target = path.join(root, "must-not-exist");
+    const result = runMainProbe([target], "filesystem-error", root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.status, 1);
+    assert.equal(payload.writes.stdout, "");
+    assert.match(payload.writes.stderr, /^Error: [^\r\n]+\n$/);
+    assert.match(payload.writes.stderr, /injected filesystem failure/);
+    assert.doesNotMatch(payload.writes.stderr, /\n\s+at\s|InstallFilesystemError:/);
+    assert.equal(payload.calls.length, 1);
+    assert.equal(payload.calls[0].targetExists, false);
+    assert.equal(payload.targetExistsAfter, false);
+    assert.deepEqual(fs.readdirSync(root), []);
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: unknown option fails with one line and no writes", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  try {
+    assertCliFailurePreserves(root, ["--unknown-install-option"], /unknown option/i);
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: foreign AGENTS conflict is concise and byte-identical", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const target = path.join(root, "target");
+  try {
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, "AGENTS.md"), "FOREIGN CONSTITUTION\n", { mode: 0o640 });
+    assertCliFailurePreserves(root, [target], /AGENTS[.]md: .*manual merge/i);
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: managed symlink conflict never follows the external sentinel", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const target = path.join(root, "target");
+  const outside = path.join(root, "outside.txt");
+  const managed = path.join(target, ".ai-os", "bin", "doctor-shared.js");
+  try {
+    fs.mkdirSync(path.dirname(managed), { recursive: true });
+    fs.writeFileSync(outside, "SENTINEL\n", { mode: 0o640 });
+    fs.symlinkSync(outside, managed, "file");
+    assertCliFailurePreserves(root, [target], /doctor-shared[.]js: .*symbolic link|junction/i);
+    assert.equal(fs.readFileSync(outside, "utf8"), "SENTINEL\n");
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: existing install lock fails with one line and no writes", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const target = path.join(root, "target");
+  try {
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, ".ai-os-install.lock"), "FOREIGN LOCK\n", { mode: 0o600 });
+    assertCliFailurePreserves(root, [target], /installation already in progress/i);
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("install CLI: existing file target fails with one line and no writes", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const target = path.join(root, "not-a-directory");
+  try {
+    fs.writeFileSync(target, "plain file\n", { mode: 0o640 });
+    assertCliFailurePreserves(root, [target], /not a directory/i);
+  } finally {
+    cleanup(root);
+  }
+});
 
 function parseTomlStrings(content) {
   const result = {};
@@ -279,6 +500,13 @@ test("install: default install into fresh dir", () => {
     const result = runInstall([dir]);
     assert.equal(result.status, 0, "install exits 0");
     assert.ok(result.stdout.includes("Installation complete"), "stdout reports completion");
+    for (const label of ["Created", "Replaced", "Preserved", "Baseline", "Layout"]) {
+      assert.match(
+        result.stdout,
+        new RegExp(`${label}:\\s+\\S+`),
+        `stdout reports ${label.toLowerCase()}`,
+      );
+    }
 
     assert.ok(exists(dir, "AGENTS.md"), "AGENTS.md installed at root");
     assert.ok(exists(dir, "CLAUDE.md"), "CLAUDE.md pointer installed");
@@ -299,8 +527,14 @@ test("install: default install into fresh dir", () => {
     assert.ok(exists(dir, ".ai-os/managed-files.tsv"), "managed-files.tsv written");
 
     assert.ok(exists(dir, ".ai-os/bin/ai-os-doctor.js"), "local doctor entry vendored");
-    assert.ok(exists(dir, ".ai-os/bin/shared.js"), "local doctor shared module vendored");
+    assert.ok(exists(dir, ".ai-os/bin/doctor-shared.js"), "local doctor read-only helper vendored");
     assert.ok(exists(dir, ".ai-os/bin/VERSION"), "local doctor VERSION vendored");
+    assert.equal(exists(dir, ".ai-os/bin/shared.js"), false, "legacy installer helper is not vendored");
+    assert.deepEqual(
+      fs.readdirSync(path.join(dir, ".ai-os", "bin")).sort(),
+      ["VERSION", "ai-os-doctor.js", "doctor-shared.js"],
+      "local bin contains only the zero-network doctor runtime",
+    );
     const localDoctorVersion = readFile(dir, ".ai-os/bin/VERSION");
     assert.equal(localDoctorVersion && localDoctorVersion.trim(), "11.0.0", "local doctor VERSION matches framework version");
 
@@ -336,12 +570,14 @@ test("install: default install into fresh dir", () => {
     const gitignore = readFile(dir, ".gitignore");
     assert.ok(gitignore && gitignore.includes(".ai-os/lanes/*/STATE.md"), ".gitignore excludes lane STATE.md");
     assert.ok(gitignore && !gitignore.includes(".ai-os/bin"), ".gitignore keeps .ai-os/bin committed (teammates + CI run doctor offline)");
+    assert.ok(gitignore && !gitignore.includes(".ai-os/framework.toml"), ".gitignore keeps framework.toml committed");
+    assert.ok(gitignore && !gitignore.includes(".ai-os/managed-files.tsv"), ".gitignore keeps managed-files.tsv committed");
 
     const gitattributes = readFile(dir, ".gitattributes");
-    assert.ok(gitattributes && gitattributes.includes("memory.md merge=union"), ".gitattributes uses union merge for memory.md");
+    assert.ok(gitattributes && !gitattributes.includes("memory.md merge=union"), ".gitattributes does not force union merge for memory.md");
 
     const toml = readFile(dir, ".ai-os/framework.toml");
-    assert.ok(toml && toml.includes('schema_version = "10"'), "framework.toml has schema_version=10");
+    assert.ok(toml && toml.includes('schema_version = "11"'), "framework.toml has schema_version=11");
     assert.ok(toml && toml.includes('layout_mode = "shared-root-default-lane"'), "framework.toml records canonical layout");
     assert.ok(toml && toml.includes('framework_version = "11.0.0"'), "framework.toml has version 11.0.0");
 
@@ -389,14 +625,43 @@ test("install: idempotency preserves user-authored lane content", () => {
   }
 });
 
-test("install: --force overwrites managed content", () => {
+test("install: --force refreshes framework only and preserves project/session bytes", () => {
   const dir = tmpDir();
   try {
-    runInstall([dir]);
-    fs.writeFileSync(path.join(dir, ".ai-os", "lanes", "default", "MISSION.md"), "# edited by user\n");
-    runInstall([dir, "--force"]);
-    const mission = readFile(dir, ".ai-os/lanes/default/MISSION.md");
-    assert.ok(mission && mission.includes("当前交付基线摘要"), "force overwrites lane mission back to template");
+    const first = runInstall([dir]);
+    assert.equal(first.status, 0, first.stderr);
+    const projectPaths = [
+      ".ai-os/MISSION.md",
+      ".ai-os/lanes/default/MISSION.md",
+      ".ai-os/lanes/default/tasks.yaml",
+    ];
+    const sessionPath = ".ai-os/lanes/default/STATE.md";
+    for (const relativePath of [...projectPaths, sessionPath]) {
+      fs.appendFileSync(path.join(dir, ...relativePath.split("/")), `\nUSER BYTES: ${relativePath}\n`);
+    }
+    const preserved = new Map([...projectPaths, sessionPath].map((relativePath) => [
+      relativePath,
+      fs.readFileSync(path.join(dir, ...relativePath.split("/"))),
+    ]));
+    const referencePath = path.join(dir, ".ai-os", "reference", "artifacts.md");
+    fs.appendFileSync(referencePath, "\nSTALE FRAMEWORK BYTES\n");
+    const baselineBefore = listBaselineRecords(dir);
+
+    const result = runInstall([dir, "--force"]);
+    assert.equal(result.status, 0, result.stderr);
+    for (const [relativePath, bytes] of preserved) {
+      assert.deepEqual(
+        fs.readFileSync(path.join(dir, ...relativePath.split("/"))),
+        bytes,
+        `${relativePath} is byte-identical after force`,
+      );
+    }
+    assert.deepEqual(
+      fs.readFileSync(referencePath),
+      fs.readFileSync(path.join(repoRoot, "docs", "artifacts.md")),
+      "force restores framework-owned reference bytes",
+    );
+    assert.deepEqual(listBaselineRecords(dir), baselineBefore, "force does not create a new baseline");
   } finally {
     cleanup(dir);
   }
@@ -421,9 +686,10 @@ test("install: removed subcommands fail instead of installing into a directory",
   const dir = tmpDir();
   try {
     const result = runInstall(["upgrade"], dir);
-    assert.equal(result.status, 1, "`create-ai-os upgrade` exits 1");
-    assert.ok(result.stderr.includes("removed in v10"), "stderr explains upgrade was removed in v10");
-    assert.ok(result.stderr.includes("install"), "stderr points to install as the replacement");
+    assertSingleCliError(result, /removed in v10/);
+    assert.ok(result.stderr.includes(PINNED_PUBLIC_INSTALL), "stderr names the pinned public install form");
+    assert.equal(result.stderr.includes(["npx", "create-ai-os"].join(" ")), false);
+    assert.doesNotMatch(result.stderr, /install \. --force/);
     assert.ok(!fs.existsSync(path.join(dir, "upgrade")), "no ./upgrade directory is created");
   } finally {
     cleanup(dir);
@@ -438,20 +704,6 @@ test("install: explicit install subcommand supports --help", () => {
   const short = runInstall(["install", "-h"]);
   assert.equal(short.status, 0, "`install -h` exits 0");
   assert.ok(short.stdout.includes("Usage:"), "`install -h` shows usage");
-});
-
-test("install: target path that is an existing file fails cleanly", () => {
-  const dir = tmpDir();
-  try {
-    const filePath = path.join(dir, "not-a-dir");
-    fs.writeFileSync(filePath, "plain file\n");
-    const result = runInstall([filePath]);
-    assert.equal(result.status, 1, "install into a file path exits 1");
-    assert.ok(result.stderr.includes("not a directory"), "stderr explains target is not a directory");
-    assert.equal(fs.readFileSync(filePath, "utf8"), "plain file\n", "existing file is left untouched");
-  } finally {
-    cleanup(dir);
-  }
 });
 
 test("install: BL-template ships framework feedback loop schema", () => {

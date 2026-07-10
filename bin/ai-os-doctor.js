@@ -12,24 +12,21 @@ const fs = require("fs");
 const path = require("path");
 
 const {
-  PROJECT_STATE_ROOT,
-  LAYOUT_MODE_DEFAULT,
+  LAYOUT_MODE,
   LAYOUT_VERSION,
-  SESSION_LOCAL_FILES,
-  readFrameworkVersion,
-  readPackageJson,
-  readMetadata,
-  getArtifactPaths,
-  fail,
-  fileExists,
-  isDirectory,
-  parseMissionBaselineId,
-} = require("./shared");
+} = require("./doctor-shared");
+
+const PROJECT_STATE_ROOT = ".ai-os";
+const LANES_ROOT = "lanes";
+const DEFAULT_LANE_ID = "default";
+const METADATA_FILE = "framework.toml";
+const SESSION_LOCAL_FILES = Object.freeze(["STATE.md"]);
+const PINNED_PUBLIC_INSTALL = "npx --yes github:royeedai/ai-os#v10.5.1 .";
 
 const SEMANTIC_WARNING_CODES = ["W070", "W071"];
 
-function printHelp() {
-  process.stdout.write(`create-ai-os doctor — Check artifact completeness
+function printHelp(io) {
+  io.stdout.write(`create-ai-os doctor — Check artifact completeness
 
 Usage:
   create-ai-os doctor [target-dir]
@@ -47,17 +44,90 @@ Exit codes:
 }
 
 function parseArgs(argv) {
-  const opts = { target: "", json: false, strict: false };
+  const opts = { target: "", json: false, strict: false, help: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "-h" || arg === "--help") { printHelp(); process.exit(0); }
+    if (arg === "-h" || arg === "--help") { opts.help = true; continue; }
     if (arg === "--json") { opts.json = true; continue; }
     if (arg === "--strict") { opts.strict = true; continue; }
-    if (arg.startsWith("-")) fail(`unknown option: ${arg}`);
-    if (opts.target) fail(`unexpected argument: ${arg}`);
+    if (arg.startsWith("-")) throw new Error(`unknown option: ${arg}`);
+    if (opts.target) throw new Error(`unexpected argument: ${arg}`);
     opts.target = arg;
   }
   return opts;
+}
+
+function fileExists(absPath) {
+  try {
+    fs.accessSync(absPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isDirectory(absPath) {
+  try {
+    return fs.statSync(absPath).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function readFrameworkVersion() {
+  for (const candidate of [
+    path.join(__dirname, "VERSION"),
+    path.resolve(__dirname, "..", "VERSION"),
+  ]) {
+    try {
+      const version = fs.readFileSync(candidate, "utf8").trim();
+      if (version) return version;
+    } catch {
+      // Try the package-root location after the adjacent vendored location.
+    }
+  }
+  return "0.0.0";
+}
+
+function readMetadata(targetDir) {
+  const metadata = path.join(targetDir, PROJECT_STATE_ROOT, METADATA_FILE);
+  if (!isRegularFile(metadata)) return null;
+  const result = {};
+  for (const line of fs.readFileSync(metadata, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^([a-zA-Z_]+)\s*=\s*"([^"]*)"\s*$/);
+    if (match) result[match[1]] = match[2];
+  }
+  return result;
+}
+
+function getArtifactPaths(targetDir) {
+  const aiOsDir = path.join(targetDir, PROJECT_STATE_ROOT);
+  const lanes = path.join(aiOsDir, LANES_ROOT);
+  const defaultLane = path.join(lanes, DEFAULT_LANE_ID);
+  return {
+    aiOsDir,
+    agentsMd: path.join(targetDir, "AGENTS.md"),
+    sharedMission: path.join(aiOsDir, "MISSION.md"),
+    sharedMemory: path.join(aiOsDir, "memory.md"),
+    defaultLane,
+    laneToml: path.join(defaultLane, "lane.toml"),
+    laneMission: path.join(defaultLane, "MISSION.md"),
+    laneDesign: path.join(defaultLane, "DESIGN.md"),
+    laneState: path.join(defaultLane, "STATE.md"),
+    laneBaselineLog: path.join(defaultLane, "baseline-log"),
+    laneTasks: path.join(defaultLane, "tasks.yaml"),
+    lanes,
+  };
+}
+
+function parseMissionBaselineId(content) {
+  for (const line of String(content || "").split(/\r?\n/)) {
+    const match = line.match(/当前基线 ID[^:：]*[:：]\s*(.+)\s*$/);
+    if (!match) continue;
+    const value = match[1].trim();
+    if (value && !value.includes("{{")) return value;
+  }
+  return null;
 }
 
 function issue(level, code, message) {
@@ -87,11 +157,11 @@ function checkMetadata(meta, version) {
     const installedMajor = parseInt(meta.framework_version.split(".")[0], 10);
     const currentMajor = parseInt(version.split(".")[0], 10);
     if (Number.isFinite(installedMajor) && Number.isFinite(currentMajor) && installedMajor < currentMajor) {
-      issues.push(issue("warning", "W002", `Installed framework v${meta.framework_version} is older than current v${version}. Reinstall with: create-ai-os install . --force`));
+      issues.push(issue("warning", "W002", `Installed framework v${meta.framework_version} is older than current v${version}. Install the pinned public release with: ${PINNED_PUBLIC_INSTALL}`));
     }
   }
   if (meta.schema_version && meta.schema_version !== LAYOUT_VERSION) {
-    issues.push(issue("error", "E002", `schema_version is "${meta.schema_version}", expected "${LAYOUT_VERSION}". Reinstall with: create-ai-os install . --force`));
+    issues.push(issue("error", "E002", `schema_version is "${meta.schema_version}", expected "${LAYOUT_VERSION}". Install the pinned public release with: ${PINNED_PUBLIC_INSTALL}`));
   }
   return issues;
 }
@@ -228,15 +298,13 @@ function checkGitignore(targetDir) {
     return issues;
   }
   const content = fs.readFileSync(gitignorePath, "utf8");
-  const expected = [
-    `${PROJECT_STATE_ROOT}/lanes/*/STATE.md`,
-    `${PROJECT_STATE_ROOT}/framework.toml`,
-    `${PROJECT_STATE_ROOT}/managed-files.tsv`,
-  ];
-  for (const item of expected) {
-    if (!content.includes(item)) {
-      issues.push(issue("warning", "W041", `.gitignore does not contain "${item}". Managed files may be accidentally committed.`));
-    }
+  const sessionState = `${PROJECT_STATE_ROOT}/lanes/*/STATE.md`;
+  if (!content.includes(sessionState)) {
+    issues.push(issue(
+      "warning",
+      "W041",
+      `.gitignore does not contain "${sessionState}". Session-local state may be accidentally committed.`,
+    ));
   }
   return issues;
 }
@@ -391,36 +459,44 @@ function formatReport(issues) {
   return lines.join("\n") + "\n";
 }
 
-function main() {
-  const argv = process.argv.slice(2);
-  const opts = parseArgs(argv);
+function main(argv = process.argv.slice(2), io = process) {
+  let opts;
+  try {
+    opts = parseArgs(argv);
+  } catch (error) {
+    const message = String(error && error.message ? error.message : error)
+      .replace(/[\r\n]+/g, " ")
+      .trim();
+    io.stderr.write(`Error: ${message}\n`);
+    return 1;
+  }
+  if (opts.help) {
+    printHelp(io);
+    return 0;
+  }
   const targetDir = path.resolve(opts.target || ".");
 
   if (!fileExists(path.join(targetDir, PROJECT_STATE_ROOT))) {
     if (opts.json) {
-      process.stdout.write(JSON.stringify({ ok: false, reason: "not-an-ai-os-project", targetDir }, null, 2) + "\n");
+      io.stdout.write(JSON.stringify({ ok: false, reason: "not-an-ai-os-project", targetDir }, null, 2) + "\n");
     } else {
-      process.stderr.write(`Not an AI-OS project: ${targetDir} has no .ai-os/ directory.\n`);
-      process.stderr.write(`Run: create-ai-os install ${targetDir}\n`);
+      io.stderr.write(`Not an AI-OS project: ${targetDir} has no .ai-os/ directory.\n`);
+      io.stderr.write(`Install the pinned public release with: ${PINNED_PUBLIC_INSTALL}\n`);
     }
-    process.exit(2);
+    return 2;
   }
 
   const version = readFrameworkVersion();
-  const pkg = readPackageJson();
   let meta = readMetadata(targetDir);
-  // Embedded local doctor (.ai-os/bin/ai-os-doctor.js): framework.toml is
-  // gitignored, so a team / CI clone that never ran install has none. The local
-  // doctor is itself committed proof of an AI-OS install, so fall back to the
-  // committed .ai-os/bin/VERSION as the installed framework version instead of
-  // failing E001. The dev / npx package keeps strict E001 (a real "is this an
-  // AI-OS project?" check).
+  // A damaged embedded install may be missing framework metadata. The vendored
+  // doctor can still use its adjacent VERSION for read-only structural checks;
+  // the package/source doctor keeps strict E001 behavior.
   const embedded = path.basename(path.dirname(__dirname)) === PROJECT_STATE_ROOT;
   if (!meta && embedded && version !== "0.0.0") {
     meta = { framework_version: version };
   }
   const paths = getArtifactPaths(targetDir);
-  const layoutMode = meta && meta.layout_mode ? meta.layout_mode : LAYOUT_MODE_DEFAULT;
+  const layoutMode = meta && meta.layout_mode ? meta.layout_mode : LAYOUT_MODE;
 
   const issues = [];
   issues.push(...checkMetadata(meta, version));
@@ -439,10 +515,10 @@ function main() {
   const semanticWarnings = issues.filter((item) => SEMANTIC_WARNING_CODES.includes(item.code));
 
   if (opts.json) {
-    process.stdout.write(JSON.stringify({
+    io.stdout.write(JSON.stringify({
       ok: errors.length === 0 && (!opts.strict || warnings.length === 0),
       version,
-      package: `${pkg.name}@${pkg.version}`,
+      package: `create-ai-os@${version}`,
       targetDir,
       installedVersion: meta ? meta.framework_version : null,
       layout_version: meta && meta.layout_version ? meta.layout_version : LAYOUT_VERSION,
@@ -451,18 +527,20 @@ function main() {
       semantic_warnings: semanticWarnings,
     }, null, 2) + "\n");
   } else {
-    process.stdout.write(`AI-OS doctor for ${targetDir}\n`);
-    process.stdout.write(`Framework: ${pkg.name}@${pkg.version}\n`);
+    io.stdout.write(`AI-OS doctor for ${targetDir}\n`);
+    io.stdout.write(`Framework: create-ai-os@${version}\n`);
     if (meta && meta.framework_version) {
-      process.stdout.write(`Installed: v${meta.framework_version}\n`);
+      io.stdout.write(`Installed: v${meta.framework_version}\n`);
     }
-    process.stdout.write(`Layout: ${layoutMode}\n\n`);
-    process.stdout.write(formatReport(issues));
+    io.stdout.write(`Layout: ${layoutMode}\n\n`);
+    io.stdout.write(formatReport(issues));
   }
 
-  if (errors.length > 0) process.exit(1);
-  if (opts.strict && warnings.length > 0) process.exit(1);
-  process.exit(0);
+  if (errors.length > 0) return 1;
+  if (opts.strict && warnings.length > 0) return 1;
+  return 0;
 }
 
-main();
+if (require.main === module) process.exitCode = main();
+
+module.exports = { main };

@@ -19,10 +19,11 @@ test("public install commands use the last real release", () => {
     assert.doesNotMatch(read(file), /#v11\.0\.0/);
     assert.ok(read(file).includes(pin), `${file} pins ${pin}`);
   }
+  const bareRegistryInvocation = new RegExp(`${["npx", "create-ai-os"].join(" ")}(?:\\s|$)`);
   for (const file of ["README.md", "docs/getting-started.md", "docs/cli.md",
     "examples/greenfield-guided-product.md", "examples/brownfield-change-journey.md",
     "examples/debug-bounded-fix.md", "CHANGELOG.md"]) {
-    assert.doesNotMatch(read(file), /npx create-ai-os(?:\s|$)/);
+    assert.doesNotMatch(read(file), bareRegistryInvocation);
     assert.doesNotMatch(read(file), /install \. --force/);
   }
 });
