@@ -242,10 +242,11 @@ Accept blank/comment lines and exact `key = "value"` assignments only. Reject du
 ```js
 function parseCanonicalToml(content, { requiredKeys = [], allowedKeys = requiredKeys } = {}) {
   const result = Object.create(null);
-  for (const [index, raw] of content.split(/\r?\n/).entries()) {
-    const line = raw.trim();
+  for (const [index, raw] of splitCanonicalLines(content).entries()) {
+    rejectControlCharacters(raw, index + 1);
+    const line = trimAsciiSpaces(raw);
     if (!line || line.startsWith("#")) continue;
-    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"([^"]*)"$/);
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)[ ]*=[ ]*"([^"]*)"$/);
     if (!match) throw new CanonicalParseError(index + 1, "unsupported TOML assignment");
     if (Object.hasOwn(result, match[1])) throw new CanonicalParseError(index + 1, `duplicate key ${match[1]}`);
     if (!allowedKeys.includes(match[1])) throw new CanonicalParseError(index + 1, `unknown key ${match[1]}`);
