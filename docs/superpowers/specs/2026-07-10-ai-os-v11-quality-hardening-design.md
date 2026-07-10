@@ -89,6 +89,12 @@ path  type  ownership  source_sha256
 
 Project/session paths have an empty source hash. Framework paths carry the exact packaged source hash.
 
+`managed-files.tsv` itself is the sole non-self-listed path: its framework
+ownership is fixed by the canonical layout and doctor validates its regular-file
+type, containment, syntax, and completeness separately. Listing its own exact
+content hash would be recursively undefined. Every other installer-managed file
+appears exactly once; no other implicit-ownership exception is allowed.
+
 ## 6. Installer transaction
 
 Installation follows a bounded state machine.
