@@ -1,12 +1,24 @@
 # {{INITIAL_BASELINE_ID}}
 
-> 当前 lane 的初始基线记录。新增记录时新建 `CR-*` 或 `BL-*` 文件，不回写历史。
+> 安装器创建的 bootstrap 记录，仅表示治理工件已初始化，不表示用户已确认交付基线。
+> 确认或变更基线时必须新建 `BL-*` 或 `CR-*` 文件，不回写历史记录。
 
-- **Type**: align
-- **Status**: confirmed
-- **Summary**: 初始交付基线已确认
+- **Type**: bootstrap
+- **Status**: unconfirmed
+- **Summary**: 安装后待确认的初始交付基线
 - **Affects**: lanes/default/MISSION.md
-- **Confirmed At**: {{INITIAL_BASELINE_DATE}}
+- **Created At**: {{INITIAL_BASELINE_DATE}}
+
+## 升格为 confirmed BL
+
+用户确认当前交付基线后，新建不可变的 `BL-YYYYMMDD-HHMMSS-<slug>.md`，并包含：
+
+- `previous_baseline_id`
+- `confirmed_by`
+- `confirmed_at`
+- `source_refs`
+
+随后将 `lane.toml.baseline_id` 与 `tasks.yaml.baseline_id` 指向该 confirmed BL；本 bootstrap 记录保持不变。
 
 ## 后续 CR delta lifecycle 模板
 
@@ -16,8 +28,11 @@
 2. `## Proposed delta`
 3. `## Affected artifacts`
 4. `## Acceptance delta`
-5. `## Close/archive condition`
-6. `## Preventability review`
+5. `## Approval`
+6. `## Close/archive condition`
+7. `## Preventability review`
+
+CR 状态按 `proposed` → `approved` → `applied` 推进；只有具备有效审批的 CR 才能进入 `applied`，并引用由它产生的新 confirmed BL。历史 CR 与 BL 均不可回写。
 
 ## Preventability review 字段说明
 

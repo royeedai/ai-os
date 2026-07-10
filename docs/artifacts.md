@@ -44,7 +44,8 @@ v10 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/d
 
 - **职责**：共享稳定决策、长期约定、跨层契约、坑点、技术债
 - **架构护栏**：§2 工程约束即「架构护栏 / 编码契约登记表」（统一返回包装、必须复用抽象、禁止反模式、依赖策略）；不另建 `.ai-os-rules` 等第二真理源文件；验证阶段逐条对照
-- **版本控制**：入版本控制，使用 union merge
+- **版本控制**：入版本控制，使用正常 Git 冲突处理；禁止自动并集互相冲突的 active 事实
+- **记录身份**：每条 stable record 使用全局唯一且不复用的 `id`，并保留 `status`、`source`、`owner`、`last_verified`、`supersedes`
 - **加载层级**：L2
 
 ### 4. `.ai-os/framework.toml` + `managed-files.tsv`
@@ -58,7 +59,8 @@ v10 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/d
 ### 5. `.ai-os/lanes/default/lane.toml`
 
 - **职责**：lane 元数据
-- **关键字段**：`id` `title` `status` `baseline_id` `quality_tier` `risk_tier`
+- **关键字段**：`id` `title` `status` `baseline_id` `quality_tier` `risk_tier` `governance_tier`
+- **真理源**：当前 baseline 指针和三种 tier 均以此文件为准；`MISSION.md` / `STATE.md` 只能镜像
 - **加载层级**：L1
 
 ### 6. `.ai-os/lanes/default/MISSION.md`
@@ -78,17 +80,56 @@ v10 起，AI-OS 只有一套 canonical layout：**共享根层 + `.ai-os/lanes/d
 
 - **职责**：当前方位、待确认项、下一步
 - **版本控制**：不入版本控制
+- **权威边界**：仅用于 session 导航；与已提交真理源冲突时视为 stale 并重建
 - **加载层级**：L1（session 恢复入口）
 
 ### 9. `.ai-os/lanes/default/baseline-log/`
 
 - **职责**：变更请求与基线升格记录（**L3**）
-- **CR schema**：`CR-*` 记录必须说明 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Close/archive condition；CR 关闭前补 `## Preventability review`（`Preventable: yes / no / partial` + root cause + suggested guard）；lane 关闭前补 `BL-*-retrospective*.md` 聚合
+- **CR schema**：`CR-*` 记录必须说明 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Approval、Close/archive condition；CR 关闭前补 `## Preventability review`（`Preventable: yes / no / partial` + root cause + suggested guard）；lane 关闭前补 `BL-*-retrospective*.md` 聚合
 
 ### 10. `.ai-os/lanes/default/tasks.yaml`
 
-- **职责**：任务、owner、依赖、审批（`approval_required`）、证据要求与证据产出（**L2**）
-- **关键字段**：`id` `title` `milestone` `status` `owner` `priority` `approval_required` `depends_on` `acceptance_refs` `evidence_required` `evidence_produced` `change_scope`
+- **职责**：任务、owner、依赖、结构化审批、证据要求 / 产出和代码 / 数据 / 运行状态（**L2**）
+- **关键字段**：`id` `title` `milestone` `status` `owner` `priority` `approval` `depends_on` `acceptance_refs` `evidence_required` `evidence_produced` `delivery_state` `change_scope`
+
+## 治理、基线、审批与证据契约
+
+### Tier 与优先级
+
+- `quality_tier`：`unassessed` / `exploratory` / `standard` / `strict`
+- `risk_tier`：`unassessed` / `low` / `medium` / `high`
+- `governance_tier`：`unassessed` / `G0` / `G1` / `G2`
+- task `priority`：`P0` / `P1` / `P2` / `P3`；它只表示任务优先级，不能代替治理档位
+
+新建 lane 的三个 tier 都是 `unassessed`，完成评估前不得声称 delivery ready。`G0` 用于低风险且范围清晰的 exploratory 交付，`G1` 用于 standard 交付或中等不确定性 / 风险，`G2` 用于 strict、高风险、不可逆、生产、资产、权限或外部副作用交付。
+
+### Baseline 与 CR 生命周期
+
+```text
+bootstrap-unconfirmed
+  -> confirmed BL
+  -> proposed CR
+  -> approved CR
+  -> applied CR
+  -> new immutable confirmed BL
+```
+
+- bootstrap 只含创建事实，`status` 为 `unconfirmed`，不得包含确认时间或确认声明。
+- confirmed BL 必须记录 `previous_baseline_id`、`confirmed_by`、`confirmed_at`、`source_refs`，且历史记录不可变。
+- CR 必须记录 `status`、`current_behavior`、`proposed_delta`、`affected_artifacts`、`acceptance_delta`、`approval`、`close_condition`、`preventability_review`。只有已审批 CR 才能进入 applied，并指向新建的 confirmed BL。
+- `lane.toml.baseline_id` 是当前指针；`tasks.yaml.baseline_id` 绑定任务快照；`STATE.md` 中的 ID 只是可重建镜像。
+
+### Task v5、审批与证据枚举
+
+- task `status`：`todo` / `in-progress` / `blocked` / `done` / `shipped`。
+- `approval.required`：布尔值。`approval.status` 只允许 `not-required` / `pending` / `approved` / `rejected` / `expired`；`required: false` 对应 `not-required`。
+- 审批还必须保留 `decided_by`、`decided_at`、`baseline_id`、`approved_scope`、`conditions`、`evidence_ref`。AI 不得自我审批，也不得从上下文推断出人类审批；只有明确的人类决定才能写入审批结果和来源证据。
+- `evidence_produced[].kind`：`static` / `test` / `runtime` / `data` / `manual` / `release`。
+- evidence 记录包含 `id`、`kind`、`command`、`exit_code`、`git_sha`、`environment`、`observed_at`、`artifact`、`confidence`；`observed_at` 使用 ISO-8601，`git_sha` 使用产生证据时的完整 commit SHA。
+- evidence `confidence`：`observed` / `inferred` / `unknown`。只有与当前 baseline / commit 绑定的 fresh `observed` 证据能满足完成门。
+- `delivery_state.code` / `data` / `runtime`：`observed` / `inferred` / `unknown` / `not-applicable`。三个维度必须分别持久化，不得用聊天结论相互代替。
+- `done` / `shipped` 任务必须具备有效 `acceptance_refs` 和 fresh observed evidence；`inferred` 或 `unknown` 不能满足完成门。
 
 ## 按需工件（默认不安装）
 
