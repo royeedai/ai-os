@@ -1,59 +1,76 @@
 # {{INITIAL_BASELINE_ID}}
 
-> 安装器创建的 bootstrap 记录，仅表示治理工件已初始化，不表示用户已确认交付基线。
-> 确认或变更基线时必须新建 `BL-*` 或 `CR-*` 文件，不回写历史记录。
-
 - **Type**: bootstrap
 - **Status**: unconfirmed
-- **Summary**: 安装后待确认的初始交付基线
-- **Affects**: lanes/default/MISSION.md
 - **Created At**: {{INITIAL_BASELINE_DATE}}
 
-## 升格为 confirmed BL
+## Canonical record contract
 
-用户确认当前交付基线后，新建不可变的 `BL-YYYYMMDD-HHMMSS-<slug>.md`，并包含：
+字段名、大小写、标点和枚举值都是 canonical contract，不得改写或翻译：bootstrap 使用 `Type: bootstrap` / `Status: unconfirmed`；confirmed BL 使用 `Type: baseline` / `Status: confirmed`；CR 使用 `Type: change`，`Status` 只允许 `proposed` / `approved` / `applied` / `rejected`。
 
-- `previous_baseline_id`
-- `confirmed_by`
-- `confirmed_at`
-- `source_refs`
+bootstrap 与 confirmed BL 创建后不可变。CR 在 `proposed` 状态可编辑；进入 `approved` 后，`approval` 冻结已决定的范围；进入 `applied` 后整条 CR 完整不可变。只有 `approved` CR 可进入 `applied`，且 `result_baseline_id` 必须指向由该 CR 新建的 confirmed BL。
 
-随后将 `lane.toml.baseline_id` 与 `tasks.yaml.baseline_id` 指向该 confirmed BL；本 bootstrap 记录保持不变。
+fresh bootstrap 只表示治理工件已创建，不表示用户已确认目标、设计或验收，也不得声称 `Design Locked`。确认或变更基线时新建记录，不回写 bootstrap 或历史 BL。
 
-## 后续 CR delta lifecycle 模板
+### Confirmed BL skeleton
 
-新增 `CR-YYYYMMDD-HHMMSS-<slug>.md` 时必须包含以下段落：
+```ai-os-confirmed-bl
+# BL-YYYYMMDD-HHMMSS-<slug>
 
-1. `## Current behavior`
-2. `## Proposed delta`
-3. `## Affected artifacts`
-4. `## Acceptance delta`
-5. `## Approval`
-6. `## Close/archive condition`
-7. `## Preventability review`
+- **Type**: baseline
+- **Status**: confirmed
+- **previous_baseline_id**: <baseline-id>
+- **confirmed_by**: <human-identity>
+- **confirmed_at**: <ISO-8601>
+- **source_refs**:
+  - <source-ref>
+```
 
-CR 状态按 `proposed` → `approved` → `applied` 推进；只有具备有效审批的 CR 才能进入 `applied`，并引用由它产生的新 confirmed BL。历史 CR 与 BL 均不可回写。
+### Change request skeleton
+
+```ai-os-change-request
+# CR-YYYYMMDD-HHMMSS-<slug>
+
+- **Type**: change
+- **Status**: proposed
+- **current_behavior**: <non-empty>
+- **proposed_delta**: <non-empty>
+- **affected_artifacts**:
+  - <artifact-path>
+- **acceptance_delta**:
+  - <acceptance-ref-or-delta>
+- **approval**: ""
+- **close_condition**: <non-empty>
+- **preventability_review**: <yes-or-no-or-partial-with-reason-and-guard>
+- **result_baseline_id**: ""
+```
+
+字段的人类可读映射是 Current behavior、Proposed delta、Affected artifacts、Acceptance delta、Approval、Close/archive condition 和 Preventability review；实际记录必须使用 skeleton 中的 canonical 字段名。
+
+## Baseline pointer transition
+
+应用 CR 并新建 confirmed BL 时，在同一个变更集中对齐 `lane.toml.baseline_id`、`MISSION.md` baseline 镜像、`tasks.yaml` 顶层 `baseline_id`，以及文件存在时的 `STATE.md` baseline 镜像。task `approval.baseline_id` 是审批发生时的快照，不得随当前 baseline 机械重写。
 
 ## Preventability review 字段说明
 
-`## Preventability review` 段落是 AI-OS 的 framework feedback 入口。每条 CR 关闭前补一段，记录"这次修改在 AI 第一次通过 AI-OS 开发时是否本可避免"。字段：
+`preventability_review` 是 AI-OS 的 framework feedback 入口。每条 CR 关闭前记录“这次修改在 AI 第一次通过 AI-OS 开发时是否本可避免”：
 
 - `Preventable`: `yes` / `no` / `partial`
   - `yes`：本可避免，AI-OS 第一次 session 应该拦住
   - `no`：真实需求变化或外部条件变化，与 AI-OS 框架本身无关
   - `partial`：AI-OS 部分覆盖但仍漏，最有价值的迭代信号
-- `If yes, root cause`：AI-OS 第一次 session 没让用户做的事、没问的问题或没锁的设计（自由文字）
-- `Suggested guard`：如果要在 AI-OS 框架里防住，应改哪个工件 / 行为规则 / doctor 检查（自由文字）
+- `If yes, root cause`：AI-OS 第一次 session 没让用户做的事、没问的问题或没锁的设计
+- `Suggested guard`：应修改的工件、行为规则或 doctor 检查
 
 数据纯本地、入版本控制，不做任何遥测或上报。
 
 ## Lane 关闭 retrospective baseline-log
 
-lane `status` 切到 `closed` 前，建议新增一条 `BL-YYYYMMDD-HHMMSS-retrospective.md`，聚合本 lane 内所有 `Preventability review`：
+lane `status` 切到 `closed` 前，建议新增一条 `BL-YYYYMMDD-HHMMSS-retrospective.md`，聚合本 lane 内所有 Preventability review：
 
 - `Type`: `retrospective`
 - `Status`: `closed`
-- `## Preventable findings`：列出 `Preventable: yes` / `partial` 的 CR 编号 + 一句话根因
-- `## Suggested framework changes`：AGENTS.md / 工件模板 / doctor / docs 该改什么
+- `## Preventable findings`：列出 `Preventable: yes` / `partial` 的 CR 编号与一句话根因
+- `## Suggested framework changes`：AGENTS.md / 工件模板 / doctor / docs 应修改什么
 
 retrospective 文件命名规则与 CR 相同，slug 必须包含 `retrospective`，便于 `git grep` 检索。

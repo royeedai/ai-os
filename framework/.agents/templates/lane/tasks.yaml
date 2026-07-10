@@ -1,7 +1,5 @@
 # 本模板所有内容必须严格基于用户确认的需求基准生成，禁止擅自超出范围、脑补内容。
-# v4 迁移：用 approval.required 替代 approval_required:，不得同时保留两个数据字段。
-# evidence_produced 条目字段：id:、kind:、command:、exit_code:、git_sha:、environment:、
-# observed_at:、artifact:、confidence:；仅记录真实证据，confidence 为 observed / inferred / unknown。
+# 里程碑标题描述待达成目标；fresh task 保持 todo、evidence_produced 为空、delivery_state 为 unknown。
 version: 5
 baseline_id: "{{INITIAL_BASELINE_ID}}"
 scope:
@@ -11,12 +9,15 @@ scope:
 
 milestones:
   - id: M1
+    title: "Design Locked"
+    goal: "关键设计与逻辑已确认"
+  - id: M2
     title: "Built and Verified"
-    goal: "设计、实现、验证和交付证据已就绪"
+    goal: "实现、验证和交付证据已就绪"
 
 tasks:
   - id: TASK-AI-001
-    title: "按已锁定设计完成实现与验证"
+    title: "收敛当前 lane 的关键设计与契约"
     milestone: M1
     status: todo
     owner: AI
@@ -34,8 +35,38 @@ tasks:
     acceptance_refs:
       - "AC-001"
     evidence_required:
-      - "build-log"
-      - "test-log"
+      # v4 design-note 语义映射为 canonical static evidence kind。
+      - static
+    evidence_produced: []
+    delivery_state:
+      code: unknown
+      data: unknown
+      runtime: unknown
+    change_scope:
+      - ".ai-os/lanes/default/DESIGN.md"
+  - id: TASK-AI-002
+    title: "按已锁定设计完成实现与验证"
+    milestone: M2
+    status: todo
+    owner: AI
+    priority: P0
+    approval:
+      required: false
+      status: not-required
+      decided_by: ""
+      decided_at: ""
+      baseline_id: "{{INITIAL_BASELINE_ID}}"
+      approved_scope: []
+      conditions: []
+      evidence_ref: ""
+    depends_on:
+      - "TASK-AI-001"
+    acceptance_refs:
+      - "AC-001"
+    evidence_required:
+      # v4 build-log / test-log 语义映射为 canonical static / test evidence kinds。
+      - static
+      - test
     evidence_produced: []
     delivery_state:
       code: unknown

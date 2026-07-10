@@ -189,16 +189,51 @@ test("docs: framework templates ship core artifacts only", () => {
   );
 });
 
-test("docs: tasks.yaml template is minimal", () => {
+test("docs: tasks.yaml template uses the canonical v5 governance structure", () => {
   const tasks = read("framework/.agents/templates/lane/tasks.yaml");
-  for (const field of ["id:", "title:", "milestone:", "status:", "owner:", "priority:", "approval_required:", "depends_on:", "acceptance_refs:", "evidence_required:", "evidence_produced:", "change_scope:"]) {
+  assert.match(tasks, /^version: 5$/m);
+  for (const field of [
+    "id:",
+    "title:",
+    "milestone:",
+    "status:",
+    "owner:",
+    "priority:",
+    "approval:",
+    "required:",
+    "decided_by:",
+    "decided_at:",
+    "baseline_id:",
+    "approved_scope:",
+    "conditions:",
+    "evidence_ref:",
+    "depends_on:",
+    "acceptance_refs:",
+    "evidence_required:",
+    "evidence_produced:",
+    "delivery_state:",
+    "code:",
+    "data:",
+    "runtime:",
+    "change_scope:",
+  ]) {
     assert.ok(tasks.includes(field), `tasks template includes ${field}`);
   }
-  for (const removed of ["agent_run_review", "fact_state_review", "maintenance_review", "handoff_to", "context_refs", "expected_return", "impact_tags", "deviation_log"]) {
+  for (const removed of [
+    "approval_required",
+    "agent_run_review",
+    "fact_state_review",
+    "maintenance_review",
+    "handoff_to",
+    "context_refs",
+    "expected_return",
+    "impact_tags",
+    "deviation_log",
+  ]) {
     assert.ok(!tasks.includes(removed), `tasks template no longer includes ${removed}`);
   }
-  const lines = tasks.split(/\r?\n/).length;
-  assert.ok(lines <= 60, `tasks template stays compact (got ${lines} lines)`);
+  assert.equal((tasks.match(/^    approval:$/gm) || []).length, 2, "both example tasks carry approval state");
+  assert.equal((tasks.match(/^    delivery_state:$/gm) || []).length, 2, "both example tasks carry delivery state");
 });
 
 test("docs: BL-template ships CR delta lifecycle and framework feedback schema", () => {

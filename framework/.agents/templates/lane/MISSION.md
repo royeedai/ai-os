@@ -2,6 +2,7 @@
 
 > 本文件是当前 lane 的唯一交付基线真理源。宿主项目长期上下文写在根层 `.ai-os/MISSION.md`。
 > 任何需求补充、范围调整或验收变化，都必须先写 `baseline-log/CR-*.md` 做影响分析，再按需更新本文件和相关 spec。
+> 本节中的 tier 与 baseline ID 是 `lane.toml` 机器真理源的可读镜像，必须保持单值且一致。
 
 ## 1. 当前交付基线摘要
 
@@ -9,10 +10,12 @@
 - **当前交付目标**：
 - **成功标准**：
 - **项目模式**：greenfield / reverse-spec / brownfield / change
-- **当前质量档位（quality_tier，真理源见 lane.toml）**：unassessed / exploratory / standard / strict
-- **当前风险档位（risk_tier，真理源见 lane.toml）**：unassessed / low / medium / high
-- **当前治理档位（governance_tier，真理源见 lane.toml）**：unassessed / G0 / G1 / G2
-- **当前基线 ID**：{{INITIAL_BASELINE_ID}}
+- **当前质量档位（quality_tier，lane.toml 镜像）**：unassessed
+- **当前风险档位（risk_tier，lane.toml 镜像）**：unassessed
+- **当前治理档位（governance_tier，lane.toml 镜像）**：unassessed
+- **当前基线 ID（lane.toml.baseline_id 镜像）**：{{INITIAL_BASELINE_ID}}
+
+> 允许值：`quality_tier` 为 `unassessed / exploratory / standard / strict`；`risk_tier` 为 `unassessed / low / medium / high`；`governance_tier` 为 `unassessed / G0 / G1 / G2`。评估后只把当前单值写回上方镜像。
 
 ## 2. 用户与闭环场景（进入实现前向用户反述并确认）
 
