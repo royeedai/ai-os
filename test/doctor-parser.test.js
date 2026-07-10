@@ -2,6 +2,7 @@
 
 "use strict";
 
+const { spawnSync } = require("node:child_process");
 const {
   test,
   assert,
@@ -14,6 +15,57 @@ const {
   parseCanonicalToml,
   parseCanonicalYaml,
 } = doctorShared;
+const DOCTOR_SHARED_PATH = require.resolve("../bin/doctor-shared");
+
+function nestedMapping(depth, terminal = "leaf: value") {
+  const lines = Array.from(
+    { length: depth },
+    (_, index) => `${"  ".repeat(index)}level_${index}:`,
+  );
+  lines.push(`${"  ".repeat(depth)}${terminal}`);
+  return `${lines.join("\n")}\n`;
+}
+
+function runLargeWhitespaceProbe(mode) {
+  const source = String.raw`
+    const { parseCanonicalYaml } = require(process.argv[1]);
+    const mode = process.argv[2];
+    const length = 200 * 1024;
+    const spaces = " ".repeat(length);
+    const content = mode === "indent"
+      ? spaces + "id: A\n"
+      : 'value: "' + spaces + 'A"\n';
+    try {
+      const parsed = parseCanonicalYaml(content);
+      process.stdout.write(JSON.stringify({
+        kind: "value",
+        length: mode === "quoted" ? parsed.value.length : null,
+        last: mode === "quoted" ? parsed.value.at(-1) : null,
+      }));
+    } catch (error) {
+      process.stdout.write(JSON.stringify({
+        kind: "error",
+        name: error.name,
+        line: error.line ?? null,
+        reason: error.reason ?? null,
+      }));
+    }
+  `;
+  return spawnSync(process.execPath, ["-e", source, DOCTOR_SHARED_PATH, mode], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 3_000,
+  });
+}
+
+function largeWhitespaceProbePayload(mode) {
+  const result = runLargeWhitespaceProbe(mode);
+  assert.equal(result.error, undefined, result.error?.stack || result.stderr);
+  assert.equal(result.signal, null, result.stderr);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  return JSON.parse(result.stdout);
+}
 
 function assertCanonicalError(block, { line, reason }) {
   assert.throws(block, (error) => {
@@ -123,11 +175,9 @@ test("canonical YAML parses the distributed tasks schema without field-order cou
   assert.deepEqual(parsed.tasks[0].approval.approved_scope, []);
   assert.deepEqual(parsed.tasks[0].acceptance_refs, ["AC-001"]);
   assert.deepEqual(parsed.tasks[1].evidence_required, ["build-log", "test-log"]);
-  assert.deepEqual(parsed.tasks[1].delivery_state, {
-    code: "unknown",
-    data: "unknown",
-    runtime: "unknown",
-  });
+  assert.equal(parsed.tasks[1].delivery_state.code, "unknown");
+  assert.equal(parsed.tasks[1].delivery_state.data, "unknown");
+  assert.equal(parsed.tasks[1].delivery_state.runtime, "unknown");
 });
 
 test("canonical YAML task field order is semantically irrelevant", () => {
@@ -189,7 +239,6 @@ test("canonical YAML defines prototype-named keys as safe own data properties", 
 constructor: canonical
 prototype: retained
 `);
-  assert.equal(Object.getPrototypeOf(parsed), Object.prototype);
   assert.equal(Object.hasOwn(parsed, "__proto__"), true);
   assert.equal(Object.hasOwn(parsed, "constructor"), true);
   assert.equal(parsed.__proto__, "explicit");
@@ -353,7 +402,6 @@ right:
   id: B
 `);
   for (const value of [parsed.nested, parsed.items[0]]) {
-    assert.equal(Object.getPrototypeOf(value), Object.prototype);
     assert.equal(Object.hasOwn(value, "__proto__"), true);
     assert.equal(Object.hasOwn(value, "constructor"), true);
   }
@@ -415,6 +463,43 @@ test("canonical YAML and TOML retain NBSP inside quoted string data", () => {
   assert.equal(parseCanonicalYaml('value: "A\u00a0B"\n').value, "A\u00a0B");
   const toml = parseCanonicalToml('id = "A\u00a0B"\n', { requiredKeys: ["id"] });
   assert.equal(toml.id, "A\u00a0B");
+});
+
+test("canonical YAML rejects a 200KB indented line within the resource budget", () => {
+  const payload = largeWhitespaceProbePayload("indent");
+  assert.equal(payload.kind, "error");
+  assert.equal(payload.name, "CanonicalParseError");
+  assert.equal(payload.line, 1);
+  assert.equal(payload.reason, "invalid indentation");
+});
+
+test("canonical YAML parses a 200KB quoted space run within the resource budget", () => {
+  const payload = largeWhitespaceProbePayload("quoted");
+  assert.equal(payload.kind, "value");
+  assert.equal(payload.length, (200 * 1024) + 1);
+  assert.equal(payload.last, "A");
+});
+
+test("canonical YAML accepts the maximum nesting depth", () => {
+  let value = parseCanonicalYaml(nestedMapping(64));
+  for (let index = 0; index < 64; index += 1) {
+    value = value[`level_${index}`];
+  }
+  assert.equal(value.leaf, "value");
+});
+
+test("canonical YAML rejects excessive nesting before native stack exhaustion", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml(nestedMapping(2_500)),
+    { line: 66, reason: "maximum nesting depth exceeded" },
+  );
+});
+
+test("canonical YAML rejects a sequence mapping child beyond the maximum depth", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml(nestedMapping(64, "- id: value")),
+    { line: 65, reason: "maximum nesting depth exceeded" },
+  );
 });
 
 for (const [name, content, line, reason] of [

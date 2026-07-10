@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const LAYOUT_VERSION = "11";
 const LAYOUT_MODE = "shared-root-default-lane";
+const MAX_CANONICAL_YAML_NESTING_DEPTH = 64;
 const OWNERSHIP = Object.freeze({
   FRAMEWORK: "framework",
   PROJECT: "project",
@@ -42,7 +43,23 @@ function rejectControlCharacters(line, lineNumber) {
 }
 
 function trimAsciiSpaces(value) {
-  return value.replace(/^[ ]+/, "").replace(/[ ]+$/, "");
+  let start = 0;
+  while (start < value.length && value.charCodeAt(start) === 0x20) start += 1;
+  let end = value.length;
+  while (end > start && value.charCodeAt(end - 1) === 0x20) end -= 1;
+  return value.slice(start, end);
+}
+
+function trimTrailingAsciiSpaces(value) {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 0x20) end -= 1;
+  return value.slice(0, end);
+}
+
+function countLeadingAsciiSpaces(value) {
+  let length = 0;
+  while (length < value.length && value.charCodeAt(length) === 0x20) length += 1;
+  return length;
 }
 
 function parseCanonicalToml(
@@ -112,12 +129,12 @@ function tokenizeCanonicalYaml(content) {
       throw new CanonicalParseError(lineNumber, "tabs are not supported");
     }
     rejectControlCharacters(raw, lineNumber);
-    const uncommented = stripYamlComment(raw).replace(/[ ]+$/, "");
+    const uncommented = trimTrailingAsciiSpaces(stripYamlComment(raw));
     if (!uncommented) continue;
     if (uncommented[0] !== " " && /^\s/u.test(uncommented)) {
       throw new CanonicalParseError(lineNumber, "unsupported YAML mapping");
     }
-    const indent = (uncommented.match(/^[ ]*/) || [""])[0].length;
+    const indent = countLeadingAsciiSpaces(uncommented);
     if (indent % 2 !== 0) {
       throw new CanonicalParseError(
         lineNumber,
@@ -216,17 +233,33 @@ function isYamlSequenceLine(text) {
   return text === "-" || text.startsWith("- ");
 }
 
-function parseYamlNode(tokens, index, indent) {
+function parseYamlNode(tokens, index, indent, depth) {
   const token = tokens[index];
   if (!token || token.indent !== indent) {
     throw new CanonicalParseError(token ? token.line : 0, "invalid indentation");
   }
   return isYamlSequenceLine(token.text)
-    ? parseYamlSequence(tokens, index, indent)
-    : parseYamlMapping(tokens, index, indent);
+    ? parseYamlSequence(tokens, index, indent, depth)
+    : parseYamlMapping(tokens, index, indent, depth);
 }
 
-function parseYamlMappingEntry(tokens, nextIndex, indent, target, text, line) {
+function nextYamlNestingDepth(depth, line) {
+  const nextDepth = depth + 1;
+  if (nextDepth > MAX_CANONICAL_YAML_NESTING_DEPTH) {
+    throw new CanonicalParseError(line, "maximum nesting depth exceeded");
+  }
+  return nextDepth;
+}
+
+function parseYamlMappingEntry(
+  tokens,
+  nextIndex,
+  indent,
+  depth,
+  target,
+  text,
+  line,
+) {
   const { key, scalar } = yamlMappingParts(text, line);
   if (Object.hasOwn(target, key)) {
     throw new CanonicalParseError(line, `duplicate key ${key}`);
@@ -243,12 +276,13 @@ function parseYamlMappingEntry(tokens, nextIndex, indent, target, text, line) {
   if (child.indent !== indent + 2) {
     throw new CanonicalParseError(child.line, "invalid indentation");
   }
-  const parsed = parseYamlNode(tokens, nextIndex, indent + 2);
+  const childDepth = nextYamlNestingDepth(depth, child.line);
+  const parsed = parseYamlNode(tokens, nextIndex, indent + 2, childDepth);
   defineYamlKey(target, key, parsed.value, line);
   return parsed.next;
 }
 
-function parseYamlMapping(tokens, index, indent) {
+function parseYamlMapping(tokens, index, indent, depth) {
   const result = {};
   let cursor = index;
   while (cursor < tokens.length) {
@@ -264,6 +298,7 @@ function parseYamlMapping(tokens, index, indent) {
       tokens,
       cursor + 1,
       indent,
+      depth,
       result,
       token.text,
       token.line,
@@ -272,9 +307,17 @@ function parseYamlMapping(tokens, index, indent) {
   return { value: result, next: cursor };
 }
 
-function parseYamlSequenceMapping(tokens, index, indent, text, line) {
+function parseYamlSequenceMapping(tokens, index, indent, depth, text, line) {
   const result = {};
-  let cursor = parseYamlMappingEntry(tokens, index + 1, indent, result, text, line);
+  let cursor = parseYamlMappingEntry(
+    tokens,
+    index + 1,
+    indent,
+    depth,
+    result,
+    text,
+    line,
+  );
   while (cursor < tokens.length && tokens[cursor].indent === indent) {
     const token = tokens[cursor];
     if (isYamlSequenceLine(token.text)) {
@@ -284,6 +327,7 @@ function parseYamlSequenceMapping(tokens, index, indent, text, line) {
       tokens,
       cursor + 1,
       indent,
+      depth,
       result,
       token.text,
       token.line,
@@ -295,7 +339,7 @@ function parseYamlSequenceMapping(tokens, index, indent, text, line) {
   return { value: result, next: cursor };
 }
 
-function parseYamlSequence(tokens, index, indent) {
+function parseYamlSequence(tokens, index, indent, depth) {
   const result = [];
   let cursor = index;
   while (cursor < tokens.length) {
@@ -313,7 +357,15 @@ function parseYamlSequence(tokens, index, indent) {
 
     const item = token.text.slice(2);
     if (/^[A-Za-z_][A-Za-z0-9_]*:/.test(item)) {
-      const parsed = parseYamlSequenceMapping(tokens, cursor, indent + 2, item, token.line);
+      const mappingDepth = nextYamlNestingDepth(depth, token.line);
+      const parsed = parseYamlSequenceMapping(
+        tokens,
+        cursor,
+        indent + 2,
+        mappingDepth,
+        item,
+        token.line,
+      );
       result.push(parsed.value);
       cursor = parsed.next;
       continue;
@@ -339,7 +391,7 @@ function parseCanonicalYaml(content) {
   if (isYamlSequenceLine(tokens[0].text)) {
     throw new CanonicalParseError(tokens[0].line, "root must be a mapping");
   }
-  const parsed = parseYamlMapping(tokens, 0, 0);
+  const parsed = parseYamlMapping(tokens, 0, 0, 0);
   if (parsed.next !== tokens.length) {
     throw new CanonicalParseError(tokens[parsed.next].line, "invalid indentation");
   }

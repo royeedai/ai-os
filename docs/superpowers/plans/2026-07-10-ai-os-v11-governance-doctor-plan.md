@@ -259,15 +259,19 @@ function parseCanonicalToml(content, { requiredKeys = [], allowedKeys = required
 - [ ] **Step 4: Implement the indentation YAML parser**
 
 Tokenize only spaces in multiples of two, remove comments only outside quoted
-strings, build mapping/sequence nodes with an indentation stack, and reject
-every unsupported token explicitly. Accepted scalars are double-quoted strings
-with `\\`, `\"`, `\n`, `\r`, `\t` escapes; plain enum/identifier strings;
-signed decimal integers; `true`, `false`, `null`; and `[]`. The root is a
-mapping. Empty implicit values open a mapping/sequence; tabs, empty scalars,
-root sequences, anchors, aliases, tags, flow maps, block scalars, duplicate
-mapping keys, malformed escapes, and inconsistent indentation fail with the
-source line. Duplicate task IDs are a schema-validator error, not a YAML-parser
-error. Do not silently skip a line.
+strings, scan leading/trailing ASCII spaces with linear char-code/index passes,
+use bounded recursive descent over indentation tokens, and reject every
+unsupported token explicitly. Do not use an end-anchored backtracking regex
+for whitespace runs. Accepted scalars are double-quoted strings with `\\`,
+`\"`, `\n`, `\r`, `\t` escapes; plain enum/identifier strings; signed
+decimal integers; `true`, `false`, `null`; and `[]`. The root is a mapping at
+depth zero; child containers may reach depth 64, while an attempted recursion
+beyond depth 64 fails on the child source line with
+`maximum nesting depth exceeded`. Empty implicit values open a mapping/sequence;
+tabs, empty scalars, root sequences, anchors, aliases, tags, flow maps, block
+scalars, duplicate mapping keys, malformed escapes, and inconsistent
+indentation fail with the source line. Duplicate task IDs are a schema-validator
+error, not a YAML-parser error. Do not silently skip a line.
 
 - [ ] **Step 5: Run parser tests and lint**
 
