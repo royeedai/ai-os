@@ -29,9 +29,9 @@ The repository will distinguish:
 - `VERSION`: the framework version under development;
 - `RELEASED_VERSION`: the latest externally installable immutable tag.
 
-README, examples, and getting-started commands must use `RELEASED_VERSION`, not the unreleased development version. The `11.0.0` changelog entry remains explicitly `Unreleased` until a final release gate is authorized and completed.
+`RELEASED_VERSION` initially contains `10.5.1`. README, examples, and getting-started commands must use it, not the unreleased development version. The `11.0.0` changelog entry remains explicitly `Unreleased` until a final release gate is authorized and completed. `RELEASED_VERSION` is repository release metadata and is not installed into downstream projects.
 
-AI-OS remains GitHub-distributed. Official messages must never recommend bare `npx create-ai-os`, because the unscoped npm package is not published. Every remote invocation uses an explicit pinned GitHub ref. `package.json` declares the registry-publication decision explicitly so accidental npm publication cannot become an undocumented release path.
+AI-OS remains GitHub-distributed. Official messages must never recommend bare `npx create-ai-os`, because the unscoped npm package is not published. Every remote invocation uses an explicit pinned GitHub ref. `package.json` sets `private: true` so accidental npm publication cannot become an undocumented release path; GitHub-spec installation and local `npm pack` verification remain supported.
 
 ## 4. Ownership model
 
@@ -77,6 +77,8 @@ The layout schema becomes `11`.
 
 `.ai-os/reference/artifacts.md` is framework-owned, read-only product reference, not a delivery artifact. It makes on-demand schemas available offline and is the only schema target referenced by the distributed constitution and skill.
 
+Repository `docs/artifacts.md` remains the canonical schema source. It is included in the package and copied byte-for-byte to `.ai-os/reference/artifacts.md`; a parity test prevents drift.
+
 `framework.toml` and `managed-files.tsv` become stable, committed framework metadata. Installation timestamps are removed because they are local, non-reproducible data. `.gitignore` ignores only session-local state and genuinely generated temporary files.
 
 `managed-files.tsv` columns are:
@@ -101,8 +103,9 @@ Before any target write:
 4. Reject symbolic links, junctions, non-directory parents, and real paths outside the resolved target.
 5. Classify every destination by ownership and current hash.
 6. Detect foreign/custom `AGENTS.md`, IDE pointers, and team-config conflicts.
-7. Detect concurrent installation using an exclusive, temporary target-local lock.
-8. Build a complete operation plan or fail without changing the target.
+7. Build a complete operation plan or fail without changing the target.
+
+After the read-only preflight succeeds, the installer acquires an exclusive `<target>/.ai-os-install.lock` before staging. The lock is the only pre-commit target write. If the target directory was created by this invocation, both the lock and empty target are removed on failure.
 
 Expected filesystem conflicts produce concise installer diagnostics, not raw Node stack traces.
 
@@ -129,7 +132,7 @@ The lock and temporary files are removed on both success and handled failure.
 
 Migration is a specific compatibility path, not a general migration engine.
 
-1. Recognize v10 metadata, pristine template hashes, and the legacy managed git blocks.
+1. Recognize v10 metadata, pristine template hashes, and the legacy managed git blocks. A packaged, version-scoped compatibility manifest contains hashes for every distributed v10 tag; it contains no migration code or user data.
 2. Preserve all project/session artifacts.
 3. Replace only recognized pristine framework/tooling content.
 4. Install committed stable metadata, ownership manifest, local reference, and the smaller doctor shared module.
@@ -259,6 +262,8 @@ JSON and text output distinguish:
 
 A fresh install can have `layout_ok=true` and `delivery_ready=false`. It passes non-strict layout inspection and fails strict delivery gating until alignment is confirmed.
 
+Top-level `delivery_ready` is true only when every active lane is ready. Closed lanes retain structural/history checks but do not block active delivery readiness. Per-lane readiness is included in JSON output.
+
 ### 11.3 Deterministic checks
 
 Doctor validates:
@@ -327,7 +332,7 @@ Required suites:
 8. docs/examples/eval matrix consistency tests;
 9. release-truth tests separating `VERSION` and `RELEASED_VERSION`.
 
-Coverage thresholds start no lower than the freshly measured baseline and may increase after parser/security branches are covered. Coverage is supporting evidence, not a substitute for contract tests.
+Initial coverage floors are lines 94%, branches 72%, and functions 98%, matching the rounded-down fresh baseline. They may increase after parser/security branches are covered. Coverage is supporting evidence, not a substitute for contract tests.
 
 ## 15. CI and supply chain
 
@@ -337,19 +342,19 @@ Repository CI will include:
 - GitHub Actions pinned to reviewed full commit SHAs;
 - full `npm ci`, lint, tests, diff-check, and pack smoke on supported Node versions;
 - Node 22 and 24 blocking jobs;
-- Node 26 canary coverage;
-- Ubuntu and Windows blocking smoke, with macOS path/symlink smoke where behavior differs;
+- Node 26 non-blocking canary coverage;
+- Ubuntu and Windows blocking smoke plus a blocking macOS Node 24 path/symlink smoke;
 - Unicode/space paths and CRLF coverage;
 - production dependency audit and a scheduled/full development audit;
 - package contents and executable-mode checks.
 
-`package.json` declares the supported Node floor consistently with the developer toolchain. Node 18/20 are removed from the supported matrix.
+`package.json` declares `engines.node >=22.13.0`, consistently with the developer toolchain. Node 18/20 are removed from the supported matrix.
 
 Repository security additions:
 
 - `.github/dependabot.yml` for npm and GitHub Actions;
 - `SECURITY.md`;
-- `.github/CODEOWNERS` protecting installer, templates, workflows, release metadata, and CODEOWNERS itself;
+- `.github/CODEOWNERS`, owned by `@royeedai`, protecting installer, templates, workflows, release metadata, and CODEOWNERS itself;
 - dependency review and CodeQL configuration where repository settings permit them.
 
 After local implementation and spec review, repository rules are configured to require PR review, current CI checks, resolved conversations, no force push/deletion, and code-owner review for critical paths. External settings are verified by readback.
@@ -393,3 +398,16 @@ The goal is complete only when all of the following are current-state facts:
 - native tests, lint, diff-check, pack/tarball smoke, coverage, and supported-platform CI pass;
 - repository security/release settings are applied or explicitly proven unavailable with a non-misleading documented state;
 - code, repository data, and runtime status are reported separately with evidence.
+
+## 19. Implementation decomposition
+
+This is one cohesive release-hardening program with six bounded workstreams, executed in dependency order:
+
+1. **Test and release truth foundation:** allow versioned design docs, introduce `RELEASED_VERSION`, migrate to `node:test`, and establish coverage/pack gates.
+2. **Installer safety and migration:** ownership manifest, strict path preflight, transaction/rollback, idempotency, safe force, and v10 compatibility hashes.
+3. **Governance and doctor:** layout v11 templates, local reference, baseline/tier/task schemas, strict parsers, all-lane layout/readiness checks.
+4. **Surface convergence:** thin skill, AGENTS/docs/interop/examples/eval oracles, trigger and authority matrices.
+5. **CI and repository security:** supported OS/Node matrix, pinned Actions, Dependabot, CodeQL, SECURITY, CODEOWNERS, and repository rules.
+6. **Completion audit and release readiness:** adversarial/tarball verification, remote-settings readback, changelog/release checklist, and separate code/data/runtime closeout.
+
+Each workstream must finish with its own regression tests and review before the next dependent workstream is considered complete. Parallel work is allowed only where files and invariants do not overlap.
