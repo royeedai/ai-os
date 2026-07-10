@@ -184,6 +184,105 @@ test("conflicts fail before every transaction write", () => {
   assert.deepEqual(fixtures.snapshotTree(target), before);
 });
 
+for (const scenario of [
+  {
+    label: "missing session file",
+    relativePath: ".ai-os/lanes/default/STATE.md",
+    initial: "USER SESSION STATE\n",
+    mutate(destination) {
+      fs.unlinkSync(destination);
+    },
+  },
+  {
+    label: "changed project file",
+    relativePath: ".ai-os/MISSION.md",
+    initial: "USER PROJECT MISSION\n",
+    mutate(destination) {
+      fs.writeFileSync(destination, "CHANGED PROJECT MISSION\n", { mode: 0o640 });
+    },
+  },
+]) {
+  test(`preserve preflight rejects a ${scenario.label} before staging`, () => {
+    const target = path.join(temporaryRoot(), "target");
+    const destination = writeTargetFile(
+      target,
+      scenario.relativePath,
+      scenario.initial,
+      0o600,
+    );
+    const createdRelativePath = ".ai-os/bin/VERSION";
+    const createdDestination = path.join(target, ...createdRelativePath.split("/"));
+    const plan = installer.buildInstallPlan(target, installOptions({
+      fileSpecs: [
+        FILE_SPECS[scenario.relativePath],
+        FILE_SPECS[createdRelativePath],
+      ],
+    }));
+    assert.equal(
+      plan.operations.find((operation) => operation.relativePath === scenario.relativePath).action,
+      "preserve",
+    );
+    assert.equal(
+      plan.operations.find((operation) => operation.relativePath === createdRelativePath).action,
+      "create",
+    );
+
+    scenario.mutate(destination);
+    const afterMutation = fixtures.snapshotTree(target);
+    const error = captureError(() => installer.executeInstallPlan(plan));
+
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, "revalidate preserve");
+    assert.equal(error.relativePath, scenario.relativePath);
+    assert.equal(fs.existsSync(createdDestination), false);
+    assert.deepEqual(fixtures.snapshotTree(target), afterMutation);
+    assert.deepEqual(transactionArtifacts(target), []);
+  });
+}
+
+test("final preserve validation rolls back committed creates", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const preservedRelativePath = ".ai-os/MISSION.md";
+  const preservedDestination = writeTargetFile(
+    target,
+    preservedRelativePath,
+    "USER PROJECT MISSION\n",
+    0o600,
+  );
+  const createdRelativePath = ".ai-os/bin/VERSION";
+  const createdDestination = path.join(target, ...createdRelativePath.split("/"));
+  const plan = installer.buildInstallPlan(target, installOptions({
+    fileSpecs: [
+      FILE_SPECS[preservedRelativePath],
+      FILE_SPECS[createdRelativePath],
+    ],
+  }));
+  const defaults = installer.createDefaultFsOps();
+  let mutationApplied = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      link(from, to) {
+        const result = defaults.link(from, to);
+        if (!mutationApplied && to === createdDestination) {
+          mutationApplied = true;
+          fs.writeFileSync(preservedDestination, "MUTATED AFTER COMMIT\n", { mode: 0o640 });
+        }
+        return result;
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "revalidate preserve");
+  assert.equal(error.relativePath, preservedRelativePath);
+  assert.equal(mutationApplied, true);
+  assert.equal(fs.readFileSync(preservedDestination, "utf8"), "MUTATED AFTER COMMIT\n");
+  assert.equal(fs.lstatSync(preservedDestination).mode & 0o777, 0o600);
+  assert.equal(fs.existsSync(createdDestination), false);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
 test("target creation failures carry stable filesystem context", () => {
   const target = path.join(temporaryRoot(), "target");
   const plan = installer.buildInstallPlan(

@@ -19,6 +19,7 @@ const BASELINE_ID_PATTERN = /^BL-(\d{8})-(\d{6})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CANONICAL_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.]\d{3}Z$/;
 const INITIAL_BASELINE_FILE_TOKEN = "{{INITIAL_BASELINE_FILE}}";
 const INITIAL_BASELINE_PATH = `.ai-os/lanes/default/baseline-log/${INITIAL_BASELINE_FILE_TOKEN}`;
+const DEFAULT_LANE_METADATA_PATH = ".ai-os/lanes/default/lane.toml";
 const GENERATED_SOURCE_PATHS = Object.freeze({
   [INITIAL_BASELINE_PATH]: "framework/.agents/templates/lane/baseline-log/BL-template.md",
 });
@@ -71,8 +72,11 @@ class InstallFilesystemError extends Error {
   }
 }
 
-function failPlanner(message, cause) {
-  throw new InstallPlannerError(message, cause ? { cause } : undefined);
+function failPlanner(message, ...causes) {
+  throw new InstallPlannerError(
+    message,
+    causes.length === 0 ? undefined : { cause: causes[0] },
+  );
 }
 
 function normalizedRelativePath(value, label) {
@@ -522,15 +526,28 @@ function buildInstallPlan(targetDir, options = {}) {
   } catch (error) {
     targetError = error;
   }
+  const destinationSnapshots = new Map();
+  for (const entry of inventory) {
+    destinationSnapshots.set(
+      entry.relativePath,
+      targetError
+        ? { exists: true, kind: "invalid", hash: null, error: targetError.message }
+        : inspectDestination(resolvedTarget, entry.relativePath),
+    );
+  }
+  if (targetError === null && !destinationSnapshots.has(DEFAULT_LANE_METADATA_PATH)) {
+    destinationSnapshots.set(
+      DEFAULT_LANE_METADATA_PATH,
+      inspectDestination(resolvedTarget, DEFAULT_LANE_METADATA_PATH),
+    );
+  }
   const freshDefaultLane = targetError === null
-    && !inspectDestination(resolvedTarget, ".ai-os/lanes/default/lane.toml").exists;
+    && !destinationSnapshots.get(DEFAULT_LANE_METADATA_PATH).exists;
 
   const operations = [];
   const conflicts = [];
   for (const entry of inventory) {
-    const destination = targetError
-      ? { exists: true, kind: "invalid", hash: null, error: targetError.message }
-      : inspectDestination(resolvedTarget, entry.relativePath);
+    const destination = destinationSnapshots.get(entry.relativePath);
     const accepted = new Set(compatibleHashes.get(entry.relativePath) || []);
     const sourceHash = entry.content === null ? null : sha256(entry.content);
     if (entry.ownership === OWNERSHIP.PROJECT && sourceHash) accepted.add(sourceHash);
@@ -927,19 +944,28 @@ function stageOperations(plan, fsOps, tx) {
   }
 }
 
-function throwRevalidationError(relativePath, message) {
-  throw filesystemError("revalidate commit", relativePath, new Error(message));
+function throwRevalidationError(relativePath, message, phase = "revalidate commit") {
+  throw filesystemError(phase, relativePath, new Error(message));
 }
 
-function validateSafeDirectory(absolutePath, fsOps, relativePath) {
+function validateSafeDirectory(
+  absolutePath,
+  fsOps,
+  relativePath,
+  phase = "revalidate commit",
+) {
   const stat = lstatIfPresent(
     absolutePath,
     fsOps,
-    "revalidate commit",
+    phase,
     relativePath,
   );
   if (stat === null || stat.isSymbolicLink() || !stat.isDirectory()) {
-    throwRevalidationError(relativePath, `path is not a safe directory: ${absolutePath}`);
+    throwRevalidationError(
+      relativePath,
+      `path is not a safe directory: ${absolutePath}`,
+      phase,
+    );
   }
 }
 
@@ -959,28 +985,34 @@ function matchesFileIdentity(stat, identity) {
     && stat.ino === identity.ino;
 }
 
-function readStableRegularFile(absolutePath, fsOps, relativePath, label) {
+function readStableRegularFile(
+  absolutePath,
+  fsOps,
+  relativePath,
+  label,
+  phase = "revalidate commit",
+) {
   const before = lstatIfPresent(
     absolutePath,
     fsOps,
-    "revalidate commit",
+    phase,
     relativePath,
   );
   if (before === null || before.isSymbolicLink() || !before.isFile()) {
-    throwRevalidationError(relativePath, `${label} is not a regular file`);
+    throwRevalidationError(relativePath, `${label} is not a regular file`, phase);
   }
 
   let bytes;
   try {
     bytes = fsOps.readFile(absolutePath);
   } catch (error) {
-    throw filesystemError("revalidate commit", relativePath, error);
+    throw filesystemError(phase, relativePath, error);
   }
 
   const after = lstatIfPresent(
     absolutePath,
     fsOps,
-    "revalidate commit",
+    phase,
     relativePath,
   );
   if (
@@ -989,21 +1021,56 @@ function readStableRegularFile(absolutePath, fsOps, relativePath, label) {
     || !after.isFile()
     || !sameFileIdentity(before, after)
   ) {
-    throwRevalidationError(relativePath, `${label} changed during validation`);
+    throwRevalidationError(relativePath, `${label} changed during validation`, phase);
   }
   return { bytes, stat: after };
+}
+
+function validateSafeDestinationPath(plan, fsOps, relativePath, phase) {
+  validateSafeDirectory(plan.targetDir, fsOps, relativePath, phase);
+  const segments = relativePath.split("/");
+  let parent = plan.targetDir;
+  for (const segment of segments.slice(0, -1)) {
+    parent = path.join(parent, segment);
+    validateSafeDirectory(parent, fsOps, relativePath, phase);
+  }
+}
+
+function revalidatePreservedDestinations(plan, fsOps) {
+  const phase = "revalidate preserve";
+  for (const operation of plan.operations) {
+    if (operation.action !== "preserve") continue;
+    validateSafeDestinationPath(plan, fsOps, operation.relativePath, phase);
+    const absolutePath = path.join(
+      plan.targetDir,
+      ...operation.relativePath.split("/"),
+    );
+    const destination = readStableRegularFile(
+      absolutePath,
+      fsOps,
+      operation.relativePath,
+      "preserved destination",
+      phase,
+    );
+    if (sha256(destination.bytes) !== operation.previousHash) {
+      throwRevalidationError(
+        operation.relativePath,
+        "preserved destination bytes changed after planning",
+        phase,
+      );
+    }
+  }
 }
 
 function revalidateDestinationsBeforeCommit(plan, fsOps, staged) {
   for (const record of staged) {
     const { operation } = record;
-    validateSafeDirectory(plan.targetDir, fsOps, operation.relativePath);
-    const segments = operation.relativePath.split("/");
-    let parent = plan.targetDir;
-    for (const segment of segments.slice(0, -1)) {
-      parent = path.join(parent, segment);
-      validateSafeDirectory(parent, fsOps, operation.relativePath);
-    }
+    validateSafeDestinationPath(
+      plan,
+      fsOps,
+      operation.relativePath,
+      "revalidate commit",
+    );
 
     if (operation.action === "create") {
       const destinationStat = lstatIfPresent(
@@ -1627,8 +1694,10 @@ function executeInstallPlan(plan, { fsOps: overrides = {} } = {}) {
   try {
     ensureTargetForTransaction(plan, fsOps, tx);
     acquireLock(plan.targetDir, fsOps, tx);
+    revalidatePreservedDestinations(plan, fsOps);
     stageOperations(plan, fsOps, tx);
     commitStaged(plan, tx.staged, fsOps);
+    revalidatePreservedDestinations(plan, fsOps);
     tx.committed = true;
     result = installResult(plan);
   } catch (error) {

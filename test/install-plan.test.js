@@ -64,7 +64,7 @@ function capturePlannerError(callback) {
 
 function assertPlannerFailureWithoutWrites(
   clockOrBootstrap,
-  { clock = false, message, cause, causeType } = {},
+  { clock = false, message, cause, causeProvided, causeType } = {},
 ) {
   const root = temporaryRoot();
   const target = path.join(root, "target");
@@ -79,7 +79,11 @@ function assertPlannerFailureWithoutWrites(
   assert.equal(error.name, "InstallPlannerError");
   assert.equal(error.code, "ERR_INSTALL_PLANNER");
   assert.match(error.message, message);
-  if (cause !== undefined) assert.equal(error.cause, cause);
+  const expectsCause = causeProvided === undefined ? cause !== undefined : causeProvided;
+  if (expectsCause) {
+    assert.equal(Object.hasOwn(error, "cause"), true);
+    assert.equal(error.cause, cause);
+  }
   if (causeType !== undefined) assert.ok(error.cause instanceof causeType);
   assert.deepEqual(snapshotTree(root), before);
   assert.equal(fs.existsSync(target), false);
@@ -267,6 +271,49 @@ test("an exact fresh bootstrap record collision remains recognized pristine cont
   assert.equal(conflict(plan, baseline.relativePath), undefined);
   assert.deepEqual(snapshotTree(target), before);
   assert.equal(fs.existsSync(path.join(target, ".ai-os", "lanes", "default", "lane.toml")), false);
+});
+
+test("fresh-lane classification reuses the inventory destination snapshot", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const options = defaultOptions();
+  const laneRelativePath = ".ai-os/lanes/default/lane.toml";
+  const baselineRelativePath = (
+    `.ai-os/lanes/default/baseline-log/${options.bootstrap.file}`
+  );
+  const lanePath = writeTargetFile(target, laneRelativePath, "USER LANE\n");
+  writeTargetFile(target, baselineRelativePath, "FOREIGN BASELINE\n");
+  const originalLstatSync = fs.lstatSync;
+  const originalReadFileSync = fs.readFileSync;
+  let laneSnapshotCaptured = false;
+  let postSnapshotInspections = 0;
+  let plan;
+
+  fs.lstatSync = function lstatSync(file, ...args) {
+    if (laneSnapshotCaptured && path.resolve(file) === lanePath) {
+      postSnapshotInspections += 1;
+    }
+    return originalLstatSync.call(this, file, ...args);
+  };
+  fs.readFileSync = function readFileSync(file, ...args) {
+    const bytes = originalReadFileSync.call(this, file, ...args);
+    if (!laneSnapshotCaptured && path.resolve(file) === lanePath) {
+      laneSnapshotCaptured = true;
+      fs.unlinkSync(lanePath);
+    }
+    return bytes;
+  };
+  try {
+    plan = buildInstallPlan(target, options);
+  } finally {
+    fs.lstatSync = originalLstatSync;
+    fs.readFileSync = originalReadFileSync;
+  }
+
+  assert.equal(laneSnapshotCaptured, true);
+  assert.equal(postSnapshotInspections, 0);
+  assert.equal(operation(plan, laneRelativePath).action, "preserve");
+  assert.equal(operation(plan, baselineRelativePath).action, "preserve");
+  assert.deepEqual(plan.conflicts, []);
 });
 
 test("project template marker match does not replace edited rendered bytes", () => {
@@ -570,9 +617,29 @@ test("a throwing clock is wrapped once with the original cause", () => {
     clock: true,
     message: /clock failed/i,
     cause,
+    causeProvided: true,
   });
   assert.equal(calls, 1);
 });
+
+for (const [label, cause] of [
+  ["null", null],
+  ["false", false],
+  ["zero", 0],
+  ["empty string", ""],
+  ["undefined", undefined],
+]) {
+  test(`a clock throwing ${label} preserves the explicit cause`, () => {
+    assertPlannerFailureWithoutWrites(() => {
+      throw cause;
+    }, {
+      clock: true,
+      message: /clock failed/i,
+      cause,
+      causeProvided: true,
+    });
+  });
+}
 
 for (const [label, bootstrap, message] of [
   [
