@@ -43,7 +43,7 @@ function checkoutStep(source) {
 function assertFullSuiteCheckout(source, label) {
   const checkout = checkoutStep(source);
   const withIndex = checkout.lines.findIndex((line) => (
-    line.match(/^\s*/)[0].length > checkout.indentation && line.trim() === "with:"
+    line.match(/^\s*/)[0].length === checkout.indentation + 2 && line.trim() === "with:"
   ));
   assert.notEqual(withIndex, -1, `${label}: checkout has a with mapping`);
   const withIndentation = checkout.lines[withIndex].match(/^\s*/)[0].length;
@@ -108,8 +108,9 @@ test("CI checkout policy binds tag inputs to the checkout with mapping", () => {
     "    steps:",
     "      - uses: actions/checkout@example",
     "        env:",
-    "          fetch-depth: 0",
-    "          fetch-tags: true",
+    "          with:",
+    "            fetch-depth: 0",
+    "            fetch-tags: true",
     "      - run: npm test",
     "",
   ].join("\n");
