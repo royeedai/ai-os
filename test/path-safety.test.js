@@ -19,6 +19,26 @@ function canonicalTmpDir() {
   return fs.realpathSync.native(tmpDir());
 }
 
+let automaticCleanupProbeRoot;
+
+test("fixture root can be left to the test cleanup fallback", { concurrency: false }, () => {
+  const fixture = symlinkFixture("managed-link");
+  automaticCleanupProbeRoot = fixture.root;
+  assert.equal(fs.existsSync(automaticCleanupProbeRoot), true);
+  // Intentionally omit fixture.cleanup(): the adjacent sequential test verifies
+  // that the fixture module's afterEach fallback owns this root.
+});
+
+test("fixture cleanup fallback removes the preceding test root", { concurrency: false }, () => {
+  assert.equal(typeof automaticCleanupProbeRoot, "string", "preceding test recorded its fixture root");
+  try {
+    assert.equal(fs.existsSync(automaticCleanupProbeRoot), false);
+  } finally {
+    // RED must not leak its intentionally abandoned fixture into the host.
+    cleanup(automaticCleanupProbeRoot);
+  }
+});
+
 test("managed file symlink is rejected before write", () => {
   const fixture = symlinkFixture(".ai-os/bin/doctor-shared.js");
   try {

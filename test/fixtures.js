@@ -3,22 +3,32 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const {
-  cleanup,
+  afterEach,
+  cleanup: cleanupDirs,
   readRepo,
   tmpDir,
 } = require("./helpers");
 
+const fixtureOwners = new Set();
+
+afterEach(() => {
+  for (const owner of [...fixtureOwners]) owner.cleanup();
+});
+
 function ownedFixtureRoot() {
   const root = fs.realpathSync.native(tmpDir());
   let removed = false;
-  return {
+  const owner = {
     root,
     cleanup() {
       if (removed) return;
       removed = true;
-      cleanup(root);
+      fixtureOwners.delete(owner);
+      cleanupDirs(root);
     },
   };
+  fixtureOwners.add(owner);
+  return owner;
 }
 
 function fixturePath(root, relativePath) {
