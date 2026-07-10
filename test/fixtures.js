@@ -8,6 +8,7 @@ const {
   readRepo,
   tmpDir,
 } = require("./helpers");
+const { installProject } = require("../bin/installer");
 
 const fixtureOwners = new Set();
 
@@ -132,7 +133,21 @@ function materializePlanFixture(plan) {
   }
 }
 
+function installedFixture(options = {}) {
+  const owner = ownedFixtureRoot();
+  const target = path.join(owner.root, "target");
+
+  try {
+    installProject(target, options);
+    return target;
+  } catch (error) {
+    owner.cleanup();
+    throw error;
+  }
+}
+
 module.exports = {
+  installedFixture,
   symlinkFixture,
   symlinkParentFixture,
   snapshotTree,

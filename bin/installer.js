@@ -1,5 +1,6 @@
 "use strict";
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const {
@@ -33,6 +34,42 @@ class InstallPlannerError extends Error {
     super(`install planner: ${message}`, options);
     this.name = "InstallPlannerError";
     this.code = "ERR_INSTALL_PLANNER";
+  }
+}
+
+class InstallConflictError extends Error {
+  constructor(conflicts) {
+    const snapshot = [...conflicts]
+      .map(({ relativePath, reason }) => Object.freeze({ relativePath, reason }))
+      .sort((left, right) => (
+        left.relativePath.localeCompare(right.relativePath)
+        || left.reason.localeCompare(right.reason)
+      ));
+    super(`install conflict: ${snapshot
+      .map(({ relativePath, reason }) => `${relativePath}: ${reason}`)
+      .join("; ")}`);
+    this.name = "InstallConflictError";
+    this.code = "ERR_INSTALL_CONFLICT";
+    Object.defineProperty(this, "conflicts", {
+      enumerable: true,
+      value: Object.freeze(snapshot),
+    });
+  }
+}
+
+class InstallFilesystemError extends Error {
+  constructor(phase, relativePath, cause, cleanupErrors = [], detail = cause.message) {
+    const pathContext = relativePath === null ? "" : ` (${relativePath})`;
+    super(`install filesystem: ${phase}${pathContext}: ${detail}`, { cause });
+    this.name = "InstallFilesystemError";
+    this.code = "ERR_INSTALL_FILESYSTEM";
+    this.phase = phase;
+    this.relativePath = relativePath;
+    Object.defineProperty(this, "cleanupErrors", {
+      configurable: true,
+      enumerable: true,
+      value: Object.freeze([...cleanupErrors]),
+    });
   }
 }
 
@@ -239,8 +276,7 @@ function managedFilesManifest(entries) {
   return Buffer.from(["# path\ttype\townership\tsource_sha256", ...rows, ""].join("\n"));
 }
 
-function sourceInventory(options) {
-  const bootstrap = normalizeBootstrap(options.bootstrap);
+function sourceInventory(options, bootstrap = normalizeBootstrap(options.bootstrap)) {
   const sourceRoot = path.resolve(options.sourceRoot || PACKAGE_ROOT);
   const overrides = normalizeSourceOverrides(options.sourceOverrides);
   const descriptors = options.fileSpecs === undefined
@@ -385,11 +421,14 @@ function immutableConflict(relativePath, reason) {
   return Object.freeze({ relativePath, reason });
 }
 
-function immutablePlan(targetDir, operations, conflicts) {
+function immutablePlan(targetDir, operations, conflicts, metadata) {
   return Object.freeze({
     targetDir,
     operations: Object.freeze(operations),
     conflicts: Object.freeze(conflicts),
+    baselineId: metadata.baselineId,
+    layoutVersion: metadata.layoutVersion,
+    targetExisted: metadata.targetExisted,
   });
 }
 
@@ -403,18 +442,26 @@ function buildInstallPlan(targetDir, options = {}) {
     failPlanner("targetDir must be a non-empty string");
   }
 
+  const bootstrap = normalizeBootstrap(options.bootstrap);
   const compatibleHashes = normalizeHashMap(options.compatibleHashes, "compatibleHashes");
   const obsoleteHashes = normalizeHashMap(
     options.obsoleteFrameworkHashes,
     "obsoleteFrameworkHashes",
   );
-  const inventory = sourceInventory(options);
+  const inventory = sourceInventory(options, bootstrap);
   const currentPaths = new Set(inventory.map((entry) => entry.relativePath));
   for (const obsoletePath of obsoleteHashes.keys()) {
     if (currentPaths.has(obsoletePath)) failPlanner(`obsolete path is still current: ${obsoletePath}`);
   }
 
   let resolvedTarget = path.resolve(targetDir);
+  let targetExisted = false;
+  try {
+    fs.lstatSync(resolvedTarget);
+    targetExisted = true;
+  } catch (error) {
+    if (error.code !== "ENOENT") targetExisted = true;
+  }
   let targetError = null;
   try {
     resolvedTarget = resolveTargetRoot(targetDir);
@@ -503,11 +550,393 @@ function buildInstallPlan(targetDir, options = {}) {
     }
   }
 
-  return immutablePlan(resolvedTarget, operations, conflicts);
+  return immutablePlan(resolvedTarget, operations, conflicts, {
+    baselineId: bootstrap.id,
+    layoutVersion: LAYOUT_VERSION,
+    targetExisted,
+  });
+}
+
+function createDefaultFsOps() {
+  return {
+    lstat: (...args) => fs.lstatSync(...args),
+    readFile: (...args) => fs.readFileSync(...args),
+    open: (...args) => fs.openSync(...args),
+    write: (...args) => fs.writeSync(...args),
+    fsync: (...args) => fs.fsyncSync(...args),
+    fchmod: (...args) => fs.fchmodSync(...args),
+    close: (...args) => fs.closeSync(...args),
+    mkdir: (...args) => fs.mkdirSync(...args),
+    rename: (...args) => fs.renameSync(...args),
+    unlink: (...args) => fs.unlinkSync(...args),
+    rmdir: (...args) => fs.rmdirSync(...args),
+    readdir: (...args) => fs.readdirSync(...args),
+  };
+}
+
+function filesystemError(phase, relativePath, cause, detail = cause.message) {
+  if (cause instanceof InstallFilesystemError) return cause;
+  return new InstallFilesystemError(phase, relativePath, cause, [], detail);
+}
+
+function appendCleanupErrors(error, cleanupErrors) {
+  if (cleanupErrors.length === 0) return error;
+  if (!(error instanceof InstallFilesystemError)) {
+    return new InstallFilesystemError(
+      "execute install plan",
+      null,
+      error,
+      cleanupErrors,
+    );
+  }
+  Object.defineProperty(error, "cleanupErrors", {
+    enumerable: true,
+    value: Object.freeze([...error.cleanupErrors, ...cleanupErrors]),
+  });
+  return error;
+}
+
+function lstatIfPresent(absolutePath, fsOps, phase, relativePath) {
+  try {
+    return fsOps.lstat(absolutePath);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw filesystemError(phase, relativePath, error);
+  }
+}
+
+function ensureDirectoryTree(directory, fsOps, tx, context) {
+  const missing = [];
+  let current = directory;
+  for (;;) {
+    const stat = lstatIfPresent(current, fsOps, context.phase, context.relativePath);
+    if (stat !== null) {
+      if (stat.isSymbolicLink() || !stat.isDirectory()) {
+        throw filesystemError(
+          context.phase,
+          context.relativePath,
+          new Error(`path is not a safe directory: ${current}`),
+        );
+      }
+      break;
+    }
+    missing.push(current);
+    const parent = path.dirname(current);
+    if (parent === current) {
+      throw filesystemError(
+        context.phase,
+        context.relativePath,
+        new Error(`no existing directory ancestor for ${directory}`),
+      );
+    }
+    current = parent;
+  }
+
+  for (const absolutePath of missing.reverse()) {
+    const record = {
+      absolutePath,
+      created: false,
+      phase: context.phase,
+      relativePath: context.relativePath,
+    };
+    tx.createdDirectories.push(record);
+    try {
+      fsOps.mkdir(absolutePath, { mode: 0o755 });
+      record.created = true;
+    } catch (error) {
+      try {
+        const stat = fsOps.lstat(absolutePath);
+        record.created = stat.isDirectory() && !stat.isSymbolicLink();
+      } catch (_) {
+        // The failed mkdir left no directory for this transaction to own.
+      }
+      throw filesystemError(context.phase, context.relativePath, error);
+    }
+    if (absolutePath === tx.targetDir) tx.targetCreated = true;
+  }
+}
+
+function ensureTargetForTransaction(plan, fsOps, tx) {
+  ensureDirectoryTree(plan.targetDir, fsOps, tx, {
+    phase: "create target",
+    relativePath: null,
+  });
+}
+
+function acquireLock(targetDir, fsOps) {
+  const lockPath = path.join(targetDir, ".ai-os-install.lock");
+  const flags = fs.constants.O_WRONLY
+    | fs.constants.O_CREAT
+    | fs.constants.O_EXCL
+    | (fs.constants.O_NOFOLLOW || 0);
+  try {
+    const fd = fsOps.open(lockPath, flags, 0o600);
+    return { fd, path: lockPath, closed: false };
+  } catch (error) {
+    const detail = error.code === "EEXIST"
+      ? "installation already in progress"
+      : error.message;
+    throw filesystemError("acquire lock", null, error, detail);
+  }
+}
+
+function uniqueTransactionPath(destination, kind) {
+  const suffix = crypto.randomBytes(12).toString("hex");
+  return path.join(
+    path.dirname(destination),
+    `.${path.basename(destination)}.ai-os-install-${kind}-${process.pid}-${suffix}`,
+  );
+}
+
+function closeStagedDescriptor(record, fsOps) {
+  if (record.fd === null) return null;
+  try {
+    fsOps.close(record.fd);
+    record.fd = null;
+    return null;
+  } catch (error) {
+    return filesystemError("close staged file", record.operation.relativePath, error);
+  }
+}
+
+function writeStagedContent(record, fsOps) {
+  const flags = fs.constants.O_WRONLY
+    | fs.constants.O_CREAT
+    | fs.constants.O_EXCL
+    | (fs.constants.O_NOFOLLOW || 0);
+  let failure = null;
+  try {
+    record.fd = fsOps.open(record.tempPath, flags, 0o600);
+    const content = record.operation.content;
+    let offset = 0;
+    while (offset < content.length) {
+      const written = fsOps.write(
+        record.fd,
+        content,
+        offset,
+        content.length - offset,
+        null,
+      );
+      if (!Number.isInteger(written) || written <= 0) {
+        throw new Error("staged write made no forward progress");
+      }
+      offset += written;
+    }
+    fsOps.fsync(record.fd);
+    fsOps.fchmod(record.fd, record.operation.mode);
+  } catch (error) {
+    failure = filesystemError("stage content", record.operation.relativePath, error);
+  }
+
+  const closeError = closeStagedDescriptor(record, fsOps);
+  if (failure) throw appendCleanupErrors(failure, closeError ? [closeError] : []);
+  if (closeError) throw closeError;
+}
+
+function stageOperations(plan, fsOps, tx) {
+  for (const operation of plan.operations) {
+    if (operation.action === "preserve") continue;
+    if (operation.action !== "create") {
+      throw filesystemError(
+        "unsupported action",
+        operation.relativePath,
+        new Error(`${operation.action} transaction support is deferred to installer Task 3B`),
+      );
+    }
+
+    const destination = path.join(plan.targetDir, ...operation.relativePath.split("/"));
+    ensureDirectoryTree(path.dirname(destination), fsOps, tx, {
+      phase: "create parent",
+      relativePath: operation.relativePath,
+    });
+    const record = {
+      operation,
+      destination,
+      tempPath: uniqueTransactionPath(destination, "stage"),
+      backupPath: null,
+      fd: null,
+      committed: false,
+    };
+    tx.staged.push(record);
+    writeStagedContent(record, fsOps);
+  }
+}
+
+function commitStaged(staged, fsOps) {
+  for (const record of staged) {
+    try {
+      fsOps.rename(record.tempPath, record.destination);
+      record.committed = true;
+      record.tempPath = null;
+    } catch (error) {
+      throw filesystemError("commit create", record.operation.relativePath, error);
+    }
+  }
+}
+
+function unlinkForCleanup(absolutePath, fsOps, phase, relativePath) {
+  try {
+    fsOps.unlink(absolutePath);
+    return null;
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    return filesystemError(phase, relativePath, error);
+  }
+}
+
+function rollbackStaged(staged, fsOps) {
+  const errors = [];
+  for (const record of [...staged].reverse()) {
+    if (!record.committed || record.operation.action !== "create") continue;
+    const error = unlinkForCleanup(
+      record.destination,
+      fsOps,
+      "rollback create",
+      record.operation.relativePath,
+    );
+    if (error) errors.push(error);
+    else record.committed = false;
+  }
+  return errors;
+}
+
+function cleanupStaged(tx, fsOps) {
+  const errors = [];
+  for (const record of [...tx.staged].reverse()) {
+    const closeError = closeStagedDescriptor(record, fsOps);
+    if (closeError) errors.push(closeError);
+    if (record.tempPath !== null) {
+      const tempError = unlinkForCleanup(
+        record.tempPath,
+        fsOps,
+        "cleanup staged file",
+        record.operation.relativePath,
+      );
+      if (tempError) errors.push(tempError);
+      else record.tempPath = null;
+    }
+    if (tx.committed && record.backupPath !== null) {
+      const backupError = unlinkForCleanup(
+        record.backupPath,
+        fsOps,
+        "cleanup backup file",
+        record.operation.relativePath,
+      );
+      if (backupError) errors.push(backupError);
+      else record.backupPath = null;
+    }
+  }
+  return errors;
+}
+
+function releaseLock(lock, fsOps) {
+  const errors = [];
+  if (!lock.closed) {
+    try {
+      fsOps.close(lock.fd);
+      lock.closed = true;
+    } catch (error) {
+      errors.push(filesystemError("close lock", null, error));
+    }
+  }
+  const unlinkError = unlinkForCleanup(lock.path, fsOps, "remove lock", null);
+  if (unlinkError) errors.push(unlinkError);
+  return errors;
+}
+
+function cleanupCreatedDirectories(createdDirectories, fsOps) {
+  const errors = [];
+  for (const record of [...createdDirectories].reverse()) {
+    if (!record.created) continue;
+    try {
+      fsOps.rmdir(record.absolutePath);
+      record.created = false;
+    } catch (error) {
+      if (["ENOENT", "ENOTEMPTY", "EEXIST"].includes(error.code)) continue;
+      errors.push(filesystemError(
+        "cleanup directory",
+        record.relativePath,
+        error,
+      ));
+    }
+  }
+  return errors;
+}
+
+function installResult(plan) {
+  const result = {
+    created: 0,
+    replaced: 0,
+    preserved: 0,
+    warnings: Object.freeze([]),
+    baselineId: plan.baselineId,
+    layoutVersion: plan.layoutVersion,
+  };
+  for (const operation of plan.operations) {
+    if (operation.action === "create") result.created += 1;
+    else if (["replace-framework", "replace-pristine-project", "remove-framework"].includes(operation.action)) {
+      result.replaced += 1;
+    } else if (operation.action === "preserve") result.preserved += 1;
+  }
+  return Object.freeze(result);
+}
+
+function executeInstallPlan(plan, { fsOps: overrides = {} } = {}) {
+  if (plan.conflicts.length > 0) throw new InstallConflictError(plan.conflicts);
+
+  const fsOps = { ...createDefaultFsOps(), ...overrides };
+  const tx = {
+    targetDir: plan.targetDir,
+    targetCreated: false,
+    createdDirectories: [],
+    lock: null,
+    staged: [],
+    committed: false,
+  };
+  let result = null;
+  let failure = null;
+
+  try {
+    ensureTargetForTransaction(plan, fsOps, tx);
+    tx.lock = acquireLock(plan.targetDir, fsOps);
+    stageOperations(plan, fsOps, tx);
+    commitStaged(tx.staged, fsOps);
+    tx.committed = true;
+    result = installResult(plan);
+  } catch (error) {
+    failure = error instanceof InstallFilesystemError
+      ? error
+      : filesystemError("execute install plan", null, error);
+  }
+
+  const cleanupErrors = [];
+  if (failure) cleanupErrors.push(...rollbackStaged(tx.staged, fsOps));
+  cleanupErrors.push(...cleanupStaged(tx, fsOps));
+  if (tx.lock !== null) cleanupErrors.push(...releaseLock(tx.lock, fsOps));
+  if (!tx.committed) {
+    cleanupErrors.push(...cleanupCreatedDirectories(tx.createdDirectories, fsOps));
+  }
+
+  if (failure) throw appendCleanupErrors(failure, cleanupErrors);
+  if (cleanupErrors.length > 0) {
+    throw appendCleanupErrors(cleanupErrors[0], cleanupErrors.slice(1));
+  }
+  return result;
+}
+
+function installProject(targetDir, options = {}) {
+  const { fsOps, ...plannerOptions } = options;
+  const plan = buildInstallPlan(targetDir, plannerOptions);
+  return executeInstallPlan(plan, { fsOps });
 }
 
 module.exports = {
+  InstallConflictError,
+  InstallFilesystemError,
   InstallPlannerError,
   buildInstallPlan,
   classifyDestination,
+  createDefaultFsOps,
+  executeInstallPlan,
+  installProject,
 };
