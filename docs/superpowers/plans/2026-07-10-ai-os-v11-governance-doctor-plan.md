@@ -295,13 +295,28 @@ git commit -m "feat: parse canonical governance formats"
 
 **Interfaces:**
 - Produces `inspectProject(targetDir, { strict = false } = {}): DoctorReport`.
-- `DoctorReport` retains legacy `ok`, `version`, `installedVersion`, `layout`,
-  `warnings`, and `errors`, and additively includes `layout_ok`,
-  `delivery_ready`, `layout_version`, `layout_mode`, `lanes`, and `issues`.
+- `DoctorReport` retains the actual observable JSON compatibility surface:
+  `ok`, `version`, `package`, `targetDir`, `installedVersion`,
+  `layout_version`, `layout_mode`, `issues`, and `semantic_warnings`. It
+  additively includes `layout_ok`, `delivery_ready`, and `lanes`. Missing or
+  untrusted installed metadata is represented as `null`; source constants are
+  never substituted for target truth. The never-shipped `layout`, `warnings`,
+  and `errors` keys are not invented as compatibility aliases.
 - `lanes` is keyed by lane ID and each value includes `layout_ok`, `delivery_ready`, `issues`.
-- Issues are `{ severity, code, message, path, lane_id }`, use the centralized
-  catalog, and sort by lane ID, path, severity, then code. `ok` is false for an
-  error and, only when `strict` is true, for a warning/readiness issue.
+- Issues are `{ level, code, message, severity, path, lane_id }`, use the
+  centralized catalog, and always satisfy `level === severity`; `level` is the
+  compatibility alias and `severity` is the internal truth. Global scope uses
+  `path: null` and `lane_id: null`; lane paths are POSIX-relative. Issues sort
+  by lane ID, path, severity rank (`error`, `warning`, `info`), code, then
+  message using code-point comparison rather than locale-dependent collation.
+  `semantic_warnings` filters the same issue objects rather than creating a
+  divergent copy.
+- Task 3 is intentionally fail-closed about readiness: until Task 4 installs
+  the complete R001-R031 evaluator, every active lane and the top-level report
+  expose `delivery_ready: false`. Non-strict `ok` equals `layout_ok`; Task 3
+  strict mode therefore exits 1 without inventing a temporary readiness code.
+  Task 4 replaces this provisional false value with the complete every-active-
+  lane calculation. No transient `readiness_evaluated` field is introduced.
 - Produces `parseManagedFiles(content)` and validates every manifest row against
   current ownership, regular-file type, containment, and exact framework bytes.
 
@@ -327,8 +342,9 @@ Add manifest tables for malformed header/row, duplicate/missing/extra path,
 unknown ownership/type, unsorted rows, project hash present, framework hash
 empty/stale, wrong installed bytes, and a symlinked manifest path. Add installed
 constitution cases for missing/duplicate required anchors and an allowed
-project-specific section. Snapshot all legacy JSON fields to prove the v11
-fields are additive.
+project-specific section. Snapshot the actual observable compatibility fields
+to prove the v11 fields are additive, including `level === severity` on every
+issue and `null` scope for global issues.
 
 - [ ] **Step 3: Verify current doctor false-greens**
 
@@ -349,7 +365,10 @@ section can be semantically proven.
 
 - [ ] **Step 5: Keep CLI exit compatibility**
 
-`main()` formats `inspectProject`, preserves exit 2 for no `.ai-os`, and derives exit 1 from structural errors or strict warnings.
+`main()` formats `inspectProject`, preserves the existing minimal exit-2 payload
+for no `.ai-os`, and derives exit 1 from structural errors. During Task 3 only,
+strict mode also exits 1 because readiness is explicitly fail-closed; Task 4
+replaces that provisional branch with warning/readiness issue evaluation.
 
 - [ ] **Step 6: Run layout/source/local parity tests**
 
@@ -374,6 +393,10 @@ git commit -m "feat: validate layout v11 across lanes"
 - Create: `test/doctor-readiness.test.js`
 
 **Interfaces:**
+- Replaces Task 3's provisional `delivery_ready: false` values with the complete
+  per-lane and every-active-lane readiness calculation. `ok` remains
+  `layout_ok` in non-strict mode and becomes `layout_ok && delivery_ready &&`
+  no warnings in strict mode; info never blocks either mode.
 - Produces readiness codes `R001` unconfirmed, `R002` unassessed, `R010`
   baseline mismatch/lifecycle, `R020` task contract, `R021` evidence, `R022`
   uncommitted code state, `R030` approval, `R031` G2 minimum artifacts.
