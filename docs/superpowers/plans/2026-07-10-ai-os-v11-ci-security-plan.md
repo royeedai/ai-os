@@ -16,6 +16,7 @@
 - Default workflow permission is read-only; write permission is scoped per job.
 - Production audit must be clean; full development audit has no accepted untracked vulnerability.
 - No workflow publishes or deploys automatically.
+- Every job that runs `npm test` or `npm run test:coverage` checks out the complete tag oracle with `fetch-depth: 0` and `fetch-tags: true`.
 
 ---
 
@@ -171,6 +172,8 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ matrix.node-version }}
@@ -190,6 +193,8 @@ Add separate `Coverage` and `Package smoke` jobs on Ubuntu Node 24. Add a
 `npm run test:coverage` in it. Platform smoke runs the path-safety and package
 suites so Unicode/space paths, CRLF fixtures, executable mode, symlink behavior,
 and the Windows junction case are exercised on their real platforms.
+The quality, Coverage, and Node 26 canary checkouts all fetch full history and
+tags so the migration suite can read its packaged v10 compatibility oracle.
 The Node 22 and 24 quality jobs each run the full test/lint/diff/audit/pack gate;
 the separate package job performs the tarball-install smoke once without
 weakening supported-version pack coverage.

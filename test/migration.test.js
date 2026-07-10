@@ -922,9 +922,114 @@ for (const [label, relativePath, mutate] of [
     )),
   ],
   [
+    "tasks indented YAML document marker",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from("  ---\n")]),
+  ],
+  [
     "tasks duplicate semantic root key",
     ".ai-os/lanes/default/tasks.yaml",
     (bytes) => Buffer.from(`baseline_id: ${BASELINE_ID}\n${bytes.toString("utf8")}`),
+  ],
+  [
+    "tasks escaped quoted semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `${String.raw`"baseline\u005fid"`}: "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks hex-escaped quoted semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `${String.raw`"\x62aseline_id"`}: "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks long-Unicode-escaped quoted semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `${String.raw`"\U00000062aseline_id"`}: "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks single-quoted semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `'baseline_id': "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks tagged semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `!!str baseline_id: "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks anchored semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `&context baseline_id: "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks escaped explicit semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from([
+      `? ${String.raw`"baseline\x5fid"`}`,
+      ': "BL-20260710-010203-conflicting"',
+      "",
+    ].join("\n"))]),
+  ],
+  [
+    "tasks escaped flow semantic root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `{${String.raw`"\U00000062aseline_id"`}: "BL-20260710-010203-conflicting"}\n`,
+    )]),
+  ],
+  [
+    "tasks merge root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `<<: { baseline_id: "BL-20260710-010203-conflicting" }\n`,
+    )]),
+  ],
+  [
+    "tasks malformed quoted root key",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      `${String.raw`"baseline\u005fid`}: "BL-20260710-010203-conflicting"\n`,
+    )]),
+  ],
+  [
+    "tasks malformed root flow value",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from("custom: [unterminated\n")]),
+  ],
+  [
+    "tasks multiline flow hides baseline below root",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `baseline_id: "${BASELINE_ID}"`,
+      [
+        "scope_flow:",
+        "  hidden: [",
+        `baseline_id: "${BASELINE_ID}"`,
+        "  ]",
+      ].join("\n"),
+    )),
+  ],
+  [
+    "tasks lone sequence indicator root value",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from("custom: -\n")]),
+  ],
+  [
+    "tasks tab after indentation spaces",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from("  \tcustom: value\n")]),
   ],
   [
     "MISSION fenced baseline marker",
@@ -935,11 +1040,75 @@ for (const [label, relativePath, mutate] of [
     )),
   ],
   [
+    "MISSION marker after invalid fence closer",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `\`\`\`text\nhidden\n\`\`\` trailing\n- **当前基线 ID**：${BASELINE_ID}`,
+    )),
+  ],
+  [
+    "MISSION marker after comment-prefixed fence closer",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `\`\`\`text\ncode\n<!-- prefix -->\`\`\`\n- **当前基线 ID**：${BASELINE_ID}`,
+    )),
+  ],
+  [
     "MISSION commented baseline marker",
     ".ai-os/lanes/default/MISSION.md",
     (bytes) => Buffer.from(bytes.toString("utf8").replace(
       `- **当前基线 ID**：${BASELINE_ID}`,
       `<!-- - **当前基线 ID**：${BASELINE_ID} -->`,
+    )),
+  ],
+  [
+    "MISSION raw HTML block baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `<script>\n- **当前基线 ID**：${BASELINE_ID}\n</script>`,
+    )),
+  ],
+  [
+    "MISSION EOL raw HTML block opener baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `<script\n- **当前基线 ID**：${BASELINE_ID}`,
+    )),
+  ],
+  [
+    "MISSION indented mixed-case unclosed HTML block baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `   <DiV data-context="hidden"\n- **当前基线 ID**：${BASELINE_ID}`,
+    )),
+  ],
+  [
+    "MISSION CDATA block baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `<![CDATA[\n- **当前基线 ID**：${BASELINE_ID}\n]]>`,
+    )),
+  ],
+  [
+    "MISSION processing-instruction block baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `<?context hidden?>\n- **当前基线 ID**：${BASELINE_ID}`,
+    )),
+  ],
+  [
+    "MISSION declaration block baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `<!CONTEXT hidden>\n- **当前基线 ID**：${BASELINE_ID}`,
     )),
   ],
   [
@@ -956,6 +1125,14 @@ for (const [label, relativePath, mutate] of [
     (bytes) => Buffer.from(bytes.toString("utf8").replace(
       `- **Confirmed At**: ${BASELINE_DATE}`,
       `- **Confirmed At**: ${BASELINE_DATE}\n- **Confirmed At**: ${BASELINE_DATE}`,
+    )),
+  ],
+  [
+    "record raw HTML block Confirmed At",
+    `.ai-os/lanes/default/baseline-log/${BASELINE_FILE}`,
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **Confirmed At**: ${BASELINE_DATE}`,
+      `<pre>\n- **Confirmed At**: ${BASELINE_DATE}\n</pre>`,
     )),
   ],
   [

@@ -1374,11 +1374,27 @@ function canonicalContextText(destination, relativePath, label) {
   return { error: null, content };
 }
 
+function startsRawHtmlBlock(line) {
+  return /^<(?:\/?[A-Za-z][A-Za-z0-9-]*(?=[\s/>]|$)|[?]|![A-Za-z]|!\[CDATA\[)/i.test(line);
+}
+
 function visibleMarkdownLines(content) {
   const result = [];
   let fence = null;
   let inComment = false;
   for (const raw of content.split(/\r?\n/)) {
+    if (fence !== null) {
+      const fenceMatch = raw.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+      const marker = fenceMatch?.[1] || null;
+      result.push("");
+      if (
+        marker
+        && marker[0] === fence[0]
+        && marker.length >= fence.length
+        && /^[ \t]*$/.test(fenceMatch[2])
+      ) fence = null;
+      continue;
+    }
     let visible = "";
     let cursor = 0;
     while (cursor < raw.length) {
@@ -1401,27 +1417,32 @@ function visibleMarkdownLines(content) {
       cursor = open + 4;
     }
     const trimmed = visible.trimStart();
-    const marker = trimmed.match(/^(`{3,}|~{3,})/)?.[1] || null;
-    if (fence !== null) {
-      result.push("");
-      if (marker && marker[0] === fence[0] && marker.length >= fence.length) fence = null;
-      continue;
-    }
+    const fenceMatch = visible.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    const marker = fenceMatch?.[1] || null;
     if (marker !== null) {
+      if (marker[0] === "`" && fenceMatch[2].includes("`")) {
+        result.push(visible);
+        continue;
+      }
       fence = marker;
       result.push("");
       continue;
     }
+    if (startsRawHtmlBlock(trimmed)) {
+      return { error: "raw HTML blocks cannot authorize v10 migration", lines: null };
+    }
     result.push(visible);
   }
-  return result;
+  return { error: null, lines: result };
 }
 
 function strictV10MissionBaseline(destination, relativePath) {
   const text = canonicalContextText(destination, relativePath, "v10 lane MISSION");
   if (text.error) return { error: text.error, value: null };
+  const visible = visibleMarkdownLines(text.content);
+  if (visible.error) return { error: `v10 lane MISSION ${visible.error}`, value: null };
   const values = [];
-  for (const line of visibleMarkdownLines(text.content)) {
+  for (const line of visible.lines) {
     const match = line.match(/^- \*\*当前基线 ID\*\*：([^\r\n]+)$/);
     if (match) values.push(match[1]);
     else if (line.includes("当前基线 ID")) {
@@ -1434,25 +1455,97 @@ function strictV10MissionBaseline(destination, relativePath) {
   return { error: null, value: values[0] };
 }
 
+function v10YamlRootKey(line) {
+  const mapping = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):(?:[ \t]+(.*))?$/);
+  if (!mapping) {
+    return { error: "v10 tasks.yaml contains an unsafe or malformed root mapping", key: null };
+  }
+  const key = mapping[1];
+  const value = (mapping[2] || "").trim();
+  if (
+    key !== "baseline_id"
+    && value !== ""
+    && !/^[A-Za-z0-9_][A-Za-z0-9_.-]*$/.test(value)
+  ) {
+    return { error: "v10 tasks.yaml contains an unsafe or malformed root value", key: null };
+  }
+  return { error: null, key };
+}
+
+function v10YamlLineLexicalError(line) {
+  const flow = [];
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (quote === "\"") {
+      if (character === "\\") {
+        index += 1;
+      } else if (character === "\"") {
+        quote = null;
+      }
+      continue;
+    }
+    if (quote === "'") {
+      if (character === "'" && line[index + 1] === "'") {
+        index += 1;
+      } else if (character === "'") {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === "#" && (index === 0 || /[ \t]/.test(line[index - 1]))) break;
+    if (character === "\"" || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === "[" || character === "{") {
+      flow.push(character);
+      continue;
+    }
+    if (character === "]" || character === "}") {
+      const expected = character === "]" ? "[" : "{";
+      if (flow.pop() !== expected) {
+        return "v10 tasks.yaml contains an unmatched flow collection delimiter";
+      }
+    }
+  }
+  if (quote !== null) return "v10 tasks.yaml contains a multiline or unterminated quoted scalar";
+  if (flow.length > 0) return "v10 tasks.yaml contains a multiline or unterminated flow collection";
+  return null;
+}
+
 function strictV10TasksBaseline(destination, relativePath) {
   const text = canonicalContextText(destination, relativePath, "v10 tasks.yaml");
   if (text.error) return { error: text.error, value: null };
   const values = [];
+  const rootKeys = new Set();
   for (const line of text.content.split(/\r?\n/)) {
-    if (/^(?:---|[.][.][.])(?:\s|$)/.test(line)) {
+    const lexicalError = v10YamlLineLexicalError(line);
+    if (lexicalError) return { error: lexicalError, value: null };
+    const trimmed = line.trimStart();
+    if (/^(?:---|[.][.][.])(?:\s|$)/.test(trimmed)) {
       return { error: "v10 tasks.yaml must contain exactly one YAML document", value: null };
     }
-    if (/^[ \t]/.test(line) || /^\s*(?:#|$)/.test(line)) continue;
-    const canonical = line.match(/^baseline_id: "([^"\r\n]+)"$/);
-    if (canonical) {
-      values.push(canonical[1]);
-      continue;
+    if (/^%/.test(trimmed)) {
+      return { error: "v10 tasks.yaml cannot contain YAML directives", value: null };
     }
-    if (
-      /^(?:baseline_id|'baseline_id'|"baseline_id")\s*:/.test(line)
-      || /^\?\s*(?:baseline_id|'baseline_id'|"baseline_id")/.test(line)
-      || /^<<\s*:/.test(line)
-    ) {
+    if (/^\s*(?:#|$)/.test(line)) continue;
+    if (/^ *\t/.test(line)) {
+      return { error: "v10 tasks.yaml contains invalid root indentation", value: null };
+    }
+    if (/^ /.test(line)) continue;
+    const root = v10YamlRootKey(line);
+    if (root.error) return { error: root.error, value: null };
+    if (rootKeys.has(root.key)) {
+      return { error: "v10 tasks.yaml contains a duplicate semantic root key", value: null };
+    }
+    rootKeys.add(root.key);
+    if (root.key === "baseline_id") {
+      const canonical = line.match(/^baseline_id: "([^"\r\n]+)"$/);
+      if (canonical) {
+        values.push(canonical[1]);
+        continue;
+      }
       return { error: "v10 tasks.yaml contains a non-canonical or merged baseline_id", value: null };
     }
   }
@@ -1465,7 +1558,9 @@ function strictV10TasksBaseline(destination, relativePath) {
 function exactV10RecordFields(destination, relativePath) {
   const text = canonicalContextText(destination, relativePath, "v10 current baseline record");
   if (text.error) return { error: text.error };
-  const lines = visibleMarkdownLines(text.content);
+  const visible = visibleMarkdownLines(text.content);
+  if (visible.error) return { error: `v10 current baseline record ${visible.error}` };
+  const lines = visible.lines;
   const heading = lines[0]?.match(/^# ([^\r\n]+)$/)?.[1];
   if (!heading) return { error: "v10 current baseline record must start with one canonical H1" };
   const recordEnd = lines.findIndex((line, index) => index > 0 && /^##(?:\s|$)/.test(line));
