@@ -121,7 +121,17 @@ All replacement content is rendered before commit. Replacement files are written
 
 ### 6.3 Commit and rollback
 
-Commit uses atomic rename per file. A commit failure restores framework-owned backups and removes only files/directories created by the current operation. Project-authored files are never rollback targets because they are never overwritten.
+Commit uses same-filesystem atomic primitives with no-replace ownership proof.
+A create hard-links its exclusively staged inode into an absent destination and
+then removes the staging name; this avoids ordinary rename's cross-platform
+replace-on-collision behavior. A replacement first creates an exclusive
+same-directory hard-link backup of the verified old inode, then atomically
+renames the staged file over the destination. A removal creates the same verified
+backup before unlinking the destination. A commit failure restores verified
+backups and removes only inode/content identities created by the current
+operation. Project-authored files are rollback targets only when an exact known
+pristine hash authorized their upgrade; modified project content is never
+overwritten or deleted.
 
 The lock and temporary files are removed on both success and handled failure.
 
