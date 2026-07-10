@@ -547,6 +547,16 @@ conflict. It then substitutes only those exact validated values back to
 hashing the entire file. This recognizes genuinely rendered pristine templates
 without treating loose markers or arbitrary edited content as pristine.
 
+For an exact pristine v10 `lane.toml`, migration preserves the existing lane
+identity, baseline pointer, `quality_tier = "standard"`, and
+`risk_tier = "medium"`, then inserts only
+`governance_tier = "unassessed"` after the risk tier while preserving the file
+mode and surrounding bytes. It does not replace the file with the fresh v11
+template, whose unassessed quality/risk defaults would erase established v10
+truth. Customized lane content remains byte-exact after strict context
+validation. Exact pristine `AGENTS.md` and `tasks.yaml` may upgrade as specified
+by the completion oracle.
+
 - [ ] **Step 2: Write migration failure tests**
 
 Build v10 fixtures with legacy metadata/git blocks and assert migration:

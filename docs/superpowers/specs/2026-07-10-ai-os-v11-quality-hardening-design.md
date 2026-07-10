@@ -149,8 +149,16 @@ The lock and temporary files are removed on both success and handled failure.
 Migration is a specific compatibility path, not a general migration engine.
 
 1. Recognize v10 metadata, pristine template hashes, and the legacy managed git blocks. A packaged, version-scoped compatibility manifest contains hashes for every distributed v10 tag; it contains no migration code or user data.
-2. Preserve all project/session artifacts.
-3. Replace only recognized pristine framework/tooling content.
+2. Preserve all modified project/session artifacts and all project truth. Exact
+   pristine v10 `AGENTS.md` and `tasks.yaml` scaffolds may upgrade by their
+   compatibility hashes. An exact pristine v10 `lane.toml` receives only the
+   missing `governance_tier = "unassessed"` field; its lane identity, baseline
+   pointer, `quality_tier`, `risk_tier`, surrounding bytes, and file mode remain
+   unchanged. A customized lane file is preserved in full after strict baseline
+   context validation.
+3. Replace only recognized pristine framework/tooling content; future v11
+   ownership does not authorize overwriting a path whose existing bytes are not
+   recognized as v10-owned.
 4. Install committed stable metadata, ownership manifest, local reference, and the smaller doctor shared module.
 5. Replace the legacy AI-OS `.gitignore` block so metadata/manifest/tooling remain committed and only STATE stays ignored.
 6. Remove the AI-OS `memory.md merge=union` rule from the managed `.gitattributes` block.
@@ -466,7 +474,8 @@ Creating/pushing the final public tag or release is a separate external release 
 The goal is complete only when all of the following are current-state facts:
 
 - no official command references a nonexistent or unintended package/ref;
-- normal/force/migration installs cannot overwrite project/session content;
+- normal/force/migration installs cannot overwrite modified project/session
+  content or erase project truth;
 - adversarial link tests cannot write outside the target;
 - reinstall is file-set and baseline-count idempotent;
 - failed install rolls back;
