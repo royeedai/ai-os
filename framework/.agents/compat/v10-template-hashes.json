@@ -1,0 +1,102 @@
+{
+  ".ai-os/MISSION.md": [
+    "1523572e8196cdd5492f8bfb244cbbb2d5548a48b2335ef4dad7d20f936eacd3"
+  ],
+  ".ai-os/bin/VERSION": [
+    "19451a30d960cac8076e19edb9180b007babf3808256a48eb3975429ff6d3c49",
+    "1bf6cc4e5791adfcc5cd5b7690359ac5e7ac979df777753665315a0bda8bf080",
+    "c17e93fdfdc384ae92088b0063ffa42e844643bc6b60db93e97373862e60bde5"
+  ],
+  ".ai-os/bin/ai-os-doctor.js": [
+    "f2a7782c0b14765022f7a9d63e93c5a3c74e8f0abad0b9ebedcff367601008df"
+  ],
+  ".ai-os/bin/shared.js": [
+    "0862b7059c17abeb459ba4435c30e877cacc951b720de847d5205354f8fe04ee"
+  ],
+  ".ai-os/framework.toml": [
+    "1406fb73d42f435496e094c3b2e7c20d974de77573753cfa502d41ac69bc2df6",
+    "672d9ef4ef9581d05f156660e72fe6024e8eec1f06186ec4acf2d002011c170c",
+    "81c5a5d30862bd15789f933b59966ba3dcecbcb69bb21ac906aed582b96f2ee5",
+    "9deae6389abbfc469a61d8e523fe970b238bb55d6f1ac3405346ea4667924f80",
+    "a89bb743821023c14342506a7047f5750a95fdb008fb9ba2916330147af1970c",
+    "d72fcd1ca53c2278376a9505d2270e0bdb51cd5f4d340390d4b07c4188fd3afc",
+    "fdc8f373dd458e26e1e6760d8dfd111b2c20be3043d41edbbef92c0e753d314e"
+  ],
+  ".ai-os/lanes/default/DESIGN.md": [
+    "0640068554a37a062159114e0185a702badd352502b0d521764d2e47ca6122a0",
+    "d14898709481f9bd0c26913e058939d334f0c3ab6ee1704c266ef7b30119837a",
+    "f38eece70d98f3c7b411ab10f2c90fdfd43e5a8bea859eb301e204534732adb3"
+  ],
+  ".ai-os/lanes/default/MISSION.md": [
+    "6a119d3ee94ba106c53f5bc01ad00f40ba184831eb8aa2766c576f165ff8d8d7",
+    "bae93803ea8cb0d80099c27601d6b265abd74d97ce7bed33a4a2c622d847c816"
+  ],
+  ".ai-os/lanes/default/STATE.md": [
+    "d479e0f7ce92dfefd55a6006a9f6ddde0f49bae378deac1b06db8d89ff0d4fcb"
+  ],
+  ".ai-os/lanes/default/baseline-log/{{INITIAL_BASELINE_FILE}}": [
+    "92948876191755fe833ffb33450aaff70fe85b071991498b730b1f7b0a1bd2b0",
+    "d4f8a49c419c833518f6b885cec5f24a2e79fe21fdf7f870ead630c1afa3903e"
+  ],
+  ".ai-os/lanes/default/design-pack/parity-map.md": [
+    "120c83a7e053e918669a1ecf6163bdca954c55a8987ec8d479f565f77d2d70c9"
+  ],
+  ".ai-os/lanes/default/evals/eval-example.md": [
+    "a230db9a6bdac6f1cce93de38652ec0ec8f408dde01ac5ffb684b10b3cd885d8"
+  ],
+  ".ai-os/lanes/default/lane.toml": [
+    "f2d82f6cdda4bce77f9bb402ad14927a6c68e9df812aba9f7fc202a934b0daa6"
+  ],
+  ".ai-os/lanes/default/release-plan.md": [
+    "99b0e4d2e21f8facc4194d8b363f2b45830b55dc58c92432c2aaee5a1ab8a35d"
+  ],
+  ".ai-os/lanes/default/risk-register.md": [
+    "5adb752fc638d890010fe19b503b02e49a89e96f8b76f9a0e0616d95b1d87ba9"
+  ],
+  ".ai-os/lanes/default/specs/bugfix.spec.md": [
+    "02905b4e7df198454e1d53b947e382285f2c4f99551a2c18c70129744f70759c"
+  ],
+  ".ai-os/lanes/default/specs/example.spec.md": [
+    "913462006354c70aaa8b8a6a4263b46cc9d10c22e565f0a771f49095807a6b49"
+  ],
+  ".ai-os/lanes/default/tasks.yaml": [
+    "b1485dac3252035d79025051b20ec337fa3a75bb334c5b2d42d37059340422da",
+    "b33572f76bb86f1705840b60abaeb839d7cf6247e6586dc2cccffd2e05577c9c",
+    "cb7cf564f85c5d2d4d0d21d3e1dbd748ca7adb3f00c4647a775f2b40beee5b9f",
+    "cde85ca22d91907879c6774a9920366fe1a49ea431dce98b421436a8b9b96482"
+  ],
+  ".ai-os/lanes/default/verification-matrix.yaml": [
+    "3a55887e622141f5689244c2ae047a06ba958aad52c75a3ecac13447033842c1",
+    "4f255847cd1b216c96194171afd371a93dda2dea59c57fc7f446694d468c48c0",
+    "9fcff9ec1d6dd5b80e8991314a9134b35edc8c1a51d4543ad85d6c91e58eb5bf",
+    "f82bb4916f838cfa53665447bfe3f9767ba1a4fd1bc2717323c06b2bbb7d7e71",
+    "fc70674bc33ff64b0d4700f9cc1c49d3ba67cbe7142b6a1caee978b7c943a40e"
+  ],
+  ".ai-os/managed-files.tsv": [
+    "d4c2621c33402376362fa719cd2f95b9bce9747ed0bf7621af33d68d5ebd07b7",
+    "f8dcb2512481c53f9a1fb434aa66b57938d9823b7205473299b415de1b35127a"
+  ],
+  ".ai-os/memory.md": [
+    "07c14777765cce9fd029b31cf829a9c543216ba962b0569a6c3cb67293097168",
+    "b6bd4fbca2b185036c170f77f82b51ef59da9f8b9eea5e6684270da42860c238",
+    "c5f432bde39d0a780ff4c5d3549f96f0c3444ae844eafbf472ad418105d31bef"
+  ],
+  ".gitattributes": [
+    "e499e68a51bccee344c23d7add33ad65a54f57cf936a268604ffd4a05281cbf0"
+  ],
+  ".gitignore": [
+    "f8144115ca1e5df1d500b9e73a139ae4b941473d3fb924fa7dc07aaa2e64898a"
+  ],
+  "AGENTS.md": [
+    "5a4e80fee01a6f2f7af7335289994db66d125d227457d6756b89b0749771301e",
+    "ad032ecf6878043fb04e3ed18ed07633c1780f511f1ab42c4ec317c0f2acaba3",
+    "dfaf63e0cfd6b7dfb46af70191e108f417723d6416f072fef3fab4f32ddb31b6",
+    "f6b1206bdc04f3400c2c3d60f0ec71e01ee72a2b714409cf224a7ad44a02039e"
+  ],
+  "CLAUDE.md": [
+    "874a0512a6a12e8ad4d89ab830255db82a10fb4a8143b301f2b3c846dccc9952"
+  ],
+  "GEMINI.md": [
+    "4021aba5ade8f07adc514b6293e60bd536c85f906f2c686944fbe6be6ff03283"
+  ]
+}

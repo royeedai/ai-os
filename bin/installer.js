@@ -20,6 +20,94 @@ const CANONICAL_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.]\d{3}Z$/;
 const INITIAL_BASELINE_FILE_TOKEN = "{{INITIAL_BASELINE_FILE}}";
 const INITIAL_BASELINE_PATH = `.ai-os/lanes/default/baseline-log/${INITIAL_BASELINE_FILE_TOKEN}`;
 const DEFAULT_LANE_METADATA_PATH = ".ai-os/lanes/default/lane.toml";
+const FRAMEWORK_METADATA_PATH = ".ai-os/framework.toml";
+const V10_COMPAT_MANIFEST_PATH = path.join(
+  PACKAGE_ROOT,
+  "framework/.agents/compat/v10-template-hashes.json",
+);
+const V10_SUPPORTED_VERSIONS = new Set([
+  "10.0.0",
+  "10.1.0",
+  "10.1.1",
+  "10.1.2",
+  "10.3.1",
+  "10.5.0",
+  "10.5.1",
+]);
+const V10_INSTALLED_AT_TOKEN = "{{V10_INSTALLED_AT}}";
+const V10_UPDATED_AT_TOKEN = "{{V10_UPDATED_AT}}";
+const MANAGED_BLOCK_BEGIN = "# BEGIN AI-OS";
+const MANAGED_BLOCK_END = "# END AI-OS";
+const V10_GITIGNORE_LINES = Object.freeze([
+  "# AI-OS v9 managed (session-local and generated files)",
+  ".ai-os/lanes/*/STATE.md",
+  ".ai-os/framework.toml",
+  ".ai-os/managed-files.tsv",
+]);
+const V10_GITATTRIBUTES_LINES = Object.freeze([
+  "# AI-OS v9 managed (append-only knowledge)",
+  ".ai-os/memory.md merge=union",
+]);
+const V11_GITIGNORE_LINES = Object.freeze([".ai-os/lanes/*/STATE.md"]);
+const V11_GITATTRIBUTES_LINES = Object.freeze([]);
+const V10_PROJECT_UPGRADE_PATHS = new Set([
+  "AGENTS.md",
+  ".ai-os/lanes/default/tasks.yaml",
+].map(filesystemPathKey));
+const V10_COMPAT_DESTINATIONS = Object.freeze([
+  ".ai-os/MISSION.md",
+  ".ai-os/bin/VERSION",
+  ".ai-os/bin/ai-os-doctor.js",
+  ".ai-os/bin/shared.js",
+  ".ai-os/framework.toml",
+  ".ai-os/lanes/default/DESIGN.md",
+  ".ai-os/lanes/default/MISSION.md",
+  ".ai-os/lanes/default/STATE.md",
+  INITIAL_BASELINE_PATH,
+  ".ai-os/lanes/default/design-pack/parity-map.md",
+  ".ai-os/lanes/default/evals/eval-example.md",
+  ".ai-os/lanes/default/lane.toml",
+  ".ai-os/lanes/default/release-plan.md",
+  ".ai-os/lanes/default/risk-register.md",
+  ".ai-os/lanes/default/specs/bugfix.spec.md",
+  ".ai-os/lanes/default/specs/example.spec.md",
+  ".ai-os/lanes/default/tasks.yaml",
+  ".ai-os/lanes/default/verification-matrix.yaml",
+  ".ai-os/managed-files.tsv",
+  ".ai-os/memory.md",
+  ".gitattributes",
+  ".gitignore",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "GEMINI.md",
+]);
+const V10_COMPAT_HASH_COUNTS = Object.freeze({
+  ".ai-os/MISSION.md": 1,
+  ".ai-os/bin/VERSION": 3,
+  ".ai-os/bin/ai-os-doctor.js": 1,
+  ".ai-os/bin/shared.js": 1,
+  ".ai-os/framework.toml": 7,
+  ".ai-os/lanes/default/DESIGN.md": 3,
+  ".ai-os/lanes/default/MISSION.md": 2,
+  ".ai-os/lanes/default/STATE.md": 1,
+  [INITIAL_BASELINE_PATH]: 2,
+  ".ai-os/lanes/default/design-pack/parity-map.md": 1,
+  ".ai-os/lanes/default/evals/eval-example.md": 1,
+  ".ai-os/lanes/default/lane.toml": 1,
+  ".ai-os/lanes/default/release-plan.md": 1,
+  ".ai-os/lanes/default/risk-register.md": 1,
+  ".ai-os/lanes/default/specs/bugfix.spec.md": 1,
+  ".ai-os/lanes/default/specs/example.spec.md": 1,
+  ".ai-os/lanes/default/tasks.yaml": 4,
+  ".ai-os/lanes/default/verification-matrix.yaml": 5,
+  ".ai-os/managed-files.tsv": 2,
+  ".ai-os/memory.md": 3,
+  ".gitattributes": 1,
+  ".gitignore": 1,
+  "AGENTS.md": 4,
+  "CLAUDE.md": 1,
+  "GEMINI.md": 1,
+});
 const GENERATED_SOURCE_PATHS = Object.freeze({
   [INITIAL_BASELINE_PATH]: "framework/.agents/templates/lane/baseline-log/BL-template.md",
 });
@@ -241,6 +329,175 @@ function normalizeHashMap(value, label) {
   return result;
 }
 
+function compatJsonString(source, cursor) {
+  if (source[cursor.index] !== '"') failPlanner("v10 compatibility manifest expected a string");
+  const start = cursor.index;
+  cursor.index += 1;
+  let escaped = false;
+  while (cursor.index < source.length) {
+    const character = source[cursor.index];
+    cursor.index += 1;
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      try {
+        return JSON.parse(source.slice(start, cursor.index));
+      } catch (cause) {
+        failPlanner("v10 compatibility manifest contains an invalid string", cause);
+      }
+    }
+    if (character.charCodeAt(0) < 0x20) {
+      failPlanner("v10 compatibility manifest string contains a control character");
+    }
+  }
+  failPlanner("v10 compatibility manifest contains an unterminated string");
+}
+
+function compatSkipWhitespace(source, cursor) {
+  while (/\s/.test(source[cursor.index] || "")) cursor.index += 1;
+}
+
+function compatExpect(source, cursor, expected) {
+  compatSkipWhitespace(source, cursor);
+  if (source[cursor.index] !== expected) {
+    failPlanner(`v10 compatibility manifest expected ${expected}`);
+  }
+  cursor.index += 1;
+}
+
+function parseCompatManifest(source) {
+  if (typeof source !== "string") failPlanner("v10 compatibility manifest must be UTF-8 text");
+  const cursor = { index: 0 };
+  const entries = [];
+  const paths = new Set();
+  compatExpect(source, cursor, "{");
+  compatSkipWhitespace(source, cursor);
+  if (source[cursor.index] === "}") {
+    cursor.index += 1;
+  } else {
+    for (;;) {
+      compatSkipWhitespace(source, cursor);
+      const relativePath = compatJsonString(source, cursor);
+      if (paths.has(relativePath)) {
+        failPlanner(`v10 compatibility manifest contains duplicate path: ${relativePath}`);
+      }
+      paths.add(relativePath);
+      compatExpect(source, cursor, ":");
+      compatExpect(source, cursor, "[");
+      const hashes = [];
+      compatSkipWhitespace(source, cursor);
+      if (source[cursor.index] === "]") {
+        cursor.index += 1;
+      } else {
+        for (;;) {
+          compatSkipWhitespace(source, cursor);
+          hashes.push(compatJsonString(source, cursor));
+          compatSkipWhitespace(source, cursor);
+          if (source[cursor.index] === "]") {
+            cursor.index += 1;
+            break;
+          }
+          compatExpect(source, cursor, ",");
+        }
+      }
+      entries.push([relativePath, hashes]);
+      compatSkipWhitespace(source, cursor);
+      if (source[cursor.index] === "}") {
+        cursor.index += 1;
+        break;
+      }
+      compatExpect(source, cursor, ",");
+    }
+  }
+  compatSkipWhitespace(source, cursor);
+  if (cursor.index !== source.length) {
+    failPlanner("v10 compatibility manifest contains trailing content");
+  }
+  return entries;
+}
+
+function loadCompatHashes(manifestPath = V10_COMPAT_MANIFEST_PATH) {
+  let stat;
+  let source;
+  try {
+    let inspectedPath = path.resolve(manifestPath);
+    if (inspectedPath === path.resolve(V10_COMPAT_MANIFEST_PATH)) {
+      const inspected = inspectPath(
+        PACKAGE_ROOT,
+        "framework/.agents/compat/v10-template-hashes.json",
+      );
+      if (!inspected.exists || inspected.kind !== "file") {
+        failPlanner("v10 compatibility manifest must be a regular packaged file");
+      }
+      inspectedPath = inspected.absolute;
+    } else {
+      const parentStat = fs.lstatSync(path.dirname(inspectedPath));
+      if (parentStat.isSymbolicLink() || !parentStat.isDirectory()) {
+        failPlanner("v10 compatibility manifest parent must be a safe directory");
+      }
+    }
+    stat = fs.lstatSync(inspectedPath);
+    if (stat.isSymbolicLink() || !stat.isFile()) {
+      failPlanner("v10 compatibility manifest must be a regular file");
+    }
+    source = fs.readFileSync(inspectedPath, "utf8");
+  } catch (cause) {
+    if (cause instanceof InstallPlannerError) throw cause;
+    failPlanner("v10 compatibility manifest is unavailable", cause);
+  }
+
+  const entries = parseCompatManifest(source);
+  const expectedPaths = [...V10_COMPAT_DESTINATIONS].sort();
+  const actualPaths = entries.map(([relativePath]) => relativePath);
+  if (actualPaths.length !== expectedPaths.length) {
+    failPlanner("v10 compatibility manifest must contain the exact destination allowlist");
+  }
+  if (actualPaths.some((relativePath, index) => relativePath !== expectedPaths[index])) {
+    failPlanner("v10 compatibility manifest paths must be canonical and sorted");
+  }
+
+  const result = new Map();
+  const filesystemPaths = new Map();
+  for (const [relativePath, hashes] of entries) {
+    normalizedRelativePath(relativePath, "v10 compatibility manifest path");
+    requirePortablePathSpelling(relativePath, "v10 compatibility manifest path");
+    const key = filesystemPathKey(relativePath);
+    if (filesystemPaths.has(key)) {
+      failPlanner("v10 compatibility manifest contains duplicate filesystem path aliases");
+    }
+    filesystemPaths.set(key, relativePath);
+    if (hashes.length !== V10_COMPAT_HASH_COUNTS[relativePath]) {
+      failPlanner(`v10 compatibility manifest has the wrong hash count: ${relativePath}`);
+    }
+    const sorted = [...hashes].sort();
+    if (hashes.some((hash, index) => hash !== sorted[index])) {
+      failPlanner(`v10 compatibility manifest hashes must be sorted: ${relativePath}`);
+    }
+    const accepted = new Set();
+    for (const hash of hashes) {
+      if (!HASH_PATTERN.test(hash)) {
+        failPlanner(`v10 compatibility manifest contains an invalid SHA-256: ${relativePath}`);
+      }
+      if (accepted.has(hash)) {
+        failPlanner(`v10 compatibility manifest contains a duplicate hash: ${relativePath}`);
+      }
+      accepted.add(hash);
+    }
+    result.set(relativePath, accepted);
+  }
+  const canonical = `${JSON.stringify(Object.fromEntries(entries), null, 2)}\n`;
+  if (source !== canonical) {
+    failPlanner("v10 compatibility manifest bytes are not canonical sorted JSON");
+  }
+  return result;
+}
+
 function normalizeSourceOverrides(value) {
   const result = new Map();
   for (const [key, content] of collectionEntries(value, "sourceOverrides")) {
@@ -345,19 +602,209 @@ function frameworkMetadata(version) {
   ].join("\n"));
 }
 
+function textLines(content) {
+  const lines = [];
+  let cursor = 0;
+  while (cursor < content.length) {
+    const start = cursor;
+    const newline = content.indexOf("\n", cursor);
+    if (newline === -1) {
+      lines.push({
+        start,
+        end: content.length,
+        fullEnd: content.length,
+        text: content.slice(start),
+        eol: "",
+      });
+      break;
+    }
+    const hasCarriageReturn = newline > start && content[newline - 1] === "\r";
+    const end = hasCarriageReturn ? newline - 1 : newline;
+    lines.push({
+      start,
+      end,
+      fullEnd: newline + 1,
+      text: content.slice(start, end),
+      eol: hasCarriageReturn ? "\r\n" : "\n",
+    });
+    cursor = newline + 1;
+  }
+  return lines;
+}
+
+function validateManagedArguments(begin, end, lines) {
+  for (const [label, value] of [["begin", begin], ["end", end]]) {
+    if (typeof value !== "string" || value.length === 0 || /[\r\n]/.test(value)) {
+      failPlanner(`managed block ${label} must be one non-empty line`);
+    }
+  }
+  if (begin === end) failPlanner("managed block markers must be different");
+  if (!Array.isArray(lines)) failPlanner("managed block lines must be an array");
+  for (const line of lines) {
+    if (
+      typeof line !== "string"
+      || /[\r\n]/.test(line)
+      || line.includes(begin)
+      || line.includes(end)
+    ) {
+      failPlanner("managed block contains an invalid managed line");
+    }
+  }
+}
+
+function replaceManagedBlock(content, begin, end, lines) {
+  if (typeof content !== "string") failPlanner("managed block content must be a string");
+  validateManagedArguments(begin, end, lines);
+  const bom = content.startsWith("\uFEFF") ? "\uFEFF" : "";
+  const body = bom ? content.slice(1) : content;
+  const parsed = textLines(body);
+  const begins = [];
+  const ends = [];
+  for (let index = 0; index < parsed.length; index += 1) {
+    const line = parsed[index].text;
+    if (line === begin) begins.push(index);
+    else if (line.includes(begin)) failPlanner("managed block contains a marker-like begin line");
+    if (line === end) ends.push(index);
+    else if (line.includes(end)) failPlanner("managed block contains a marker-like end line");
+  }
+
+  if (begins.length === 0 && ends.length === 0) {
+    const eol = parsed.find((line) => line.eol)?.eol || "\n";
+    const separator = body.length === 0 || /\r?\n$/.test(body) ? "" : eol;
+    const block = [begin, ...lines, end].join(eol) + eol;
+    return bom + body + separator + block;
+  }
+  if (begins.length !== 1 || ends.length !== 1 || ends[0] <= begins[0]) {
+    failPlanner("managed block markers must form exactly one ordered range");
+  }
+  const beginIndex = begins[0];
+  const endIndex = ends[0];
+  const existing = parsed.slice(beginIndex + 1, endIndex).map((line) => line.text);
+  if (
+    existing.length !== lines.length
+    || existing.some((line, index) => line !== lines[index])
+  ) {
+    failPlanner("managed block contains user-modified managed lines");
+  }
+  const beginLine = parsed[beginIndex];
+  const endLine = parsed[endIndex];
+  const eol = beginLine.eol || endLine.eol || "\n";
+  const trailing = endLine.eol ? eol : "";
+  const block = [begin, ...lines, end].join(eol) + trailing;
+  return bom + body.slice(0, beginLine.start) + block + body.slice(endLine.fullEnd);
+}
+
+function replaceLegacyTeamConfig(content, relativePath) {
+  if (!Buffer.isBuffer(content)) failPlanner("legacy team configuration must be bytes");
+  if (content.includes(0)) failPlanner(`${relativePath} contains non-text bytes`);
+  const decoded = content.toString("utf8");
+  if (!Buffer.from(decoded, "utf8").equals(content)) {
+    failPlanner(`${relativePath} is not canonical UTF-8`);
+  }
+  const bom = decoded.startsWith("\uFEFF") ? "\uFEFF" : "";
+  const body = bom ? decoded.slice(1) : decoded;
+  const legacy = relativePath === ".gitignore"
+    ? V10_GITIGNORE_LINES
+    : V10_GITATTRIBUTES_LINES;
+  const desired = relativePath === ".gitignore"
+    ? V11_GITIGNORE_LINES
+    : V11_GITATTRIBUTES_LINES;
+  const parsed = textLines(body);
+  const header = legacy[0];
+  const headerIndexes = [];
+  let hasNewMarker = false;
+  for (let index = 0; index < parsed.length; index += 1) {
+    const line = parsed[index].text;
+    if (line === header) headerIndexes.push(index);
+    else if (line.includes(header)) {
+      failPlanner(`${relativePath} contains a marker-like legacy AI-OS header`);
+    }
+    if (
+      line.includes("# AI-OS")
+      && line !== header
+      && line !== MANAGED_BLOCK_BEGIN
+      && line !== MANAGED_BLOCK_END
+    ) {
+      failPlanner(`${relativePath} contains an unrecognized AI-OS marker-like line`);
+    }
+    if (line === MANAGED_BLOCK_BEGIN || line === MANAGED_BLOCK_END) hasNewMarker = true;
+    if (
+      line !== MANAGED_BLOCK_BEGIN
+      && line !== MANAGED_BLOCK_END
+      && (line.includes(MANAGED_BLOCK_BEGIN) || line.includes(MANAGED_BLOCK_END))
+    ) {
+      failPlanner(`${relativePath} contains a marker-like AI-OS block marker`);
+    }
+  }
+  if (headerIndexes.length > 0 && hasNewMarker) {
+    failPlanner(`${relativePath} contains both legacy and current AI-OS managed blocks`);
+  }
+  if (hasNewMarker) {
+    const beginIndex = parsed.findIndex((line) => line.text === MANAGED_BLOCK_BEGIN);
+    const endIndex = parsed.findIndex((line) => line.text === MANAGED_BLOCK_END);
+    if (beginIndex === -1 || endIndex <= beginIndex) {
+      failPlanner(`${relativePath} contains malformed current AI-OS managed markers`);
+    }
+    if (legacy.slice(1).some((managedLine) => parsed.some((line, index) => (
+      line.text === managedLine && (index <= beginIndex || index >= endIndex)
+    )))) {
+      failPlanner(`${relativePath} contains a legacy AI-OS rule outside the current block`);
+    }
+    return Buffer.from(replaceManagedBlock(decoded, MANAGED_BLOCK_BEGIN, MANAGED_BLOCK_END, desired));
+  }
+  if (headerIndexes.length === 0) {
+    if (
+      body.includes("# AI-OS")
+      || legacy.slice(1).some((managedLine) => parsed.some((line) => line.text === managedLine))
+    ) {
+      failPlanner(`${relativePath} contains an unrecognized AI-OS managed marker`);
+    }
+    return Buffer.from(replaceManagedBlock(decoded, MANAGED_BLOCK_BEGIN, MANAGED_BLOCK_END, desired));
+  }
+  if (headerIndexes.length !== 1) {
+    failPlanner(`${relativePath} must contain exactly one legacy AI-OS managed block`);
+  }
+  const startIndex = headerIndexes[0];
+  const candidate = parsed.slice(startIndex, startIndex + legacy.length);
+  if (
+    candidate.length !== legacy.length
+    || candidate.some((line, index) => line.text !== legacy[index])
+  ) {
+    failPlanner(`${relativePath} contains a modified legacy AI-OS managed block`);
+  }
+  const candidateIndexes = new Set(candidate.map((line) => parsed.indexOf(line)));
+  if (legacy.slice(1).some((managedLine) => parsed.some((line, index) => (
+    line.text === managedLine && !candidateIndexes.has(index)
+  )))) {
+    failPlanner(`${relativePath} contains a duplicate legacy AI-OS managed rule outside the block`);
+  }
+  const first = candidate[0];
+  const last = candidate[candidate.length - 1];
+  const eol = first.eol || last.eol || "\n";
+  if (candidate.slice(0, -1).some((line) => line.eol !== eol)) {
+    failPlanner(`${relativePath} legacy AI-OS block uses inconsistent line endings`);
+  }
+  const trailing = last.eol ? eol : "";
+  const replacement = [MANAGED_BLOCK_BEGIN, ...desired, MANAGED_BLOCK_END].join(eol) + trailing;
+  return Buffer.from(
+    bom + body.slice(0, first.start) + replacement + body.slice(last.fullEnd),
+    "utf8",
+  );
+}
+
 function generatedTeamConfig(relativePath) {
   if (relativePath === ".gitignore") {
     return Buffer.from([
-      "# AI-OS managed (session-local and generated files)",
-      ".ai-os/lanes/*/STATE.md",
-      ".ai-os/framework.toml",
-      ".ai-os/managed-files.tsv",
+      MANAGED_BLOCK_BEGIN,
+      ...V11_GITIGNORE_LINES,
+      MANAGED_BLOCK_END,
       "",
     ].join("\n"));
   }
   return Buffer.from([
-    "# AI-OS managed (append-only knowledge)",
-    ".ai-os/memory.md merge=union",
+    MANAGED_BLOCK_BEGIN,
+    ...V11_GITATTRIBUTES_LINES,
+    MANAGED_BLOCK_END,
     "",
   ].join("\n"));
 }
@@ -492,20 +939,37 @@ function inspectDestination(targetRoot, relativePath) {
   } catch (error) {
     return { exists: true, kind: "invalid", hash: null, error: error.message };
   }
-  if (!inspected.exists) return { exists: false, kind: "missing", hash: null, error: null };
+  if (!inspected.exists) {
+    return { exists: false, kind: "missing", hash: null, mode: null, error: null };
+  }
   if (inspected.kind !== "file") {
     return {
       exists: true,
       kind: inspected.kind,
       hash: null,
+      mode: null,
       error: `destination is not a regular file: ${relativePath}`,
     };
   }
   try {
+    const stat = fs.lstatSync(inspected.absolute);
     const bytes = fs.readFileSync(inspected.absolute);
-    return { exists: true, kind: "file", hash: sha256(bytes), bytes, error: null };
+    return {
+      exists: true,
+      kind: "file",
+      hash: sha256(bytes),
+      mode: stat.mode & 0o777,
+      bytes,
+      error: null,
+    };
   } catch (error) {
-    return { exists: true, kind: "file", hash: null, error: `destination is unreadable: ${error.message}` };
+    return {
+      exists: true,
+      kind: "file",
+      hash: null,
+      mode: null,
+      error: `destination is unreadable: ${error.message}`,
+    };
   }
 }
 
@@ -738,6 +1202,418 @@ function existingLaneBootstrap(destination) {
   return { exists: true, bootstrap: parsed.bootstrap, error: null };
 }
 
+function canonicalIsoValue(value) {
+  if (typeof value !== "string" || !CANONICAL_ISO_PATTERN.test(value)) return false;
+  const parsed = new Date(value);
+  return Number.isFinite(Date.prototype.getTime.call(parsed))
+    && Date.prototype.toISOString.call(parsed) === value;
+}
+
+function validV10Context(context) {
+  if (!context || typeof context !== "object" || Array.isArray(context)) return false;
+  const parsed = typeof context.baselineId === "string"
+    ? canonicalBaselineBootstrap(context.baselineId)
+    : { error: "missing baseline ID" };
+  if (parsed.error || context.baselineFile !== `${context.baselineId}.md`) return false;
+  const slug = context.baselineId.match(BASELINE_ID_PATTERN)?.[3] || "";
+  if (slug.split("-").includes("retrospective")) return false;
+  return canonicalIsoValue(context.baselineDate)
+    && canonicalIsoValue(context.installedAt)
+    && canonicalIsoValue(context.updatedAt)
+    && V10_SUPPORTED_VERSIONS.has(context.frameworkVersion);
+}
+
+function replaceCapturedValue(content, expression, expected, replacement) {
+  const matches = [...content.matchAll(expression)];
+  if (matches.length !== 1 || matches[0][1] !== expected) return null;
+  const match = matches[0];
+  const offset = match.index + match[0].indexOf(match[1]);
+  return content.slice(0, offset) + replacement + content.slice(offset + match[1].length);
+}
+
+function normalizeV10Candidate(relativePath, bytes, context) {
+  normalizedRelativePath(relativePath, "v10 candidate path");
+  if (!Buffer.isBuffer(bytes)) failPlanner("v10 candidate bytes must be a Buffer");
+  if (!validV10Context(context)) failPlanner("v10 normalization context is invalid");
+  const original = Buffer.from(bytes);
+  const content = original.toString("utf8");
+  if (!Buffer.from(content, "utf8").equals(original)) return original;
+
+  let normalized;
+  if (relativePath === DEFAULT_LANE_METADATA_PATH) {
+    normalized = replaceCapturedValue(
+      content,
+      /^baseline_id = "([^"\r\n]+)"\r?$/gm,
+      context.baselineId,
+      "{{INITIAL_BASELINE_ID}}",
+    );
+  } else if (relativePath === ".ai-os/lanes/default/MISSION.md") {
+    normalized = replaceCapturedValue(
+      content,
+      /^- \*\*当前基线 ID\*\*：([^\r\n]+)\r?$/gm,
+      context.baselineId,
+      "{{INITIAL_BASELINE_ID}}",
+    );
+  } else if (relativePath === ".ai-os/lanes/default/tasks.yaml") {
+    normalized = replaceCapturedValue(
+      content,
+      /^baseline_id: "([^"\r\n]+)"\r?$/gm,
+      context.baselineId,
+      "{{INITIAL_BASELINE_ID}}",
+    );
+  } else if (
+    relativePath
+      === `.ai-os/lanes/default/baseline-log/${context.baselineFile}`
+  ) {
+    normalized = replaceCapturedValue(
+      content,
+      /^# ([^\r\n]+)\r?$/gm,
+      context.baselineId,
+      "{{INITIAL_BASELINE_ID}}",
+    );
+    if (normalized !== null) {
+      normalized = replaceCapturedValue(
+        normalized,
+        /^- \*\*Confirmed At\*\*: ([^\r\n]+)\r?$/gm,
+        context.baselineDate,
+        "{{INITIAL_BASELINE_DATE}}",
+      );
+    }
+  } else if (relativePath === FRAMEWORK_METADATA_PATH) {
+    normalized = replaceCapturedValue(
+      content,
+      /^installed_at = "([^"\r\n]+)"\r?$/gm,
+      context.installedAt,
+      V10_INSTALLED_AT_TOKEN,
+    );
+    if (normalized !== null) {
+      normalized = replaceCapturedValue(
+        normalized,
+        /^updated_at = "([^"\r\n]+)"\r?$/gm,
+        context.updatedAt,
+        V10_UPDATED_AT_TOKEN,
+      );
+    }
+  } else {
+    return original;
+  }
+  return normalized === null ? original : Buffer.from(normalized, "utf8");
+}
+
+function strictV10Metadata(destination) {
+  if (
+    !destination.exists
+    || destination.error
+    || destination.kind !== "file"
+    || !destination.bytes
+  ) {
+    return { active: false, context: null, error: null };
+  }
+  const content = destination.bytes.toString("utf8");
+  const active = /^framework_version\s*=\s*["']?10(?:[.]|["']?\s*$)/m.test(content)
+    || /^schema_version\s*=\s*["']?9(?:["']?\s*$)/m.test(content);
+  if (!active) return { active: false, context: null, error: null };
+  if (!Buffer.from(content, "utf8").equals(destination.bytes) || content.includes("\r")) {
+    return { active: true, context: null, error: "v10 metadata must be canonical UTF-8 with LF line endings" };
+  }
+  const lines = content.split("\n");
+  if (lines.length !== 9 || lines[8] !== "") {
+    return { active: true, context: null, error: "v10 metadata must contain the exact canonical fields" };
+  }
+  const expectedStatic = [
+    [0, "# AI-OS framework metadata"],
+    [1, 'schema_version = "9"'],
+    [2, 'layout_version = "9"'],
+    [3, 'layout_mode = "shared-root-default-lane"'],
+    [4, 'default_lane = "default"'],
+  ];
+  if (expectedStatic.some(([index, value]) => lines[index] !== value)) {
+    return { active: true, context: null, error: "v10 metadata has unsupported layout identity" };
+  }
+  const version = lines[5].match(/^framework_version = "([^"]+)"$/)?.[1];
+  const installedAt = lines[6].match(/^installed_at = "([^"]+)"$/)?.[1];
+  const updatedAt = lines[7].match(/^updated_at = "([^"]+)"$/)?.[1];
+  if (!version || !V10_SUPPORTED_VERSIONS.has(version)) {
+    return { active: true, context: null, error: "v10 metadata framework_version is unsupported" };
+  }
+  if (!canonicalIsoValue(installedAt) || !canonicalIsoValue(updatedAt)) {
+    return { active: true, context: null, error: "v10 metadata timestamps must be canonical UTC ISO values" };
+  }
+  return {
+    active: true,
+    error: null,
+    context: { frameworkVersion: version, installedAt, updatedAt },
+  };
+}
+
+function exactField(destination, relativePath, expression, label) {
+  const text = canonicalContextText(destination, relativePath, label);
+  if (text.error) return { error: text.error, value: null };
+  const matches = [...text.content.matchAll(expression)];
+  if (matches.length !== 1) {
+    return { error: `${label} must contain exactly one canonical value`, value: null };
+  }
+  return { error: null, value: matches[0][1] };
+}
+
+function canonicalContextText(destination, relativePath, label) {
+  if (!destination.exists) return { error: `${label} is missing`, content: null };
+  if (destination.error || destination.kind !== "file" || !destination.bytes) {
+    return {
+      error: destination.error || `destination is not a regular file: ${relativePath}`,
+      content: null,
+    };
+  }
+  const content = destination.bytes.toString("utf8");
+  if (
+    !Buffer.from(content, "utf8").equals(destination.bytes)
+    || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(content)
+  ) {
+    return { error: `${label} must be canonical UTF-8 text without control bytes`, content: null };
+  }
+  return { error: null, content };
+}
+
+function visibleMarkdownLines(content) {
+  const result = [];
+  let fence = null;
+  let inComment = false;
+  for (const raw of content.split(/\r?\n/)) {
+    let visible = "";
+    let cursor = 0;
+    while (cursor < raw.length) {
+      if (inComment) {
+        const close = raw.indexOf("-->", cursor);
+        if (close === -1) {
+          break;
+        }
+        inComment = false;
+        cursor = close + 3;
+        continue;
+      }
+      const open = raw.indexOf("<!--", cursor);
+      if (open === -1) {
+        visible += raw.slice(cursor);
+        break;
+      }
+      visible += raw.slice(cursor, open);
+      inComment = true;
+      cursor = open + 4;
+    }
+    const trimmed = visible.trimStart();
+    const marker = trimmed.match(/^(`{3,}|~{3,})/)?.[1] || null;
+    if (fence !== null) {
+      result.push("");
+      if (marker && marker[0] === fence[0] && marker.length >= fence.length) fence = null;
+      continue;
+    }
+    if (marker !== null) {
+      fence = marker;
+      result.push("");
+      continue;
+    }
+    result.push(visible);
+  }
+  return result;
+}
+
+function strictV10MissionBaseline(destination, relativePath) {
+  const text = canonicalContextText(destination, relativePath, "v10 lane MISSION");
+  if (text.error) return { error: text.error, value: null };
+  const values = [];
+  for (const line of visibleMarkdownLines(text.content)) {
+    const match = line.match(/^- \*\*当前基线 ID\*\*：([^\r\n]+)$/);
+    if (match) values.push(match[1]);
+    else if (line.includes("当前基线 ID")) {
+      return { error: "v10 lane MISSION contains a non-canonical baseline ID field", value: null };
+    }
+  }
+  if (values.length !== 1) {
+    return { error: "v10 lane MISSION must contain exactly one canonical baseline ID", value: null };
+  }
+  return { error: null, value: values[0] };
+}
+
+function strictV10TasksBaseline(destination, relativePath) {
+  const text = canonicalContextText(destination, relativePath, "v10 tasks.yaml");
+  if (text.error) return { error: text.error, value: null };
+  const values = [];
+  for (const line of text.content.split(/\r?\n/)) {
+    if (/^(?:---|[.][.][.])(?:\s|$)/.test(line)) {
+      return { error: "v10 tasks.yaml must contain exactly one YAML document", value: null };
+    }
+    if (/^[ \t]/.test(line) || /^\s*(?:#|$)/.test(line)) continue;
+    const canonical = line.match(/^baseline_id: "([^"\r\n]+)"$/);
+    if (canonical) {
+      values.push(canonical[1]);
+      continue;
+    }
+    if (
+      /^(?:baseline_id|'baseline_id'|"baseline_id")\s*:/.test(line)
+      || /^\?\s*(?:baseline_id|'baseline_id'|"baseline_id")/.test(line)
+      || /^<<\s*:/.test(line)
+    ) {
+      return { error: "v10 tasks.yaml contains a non-canonical or merged baseline_id", value: null };
+    }
+  }
+  if (values.length !== 1) {
+    return { error: "v10 tasks.yaml must contain exactly one canonical root baseline_id", value: null };
+  }
+  return { error: null, value: values[0] };
+}
+
+function exactV10RecordFields(destination, relativePath) {
+  const text = canonicalContextText(destination, relativePath, "v10 current baseline record");
+  if (text.error) return { error: text.error };
+  const lines = visibleMarkdownLines(text.content);
+  const heading = lines[0]?.match(/^# ([^\r\n]+)$/)?.[1];
+  if (!heading) return { error: "v10 current baseline record must start with one canonical H1" };
+  const recordEnd = lines.findIndex((line, index) => index > 0 && /^##(?:\s|$)/.test(line));
+  const region = lines.slice(1, recordEnd === -1 ? lines.length : recordEnd);
+  if (region.some((line) => /^# /.test(line))) {
+    return { error: "v10 current baseline record region contains a duplicate H1" };
+  }
+  const dates = [];
+  for (const line of region) {
+    const match = line.match(/^- \*\*Confirmed At\*\*: ([^\r\n]+)$/);
+    if (match) dates.push(match[1]);
+    else if (line.includes("Confirmed At")) {
+      return { error: "v10 current baseline record has a non-canonical Confirmed At" };
+    }
+  }
+  if (dates.length !== 1) {
+    return { error: "v10 current baseline record must contain exactly one Confirmed At" };
+  }
+  if (!canonicalIsoValue(dates[0])) {
+    return { error: "v10 current baseline Confirmed At must be canonical UTC ISO" };
+  }
+  return { error: null, heading, date: dates[0] };
+}
+
+function v10ManifestKey(relativePath, context) {
+  return relativePath === `.ai-os/lanes/default/baseline-log/${context.baselineFile}`
+    ? INITIAL_BASELINE_PATH
+    : relativePath;
+}
+
+function v10CandidateIsRecognized(relativePath, destination, context, compatHashes) {
+  if (
+    !destination.exists
+    || destination.error
+    || destination.kind !== "file"
+    || !destination.bytes
+  ) return false;
+  const manifestPath = v10ManifestKey(relativePath, context);
+  const accepted = compatHashes.get(manifestPath);
+  if (!accepted) return false;
+  return accepted.has(sha256(normalizeV10Candidate(relativePath, destination.bytes, context)));
+}
+
+function inspectV10MigrationContext(targetRoot, metadataDestination, laneDestination, snapshots) {
+  const metadata = strictV10Metadata(metadataDestination);
+  if (!metadata.active) return { active: false, context: null, conflicts: new Map() };
+  const conflicts = new Map();
+  if (metadata.error) {
+    conflicts.set(FRAMEWORK_METADATA_PATH, metadata.error);
+    return { active: true, context: null, conflicts };
+  }
+
+  const lane = exactField(
+    laneDestination,
+    DEFAULT_LANE_METADATA_PATH,
+    /^baseline_id = "([^"\r\n]+)"\r?$/gm,
+    "v10 lane.toml baseline_id",
+  );
+  if (lane.error) conflicts.set(DEFAULT_LANE_METADATA_PATH, lane.error);
+  let baselineId = lane.value;
+  let baselineFile = baselineId === null ? null : `${baselineId}.md`;
+  if (baselineId !== null) {
+    const parsed = canonicalBaselineBootstrap(baselineId);
+    const slug = baselineId.match(BASELINE_ID_PATTERN)?.[3] || "";
+    if (parsed.error || slug.split("-").includes("retrospective")) {
+      conflicts.set(DEFAULT_LANE_METADATA_PATH, parsed.error || "v10 baseline_id cannot be retrospective");
+      baselineId = null;
+      baselineFile = null;
+    }
+  }
+
+  const fields = [
+    [".ai-os/lanes/default/MISSION.md", strictV10MissionBaseline],
+    [".ai-os/lanes/default/tasks.yaml", strictV10TasksBaseline],
+  ];
+  const values = [];
+  for (const [relativePath, extractor] of fields) {
+    const destination = snapshots.has(relativePath)
+      ? snapshots.get(relativePath)
+      : inspectDestination(targetRoot, relativePath);
+    snapshots.set(relativePath, destination);
+    const extracted = extractor(destination, relativePath);
+    if (extracted.error) conflicts.set(relativePath, extracted.error);
+    else values.push([relativePath, extracted.value]);
+  }
+
+  let recordPath = null;
+  let baselineDate = null;
+  if (baselineFile !== null) {
+    recordPath = `.ai-os/lanes/default/baseline-log/${baselineFile}`;
+    const destination = snapshots.has(recordPath)
+      ? snapshots.get(recordPath)
+      : inspectDestination(targetRoot, recordPath);
+    snapshots.set(recordPath, destination);
+    const record = exactV10RecordFields(destination, recordPath);
+    if (record.error) conflicts.set(recordPath, record.error);
+    else {
+      values.push([recordPath, record.heading]);
+      baselineDate = record.date;
+    }
+  }
+
+  if (baselineId !== null) {
+    for (const [relativePath, value] of values) {
+      if (value !== baselineId) {
+        conflicts.set(relativePath, `v10 baseline context disagrees with lane.toml: ${relativePath}`);
+      }
+    }
+  }
+  if (conflicts.size > 0 || baselineId === null || baselineDate === null) {
+    return { active: true, context: null, conflicts };
+  }
+  return {
+    active: true,
+    conflicts,
+    context: Object.freeze({
+      baselineId,
+      baselineFile,
+      baselineDate,
+      frameworkVersion: metadata.context.frameworkVersion,
+      installedAt: metadata.context.installedAt,
+      updatedAt: metadata.context.updatedAt,
+      recordPath,
+    }),
+  };
+}
+
+function migratePristineV10Lane(bytes, baselineId) {
+  const content = bytes.toString("utf8");
+  const expected = [
+    'id = "default"',
+    'title = "默认交付线"',
+    'status = "active"',
+    `baseline_id = "${baselineId}"`,
+    'quality_tier = "standard"',
+    'risk_tier = "medium"',
+  ];
+  const eol = content.includes("\r\n") ? "\r\n" : "\n";
+  const trailing = content.endsWith(eol) ? eol : "";
+  if (content !== expected.join(eol) + trailing) {
+    failPlanner("recognized v10 lane.toml does not have canonical pristine structure");
+  }
+  return Buffer.from([
+    ...expected,
+    'governance_tier = "unassessed"',
+  ].join(eol) + trailing);
+}
+
 function classifyDestination(source, destination, options = {}) {
   if (destination.error || (destination.exists && destination.kind !== "file")) return "conflict";
   if (!destination.exists) return "create";
@@ -750,15 +1626,16 @@ function classifyDestination(source, destination, options = {}) {
 }
 
 function metadataIsSupported(bytes) {
-  const values = {};
-  for (const line of bytes.toString("utf8").split(/\r?\n/)) {
-    const match = line.match(/^([A-Za-z_]+)\s*=\s*"([^"]*)"\s*$/);
-    if (match) values[match[1]] = match[2];
-  }
-  if (!["10", "11"].includes(values.schema_version)) return false;
-  if (values.layout_version && !["10", "11"].includes(values.layout_version)) return false;
-  if (values.layout_mode && values.layout_mode !== LAYOUT_MODE) return false;
-  return true;
+  const content = bytes.toString("utf8");
+  if (!Buffer.from(content, "utf8").equals(bytes) || content.includes("\r")) return false;
+  const lines = content.split("\n");
+  if (lines.length !== 7 || lines[6] !== "") return false;
+  return lines[0] === "# AI-OS framework metadata"
+    && lines[1] === 'schema_version = "11"'
+    && lines[2] === 'layout_version = "11"'
+    && lines[3] === `layout_mode = "${LAYOUT_MODE}"`
+    && lines[4] === 'default_lane = "default"'
+    && /^framework_version = "11[.][0-9]+[.][0-9]+"$/.test(lines[5]);
 }
 
 function immutableOperation(fields) {
@@ -806,7 +1683,7 @@ function buildInstallPlan(targetDir, options = {}) {
   }
 
   const compatibleHashes = normalizeHashMap(options.compatibleHashes, "compatibleHashes");
-  const obsoleteHashes = normalizeHashMap(
+  let obsoleteHashes = normalizeHashMap(
     options.obsoleteFrameworkHashes,
     "obsoleteFrameworkHashes",
   );
@@ -830,6 +1707,46 @@ function buildInstallPlan(targetDir, options = {}) {
     ? { exists: true, kind: "invalid", hash: null, bytes: null, error: targetError.message }
     : inspectDestination(resolvedTarget, DEFAULT_LANE_METADATA_PATH);
   destinationSnapshots.set(DEFAULT_LANE_METADATA_PATH, laneDestination);
+  const metadataDestination = targetError
+    ? { exists: true, kind: "invalid", hash: null, error: targetError.message }
+    : inspectDestination(resolvedTarget, FRAMEWORK_METADATA_PATH);
+  destinationSnapshots.set(FRAMEWORK_METADATA_PATH, metadataDestination);
+  const preliminaryV10Metadata = strictV10Metadata(metadataDestination);
+  if (preliminaryV10Metadata.active) {
+    for (const seam of ["fileSpecs", "sourceOverrides", "sourceRoot", "compatManifestPath"]) {
+      if (options[seam] !== undefined) {
+        failPlanner(`v10 migration does not allow the internal ${seam} seam`);
+      }
+    }
+  }
+  if (
+    targetError === null
+    && metadataDestination.exists
+    && !preliminaryV10Metadata.active
+    && (
+      metadataDestination.error
+      || metadataDestination.kind !== "file"
+      || !metadataDestination.bytes
+      || !metadataIsSupported(metadataDestination.bytes)
+    )
+  ) {
+    const reason = metadataDestination.error
+      || "unsupported metadata in .ai-os/framework.toml";
+    return immutablePlan(
+      resolvedTarget,
+      [immutableOperation({
+        relativePath: FRAMEWORK_METADATA_PATH,
+        type: "file",
+        ownership: OWNERSHIP.FRAMEWORK,
+        action: "conflict",
+        content: null,
+        mode: 0o644,
+        previousHash: metadataDestination.hash,
+      })],
+      [immutableConflict(FRAMEWORK_METADATA_PATH, reason)],
+      { baselineId: null, layoutVersion: LAYOUT_VERSION, targetExisted },
+    );
+  }
   const laneContext = targetError === null
     ? existingLaneBootstrap(laneDestination)
     : { exists: false, bootstrap: null, error: null };
@@ -852,6 +1769,41 @@ function buildInstallPlan(targetDir, options = {}) {
         targetExisted,
       },
     );
+  }
+  if (!laneContext.exists && preliminaryV10Metadata.active) {
+    const metadataReason = preliminaryV10Metadata.error;
+    const operations = [];
+    const conflicts = [];
+    if (metadataReason !== null) {
+      operations.push(immutableOperation({
+        relativePath: FRAMEWORK_METADATA_PATH,
+        type: "file",
+        ownership: OWNERSHIP.FRAMEWORK,
+        action: "conflict",
+        content: null,
+        mode: 0o644,
+        previousHash: metadataDestination.hash,
+      }));
+      conflicts.push(immutableConflict(FRAMEWORK_METADATA_PATH, metadataReason));
+    }
+    operations.push(immutableOperation({
+      relativePath: DEFAULT_LANE_METADATA_PATH,
+      type: "file",
+      ownership: OWNERSHIP.PROJECT,
+      action: "conflict",
+      content: null,
+      mode: 0o644,
+      previousHash: laneDestination.hash,
+    }));
+    conflicts.push(immutableConflict(
+      DEFAULT_LANE_METADATA_PATH,
+      "v10 lane.toml baseline_id is missing",
+    ));
+    return immutablePlan(resolvedTarget, operations, conflicts, {
+      baselineId: null,
+      layoutVersion: LAYOUT_VERSION,
+      targetExisted,
+    });
   }
   const bootstrap = laneContext.exists
     ? laneContext.bootstrap
@@ -878,6 +1830,57 @@ function buildInstallPlan(targetDir, options = {}) {
         currentBaselineRelativePath,
         currentBaselineDestination,
       );
+    }
+  }
+  const migration = targetError === null
+    ? inspectV10MigrationContext(
+      resolvedTarget,
+      metadataDestination,
+      laneDestination,
+      destinationSnapshots,
+    )
+    : { active: false, context: null, conflicts: new Map() };
+  let v10CompatHashes = null;
+  const migrationContent = new Map();
+  if (migration.active && migration.context !== null) {
+    v10CompatHashes = loadCompatHashes();
+    if (!v10CandidateIsRecognized(
+      FRAMEWORK_METADATA_PATH,
+      metadataDestination,
+      migration.context,
+      v10CompatHashes,
+    )) {
+      migration.conflicts.set(
+        FRAMEWORK_METADATA_PATH,
+        "v10 metadata bytes are not recognized by the compatibility manifest",
+      );
+    }
+    const sharedHashes = v10CompatHashes.get(".ai-os/bin/shared.js");
+    obsoleteHashes = new Map([[".ai-os/bin/shared.js", new Set(sharedHashes)]]);
+
+    if (options.teamConfig !== false) {
+      for (const relativePath of [".gitignore", ".gitattributes"]) {
+        const destination = destinationSnapshots.has(relativePath)
+          ? destinationSnapshots.get(relativePath)
+          : inspectDestination(resolvedTarget, relativePath);
+        destinationSnapshots.set(relativePath, destination);
+        if (!destination.exists) continue;
+        if (destination.error || destination.kind !== "file" || !destination.bytes) {
+          migration.conflicts.set(
+            relativePath,
+            destinationConflictReason(relativePath, destination),
+          );
+          continue;
+        }
+        try {
+          migrationContent.set(
+            relativePath,
+            replaceLegacyTeamConfig(destination.bytes, relativePath),
+          );
+        } catch (error) {
+          migration.conflicts.set(relativePath, error.message);
+        }
+      }
     }
   }
   const inventory = sourceInventory(options, bootstrap);
@@ -912,8 +1915,22 @@ function buildInstallPlan(targetDir, options = {}) {
   const conflicts = [];
   for (const entry of inventory) {
     const destination = destinationSnapshots.get(entry.relativePath);
+    const recognizedV10 = migration.context !== null
+      && v10CandidateIsRecognized(
+        entry.relativePath,
+        destination,
+        migration.context,
+        v10CompatHashes,
+      );
+    let plannedContent = migrationContent.get(entry.relativePath) || entry.content;
+    if (
+      recognizedV10
+      && entry.relativePath === DEFAULT_LANE_METADATA_PATH
+    ) {
+      plannedContent = migratePristineV10Lane(destination.bytes, migration.context.baselineId);
+    }
     const accepted = new Set(compatibleHashes.get(entry.relativePath) || []);
-    const sourceHash = entry.content === null ? null : sha256(entry.content);
+    const sourceHash = plannedContent === null ? null : sha256(plannedContent);
     if (entry.ownership === OWNERSHIP.PROJECT && sourceHash) accepted.add(sourceHash);
     const source = {
       relativePath: entry.relativePath,
@@ -927,6 +1944,9 @@ function buildInstallPlan(targetDir, options = {}) {
     if (entry.error) {
       action = "conflict";
       reason = entry.error;
+    } else if (migration.conflicts.has(entry.relativePath)) {
+      action = "conflict";
+      reason = migration.conflicts.get(entry.relativePath);
     } else if (
       laneContext.exists
       && entry.relativePath === currentBaselineRelativePath
@@ -934,6 +1954,43 @@ function buildInstallPlan(targetDir, options = {}) {
       if (currentBaselineError !== null) {
         action = "conflict";
         reason = currentBaselineError;
+      } else {
+        action = "preserve";
+      }
+    } else if (migration.context !== null && TEAM_CONFIG_PATHS.has(
+      filesystemPathKey(entry.relativePath),
+    )) {
+      if (!destination.exists) action = "create";
+      else if (destination.error || destination.kind !== "file") {
+        action = "conflict";
+        reason = destinationConflictReason(entry.relativePath, destination);
+      } else if (destination.hash === sourceHash) action = "preserve";
+      else action = "replace-pristine-project";
+    } else if (migration.context !== null && entry.ownership === OWNERSHIP.FRAMEWORK) {
+      if (!destination.exists) action = "create";
+      else if (destination.error || destination.kind !== "file") {
+        action = "conflict";
+        reason = destinationConflictReason(entry.relativePath, destination);
+      } else if (recognizedV10) action = "replace-framework";
+      else {
+        action = "conflict";
+        reason = `unrecognized v10 framework bytes at ${entry.relativePath}`;
+      }
+    } else if (
+      migration.context !== null
+      && entry.ownership === OWNERSHIP.PROJECT
+      && destination.exists
+      && destination.kind === "file"
+      && !destination.error
+    ) {
+      if (entry.relativePath === DEFAULT_LANE_METADATA_PATH && recognizedV10) {
+        action = "replace-pristine-project";
+      } else if (V10_PROJECT_UPGRADE_PATHS.has(filesystemPathKey(entry.relativePath))) {
+        if (recognizedV10) action = "replace-pristine-project";
+        else if (entry.relativePath === "AGENTS.md") {
+          action = "conflict";
+          reason = "AGENTS.md requires manual merge because its v10 full-content hash is unknown";
+        } else action = "preserve";
       } else {
         action = "preserve";
       }
@@ -989,8 +2046,10 @@ function buildInstallPlan(targetDir, options = {}) {
       type: entry.type,
       ownership: entry.ownership,
       action,
-      content: entry.content,
-      mode: entry.mode,
+      content: plannedContent,
+      mode: action === "replace-pristine-project" && destination.mode !== null
+        ? destination.mode
+        : entry.mode,
       previousHash: destination.hash,
     });
     operations.push(operation);
@@ -1517,6 +2576,12 @@ function revalidateDestinationsBeforeCommit(plan, fsOps, staged) {
       );
       if (sha256(destination.bytes) !== operation.previousHash) {
         throwRevalidationError(operation.relativePath, "destination bytes changed after planning");
+      }
+      if (
+        operation.action === "replace-pristine-project"
+        && (destination.stat.mode & 0o777) !== operation.mode
+      ) {
+        throwRevalidationError(operation.relativePath, "project destination mode changed after planning");
       }
       record.destinationIdentity = fileIdentity(destination.stat);
       record.destinationMode = destination.stat.mode & 0o777;
@@ -2167,4 +3232,7 @@ module.exports = {
   createDefaultFsOps,
   executeInstallPlan,
   installProject,
+  loadCompatHashes,
+  normalizeV10Candidate,
+  replaceManagedBlock,
 };
