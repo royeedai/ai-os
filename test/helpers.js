@@ -6,6 +6,8 @@
 
 const fs = require("fs");
 const path = require("path");
+const assert = require("node:assert/strict");
+const { test, afterEach } = require("node:test");
 const { spawnSync } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
@@ -14,19 +16,6 @@ const BIN = path.resolve(__dirname, "..", "bin");
 const NODE = process.execPath;
 const repoRoot = path.resolve(__dirname, "..");
 const BASELINE_RECORD_NAME_PATTERN = /^(BL|CR)-\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*[.]md$/;
-
-let passed = 0;
-let failed = 0;
-
-function assert(condition, label) {
-  if (condition) {
-    passed += 1;
-    process.stdout.write(`  \x1b[32m\u2713\x1b[0m ${label}\n`);
-  } else {
-    failed += 1;
-    process.stdout.write(`  \x1b[31m\u2717\x1b[0m ${label}\n`);
-  }
-}
 
 function run(script, args = [], cwd) {
   return spawnSync(NODE, [path.join(BIN, script), ...args], {
@@ -70,6 +59,10 @@ function readFile(dir, relPath) {
   return fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : null;
 }
 
+function readRepo(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+}
+
 function exists(dir, relPath) {
   return fs.existsSync(path.join(dir, relPath));
 }
@@ -80,20 +73,14 @@ function listBaselineRecords(projectDir) {
   return fs.readdirSync(baselineDir).filter((n) => n.endsWith(".md")).sort();
 }
 
-function section(title) {
-  process.stdout.write(`\n=== ${title} ===\n`);
-}
-
-function getSummary() {
-  return { passed, failed };
-}
-
 module.exports = {
+  assert,
+  test,
+  afterEach,
   BIN,
   NODE,
   repoRoot,
   BASELINE_RECORD_NAME_PATTERN,
-  assert,
   run,
   runInstall,
   runDoctor,
@@ -101,8 +88,7 @@ module.exports = {
   tmpDir,
   cleanup,
   readFile,
+  readRepo,
   exists,
   listBaselineRecords,
-  section,
-  getSummary,
 };
