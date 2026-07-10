@@ -28,6 +28,7 @@ const GENERATED_SOURCE_PATHS = Object.freeze({
 const TEAM_CONFIG_PATHS = new Set([".gitignore", ".gitattributes"]);
 const IDE_PATHS = new Set(["CLAUDE.md", "GEMINI.md"]);
 const OWNERSHIP_VALUES = new Set(Object.values(OWNERSHIP));
+const MAX_BACKUP_RESERVATIONS = 8;
 
 class InstallPlannerError extends Error {
   constructor(message, options) {
@@ -560,6 +561,7 @@ function buildInstallPlan(targetDir, options = {}) {
 function createDefaultFsOps() {
   return {
     lstat: (...args) => fs.lstatSync(...args),
+    fstat: (...args) => fs.fstatSync(...args),
     readFile: (...args) => fs.readFileSync(...args),
     open: (...args) => fs.openSync(...args),
     write: (...args) => fs.writeSync(...args),
@@ -567,6 +569,7 @@ function createDefaultFsOps() {
     fchmod: (...args) => fs.fchmodSync(...args),
     close: (...args) => fs.closeSync(...args),
     mkdir: (...args) => fs.mkdirSync(...args),
+    link: (...args) => fs.linkSync(...args),
     rename: (...args) => fs.renameSync(...args),
     unlink: (...args) => fs.unlinkSync(...args),
     rmdir: (...args) => fs.rmdirSync(...args),
@@ -590,6 +593,7 @@ function appendCleanupErrors(error, cleanupErrors) {
     );
   }
   Object.defineProperty(error, "cleanupErrors", {
+    configurable: true,
     enumerable: true,
     value: Object.freeze([...error.cleanupErrors, ...cleanupErrors]),
   });
@@ -684,7 +688,19 @@ function acquireLock(targetDir, fsOps) {
     | (fs.constants.O_NOFOLLOW || 0);
   try {
     const fd = fsOps.open(lockPath, flags, 0o600);
-    return { fd, path: lockPath, closed: false };
+    const stat = fsOps.fstat(fd);
+    if (stat.isSymbolicLink() || !stat.isFile()) {
+      throw new Error("opened lock is not a regular file");
+    }
+    return {
+      fd,
+      path: lockPath,
+      closed: false,
+      owned: true,
+      identity: fileIdentity(stat),
+      expectedHash: sha256(Buffer.alloc(0)),
+      expectedMode: stat.mode & 0o777,
+    };
   } catch (error) {
     const detail = error.code === "EEXIST"
       ? "installation already in progress"
@@ -718,10 +734,17 @@ function writeStagedContent(record, fsOps) {
     | fs.constants.O_EXCL
     | (fs.constants.O_NOFOLLOW || 0);
   let failure = null;
+  let offset = 0;
   try {
     record.fd = fsOps.open(record.tempPath, flags, 0o600);
+    record.tempOwned = true;
+    const openedStat = fsOps.fstat(record.fd);
+    if (openedStat.isSymbolicLink() || !openedStat.isFile()) {
+      throw new Error("opened staged path is not a regular file");
+    }
+    record.tempIdentity = fileIdentity(openedStat);
+    record.tempExpectedMode = openedStat.mode & 0o777;
     const content = record.operation.content;
-    let offset = 0;
     while (offset < content.length) {
       const written = fsOps.write(
         record.fd,
@@ -734,9 +757,15 @@ function writeStagedContent(record, fsOps) {
         throw new Error("staged write made no forward progress");
       }
       offset += written;
+      record.tempExpectedHash = sha256(content.subarray(0, offset));
     }
     fsOps.fsync(record.fd);
     fsOps.fchmod(record.fd, record.operation.mode);
+    record.tempExpectedMode = record.operation.mode;
+    const finalStat = fsOps.fstat(record.fd);
+    if (!matchesFileIdentity(finalStat, record.tempIdentity)) {
+      throw new Error("staged descriptor identity changed");
+    }
   } catch (error) {
     failure = filesystemError("stage content", record.operation.relativePath, error);
   }
@@ -778,10 +807,19 @@ function stageOperations(plan, fsOps, tx) {
         ? null
         : uniqueTransactionPath(destination, "backup"),
       fd: null,
+      tempOwned: false,
+      tempIdentity: null,
+      tempExpectedHash: sha256(Buffer.alloc(0)),
+      tempExpectedMode: null,
       committed: false,
       backupCreated: false,
+      backupOwned: false,
       backupStarted: false,
+      backupIdentity: null,
+      backupExpectedHash: operation.previousHash,
+      backupExpectedMode: null,
       installStarted: false,
+      removeStarted: false,
       destinationIdentity: null,
       destinationMode: null,
       stagedIdentity: null,
@@ -914,25 +952,81 @@ function revalidateDestinationsBeforeCommit(plan, fsOps, staged) {
   }
 }
 
-function commitStaged(staged, fsOps) {
-  for (const record of staged) {
-    if (record.operation.action !== "create") {
-      try {
-        record.backupStarted = true;
-        fsOps.rename(record.destination, record.backupPath);
-        record.backupCreated = true;
-      } catch (error) {
+function recordOwnedBackup(record, backupPath) {
+  record.backupPath = backupPath;
+  record.backupCreated = true;
+  record.backupOwned = true;
+  record.backupStarted = true;
+  record.backupIdentity = record.destinationIdentity;
+  record.backupExpectedMode = record.destinationMode;
+}
+
+function reserveBackup(plan, record, fsOps) {
+  let backupPath = record.backupPath;
+  for (let attempt = 0; attempt < MAX_BACKUP_RESERVATIONS; attempt += 1) {
+    revalidateDestinationsBeforeCommit(plan, fsOps, [record]);
+    try {
+      fsOps.link(record.destination, backupPath);
+      recordOwnedBackup(record, backupPath);
+      return;
+    } catch (error) {
+      const inspected = inspectRollbackFile(
+        backupPath,
+        record.destinationIdentity,
+        record.operation.previousHash,
+        record.destinationMode,
+        fsOps,
+        record.operation.relativePath,
+        "commit backup",
+      );
+      if (!inspected.error && inspected.state === "owned") {
+        recordOwnedBackup(record, backupPath);
         throw filesystemError("commit backup", record.operation.relativePath, error);
       }
+      if (error.code !== "EEXIST" || attempt === MAX_BACKUP_RESERVATIONS - 1) {
+        throw filesystemError("commit backup", record.operation.relativePath, error);
+      }
+      backupPath = uniqueTransactionPath(record.destination, "backup");
     }
+  }
+}
+
+function commitStaged(plan, staged, fsOps) {
+  for (const record of staged) {
+    if (record.operation.action === "create") {
+      revalidateDestinationsBeforeCommit(plan, fsOps, [record]);
+      try {
+        record.installStarted = true;
+        fsOps.link(record.tempPath, record.destination);
+        record.committed = true;
+        const cleanupErrors = unlinkOwnedRecordPath(record, "temp", fsOps, "commit create");
+        if (cleanupErrors.length > 0) {
+          throw appendCleanupErrors(cleanupErrors[0], cleanupErrors.slice(1));
+        }
+      } catch (error) {
+        throw filesystemError("commit create", record.operation.relativePath, error);
+      }
+      continue;
+    }
+    if (record.operation.action !== "create") {
+      reserveBackup(plan, record, fsOps);
+    }
+    revalidateDestinationsBeforeCommit(plan, fsOps, [record]);
     if (record.operation.action === "remove-framework") {
-      record.committed = true;
+      try {
+        record.removeStarted = true;
+        fsOps.unlink(record.destination);
+        record.committed = true;
+      } catch (error) {
+        throw filesystemError("commit removal", record.operation.relativePath, error);
+      }
       continue;
     }
     try {
       record.installStarted = true;
       fsOps.rename(record.tempPath, record.destination);
       record.committed = true;
+      record.tempOwned = false;
       record.tempPath = null;
     } catch (error) {
       const phase = record.operation.action === "create"
@@ -943,16 +1037,6 @@ function commitStaged(staged, fsOps) {
   }
 }
 
-function unlinkForCleanup(absolutePath, fsOps, phase, relativePath) {
-  try {
-    fsOps.unlink(absolutePath);
-    return null;
-  } catch (error) {
-    if (error.code === "ENOENT") return null;
-    return filesystemError(phase, relativePath, error);
-  }
-}
-
 function inspectRollbackFile(
   absolutePath,
   expectedIdentity,
@@ -960,6 +1044,7 @@ function inspectRollbackFile(
   expectedMode,
   fsOps,
   relativePath,
+  phase = "inspect rollback",
 ) {
   let before;
   try {
@@ -968,7 +1053,7 @@ function inspectRollbackFile(
     if (error.code === "ENOENT") return { state: "missing", error: null };
     return {
       state: "unknown",
-      error: filesystemError("inspect rollback", relativePath, error),
+      error: filesystemError(phase, relativePath, error),
     };
   }
   if (
@@ -987,7 +1072,7 @@ function inspectRollbackFile(
   } catch (error) {
     return {
       state: "unknown",
-      error: filesystemError("inspect rollback", relativePath, error),
+      error: filesystemError(phase, relativePath, error),
     };
   }
   if (
@@ -1002,14 +1087,129 @@ function inspectRollbackFile(
   return { state: "owned", error: null };
 }
 
+function unlinkVerifiedPath(
+  absolutePath,
+  expectedIdentity,
+  expectedHash,
+  expectedMode,
+  fsOps,
+  phase,
+  relativePath,
+  label,
+) {
+  const errors = [];
+  const before = inspectRollbackFile(
+    absolutePath,
+    expectedIdentity,
+    expectedHash,
+    expectedMode,
+    fsOps,
+    relativePath,
+    phase,
+  );
+  if (before.error) return { relinquished: false, errors: [before.error] };
+  if (before.state === "missing") return { relinquished: true, errors };
+  if (before.state !== "owned") {
+    return {
+      relinquished: true,
+      errors: [filesystemError(
+        phase,
+        relativePath,
+        new Error(`${label} is no longer owned by this transaction`),
+      )],
+    };
+  }
+
+  try {
+    fsOps.unlink(absolutePath);
+    return { relinquished: true, errors };
+  } catch (error) {
+    errors.push(filesystemError(phase, relativePath, error));
+  }
+
+  const after = inspectRollbackFile(
+    absolutePath,
+    expectedIdentity,
+    expectedHash,
+    expectedMode,
+    fsOps,
+    relativePath,
+    phase,
+  );
+  if (after.error) errors.push(after.error);
+  else if (after.state === "foreign") {
+    errors.push(filesystemError(
+      phase,
+      relativePath,
+      new Error(`${label} is no longer owned by this transaction`),
+    ));
+  }
+  return {
+    relinquished: after.state === "missing" || after.state === "foreign",
+    errors,
+  };
+}
+
+function unlinkOwnedRecordPath(record, kind, fsOps, phase) {
+  const result = unlinkVerifiedPath(
+    record[`${kind}Path`],
+    record[`${kind}Identity`],
+    record[`${kind}ExpectedHash`],
+    record[`${kind}ExpectedMode`],
+    fsOps,
+    phase,
+    record.operation.relativePath,
+    `${kind} path`,
+  );
+  if (result.relinquished) {
+    record[`${kind}Owned`] = false;
+    record[`${kind}Path`] = null;
+  }
+  return result.errors;
+}
+
 function rollbackStaged(staged, fsOps) {
   const errors = [];
   for (const record of [...staged].reverse()) {
     const relativePath = record.operation.relativePath;
-    let destinationClear = true;
+    if (record.operation.action === "create") {
+      if (!record.installStarted) continue;
+      const result = unlinkVerifiedPath(
+        record.destination,
+        record.stagedIdentity,
+        sha256(record.operation.content),
+        record.operation.mode,
+        fsOps,
+        "rollback create",
+        relativePath,
+        "create destination",
+      );
+      errors.push(...result.errors);
+      if (result.relinquished) {
+        record.installStarted = false;
+        record.committed = false;
+      }
+      continue;
+    }
 
-    if (record.installStarted) {
-      const inspected = inspectRollbackFile(
+    if (!record.backupStarted && !record.installStarted && !record.removeStarted) continue;
+
+    const original = inspectRollbackFile(
+      record.destination,
+      record.destinationIdentity,
+      record.operation.previousHash,
+      record.destinationMode,
+      fsOps,
+      relativePath,
+    );
+    if (original.error) {
+      errors.push(original.error);
+      continue;
+    }
+
+    let destinationState = original.state;
+    if (destinationState !== "owned" && record.operation.action !== "remove-framework") {
+      const installed = inspectRollbackFile(
         record.destination,
         record.stagedIdentity,
         sha256(record.operation.content),
@@ -1017,46 +1217,46 @@ function rollbackStaged(staged, fsOps) {
         fsOps,
         relativePath,
       );
-      if (inspected.error) {
-        errors.push(inspected.error);
-        destinationClear = false;
-      } else if (inspected.state === "foreign") {
-        errors.push(filesystemError(
-          "rollback destination",
-          relativePath,
-          new Error("destination was not created by this transaction"),
-        ));
-        destinationClear = false;
-      } else if (inspected.state === "owned") {
-        const unlinkError = unlinkForCleanup(
+      if (installed.error) {
+        errors.push(installed.error);
+        continue;
+      }
+      if (installed.state === "owned") {
+        const result = unlinkVerifiedPath(
           record.destination,
+          record.stagedIdentity,
+          sha256(record.operation.content),
+          record.operation.mode,
           fsOps,
-          record.operation.action === "create" ? "rollback create" : "rollback replacement",
+          "rollback replacement",
           relativePath,
+          "replacement destination",
         );
-        if (unlinkError) {
-          errors.push(unlinkError);
-          destinationClear = false;
-        } else {
-          record.installStarted = false;
-          record.committed = false;
-        }
-      } else {
-        record.installStarted = false;
-        record.committed = false;
+        errors.push(...result.errors);
+        if (!result.relinquished) continue;
+        destinationState = "missing";
       }
     }
 
-    if (record.operation.action === "create" || !record.backupStarted) continue;
+    if (destinationState === "foreign") {
+      errors.push(filesystemError(
+        "rollback backup",
+        relativePath,
+        new Error("planned destination could not be restored over a foreign destination"),
+      ));
+      continue;
+    }
 
-    const backup = inspectRollbackFile(
-      record.backupPath,
-      record.destinationIdentity,
-      record.operation.previousHash,
-      record.destinationMode,
-      fsOps,
-      relativePath,
-    );
+    const backup = record.backupOwned
+      ? inspectRollbackFile(
+        record.backupPath,
+        record.backupIdentity,
+        record.backupExpectedHash,
+        record.backupExpectedMode,
+        fsOps,
+        relativePath,
+      )
+      : { state: "missing", error: null };
     if (backup.error) {
       errors.push(backup.error);
       continue;
@@ -1069,41 +1269,41 @@ function rollbackStaged(staged, fsOps) {
       ));
       continue;
     }
-    if (backup.state === "owned") {
-      if (!destinationClear) continue;
-      try {
-        fsOps.rename(record.backupPath, record.destination);
-        record.backupCreated = false;
-        record.backupStarted = false;
-        record.backupPath = null;
-        record.committed = false;
-      } catch (error) {
-        errors.push(filesystemError("rollback backup", relativePath, error));
+
+    if (destinationState === "missing") {
+      if (backup.state !== "owned") {
+        errors.push(filesystemError(
+          "rollback backup",
+          relativePath,
+          new Error("planned destination bytes could not be restored because backup is missing"),
+        ));
+        continue;
       }
-      continue;
+      try {
+        fsOps.link(record.backupPath, record.destination);
+      } catch (error) {
+        const restored = inspectRollbackFile(
+          record.destination,
+          record.destinationIdentity,
+          record.operation.previousHash,
+          record.destinationMode,
+          fsOps,
+          relativePath,
+        );
+        errors.push(filesystemError("rollback backup", relativePath, error));
+        if (restored.error || restored.state !== "owned") continue;
+      }
     }
 
-    const destination = inspectRollbackFile(
-      record.destination,
-      record.destinationIdentity,
-      record.operation.previousHash,
-      record.destinationMode,
-      fsOps,
-      relativePath,
-    );
-    if (destination.error) errors.push(destination.error);
-    else if (destination.state === "owned") {
-      record.backupCreated = false;
-      record.backupStarted = false;
-      record.backupPath = null;
-      record.committed = false;
-    } else if (destination.state !== "foreign") {
-      errors.push(filesystemError(
-        "rollback backup",
-        relativePath,
-        new Error("planned destination bytes could not be restored"),
-      ));
+    if (record.backupOwned) {
+      errors.push(...unlinkOwnedRecordPath(record, "backup", fsOps, "rollback backup"));
+      if (record.backupOwned) continue;
     }
+    record.backupCreated = false;
+    record.backupStarted = false;
+    record.installStarted = false;
+    record.removeStarted = false;
+    record.committed = false;
   }
   return errors;
 }
@@ -1113,25 +1313,11 @@ function cleanupStaged(tx, fsOps) {
   for (const record of [...tx.staged].reverse()) {
     const closeError = closeStagedDescriptor(record, fsOps);
     if (closeError) errors.push(closeError);
-    if (record.tempPath !== null) {
-      const tempError = unlinkForCleanup(
-        record.tempPath,
-        fsOps,
-        "cleanup staged file",
-        record.operation.relativePath,
-      );
-      if (tempError) errors.push(tempError);
-      else record.tempPath = null;
+    if (record.tempOwned) {
+      errors.push(...unlinkOwnedRecordPath(record, "temp", fsOps, "cleanup staged file"));
     }
-    if (tx.committed && record.backupPath !== null) {
-      const backupError = unlinkForCleanup(
-        record.backupPath,
-        fsOps,
-        "cleanup backup file",
-        record.operation.relativePath,
-      );
-      if (backupError) errors.push(backupError);
-      else record.backupPath = null;
+    if (tx.committed && record.backupOwned) {
+      errors.push(...unlinkOwnedRecordPath(record, "backup", fsOps, "cleanup backup file"));
     }
   }
   return errors;
@@ -1145,10 +1331,26 @@ function releaseLock(lock, fsOps) {
       lock.closed = true;
     } catch (error) {
       errors.push(filesystemError("close lock", null, error));
+      return errors;
     }
   }
-  const unlinkError = unlinkForCleanup(lock.path, fsOps, "remove lock", null);
-  if (unlinkError) errors.push(unlinkError);
+  if (lock.owned) {
+    const result = unlinkVerifiedPath(
+      lock.path,
+      lock.identity,
+      lock.expectedHash,
+      lock.expectedMode,
+      fsOps,
+      "remove lock",
+      null,
+      "lock path",
+    );
+    errors.push(...result.errors);
+    if (result.relinquished) {
+      lock.owned = false;
+      lock.path = null;
+    }
+  }
   return errors;
 }
 
@@ -1231,8 +1433,7 @@ function executeInstallPlan(plan, { fsOps: overrides = {} } = {}) {
     ensureTargetForTransaction(plan, fsOps, tx);
     tx.lock = acquireLock(plan.targetDir, fsOps);
     stageOperations(plan, fsOps, tx);
-    revalidateDestinationsBeforeCommit(plan, fsOps, tx.staged);
-    commitStaged(tx.staged, fsOps);
+    commitStaged(plan, tx.staged, fsOps);
     tx.committed = true;
     result = installResult(plan);
   } catch (error) {
