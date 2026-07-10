@@ -12,6 +12,329 @@ const OWNERSHIP = Object.freeze({
   SESSION: "session",
 });
 
+class CanonicalParseError extends Error {
+  constructor(line, reason) {
+    super(`canonical parse error at line ${line}: ${reason}`);
+    this.name = "CanonicalParseError";
+    this.code = "ERR_CANONICAL_PARSE";
+    this.line = line;
+    this.reason = reason;
+  }
+}
+
+function splitCanonicalLines(content) {
+  if (typeof content !== "string") {
+    throw new CanonicalParseError(0, "content must be a string");
+  }
+  const lines = content.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    if (/[\r\u0085\u2028\u2029]/u.test(lines[index])) {
+      throw new CanonicalParseError(index + 1, "unsupported line break");
+    }
+  }
+  return lines;
+}
+
+function rejectControlCharacters(line, lineNumber) {
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(line)) {
+    throw new CanonicalParseError(lineNumber, "unsupported control character");
+  }
+}
+
+function parseCanonicalToml(
+  content,
+  { requiredKeys = [], allowedKeys = requiredKeys } = {},
+) {
+  const result = Object.create(null);
+  const allowed = new Set(allowedKeys);
+  const lines = splitCanonicalLines(content);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const raw = lines[index];
+    rejectControlCharacters(raw, index + 1);
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)[ ]*=[ ]*"([^"]*)"$/);
+    if (!match) {
+      throw new CanonicalParseError(index + 1, "unsupported TOML assignment");
+    }
+    const [, key, value] = match;
+    if (Object.hasOwn(result, key)) {
+      throw new CanonicalParseError(index + 1, `duplicate key ${key}`);
+    }
+    if (!allowed.has(key)) {
+      throw new CanonicalParseError(index + 1, `unknown key ${key}`);
+    }
+    result[key] = value;
+  }
+
+  for (const key of requiredKeys) {
+    if (!Object.hasOwn(result, key)) {
+      throw new CanonicalParseError(0, `missing key ${key}`);
+    }
+  }
+  return result;
+}
+
+function stripYamlComment(line) {
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quoted && character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      quoted = !quoted;
+      continue;
+    }
+    if (!quoted && character === "#") return line.slice(0, index);
+  }
+  return line;
+}
+
+function tokenizeCanonicalYaml(content) {
+  const tokens = [];
+  const lines = splitCanonicalLines(content);
+  for (let index = 0; index < lines.length; index += 1) {
+    const raw = lines[index];
+    const lineNumber = index + 1;
+    if (raw.includes("\t")) {
+      throw new CanonicalParseError(lineNumber, "tabs are not supported");
+    }
+    rejectControlCharacters(raw, lineNumber);
+    const uncommented = stripYamlComment(raw).replace(/[ ]+$/, "");
+    if (!uncommented.trim()) continue;
+    const indent = uncommented.length - uncommented.trimStart().length;
+    if (indent % 2 !== 0) {
+      throw new CanonicalParseError(
+        lineNumber,
+        "indentation must use multiples of two spaces",
+      );
+    }
+    tokens.push({
+      line: lineNumber,
+      indent,
+      text: uncommented.slice(indent),
+    });
+  }
+  return tokens;
+}
+
+function parseDoubleQuotedYaml(value, line) {
+  let result = "";
+  for (let index = 1; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === '"') {
+      if (index !== value.length - 1) {
+        throw new CanonicalParseError(line, "unsupported YAML scalar");
+      }
+      return result;
+    }
+    if (character !== "\\") {
+      result += character;
+      continue;
+    }
+
+    index += 1;
+    if (index >= value.length) {
+      throw new CanonicalParseError(line, "unterminated double-quoted string");
+    }
+    const escaped = value[index];
+    const replacements = {
+      "\\": "\\",
+      '"': '"',
+      n: "\n",
+      r: "\r",
+      t: "\t",
+    };
+    if (!Object.hasOwn(replacements, escaped)) {
+      throw new CanonicalParseError(line, "unsupported escape");
+    }
+    result += replacements[escaped];
+  }
+  throw new CanonicalParseError(line, "unterminated double-quoted string");
+}
+
+function parseYamlScalar(value, line) {
+  if (value === "[]") return [];
+  if (value.startsWith('"')) return parseDoubleQuotedYaml(value, line);
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null") return null;
+  if (/^[+-]?(?:0|[1-9][0-9]*)$/.test(value)) {
+    const number = Number(value);
+    if (!Number.isSafeInteger(number)) {
+      throw new CanonicalParseError(line, "integer is outside the safe range");
+    }
+    return number;
+  }
+  if (/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(value)) return value;
+  if (["&", "*", "!", "|", ">", "{", "["].some((prefix) => value.startsWith(prefix))) {
+    throw new CanonicalParseError(line, "unsupported YAML form");
+  }
+  throw new CanonicalParseError(line, "unsupported YAML scalar");
+}
+
+function yamlMappingParts(text, line) {
+  const match = text.match(/^([A-Za-z_][A-Za-z0-9_]*):(.*)$/);
+  if (!match || (match[2] && !match[2].startsWith(" "))) {
+    throw new CanonicalParseError(line, "unsupported YAML mapping");
+  }
+  return { key: match[1], scalar: match[2].trim() };
+}
+
+function defineYamlKey(target, key, value, line) {
+  if (Object.hasOwn(target, key)) {
+    throw new CanonicalParseError(line, `duplicate key ${key}`);
+  }
+  Object.defineProperty(target, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  });
+}
+
+function isYamlSequenceLine(text) {
+  return text === "-" || text.startsWith("- ");
+}
+
+function parseYamlNode(tokens, index, indent) {
+  const token = tokens[index];
+  if (!token || token.indent !== indent) {
+    throw new CanonicalParseError(token ? token.line : 0, "invalid indentation");
+  }
+  return isYamlSequenceLine(token.text)
+    ? parseYamlSequence(tokens, index, indent)
+    : parseYamlMapping(tokens, index, indent);
+}
+
+function parseYamlMappingEntry(tokens, nextIndex, indent, target, text, line) {
+  const { key, scalar } = yamlMappingParts(text, line);
+  if (Object.hasOwn(target, key)) {
+    throw new CanonicalParseError(line, `duplicate key ${key}`);
+  }
+  if (scalar) {
+    defineYamlKey(target, key, parseYamlScalar(scalar, line), line);
+    return nextIndex;
+  }
+
+  const child = tokens[nextIndex];
+  if (!child || child.indent <= indent) {
+    throw new CanonicalParseError(line, `empty scalar ${key}`);
+  }
+  if (child.indent !== indent + 2) {
+    throw new CanonicalParseError(child.line, "invalid indentation");
+  }
+  const parsed = parseYamlNode(tokens, nextIndex, indent + 2);
+  defineYamlKey(target, key, parsed.value, line);
+  return parsed.next;
+}
+
+function parseYamlMapping(tokens, index, indent) {
+  const result = {};
+  let cursor = index;
+  while (cursor < tokens.length) {
+    const token = tokens[cursor];
+    if (token.indent < indent) break;
+    if (token.indent > indent) {
+      throw new CanonicalParseError(token.line, "invalid indentation");
+    }
+    if (isYamlSequenceLine(token.text)) {
+      throw new CanonicalParseError(token.line, "cannot mix mappings and sequences");
+    }
+    cursor = parseYamlMappingEntry(
+      tokens,
+      cursor + 1,
+      indent,
+      result,
+      token.text,
+      token.line,
+    );
+  }
+  return { value: result, next: cursor };
+}
+
+function parseYamlSequenceMapping(tokens, index, indent, text, line) {
+  const result = {};
+  let cursor = parseYamlMappingEntry(tokens, index + 1, indent, result, text, line);
+  while (cursor < tokens.length && tokens[cursor].indent === indent) {
+    const token = tokens[cursor];
+    if (isYamlSequenceLine(token.text)) {
+      throw new CanonicalParseError(token.line, "cannot mix mappings and sequences");
+    }
+    cursor = parseYamlMappingEntry(
+      tokens,
+      cursor + 1,
+      indent,
+      result,
+      token.text,
+      token.line,
+    );
+  }
+  if (cursor < tokens.length && tokens[cursor].indent > indent) {
+    throw new CanonicalParseError(tokens[cursor].line, "invalid indentation");
+  }
+  return { value: result, next: cursor };
+}
+
+function parseYamlSequence(tokens, index, indent) {
+  const result = [];
+  let cursor = index;
+  while (cursor < tokens.length) {
+    const token = tokens[cursor];
+    if (token.indent < indent) break;
+    if (token.indent > indent) {
+      throw new CanonicalParseError(token.line, "invalid indentation");
+    }
+    if (!isYamlSequenceLine(token.text)) {
+      throw new CanonicalParseError(token.line, "cannot mix mappings and sequences");
+    }
+    if (token.text === "-") {
+      throw new CanonicalParseError(token.line, "empty sequence item");
+    }
+
+    const item = token.text.slice(2);
+    if (/^[A-Za-z_][A-Za-z0-9_]*:/.test(item)) {
+      const parsed = parseYamlSequenceMapping(tokens, cursor, indent + 2, item, token.line);
+      result.push(parsed.value);
+      cursor = parsed.next;
+      continue;
+    }
+
+    result.push(parseYamlScalar(item, token.line));
+    cursor += 1;
+    if (cursor < tokens.length && tokens[cursor].indent > indent) {
+      throw new CanonicalParseError(tokens[cursor].line, "invalid indentation");
+    }
+  }
+  return { value: result, next: cursor };
+}
+
+function parseCanonicalYaml(content) {
+  const tokens = tokenizeCanonicalYaml(content);
+  if (tokens.length === 0) {
+    throw new CanonicalParseError(0, "empty YAML document");
+  }
+  if (tokens[0].indent !== 0) {
+    throw new CanonicalParseError(tokens[0].line, "invalid indentation");
+  }
+  if (isYamlSequenceLine(tokens[0].text)) {
+    throw new CanonicalParseError(tokens[0].line, "root must be a mapping");
+  }
+  const parsed = parseYamlMapping(tokens, 0, 0);
+  if (parsed.next !== tokens.length) {
+    throw new CanonicalParseError(tokens[parsed.next].line, "invalid indentation");
+  }
+  return parsed.value;
+}
+
 function fileSpec(relativePath, ownership, source = null, generated = false, mode = 0o644) {
   return Object.freeze({
     path: relativePath,
@@ -167,6 +490,9 @@ function inspectPath(root, relative) {
 }
 
 module.exports = {
+  CanonicalParseError,
+  parseCanonicalToml,
+  parseCanonicalYaml,
   LAYOUT_VERSION,
   LAYOUT_MODE,
   OWNERSHIP,
