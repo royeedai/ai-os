@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawn, spawnSync } = require("node:child_process");
 const installer = require("../bin/installer");
 const fixtures = require("./fixtures");
 const {
@@ -70,6 +71,13 @@ function transactionArtifacts(target) {
       || name.includes(".ai-os-install-stage-")
       || name.includes(".ai-os-install-backup-");
   });
+}
+
+function writeTargetFile(target, relativePath, content, mode) {
+  const destination = path.join(target, ...relativePath.split("/"));
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.writeFileSync(destination, content, { mode });
+  return destination;
 }
 
 for (const api of [
@@ -292,6 +300,115 @@ test("an existing exclusive lock is rejected after exactly one open", () => {
   assert.deepEqual(fixtures.snapshotTree(target), before);
 });
 
+test("a real lock-holder process excludes a contender and releases the installation", {
+  timeout: 15_000,
+}, async () => {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const resume = path.join(root, "resume-holder");
+  fs.mkdirSync(target);
+  const installerPath = path.join(__dirname, "..", "bin", "installer.js");
+  const holderSource = String.raw`
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const installer = require(process.argv[1]);
+    const target = process.argv[2];
+    const resume = process.argv[3];
+    const defaults = installer.createDefaultFsOps();
+    installer.installProject(target, {
+      fileSpecs: [],
+      fsOps: {
+        open(file, flags, mode) {
+          const fd = defaults.open(file, flags, mode);
+          if (file === path.join(target, ".ai-os-install.lock")) {
+            process.stdout.write("LOCKED\n");
+            while (!fs.existsSync(resume)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+          }
+          return fd;
+        },
+      },
+    });
+    process.stdout.write("DONE\n");
+  `;
+  const contenderSource = String.raw`
+    const installer = require(process.argv[1]);
+    try {
+      installer.installProject(process.argv[2], { fileSpecs: [] });
+      process.stdout.write("UNEXPECTED SUCCESS\n");
+    } catch (error) {
+      process.stderr.write(error.message + "\n");
+      process.exitCode = 23;
+    }
+  `;
+  const holder = spawn(process.execPath, [
+    "-e",
+    holderSource,
+    installerPath,
+    target,
+    resume,
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  let holderStdout = "";
+  let holderStderr = "";
+  holder.stdout.setEncoding("utf8");
+  holder.stderr.setEncoding("utf8");
+  holder.stdout.on("data", (chunk) => {
+    holderStdout += chunk;
+  });
+  holder.stderr.on("data", (chunk) => {
+    holderStderr += chunk;
+  });
+  const holderExit = new Promise((resolve) => {
+    holder.once("close", (status, signal) => resolve({ status, signal }));
+  });
+  const holderLocked = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("holder did not acquire lock")), 5_000);
+    const inspect = () => {
+      if (!holderStdout.includes("LOCKED\n")) return;
+      clearTimeout(timeout);
+      resolve();
+    };
+    holder.stdout.on("data", inspect);
+    holder.once("close", (status) => {
+      if (!holderStdout.includes("LOCKED\n")) {
+        clearTimeout(timeout);
+        reject(new Error(`holder exited before lock (status=${status}): ${holderStderr}`));
+      }
+    });
+  });
+
+  let outcome;
+  try {
+    await holderLocked;
+    assert.equal(fs.existsSync(path.join(target, ".ai-os-install.lock")), true);
+    const contender = spawnSync(process.execPath, [
+      "-e",
+      contenderSource,
+      installerPath,
+      target,
+    ], { encoding: "utf8", timeout: 5_000 });
+    assert.equal(contender.status, 23, contender.stderr);
+    assert.match(contender.stderr, /installation already in progress/i);
+    assert.equal(fs.existsSync(path.join(target, ".ai-os-install.lock")), true);
+  } finally {
+    fs.writeFileSync(resume, "resume\n");
+    outcome = await holderExit;
+  }
+
+  assert.deepEqual(outcome, { status: 0, signal: null }, holderStderr);
+  assert.match(holderStdout, /DONE/);
+  assert.deepEqual(transactionArtifacts(target), []);
+  const result = installer.installProject(target, installOptions({ fileSpecs: [] }));
+  assert.deepEqual(result, {
+    created: 0,
+    replaced: 0,
+    preserved: 0,
+    warnings: [],
+    baselineId: BOOTSTRAP.id,
+    layoutVersion: "11",
+  });
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
 test("fresh creates use same-directory exclusive durable staging and return stable counts", () => {
   const target = path.join(temporaryRoot(), "target");
   const plan = installer.buildInstallPlan(
@@ -386,6 +503,285 @@ test("fresh creates use same-directory exclusive durable staging and return stab
   }
 });
 
+test("commit preflight re-lstats the target, every parent, destination, and staged file", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const plan = installer.buildInstallPlan(
+    target,
+    installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+  );
+  const defaults = installer.createDefaultFsOps();
+  const descriptors = new Map();
+  const preflightLstats = [];
+  const preflightReads = [];
+  let stagedFile = null;
+  let stagingComplete = false;
+
+  const result = installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        const fd = defaults.open(file, flags, mode);
+        descriptors.set(fd, file);
+        if (file.includes(".ai-os-install-stage-")) stagedFile = file;
+        return fd;
+      },
+      close(fd) {
+        const file = descriptors.get(fd);
+        const closed = defaults.close(fd);
+        descriptors.delete(fd);
+        if (file === stagedFile) stagingComplete = true;
+        return closed;
+      },
+      lstat(file) {
+        if (stagingComplete) preflightLstats.push(file);
+        return defaults.lstat(file);
+      },
+      readFile(file, options) {
+        if (stagingComplete) preflightReads.push(file);
+        return defaults.readFile(file, options);
+      },
+    },
+  });
+
+  const destination = path.join(target, ".ai-os", "bin", "create-ai-os.js");
+  for (const expected of [
+    target,
+    path.join(target, ".ai-os"),
+    path.join(target, ".ai-os", "bin"),
+    destination,
+    stagedFile,
+  ]) {
+    assert.ok(preflightLstats.includes(expected), `preflight lstat: ${expected}`);
+  }
+  assert.ok(preflightReads.includes(stagedFile));
+  assert.equal(result.created, 1);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+for (const unsafePoint of ["target", ".ai-os/bin"]) {
+  test(`commit preflight rejects an unsafe ${unsafePoint} directory mutation`, () => {
+    const root = temporaryRoot();
+    const target = path.join(root, "target");
+    fs.mkdirSync(path.join(target, ".ai-os", "bin"), { recursive: true });
+    const plan = installer.buildInstallPlan(
+      target,
+      installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+    );
+    const defaults = installer.createDefaultFsOps();
+    const unsafeFile = path.join(root, "unsafe-file");
+    const unsafeLink = path.join(root, "unsafe-link");
+    fs.writeFileSync(unsafeFile, "UNSAFE\n");
+    fs.symlinkSync(unsafeFile, unsafeLink);
+    const unsafeStat = unsafePoint === ".ai-os"
+      ? fs.lstatSync(unsafeFile)
+      : fs.lstatSync(unsafeLink);
+    const checkedPath = unsafePoint === "target"
+      ? target
+      : path.join(target, ...unsafePoint.split("/"));
+    const descriptors = new Map();
+    let stagingComplete = false;
+    let mutationReturned = false;
+
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        open(file, flags, mode) {
+          const fd = defaults.open(file, flags, mode);
+          descriptors.set(fd, file);
+          return fd;
+        },
+        close(fd) {
+          const file = descriptors.get(fd);
+          const result = defaults.close(fd);
+          descriptors.delete(fd);
+          if (file.includes(".ai-os-install-stage-")) stagingComplete = true;
+          return result;
+        },
+        lstat(file) {
+          if (stagingComplete && file === checkedPath && !mutationReturned) {
+            mutationReturned = true;
+            return unsafeStat;
+          }
+          return defaults.lstat(file);
+        },
+      },
+    }));
+
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, "revalidate commit");
+    assert.equal(error.relativePath, EXECUTABLE_SPEC.path);
+    assert.equal(mutationReturned, true);
+    assert.equal(fs.existsSync(path.join(target, ".ai-os", "bin", "create-ai-os.js")), false);
+    assert.deepEqual(transactionArtifacts(target), []);
+  });
+}
+
+for (const destinationKind of ["file", "symlink", "directory"]) {
+  test(`commit preflight preserves a foreign ${destinationKind} that appears at a create destination`, () => {
+    const root = temporaryRoot();
+    const target = path.join(root, "target");
+    const destination = path.join(target, ".ai-os", "bin", "create-ai-os.js");
+    const outside = path.join(root, "outside.txt");
+    fs.writeFileSync(outside, "OUTSIDE SENTINEL\n");
+    const plan = installer.buildInstallPlan(
+      target,
+      installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+    );
+    const defaults = installer.createDefaultFsOps();
+    const descriptors = new Map();
+    let mutationApplied = false;
+
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        open(file, flags, mode) {
+          const fd = defaults.open(file, flags, mode);
+          descriptors.set(fd, file);
+          return fd;
+        },
+        close(fd) {
+          const file = descriptors.get(fd);
+          const result = defaults.close(fd);
+          descriptors.delete(fd);
+          if (file.includes(".ai-os-install-stage-") && !mutationApplied) {
+            mutationApplied = true;
+            if (destinationKind === "file") fs.writeFileSync(destination, "FOREIGN FILE\n");
+            else if (destinationKind === "symlink") fs.symlinkSync(outside, destination);
+            else fs.mkdirSync(destination);
+          }
+          return result;
+        },
+      },
+    }));
+
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, "revalidate commit");
+    assert.equal(mutationApplied, true);
+    const stat = fs.lstatSync(destination);
+    if (destinationKind === "file") assert.equal(fs.readFileSync(destination, "utf8"), "FOREIGN FILE\n");
+    else if (destinationKind === "symlink") assert.equal(stat.isSymbolicLink(), true);
+    else assert.equal(stat.isDirectory(), true);
+    assert.equal(fs.readFileSync(outside, "utf8"), "OUTSIDE SENTINEL\n");
+    assert.deepEqual(transactionArtifacts(target), []);
+  });
+}
+
+test("commit preflight rejects changed replacement bytes without overwriting the mutation", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const relativePath = ".ai-os/bin/VERSION";
+  const destination = writeTargetFile(target, relativePath, "ORIGINAL VERSION\n", 0o600);
+  const plan = installer.buildInstallPlan(target, installOptions({
+    force: true,
+    fileSpecs: [FILE_SPECS[relativePath]],
+  }));
+  const defaults = installer.createDefaultFsOps();
+  const descriptors = new Map();
+  let mutationApplied = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        const fd = defaults.open(file, flags, mode);
+        descriptors.set(fd, file);
+        return fd;
+      },
+      close(fd) {
+        const file = descriptors.get(fd);
+        const result = defaults.close(fd);
+        descriptors.delete(fd);
+        if (file.includes(".ai-os-install-stage-") && !mutationApplied) {
+          mutationApplied = true;
+          fs.writeFileSync(destination, "CONCURRENT MUTATION\n");
+          fs.chmodSync(destination, 0o640);
+        }
+        return result;
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "revalidate commit");
+  assert.match(error.message, /destination bytes changed/i);
+  assert.equal(fs.readFileSync(destination, "utf8"), "CONCURRENT MUTATION\n");
+  assert.equal(fs.lstatSync(destination).mode & 0o777, 0o640);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+test("commit preflight rejects a staged-file symlink without touching its target", () => {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const destination = path.join(target, ".ai-os", "bin", "create-ai-os.js");
+  const outside = path.join(root, "outside.txt");
+  fs.writeFileSync(outside, "OUTSIDE SENTINEL\n");
+  const plan = installer.buildInstallPlan(
+    target,
+    installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+  );
+  const defaults = installer.createDefaultFsOps();
+  const descriptors = new Map();
+  let mutationApplied = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        const fd = defaults.open(file, flags, mode);
+        descriptors.set(fd, file);
+        return fd;
+      },
+      close(fd) {
+        const file = descriptors.get(fd);
+        const result = defaults.close(fd);
+        descriptors.delete(fd);
+        if (file.includes(".ai-os-install-stage-") && !mutationApplied) {
+          mutationApplied = true;
+          fs.unlinkSync(file);
+          fs.symlinkSync(outside, file);
+        }
+        return result;
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "revalidate commit");
+  assert.match(error.message, /staged file is not a regular file/i);
+  assert.equal(fs.existsSync(destination), false);
+  assert.equal(fs.readFileSync(outside, "utf8"), "OUTSIDE SENTINEL\n");
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+test("commit preflight preserves obsolete bytes changed after lock acquisition", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const relativePath = ".ai-os/bin/obsolete.js";
+  const destination = writeTargetFile(target, relativePath, "PRISTINE OBSOLETE\n", 0o700);
+  const plan = installer.buildInstallPlan(target, installOptions({
+    fileSpecs: [],
+    obsoleteFrameworkHashes: {
+      [relativePath]: [sha256("PRISTINE OBSOLETE\n")],
+    },
+  }));
+  const defaults = installer.createDefaultFsOps();
+  let mutationApplied = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        const fd = defaults.open(file, flags, mode);
+        if (file === path.join(target, ".ai-os-install.lock")) {
+          mutationApplied = true;
+          fs.writeFileSync(destination, "CONCURRENT OBSOLETE MUTATION\n");
+          fs.chmodSync(destination, 0o640);
+        }
+        return fd;
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "revalidate commit");
+  assert.equal(mutationApplied, true);
+  assert.equal(fs.readFileSync(destination, "utf8"), "CONCURRENT OBSOLETE MUTATION\n");
+  assert.equal(fs.lstatSync(destination).mode & 0o777, 0o640);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
 test("a failed create commit removes recorded parents, staged files, lock, and target", () => {
   const root = temporaryRoot();
   const target = path.join(root, "new-parent", "target");
@@ -432,6 +828,480 @@ test("a failed create commit removes recorded parents, staged files, lock, and t
   assert.deepEqual(transactionArtifacts(root), []);
 });
 
+for (const operation of ["open", "write", "fsync", "fchmod", "close"]) {
+  test(`a ${operation} staging failure preserves its cause through cleanup retry`, () => {
+    const root = temporaryRoot();
+    const target = path.join(root, "new-parent", "target");
+    const before = fixtures.snapshotTree(root);
+    const plan = installer.buildInstallPlan(
+      target,
+      installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+    );
+    const defaults = installer.createDefaultFsOps();
+    const descriptors = new Map();
+    const primaryCause = new Error(`injected stage ${operation} failure`);
+    const cleanupCause = Object.assign(new Error("injected directory cleanup failure"), {
+      code: "EACCES",
+    });
+    let stageFailureInjected = false;
+    let cleanupFailureInjected = false;
+
+    const fsOps = {
+      open(file, flags, mode) {
+        if (
+          operation === "open"
+          && file.includes(".ai-os-install-stage-")
+          && !stageFailureInjected
+        ) {
+          stageFailureInjected = true;
+          throw primaryCause;
+        }
+        const fd = defaults.open(file, flags, mode);
+        descriptors.set(fd, file);
+        return fd;
+      },
+      write(fd, buffer, offset, length, position) {
+        if (
+          operation === "write"
+          && descriptors.get(fd).includes(".ai-os-install-stage-")
+          && !stageFailureInjected
+        ) {
+          stageFailureInjected = true;
+          throw primaryCause;
+        }
+        return defaults.write(fd, buffer, offset, length, position);
+      },
+      fsync(fd) {
+        if (
+          operation === "fsync"
+          && descriptors.get(fd).includes(".ai-os-install-stage-")
+          && !stageFailureInjected
+        ) {
+          stageFailureInjected = true;
+          throw primaryCause;
+        }
+        return defaults.fsync(fd);
+      },
+      fchmod(fd, mode) {
+        if (
+          operation === "fchmod"
+          && descriptors.get(fd).includes(".ai-os-install-stage-")
+          && !stageFailureInjected
+        ) {
+          stageFailureInjected = true;
+          throw primaryCause;
+        }
+        return defaults.fchmod(fd, mode);
+      },
+      close(fd) {
+        const file = descriptors.get(fd);
+        if (
+          operation === "close"
+          && file.includes(".ai-os-install-stage-")
+          && !stageFailureInjected
+        ) {
+          stageFailureInjected = true;
+          throw primaryCause;
+        }
+        const result = defaults.close(fd);
+        descriptors.delete(fd);
+        return result;
+      },
+      rmdir(directory) {
+        if (!cleanupFailureInjected) {
+          cleanupFailureInjected = true;
+          throw cleanupCause;
+        }
+        return defaults.rmdir(directory);
+      },
+    };
+
+    const error = captureError(() => installer.executeInstallPlan(plan, { fsOps }));
+
+    assert.equal(stageFailureInjected, true);
+    assert.equal(cleanupFailureInjected, true);
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, operation === "close" ? "close staged file" : "stage content");
+    assert.equal(error.cause, primaryCause);
+    assert.ok(error.cleanupErrors.some((item) => item.cause === cleanupCause));
+    assert.deepEqual(fixtures.snapshotTree(root), before);
+    assert.deepEqual(transactionArtifacts(root), []);
+  });
+}
+
+test("a target created by the transaction is retained when a concurrent file makes it nonempty", () => {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const sentinel = path.join(target, "concurrent.txt");
+  const plan = installer.buildInstallPlan(
+    target,
+    installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+  );
+  const cause = new Error("injected stage open failure after concurrent target write");
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        if (file.includes(".ai-os-install-stage-")) {
+          fs.writeFileSync(sentinel, "CONCURRENT OWNER\n", { mode: 0o640 });
+          throw cause;
+        }
+        return fs.openSync(file, flags, mode);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.cause, cause);
+  assert.equal(fs.readFileSync(sentinel, "utf8"), "CONCURRENT OWNER\n");
+  assert.equal(fs.lstatSync(sentinel).mode & 0o777, 0o640);
+  assert.equal(fs.existsSync(path.join(target, ".ai-os-install.lock")), false);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+test("cleanup never removes an empty target whose directory identity is no longer owned", () => {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const foreignDirectory = path.join(root, "foreign-directory");
+  fs.mkdirSync(foreignDirectory);
+  const foreignStat = fs.lstatSync(foreignDirectory);
+  const plan = installer.buildInstallPlan(
+    target,
+    installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+  );
+  const defaults = installer.createDefaultFsOps();
+  const cause = new Error("injected stage open failure before ownership cleanup");
+  let stagingFailed = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        if (file.includes(".ai-os-install-stage-")) {
+          stagingFailed = true;
+          throw cause;
+        }
+        return defaults.open(file, flags, mode);
+      },
+      lstat(file) {
+        if (stagingFailed && file === target) return foreignStat;
+        return defaults.lstat(file);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.cause, cause);
+  assert.match(
+    error.cleanupErrors.map((item) => item.message).join("\n"),
+    /directory is no longer owned by this transaction/i,
+  );
+  assert.equal(fs.lstatSync(target).isDirectory(), true);
+  assert.deepEqual(fs.readdirSync(target), []);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+for (const failure of ["backup-1", "install-1", "install-2"]) {
+  test(`${failure} replacement commit failure restores byte-identical originals`, () => {
+    const root = temporaryRoot();
+    const target = path.join(root, "target");
+    const paths = [
+      [".ai-os/bin/VERSION", "ORIGINAL VERSION\n", 0o600],
+      [".ai-os/bin/ai-os-doctor.js", "ORIGINAL DOCTOR\n", 0o700],
+    ];
+    for (const [relativePath, content, mode] of paths) {
+      writeTargetFile(target, relativePath, content, mode);
+    }
+    const plan = installer.buildInstallPlan(target, installOptions({
+      force: true,
+      fileSpecs: [
+        FILE_SPECS[".ai-os/bin/VERSION"],
+        FILE_SPECS[".ai-os/bin/ai-os-doctor.js"],
+      ],
+    }));
+    assert.deepEqual(plan.operations.map(({ action }) => action), [
+      "replace-framework",
+      "replace-framework",
+    ]);
+    const before = fixtures.snapshotTree(target);
+    const defaults = installer.createDefaultFsOps();
+    const primaryCause = new Error(`injected ${failure} rename failure`);
+    const cleanupCause = Object.assign(new Error("injected staged cleanup failure"), {
+      code: "EACCES",
+    });
+    let backups = 0;
+    let installs = 0;
+    let cleanupFailureInjected = false;
+
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        rename(from, to) {
+          if (to.includes(".ai-os-install-backup-")) {
+            backups += 1;
+            if (failure === `backup-${backups}`) throw primaryCause;
+          }
+          if (from.includes(".ai-os-install-stage-")) {
+            installs += 1;
+            if (failure === `install-${installs}`) throw primaryCause;
+          }
+          return defaults.rename(from, to);
+        },
+        unlink(file) {
+          if (file.includes(".ai-os-install-stage-") && !cleanupFailureInjected) {
+            cleanupFailureInjected = true;
+            throw cleanupCause;
+          }
+          return defaults.unlink(file);
+        },
+      },
+    }));
+
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, failure.startsWith("backup") ? "commit backup" : "commit replacement");
+    assert.equal(error.cause, primaryCause);
+    assert.equal(cleanupFailureInjected, true);
+    assert.ok(error.cleanupErrors.some((item) => item.cause === cleanupCause));
+    assert.deepEqual(fixtures.snapshotTree(target), before);
+    assert.deepEqual(transactionArtifacts(target), []);
+  });
+}
+
+for (const boundary of [
+  "create-install-after-rename",
+  "replace-install-after-rename",
+  "remove-backup-after-rename",
+]) {
+  test(`${boundary} rollback handles an error reported after the atomic side effect`, () => {
+    const root = temporaryRoot();
+    const target = path.join(root, "target");
+    fs.mkdirSync(target);
+    let plan;
+    if (boundary.startsWith("create")) {
+      plan = installer.buildInstallPlan(
+        target,
+        installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+      );
+    } else if (boundary.startsWith("replace")) {
+      writeTargetFile(target, ".ai-os/bin/VERSION", "ORIGINAL VERSION\n", 0o600);
+      plan = installer.buildInstallPlan(target, installOptions({
+        force: true,
+        fileSpecs: [FILE_SPECS[".ai-os/bin/VERSION"]],
+      }));
+    } else {
+      writeTargetFile(target, ".ai-os/bin/obsolete.js", "ORIGINAL OBSOLETE\n", 0o700);
+      plan = installer.buildInstallPlan(target, installOptions({
+        fileSpecs: [],
+        obsoleteFrameworkHashes: {
+          ".ai-os/bin/obsolete.js": [sha256("ORIGINAL OBSOLETE\n")],
+        },
+      }));
+    }
+    const before = fixtures.snapshotTree(target);
+    const defaults = installer.createDefaultFsOps();
+    const cause = new Error(`injected ${boundary} failure`);
+    const calls = [];
+    let injected = false;
+
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        rename(from, to) {
+          calls.push(["rename", from, to]);
+          const isBackup = to.includes(".ai-os-install-backup-");
+          const isInstall = from.includes(".ai-os-install-stage-");
+          const shouldFail = boundary.includes("backup") ? isBackup : isInstall;
+          const result = defaults.rename(from, to);
+          if (shouldFail && !injected) {
+            injected = true;
+            throw cause;
+          }
+          return result;
+        },
+        unlink(file) {
+          calls.push(["unlink", file]);
+          return defaults.unlink(file);
+        },
+      },
+    }));
+
+    assert.equal(injected, true);
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.cause, cause);
+    assert.deepEqual(fixtures.snapshotTree(target), before);
+    assert.deepEqual(transactionArtifacts(target), []);
+    if (boundary === "replace-install-after-rename") {
+      const destination = path.join(target, ".ai-os", "bin", "VERSION");
+      const rollbackUnlink = calls.findIndex(([operation, file]) => (
+        operation === "unlink" && file === destination
+      ));
+      const restoreRename = calls.findIndex(([operation, from, to]) => (
+        operation === "rename"
+        && from.includes(".ai-os-install-backup-")
+        && to === destination
+      ));
+      assert.ok(rollbackUnlink >= 0);
+      assert.ok(restoreRename > rollbackUnlink);
+    }
+  });
+}
+
+test("a failed create rename never removes a foreign destination it did not create", () => {
+  const target = path.join(temporaryRoot(), "target");
+  fs.mkdirSync(target);
+  const destination = path.join(target, ".ai-os", "bin", "create-ai-os.js");
+  const plan = installer.buildInstallPlan(
+    target,
+    installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+  );
+  const defaults = installer.createDefaultFsOps();
+  const cause = new Error("injected create rename failure with foreign destination");
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      rename(from, to) {
+        if (from.includes(".ai-os-install-stage-")) {
+          fs.writeFileSync(to, "FOREIGN DESTINATION\n", { mode: 0o640 });
+          throw cause;
+        }
+        return defaults.rename(from, to);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "commit create");
+  assert.equal(error.cause, cause);
+  assert.match(
+    error.cleanupErrors.map((item) => item.message).join("\n"),
+    /not created by this transaction/i,
+  );
+  assert.equal(fs.readFileSync(destination, "utf8"), "FOREIGN DESTINATION\n");
+  assert.equal(fs.lstatSync(destination).mode & 0o777, 0o640);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+test("a one-shot rollback restore failure is reported without replacing the commit cause", () => {
+  const target = path.join(temporaryRoot(), "target");
+  for (const [relativePath, content, mode] of [
+    [".ai-os/bin/VERSION", "ORIGINAL VERSION\n", 0o600],
+    [".ai-os/bin/ai-os-doctor.js", "ORIGINAL DOCTOR\n", 0o700],
+  ]) {
+    writeTargetFile(target, relativePath, content, mode);
+  }
+  const plan = installer.buildInstallPlan(target, installOptions({
+    force: true,
+    fileSpecs: [
+      FILE_SPECS[".ai-os/bin/VERSION"],
+      FILE_SPECS[".ai-os/bin/ai-os-doctor.js"],
+    ],
+  }));
+  const before = fixtures.snapshotTree(target);
+  const defaults = installer.createDefaultFsOps();
+  const primaryCause = new Error("injected second replacement install failure");
+  const restoreCause = new Error("injected first rollback restore failure");
+  let installs = 0;
+  let restoreFailureInjected = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      rename(from, to) {
+        if (from.includes(".ai-os-install-stage-")) {
+          installs += 1;
+          if (installs === 2) throw primaryCause;
+        }
+        if (
+          from.includes(".ai-os-install-backup-")
+          && !restoreFailureInjected
+        ) {
+          restoreFailureInjected = true;
+          throw restoreCause;
+        }
+        return defaults.rename(from, to);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "commit replacement");
+  assert.equal(error.cause, primaryCause);
+  assert.equal(restoreFailureInjected, true);
+  assert.ok(error.cleanupErrors.some((item) => item.cause === restoreCause));
+  assert.deepEqual(fixtures.snapshotTree(target), before);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+for (const releaseOperation of ["close", "unlink"]) {
+  test(`a one-shot lock ${releaseOperation} failure preserves the primary error and releases ownership`, () => {
+    const target = path.join(temporaryRoot(), "target");
+    fs.mkdirSync(target);
+    const plan = installer.buildInstallPlan(
+      target,
+      installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+    );
+    const defaults = installer.createDefaultFsOps();
+    const descriptors = new Map();
+    const primaryCause = new Error("injected stage write failure");
+    const releaseCause = Object.assign(new Error(`injected lock ${releaseOperation} failure`), {
+      code: "EACCES",
+    });
+    let stageFailureInjected = false;
+    let releaseFailureInjected = false;
+    let closeAttempts = 0;
+    let unlinkAttempts = 0;
+
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        open(file, flags, mode) {
+          const fd = defaults.open(file, flags, mode);
+          descriptors.set(fd, file);
+          return fd;
+        },
+        write(fd, buffer, offset, length, position) {
+          if (!stageFailureInjected) {
+            stageFailureInjected = true;
+            throw primaryCause;
+          }
+          return defaults.write(fd, buffer, offset, length, position);
+        },
+        close(fd) {
+          const file = descriptors.get(fd);
+          if (file === path.join(target, ".ai-os-install.lock")) {
+            closeAttempts += 1;
+            if (releaseOperation === "close" && !releaseFailureInjected) {
+              releaseFailureInjected = true;
+              throw releaseCause;
+            }
+          }
+          const result = defaults.close(fd);
+          descriptors.delete(fd);
+          return result;
+        },
+        unlink(file) {
+          if (file === path.join(target, ".ai-os-install.lock")) {
+            unlinkAttempts += 1;
+            if (releaseOperation === "unlink" && !releaseFailureInjected) {
+              releaseFailureInjected = true;
+              throw releaseCause;
+            }
+          }
+          return defaults.unlink(file);
+        },
+      },
+    }));
+
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, "stage content");
+    assert.equal(error.cause, primaryCause);
+    assert.equal(releaseFailureInjected, true);
+    assert.ok(error.cleanupErrors.some((item) => item.cause === releaseCause));
+    if (releaseOperation === "close") assert.equal(closeAttempts, 2);
+    else assert.equal(unlinkAttempts, 2);
+    assert.deepEqual(transactionArtifacts(target), []);
+
+    const result = installer.executeInstallPlan(plan);
+    assert.equal(result.created, 1);
+    assert.deepEqual(transactionArtifacts(target), []);
+  });
+}
+
 test("installProject composes planning and execution while counting preserves", () => {
   const target = path.join(temporaryRoot(), "target");
   const relativePath = ".ai-os/lanes/default/STATE.md";
@@ -465,42 +1335,154 @@ test("installProject composes planning and execution while counting preserves", 
   assert.deepEqual(transactionArtifacts(target), []);
 });
 
-test("replace and remove operations fail closed until rollback support lands", () => {
+test("replacement and removal actions commit through same-directory random backups", () => {
   const root = temporaryRoot();
-  const replaceTarget = path.join(root, "replace-target");
-  const replaceDestination = path.join(replaceTarget, ".ai-os", "bin", "VERSION");
-  fs.mkdirSync(path.dirname(replaceDestination), { recursive: true });
-  fs.writeFileSync(replaceDestination, "CUSTOM VERSION\n");
-  const replacePlan = installer.buildInstallPlan(
-    replaceTarget,
-    installOptions({ force: true, fileSpecs: [FILE_SPECS[".ai-os/bin/VERSION"]] }),
-  );
-
-  const removeTarget = path.join(root, "remove-target");
-  const removeDestination = path.join(removeTarget, ".ai-os", "bin", "obsolete.js");
-  fs.mkdirSync(path.dirname(removeDestination), { recursive: true });
-  fs.writeFileSync(removeDestination, "PRISTINE OBSOLETE\n");
-  const removePlan = installer.buildInstallPlan(removeTarget, installOptions({
-    fileSpecs: [],
-    obsoleteFrameworkHashes: {
-      ".ai-os/bin/obsolete.js": [sha256("PRISTINE OBSOLETE\n")],
+  const cases = [
+    {
+      action: "replace-framework",
+      relativePath: ".ai-os/bin/VERSION",
+      oldContent: "CUSTOM VERSION\n",
+      mode: 0o600,
+      options: { force: true, fileSpecs: [FILE_SPECS[".ai-os/bin/VERSION"]] },
     },
-  }));
+    {
+      action: "replace-pristine-project",
+      relativePath: "AGENTS.md",
+      oldContent: "PRISTINE PROJECT\n",
+      mode: 0o640,
+      options: {
+        fileSpecs: [FILE_SPECS["AGENTS.md"]],
+        compatibleHashes: { "AGENTS.md": [sha256("PRISTINE PROJECT\n")] },
+      },
+    },
+    {
+      action: "remove-framework",
+      relativePath: ".ai-os/bin/obsolete.js",
+      oldContent: "PRISTINE OBSOLETE\n",
+      mode: 0o700,
+      options: {
+        fileSpecs: [],
+        obsoleteFrameworkHashes: {
+          ".ai-os/bin/obsolete.js": [sha256("PRISTINE OBSOLETE\n")],
+        },
+      },
+    },
+  ];
 
-  for (const [plan, target, expectedPath] of [
-    [replacePlan, replaceTarget, ".ai-os/bin/VERSION"],
-    [removePlan, removeTarget, ".ai-os/bin/obsolete.js"],
-  ]) {
-    const before = fixtures.snapshotTree(target);
-    const error = captureError(() => installer.executeInstallPlan(plan));
-    assert.ok(error instanceof installer.InstallFilesystemError);
-    assert.equal(error.phase, "unsupported action");
-    assert.equal(error.relativePath, expectedPath);
-    assert.match(error.message, /transaction support is deferred/i);
-    assert.deepEqual(fixtures.snapshotTree(target), before);
+  for (const item of cases) {
+    const target = path.join(root, item.action);
+    const destination = path.join(target, ...item.relativePath.split("/"));
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.writeFileSync(destination, item.oldContent, { mode: item.mode });
+    const plan = installer.buildInstallPlan(target, installOptions(item.options));
+    assert.equal(plan.operations.length, 1);
+    assert.equal(plan.operations[0].action, item.action);
+    const defaults = installer.createDefaultFsOps();
+    const renames = [];
+
+    const result = installer.executeInstallPlan(plan, {
+      fsOps: {
+        rename(from, to) {
+          renames.push([from, to]);
+          return defaults.rename(from, to);
+        },
+      },
+    });
+
+    const backup = renames[0][1];
+    assert.equal(renames[0][0], destination);
+    assert.equal(path.dirname(backup), path.dirname(destination));
+    assert.match(
+      path.basename(backup),
+      new RegExp(`^[.]${path.basename(destination).replaceAll(".", "[.]")}[.]ai-os-install-backup-${process.pid}-[a-f0-9]{24}$`),
+    );
+    if (item.action === "remove-framework") {
+      assert.equal(renames.length, 1);
+      assert.equal(fs.existsSync(destination), false);
+    } else {
+      assert.equal(renames.length, 2);
+      assert.equal(renames[1][1], destination);
+      assert.deepEqual(fs.readFileSync(destination), plan.operations[0].content);
+      assert.equal(fs.lstatSync(destination).mode & 0o777, plan.operations[0].mode);
+    }
+    assert.deepEqual(result, {
+      created: 0,
+      replaced: 1,
+      preserved: 0,
+      warnings: [],
+      baselineId: BOOTSTRAP.id,
+      layoutVersion: "11",
+    });
     assert.deepEqual(transactionArtifacts(target), []);
   }
 });
+
+test("a one-shot successful-commit backup cleanup failure is reported and leaves no artifact", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const relativePath = ".ai-os/bin/VERSION";
+  const destination = writeTargetFile(target, relativePath, "ORIGINAL VERSION\n", 0o600);
+  const plan = installer.buildInstallPlan(target, installOptions({
+    force: true,
+    fileSpecs: [FILE_SPECS[relativePath]],
+  }));
+  const defaults = installer.createDefaultFsOps();
+  const cleanupCause = Object.assign(new Error("injected backup cleanup failure"), {
+    code: "EACCES",
+  });
+  let failureInjected = false;
+  let backupUnlinks = 0;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      unlink(file) {
+        if (file.includes(".ai-os-install-backup-")) {
+          backupUnlinks += 1;
+          if (!failureInjected) {
+            failureInjected = true;
+            throw cleanupCause;
+          }
+        }
+        return defaults.unlink(file);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "cleanup backup file");
+  assert.equal(error.cause, cleanupCause);
+  assert.equal(backupUnlinks, 2);
+  assert.deepEqual(fs.readFileSync(destination), plan.operations[0].content);
+  assert.equal(fs.lstatSync(destination).mode & 0o777, plan.operations[0].mode);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
+for (const code of ["EEXIST", "EACCES"]) {
+  test(`a failed mkdir with ${code} never owns or removes a concurrently created target`, () => {
+    const target = path.join(temporaryRoot(), `target-${code.toLowerCase()}`);
+    const plan = installer.buildInstallPlan(
+      target,
+      installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+    );
+    const defaults = installer.createDefaultFsOps();
+    const cause = Object.assign(new Error(`injected ${code} target mkdir failure`), { code });
+
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        mkdir(directory, options) {
+          defaults.mkdir(directory, options);
+          throw cause;
+        },
+      },
+    }));
+
+    assert.ok(error instanceof installer.InstallFilesystemError);
+    assert.equal(error.phase, "create target");
+    assert.equal(error.cause, cause);
+    assert.equal(fs.lstatSync(target).isDirectory(), true);
+    assert.deepEqual(fs.readdirSync(target), []);
+    assert.deepEqual(transactionArtifacts(target), []);
+  });
+}
 
 test("installedFixture returns an absolute project installed through installProject", {
   concurrency: false,
