@@ -15,10 +15,12 @@ const {
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
+const BASELINE_ID_PATTERN = /^BL-(\d{8})-(\d{6})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const CANONICAL_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.]\d{3}Z$/;
 const INITIAL_BASELINE_FILE_TOKEN = "{{INITIAL_BASELINE_FILE}}";
+const INITIAL_BASELINE_PATH = `.ai-os/lanes/default/baseline-log/${INITIAL_BASELINE_FILE_TOKEN}`;
 const GENERATED_SOURCE_PATHS = Object.freeze({
-  ".ai-os/lanes/default/baseline-log/{{INITIAL_BASELINE_FILE}}":
-    "framework/.agents/templates/lane/baseline-log/BL-template.md",
+  [INITIAL_BASELINE_PATH]: "framework/.agents/templates/lane/baseline-log/BL-template.md",
 });
 const TEAM_CONFIG_PATHS = new Set([".gitignore", ".gitattributes"]);
 const IDE_PATHS = new Set(["CLAUDE.md", "GEMINI.md"]);
@@ -92,12 +94,41 @@ function normalizedRelativePath(value, label) {
   return normalized;
 }
 
-function generatedBootstrap(clock = () => new Date()) {
-  const instant = clock();
-  const date = instant.toISOString();
-  const timestamp = `${date.slice(0, 10).replaceAll("-", "")}-${date
+function bootstrapTimestamp(date) {
+  return `${date.slice(0, 10).replaceAll("-", "")}-${date
     .slice(11, 19)
     .replaceAll(":", "")}`;
+}
+
+function generatedBootstrap(value) {
+  const clock = value === undefined ? () => new Date() : value;
+  if (typeof clock !== "function") failPlanner("clock must be a function");
+
+  let instant;
+  try {
+    instant = clock();
+  } catch (cause) {
+    failPlanner("clock failed while generating bootstrap", cause);
+  }
+
+  let milliseconds;
+  try {
+    milliseconds = Date.prototype.getTime.call(instant);
+  } catch (cause) {
+    failPlanner("clock must return a valid Date", cause);
+  }
+  if (!Number.isFinite(milliseconds)) failPlanner("clock must return a valid Date");
+
+  let date;
+  try {
+    date = Date.prototype.toISOString.call(instant);
+  } catch (cause) {
+    failPlanner("clock must return a valid Date", cause);
+  }
+  if (!CANONICAL_ISO_PATTERN.test(date)) {
+    failPlanner("clock must return a Date with a four-digit UTC year");
+  }
+  const timestamp = bootstrapTimestamp(date);
   const id = `BL-${timestamp}-bootstrap-unconfirmed`;
   return { id, file: `${id}.md`, date };
 }
@@ -112,8 +143,25 @@ function normalizeBootstrap(value, clock) {
       failPlanner(`bootstrap.${key} must be a non-empty string`);
     }
   }
-  if (path.posix.basename(bootstrap.file) !== bootstrap.file || !bootstrap.file.endsWith(".md")) {
-    failPlanner(`bootstrap.file must be one markdown filename: ${bootstrap.file}`);
+  const idMatch = bootstrap.id.match(BASELINE_ID_PATTERN);
+  if (!idMatch) {
+    failPlanner("bootstrap.id must match BL-YYYYMMDD-HHMMSS-<slug>");
+  }
+  if (bootstrap.file !== `${bootstrap.id}.md`) {
+    failPlanner(`bootstrap.file must equal ${bootstrap.id}.md`);
+  }
+  if (!CANONICAL_ISO_PATTERN.test(bootstrap.date)) {
+    failPlanner("bootstrap.date must be canonical UTC ISO YYYY-MM-DDTHH:mm:ss.sssZ");
+  }
+  const parsedDate = new Date(bootstrap.date);
+  if (
+    !Number.isFinite(Date.prototype.getTime.call(parsedDate))
+    || Date.prototype.toISOString.call(parsedDate) !== bootstrap.date
+  ) {
+    failPlanner("bootstrap.date must be canonical UTC ISO YYYY-MM-DDTHH:mm:ss.sssZ");
+  }
+  if (`${idMatch[1]}-${idMatch[2]}` !== bootstrapTimestamp(bootstrap.date)) {
+    failPlanner("bootstrap.date must match bootstrap.id UTC second");
   }
   return Object.freeze({
     id: bootstrap.id,
@@ -474,6 +522,8 @@ function buildInstallPlan(targetDir, options = {}) {
   } catch (error) {
     targetError = error;
   }
+  const freshDefaultLane = targetError === null
+    && !inspectDestination(resolvedTarget, ".ai-os/lanes/default/lane.toml").exists;
 
   const operations = [];
   const conflicts = [];
@@ -496,6 +546,16 @@ function buildInstallPlan(targetDir, options = {}) {
     if (entry.error) {
       action = "conflict";
       reason = entry.error;
+    } else if (
+      freshDefaultLane
+      && entry.rawPath === INITIAL_BASELINE_PATH
+      && destination.exists
+      && destination.kind === "file"
+      && !destination.error
+      && destination.hash !== sourceHash
+    ) {
+      action = "conflict";
+      reason = "fresh bootstrap record collision: existing bytes do not match expected bootstrap";
     } else {
       action = classifyDestination(source, destination, { force: options.force === true });
       if (action === "conflict") {

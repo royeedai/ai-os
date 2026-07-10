@@ -11,7 +11,7 @@ const {
 
 test("package: tarball contains and installs the complete distribution", () => {
   const packDir = tmpDir();
-  const consumerDir = tmpDir();
+  const consumerDir = fs.realpathSync.native(tmpDir());
   const projectsRoot = fs.realpathSync.native(tmpDir());
   const safeProjectDir = path.join(projectsRoot, "safe project with 空格");
   const cliProjectDir = path.join(projectsRoot, "legacy CLI project with 空格");
@@ -71,10 +71,42 @@ test("package: tarball contains and installs the complete distribution", () => {
     assert.equal(version.stdout.trim(), "11.0.0");
 
     const packagedRoot = path.join(consumerDir, "node_modules", "create-ai-os");
-    const packagedInstaller = require(path.join(packagedRoot, "bin", "installer.js"));
-    const safeResult = packagedInstaller.installProject(safeProjectDir, {
-      clock: () => new Date("2026-07-10T23:45:01.234Z"),
+    const packagedArtifacts = path.join(packagedRoot, "docs", "artifacts.md");
+    fs.appendFileSync(packagedArtifacts, "\n<!-- installed-package provenance canary -->\n");
+    const installerPath = path.join(packagedRoot, "bin", "installer.js");
+    const installSource = String.raw`
+      const path = require("node:path");
+      const packagedRoot = process.argv[1];
+      const target = process.argv[2];
+      const installerPath = path.join(packagedRoot, "bin", "installer.js");
+      const installer = require(installerPath);
+      const result = installer.installProject(target, {
+        clock: () => new Date("2026-07-10T23:45:01.234Z"),
+      });
+      process.stdout.write(JSON.stringify({
+        cwd: process.cwd(),
+        installerPath: require.resolve(installerPath),
+        result,
+      }));
+    `;
+    const safeInstall = spawnSync(process.execPath, [
+      "-e",
+      installSource,
+      packagedRoot,
+      safeProjectDir,
+    ], {
+      cwd: consumerDir,
+      encoding: "utf8",
     });
+    assert.equal(safeInstall.status, 0, safeInstall.stderr);
+    const safePayload = JSON.parse(safeInstall.stdout);
+    assert.equal(safePayload.cwd, consumerDir, "safe installer runs from the isolated consumer cwd");
+    assert.equal(
+      safePayload.installerPath,
+      installerPath,
+      "safe installer resolves from the installed tarball, not the repository",
+    );
+    const safeResult = safePayload.result;
     const safeBaselineId = "BL-20260710-234501-bootstrap-unconfirmed";
     const safeBaselineFile = `${safeBaselineId}.md`;
     assert.equal(safeResult.baselineId, safeBaselineId);
@@ -94,8 +126,12 @@ test("package: tarball contains and installs the complete distribution", () => {
     );
     assert.deepEqual(
       fs.readFileSync(path.join(safeProjectDir, ".ai-os", "reference", "artifacts.md")),
-      fs.readFileSync(path.join(packagedRoot, "docs", "artifacts.md")),
+      fs.readFileSync(packagedArtifacts),
       "tarball installer copies its packaged reference bytes",
+    );
+    assert.match(
+      fs.readFileSync(path.join(safeProjectDir, ".ai-os", "reference", "artifacts.md"), "utf8"),
+      /installed-package provenance canary/,
     );
     const safeRecords = fs.readdirSync(path.join(
       safeProjectDir,

@@ -12,7 +12,11 @@ const {
   OWNERSHIP,
   sha256,
 } = require("../bin/doctor-shared");
-const { installProject } = require("../bin/installer");
+const {
+  InstallConflictError,
+  installProject,
+} = require("../bin/installer");
+const { snapshotTree } = require("./fixtures");
 const {
   test,
   assert,
@@ -55,7 +59,22 @@ function installedFiles(root) {
   return result.sort();
 }
 
-function assertManifestMatchesInstall(target, bootstrapFile) {
+function enabledFileSpecs(bootstrapFile, { teamConfig = true, ideFiles = true } = {}) {
+  return Object.values(FILE_SPECS)
+    .filter((descriptor) => (
+      (teamConfig || ![".gitignore", ".gitattributes"].includes(descriptor.path))
+      && (ideFiles || !["CLAUDE.md", "GEMINI.md"].includes(descriptor.path))
+    ))
+    .map((descriptor) => ({
+      descriptor,
+      relativePath: descriptor.path.replace("{{INITIAL_BASELINE_FILE}}", bootstrapFile),
+    }))
+    .sort((left, right) => (
+      left.relativePath < right.relativePath ? -1 : left.relativePath > right.relativePath ? 1 : 0
+    ));
+}
+
+function assertManifestMatchesInstall(target, bootstrapFile, switches = {}) {
   const manifestPath = ".ai-os/managed-files.tsv";
   const manifest = readFile(target, manifestPath);
   const lines = manifest.split("\n");
@@ -79,15 +98,28 @@ function assertManifestMatchesInstall(target, bootstrapFile) {
   assert.equal(new Set(manifestPaths).size, manifestPaths.length, "each path has exactly one row");
   assert.ok(!manifestPaths.includes(manifestPath), "manifest does not recursively list itself");
 
-  const actualFiles = installedFiles(target).filter((relativePath) => relativePath !== manifestPath);
-  assert.deepEqual(manifestPaths, actualFiles, "manifest covers every other installed file exactly once");
+  const expectedSpecs = enabledFileSpecs(bootstrapFile, switches);
+  const expectedFiles = expectedSpecs.map(({ relativePath }) => relativePath);
+  const expectedManifestPaths = expectedFiles.filter((relativePath) => relativePath !== manifestPath);
+  const actualFiles = installedFiles(target);
+  assert.deepEqual(actualFiles, expectedFiles, "actual files equal the independently enabled inventory");
+  assert.deepEqual(
+    manifestPaths,
+    expectedManifestPaths,
+    "manifest lists every enabled path except exactly itself",
+  );
+  assert.deepEqual(
+    expectedFiles.filter((relativePath) => !manifestPaths.includes(relativePath)),
+    [manifestPath],
+    "managed-files.tsv is the sole non-self-listed inventory path",
+  );
 
-  const expectedSpecs = new Map(Object.values(FILE_SPECS).map((descriptor) => [
-    descriptor.path.replace("{{INITIAL_BASELINE_FILE}}", bootstrapFile),
+  const specsByPath = new Map(expectedSpecs.map(({ descriptor, relativePath }) => [
+    relativePath,
     descriptor,
   ]));
   for (const row of rows) {
-    const descriptor = expectedSpecs.get(row.path);
+    const descriptor = specsByPath.get(row.path);
     assert.ok(descriptor, `manifest path belongs to the canonical inventory: ${row.path}`);
     assert.equal(row.type, descriptor.type, `${row.path} type`);
     assert.equal(row.ownership, descriptor.ownership, `${row.path} ownership`);
@@ -173,23 +205,73 @@ test("install: safe installer creates a truthful fresh v11 layout", () => {
   }
 });
 
-test("install: safe installer manifest reflects no-team/no-ide inventory", () => {
-  const dir = fs.realpathSync.native(tmpDir());
+test("install: foreign fresh bootstrap collision fails before every write", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const dir = path.join(root, "target");
+  const baseline = path.join(
+    dir,
+    ".ai-os",
+    "lanes",
+    "default",
+    "baseline-log",
+    FIXED_BOOTSTRAP_FILE,
+  );
+  let clockCalls = 0;
   try {
-    installProject(dir, {
-      clock: () => new Date(FIXED_BOOTSTRAP_DATE),
-      teamConfig: false,
-      ideFiles: false,
-    });
+    fs.mkdirSync(path.dirname(baseline), { recursive: true });
+    fs.writeFileSync(baseline, [
+      `# ${FIXED_BOOTSTRAP_ID}`,
+      "",
+      "- **Type**: baseline",
+      "- **Status**: confirmed",
+      "- **confirmed_at**: 2026-07-10T12:34:56.789Z",
+      "",
+    ].join("\n"), { mode: 0o640 });
+    const before = snapshotTree(dir);
 
-    for (const relativePath of [".gitignore", ".gitattributes", "CLAUDE.md", "GEMINI.md"]) {
-      assert.equal(exists(dir, relativePath), false, `${relativePath} is not installed`);
-    }
-    assertManifestMatchesInstall(dir, FIXED_BOOTSTRAP_FILE);
+    assert.throws(
+      () => installProject(dir, {
+        clock() {
+          clockCalls += 1;
+          return new Date(FIXED_BOOTSTRAP_DATE);
+        },
+      }),
+      (error) => (
+        error instanceof InstallConflictError
+        && error.code === "ERR_INSTALL_CONFLICT"
+        && error.conflicts.some((item) => (
+          item.relativePath === `.ai-os/lanes/default/baseline-log/${FIXED_BOOTSTRAP_FILE}`
+          && /fresh bootstrap.*collision/i.test(item.reason)
+        ))
+      ),
+    );
+
+    assert.equal(clockCalls, 1, "collision planning does not resample the clock");
+    assert.deepEqual(snapshotTree(dir), before, "collision leaves the complete tree byte-identical");
+    assert.equal(exists(dir, ".ai-os/lanes/default/lane.toml"), false);
   } finally {
-    cleanup(dir);
+    cleanup(root);
   }
 });
+
+for (const teamConfig of [true, false]) {
+  for (const ideFiles of [true, false]) {
+    test(`install: manifest matches inventory with teamConfig=${teamConfig} ideFiles=${ideFiles}`, () => {
+      const dir = fs.realpathSync.native(tmpDir());
+      try {
+        installProject(dir, {
+          clock: () => new Date(FIXED_BOOTSTRAP_DATE),
+          teamConfig,
+          ideFiles,
+        });
+
+        assertManifestMatchesInstall(dir, FIXED_BOOTSTRAP_FILE, { teamConfig, ideFiles });
+      } finally {
+        cleanup(dir);
+      }
+    });
+  }
+}
 
 test("install: default install into fresh dir", () => {
   const dir = tmpDir();

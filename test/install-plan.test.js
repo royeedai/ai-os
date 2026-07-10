@@ -53,6 +53,38 @@ function writeTargetFile(target, relativePath, content) {
   return destination;
 }
 
+function capturePlannerError(callback) {
+  try {
+    callback();
+  } catch (error) {
+    return error;
+  }
+  assert.fail("expected planner callback to throw");
+}
+
+function assertPlannerFailureWithoutWrites(
+  clockOrBootstrap,
+  { clock = false, message, cause, causeType } = {},
+) {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const before = snapshotTree(root);
+  const options = clock
+    ? defaultOptions({ bootstrap: undefined, clock: clockOrBootstrap, fileSpecs: [] })
+    : defaultOptions({ bootstrap: clockOrBootstrap, fileSpecs: [] });
+
+  const error = capturePlannerError(() => buildInstallPlan(target, options));
+
+  assert.ok(error instanceof InstallPlannerError);
+  assert.equal(error.name, "InstallPlannerError");
+  assert.equal(error.code, "ERR_INSTALL_PLANNER");
+  assert.match(error.message, message);
+  if (cause !== undefined) assert.equal(error.cause, cause);
+  if (causeType !== undefined) assert.ok(error.cause instanceof causeType);
+  assert.deepEqual(snapshotTree(root), before);
+  assert.equal(fs.existsSync(target), false);
+}
+
 function copiedSourceRoot() {
   const root = path.join(temporaryRoot(), "package");
   fs.mkdirSync(root);
@@ -217,6 +249,24 @@ test("current project template is recognized by its fully rendered hash", () => 
     operation(plan, ".ai-os/lanes/default/lane.toml").action,
     "replace-pristine-project",
   );
+});
+
+test("an exact fresh bootstrap record collision remains recognized pristine content", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const options = defaultOptions();
+  const initialPlan = buildInstallPlan(target, options);
+  const baseline = initialPlan.operations.find((candidate) => (
+    candidate.relativePath === `.ai-os/lanes/default/baseline-log/${options.bootstrap.file}`
+  ));
+  writeTargetFile(target, baseline.relativePath, baseline.content);
+  const before = snapshotTree(target);
+
+  const plan = buildInstallPlan(target, options);
+
+  assert.equal(operation(plan, baseline.relativePath).action, "replace-pristine-project");
+  assert.equal(conflict(plan, baseline.relativePath), undefined);
+  assert.deepEqual(snapshotTree(target), before);
+  assert.equal(fs.existsSync(path.join(target, ".ai-os", "lanes", "default", "lane.toml")), false);
 });
 
 test("project template marker match does not replace edited rendered bytes", () => {
@@ -471,6 +521,120 @@ test("unknown ownership raises a stable planner error", () => {
   );
 });
 
+for (const [label, clock] of [
+  ["null", null],
+  ["string", "2026-07-10T12:34:56.789Z"],
+]) {
+  test(`a ${label} clock fails closed before filesystem writes`, () => {
+    assertPlannerFailureWithoutWrites(clock, {
+      clock: true,
+      message: /clock must be a function/i,
+    });
+  });
+}
+
+for (const [label, value] of [
+  ["string result", "2026-07-10T12:34:56.789Z"],
+  ["plain fake Date", { toISOString: () => "2026-07-10T12:34:56.789Z" }],
+]) {
+  test(`a clock ${label} is rejected without trusting toISOString`, () => {
+    assertPlannerFailureWithoutWrites(() => value, {
+      clock: true,
+      message: /clock must return a valid Date/i,
+      causeType: TypeError,
+    });
+  });
+}
+
+test("an Invalid Date clock result fails closed", () => {
+  assertPlannerFailureWithoutWrites(() => new Date(Number.NaN), {
+    clock: true,
+    message: /clock must return a valid Date/i,
+  });
+});
+
+test("an extended-year Date clock result is not a canonical bootstrap timestamp", () => {
+  assertPlannerFailureWithoutWrites(() => new Date(Date.UTC(10_000, 0, 1)), {
+    clock: true,
+    message: /four-digit UTC year/i,
+  });
+});
+
+test("a throwing clock is wrapped once with the original cause", () => {
+  const cause = new Error("injected clock failure");
+  let calls = 0;
+  assertPlannerFailureWithoutWrites(() => {
+    calls += 1;
+    throw cause;
+  }, {
+    clock: true,
+    message: /clock failed/i,
+    cause,
+  });
+  assert.equal(calls, 1);
+});
+
+for (const [label, bootstrap, message] of [
+  [
+    "non-canonical ID",
+    {
+      id: "BL-20260710-123456-Bootstrap-Unconfirmed",
+      file: "BL-20260710-123456-Bootstrap-Unconfirmed.md",
+      date: "2026-07-10T12:34:56.789Z",
+    },
+    /bootstrap[.]id must match/i,
+  ],
+  [
+    "mismatched filename",
+    {
+      id: "BL-20260710-123456-bootstrap-unconfirmed",
+      file: "BL-20260710-123456-other.md",
+      date: "2026-07-10T12:34:56.789Z",
+    },
+    /bootstrap[.]file must equal/i,
+  ],
+  [
+    "non-canonical date",
+    {
+      id: "BL-20260710-123456-bootstrap-unconfirmed",
+      file: "BL-20260710-123456-bootstrap-unconfirmed.md",
+      date: "2026-07-10T12:34:56Z",
+    },
+    /bootstrap[.]date must be canonical/i,
+  ],
+  [
+    "impossible calendar date",
+    {
+      id: "BL-20260228-123456-bootstrap-unconfirmed",
+      file: "BL-20260228-123456-bootstrap-unconfirmed.md",
+      date: "2026-02-30T12:34:56.789Z",
+    },
+    /bootstrap[.]date must be canonical/i,
+  ],
+  [
+    "extended-year date",
+    {
+      id: "BL-99991231-235959-bootstrap-unconfirmed",
+      file: "BL-99991231-235959-bootstrap-unconfirmed.md",
+      date: "+010000-01-01T00:00:00.000Z",
+    },
+    /bootstrap[.]date must be canonical/i,
+  ],
+  [
+    "ID/date second mismatch",
+    {
+      id: "BL-20260710-123456-bootstrap-unconfirmed",
+      file: "BL-20260710-123456-bootstrap-unconfirmed.md",
+      date: "2026-07-10T12:34:57.789Z",
+    },
+    /bootstrap[.]date must match bootstrap[.]id/i,
+  ],
+]) {
+  test(`an explicit bootstrap rejects a ${label}`, () => {
+    assertPlannerFailureWithoutWrites(bootstrap, { message });
+  });
+}
+
 test("invalid internal planner seams raise stable planner errors", () => {
   const target = path.join(temporaryRoot(), "target");
   const agents = FILE_SPECS["AGENTS.md"];
@@ -478,7 +642,13 @@ test("invalid internal planner seams raise stable planner errors", () => {
     ["", defaultOptions(), /targetDir must be a non-empty string/],
     [target, defaultOptions({ bootstrap: null }), /bootstrap must be an object/],
     [target, defaultOptions({ bootstrap: { id: "", file: "BL.md", date: "date" } }), /bootstrap[.]id/],
-    [target, defaultOptions({ bootstrap: { id: "BL", file: "nested/BL.md", date: "date" } }), /bootstrap[.]file/],
+    [target, defaultOptions({
+      bootstrap: {
+        id: "BL-20260710-000000-valid",
+        file: "nested/BL-20260710-000000-valid.md",
+        date: "2026-07-10T00:00:00.000Z",
+      },
+    }), /bootstrap[.]file/],
     [target, defaultOptions({ compatibleHashes: [] }), /compatibleHashes must be a Map or plain object/],
     [target, defaultOptions({ compatibleHashes: { "AGENTS.md": {} } }), /must contain hashes/],
     [target, defaultOptions({ compatibleHashes: { "AGENTS.md": ["not-a-hash"] } }), /invalid SHA-256 hash/],
