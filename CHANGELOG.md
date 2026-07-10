@@ -10,7 +10,7 @@ This file tracks releases from v11.0.0 onward. For v5.x – v10.x history, see [
 
 ---
 
-## 11.0.0 (2026-07-06) — Core / On-Demand Artifact Split
+## 11.0.0 (Unreleased)
 
 **Major, breaking**. AI-OS 收敛为「核心默认工件 + 按需扩展工件」：默认安装只包含核心交付环（宪法 + shared root + lane 的 `lane.toml` / `MISSION` / `DESIGN` / `STATE` / `baseline-log/` / `tasks.yaml`），其余工件（`risk-register.md`、`release-plan.md`、`verification-matrix.yaml`、`specs/`、`design-pack/`、`evals/`）改为按需创建，schema 保留在 `docs/artifacts.md`。宪法、doctor、docs、evals、examples 与测试同步瘦身；设计锁定、证据化完成、baseline/CR 变更记录、memory 回流、session 恢复等 kernel 语义全部保留。
 
@@ -38,6 +38,6 @@ This file tracks releases from v11.0.0 onward. For v5.x – v10.x history, see [
 
 ### Migration
 
-- 已安装项目：`npx create-ai-os install . --force` 刷新宪法、模板与 vendored doctor。旧的 `risk-register.md` / `release-plan.md` / `verification-matrix.yaml` / `specs/` / `design-pack/` / `evals/` 不会被删除，作为已创建的按需工件继续有效；doctor 不再对它们做结构检查。
+- 已安装项目：使用固定发布版 `npx --yes github:royeedai/ai-os#v10.5.1 .` 安装宪法、模板与 vendored doctor。旧的 `risk-register.md` / `release-plan.md` / `verification-matrix.yaml` / `specs/` / `design-pack/` / `evals/` 不会被删除，作为已创建的按需工件继续有效；doctor 不再对它们做结构检查。
 - 旧 `framework.toml`（schema v9）会触发 E002，按提示重装即可。
 - 依赖 W072 / W074 / W076 / W077 / W078 的 CI `--strict` 门禁需移除对应预期；对应语义由宪法行为规则承载。

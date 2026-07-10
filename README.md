@@ -4,10 +4,10 @@
 
 ```bash
 # Install into a new project (pin a release: reproducible + cache-friendly)
-npx --yes github:royeedai/ai-os#v11.0.0 my-project
+npx --yes github:royeedai/ai-os#v10.5.1 my-project
 
 # Install into an existing repo
-npx --yes github:royeedai/ai-os#v11.0.0 .
+npx --yes github:royeedai/ai-os#v10.5.1 .
 
 # Check health — runs locally with zero network after install
 node .ai-os/bin/ai-os-doctor.js .
@@ -139,7 +139,7 @@ Create more lanes only when you truly have separate long-lived delivery lines, r
 For agents that prefer the [agentskills.io](https://agentskills.io/specification) skill format (Claude Code, Cursor, Codex, Gemini CLI, ...), AI-OS publishes an official wrapper:
 
 ```bash
-npx skills add github:royeedai/ai-os#v11.0.0
+npx skills add github:royeedai/ai-os#v10.5.1
 ```
 
 This loads `framework/skills/ai-os-delivery/SKILL.md`, which packages the constitution into the open standard. To stay fully offline after cloning, copy `framework/skills/ai-os-delivery` into `.claude/skills/` or `.cursor/skills/` instead of fetching.

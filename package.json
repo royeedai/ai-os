@@ -1,6 +1,7 @@
 {
   "name": "create-ai-os",
   "version": "11.0.0",
+  "private": true,
   "description": "AI Delivery Constitution installer. Install the canonical lane-first artifact layout into any project.",
   "repository": {
     "type": "git",
@@ -9,6 +10,9 @@
   "homepage": "https://github.com/royeedai/ai-os",
   "bin": {
     "create-ai-os": "./bin/create-ai-os.js"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.js",

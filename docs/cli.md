@@ -28,7 +28,7 @@ Installs the v10 canonical layout:
 
 Extension artifacts (`risk-register.md`, `release-plan.md`, `verification-matrix.yaml`, `specs/`, `design-pack/`, `evals/`) are **on-demand**: created by the agent when their trigger condition is hit (see `docs/artifacts.md`), never installed by default.
 
-Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v11.0.0 .`. The install is the only step that needs the network.
+Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v10.5.1 .`. The install is the only step that needs the network.
 
 ### Options
 
@@ -39,7 +39,7 @@ Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v11.0.
 
 ### Removed subcommands
 
-`create-ai-os upgrade` exits with an error pointing to `create-ai-os install . --force` (removed in v10). A target path that exists but is a regular file also fails cleanly instead of crashing.
+`create-ai-os upgrade` exits with an error because the subcommand was removed in v10. A target path that exists but is a regular file also fails cleanly instead of crashing.
 
 ## `create-ai-os doctor [target-dir]`
 
@@ -60,7 +60,7 @@ Checks:
 node .ai-os/bin/ai-os-doctor.js . --strict
 ```
 
-Because `.ai-os/bin/` is committed (unlike the gitignored `.ai-os/framework.toml`), teammates and CI that clone the repo run doctor offline without re-installing — the committed `.ai-os/bin/VERSION` supplies the framework version. Re-run `install . --force` to refresh the vendored entry after upgrading the framework.
+Because `.ai-os/bin/` is committed (unlike the gitignored `.ai-os/framework.toml`), teammates and CI that clone the repo run doctor offline without re-installing — the committed `.ai-os/bin/VERSION` supplies the framework version. A fresh install from the pinned release vendors the matching entry.
 
 ### Structural & metadata codes
 

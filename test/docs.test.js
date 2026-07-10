@@ -10,7 +10,7 @@ const path = require("path");
 const { test, assert, repoRoot } = require("./helpers");
 
 const DISTRIBUTED_AGENTS_TEMPLATE = "framework/.agents/templates/root/AGENTS.md";
-const CURRENT_VERSION = "11.0.0";
+const DEVELOPMENT_VERSION = "11.0.0";
 
 function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), "utf8");
@@ -298,21 +298,33 @@ test("docs: interop.md consolidates all tool coexistence guidance", () => {
   assert.ok(lines <= 120, `interop.md stays compact (got ${lines} lines)`);
 });
 
-test("docs: VERSION, package.json, and install pins are in sync", () => {
+test("docs: development metadata and released install pins are truthful", () => {
   const version = fs.readFileSync(path.join(repoRoot, "VERSION"), "utf8").trim();
+  const releasedVersion = read("RELEASED_VERSION").trim();
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, "package-lock.json"), "utf8"));
   assert.equal(version, pkg.version, `VERSION (${version}) matches package.json version (${pkg.version})`);
   assert.equal(lock.version, pkg.version, `package-lock root version (${lock.version}) matches package.json version (${pkg.version})`);
   assert.equal(lock.packages[""].version, pkg.version, `package-lock package version (${lock.packages[""].version}) matches package.json version (${pkg.version})`);
-  assert.equal(version, CURRENT_VERSION, `version is ${CURRENT_VERSION} (got ${version})`);
+  assert.equal(version, DEVELOPMENT_VERSION, `development version is ${DEVELOPMENT_VERSION} (got ${version})`);
 
-  const readme = read("README.md");
-  const gettingStarted = read("docs/getting-started.md");
-  assert.ok(readme.includes(`github:royeedai/ai-os#v${CURRENT_VERSION}`), "README pins install commands to the current release tag");
-  assert.ok(gettingStarted.includes(`github:royeedai/ai-os#v${CURRENT_VERSION}`), "getting-started pins the install command");
+  const publicReleaseDocs = [
+    "README.md",
+    "docs/getting-started.md",
+    "docs/cli.md",
+    "examples/greenfield-guided-product.md",
+    "examples/brownfield-change-journey.md",
+    "CHANGELOG.md",
+  ];
+  for (const rel of publicReleaseDocs) {
+    const refs = [...read(rel).matchAll(/github:royeedai\/ai-os#v(\d+\.\d+\.\d+)/g)];
+    assert.ok(refs.length > 0, `${rel} includes a pinned GitHub release ref`);
+    for (const [, ref] of refs) {
+      assert.equal(ref, releasedVersion, `${rel} pins released version ${releasedVersion}`);
+    }
+  }
   const changelog = read("CHANGELOG.md");
-  assert.ok(changelog.includes(CURRENT_VERSION), `CHANGELOG records ${CURRENT_VERSION}`);
+  assert.ok(changelog.includes(DEVELOPMENT_VERSION), `CHANGELOG records ${DEVELOPMENT_VERSION}`);
 });
 
 test("docs: package.json bin field is minimal", () => {
