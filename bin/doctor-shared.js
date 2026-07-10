@@ -398,6 +398,190 @@ function parseCanonicalYaml(content) {
   return parsed.value;
 }
 
+const MANAGED_FILES_HEADER = "# path\ttype\townership\tsource_sha256";
+const MAX_MANAGED_FILES_BYTES = 256 * 1024;
+const MAX_MANAGED_FILES_ROWS = 4096;
+const MAX_MANAGED_FILES_ROW_LENGTH = 4096;
+const MAX_MANAGED_PATH_LENGTH = 1024;
+const UNSAFE_MANIFEST_FIELD_CHARACTERS =
+  /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/u;
+
+function manifestParseError(line, reason, issueCode = "E003") {
+  const error = new CanonicalParseError(line, reason);
+  Object.defineProperty(error, "manifestIssueCode", {
+    configurable: true,
+    enumerable: false,
+    value: issueCode,
+  });
+  return error;
+}
+
+function compareCodePointText(left, right) {
+  const leftPoints = Array.from(left, (character) => character.codePointAt(0));
+  const rightPoints = Array.from(right, (character) => character.codePointAt(0));
+  const length = Math.min(leftPoints.length, rightPoints.length);
+  for (let index = 0; index < length; index += 1) {
+    if (leftPoints[index] !== rightPoints[index]) {
+      return leftPoints[index] < rightPoints[index] ? -1 : 1;
+    }
+  }
+  return leftPoints.length - rightPoints.length;
+}
+
+function assertSafeManagedPath(relativePath, line) {
+  if (
+    !relativePath
+    || !/^[ -~]+$/u.test(relativePath)
+    || relativePath.includes("\\")
+    || relativePath.startsWith("/")
+    || /^[A-Za-z]:/u.test(relativePath)
+  ) {
+    throw manifestParseError(
+      line,
+      "manifest path must use printable ASCII portable spelling",
+      "E004",
+    );
+  }
+  const segments = relativePath.split("/");
+  if (segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    throw manifestParseError(line, "manifest contains an unsafe path", "E004");
+  }
+  for (const segment of segments) {
+    const basename = segment.split(".", 1)[0].replace(/ +$/gu, "");
+    if (
+      segment.startsWith(" ")
+      || /[. ]$/u.test(segment)
+      || /[<>:"|?*~$]/u.test(segment)
+      || /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/iu.test(basename)
+    ) {
+      throw manifestParseError(
+        line,
+        "manifest path must use portable path spelling",
+        "E004",
+      );
+    }
+  }
+  if (relativePath === ".ai-os/managed-files.tsv") {
+    throw manifestParseError(
+      line,
+      "manifest must not list itself recursively",
+      "E004",
+    );
+  }
+}
+
+function rejectUnsafeManifestField(value, line) {
+  if (UNSAFE_MANIFEST_FIELD_CHARACTERS.test(value)) {
+    throw manifestParseError(
+      line,
+      "manifest field contains unsafe characters",
+      "E004",
+    );
+  }
+}
+
+function parseManagedFiles(content) {
+  if (typeof content !== "string") {
+    throw manifestParseError(0, "manifest content must be a string");
+  }
+  if (content.charCodeAt(0) === 0xfeff) {
+    throw manifestParseError(1, "manifest must not contain a UTF-8 BOM");
+  }
+  if (Buffer.byteLength(content, "utf8") > MAX_MANAGED_FILES_BYTES) {
+    throw manifestParseError(0, "manifest exceeds the canonical size limit");
+  }
+  if (content.includes("\r")) {
+    throw manifestParseError(1, "manifest must use LF line endings only");
+  }
+  if (!content.endsWith("\n")) {
+    throw manifestParseError(0, "manifest must end with one terminal LF");
+  }
+  if (content.endsWith("\n\n")) {
+    throw manifestParseError(0, "manifest has a blank row or extra terminal LF");
+  }
+
+  const lines = content.slice(0, -1).split("\n");
+  if (lines[0] !== MANAGED_FILES_HEADER) {
+    throw manifestParseError(1, "manifest header must have exactly four canonical columns");
+  }
+  if (lines.length - 1 > MAX_MANAGED_FILES_ROWS) {
+    throw manifestParseError(0, "manifest contains too many rows");
+  }
+
+  const rows = [];
+  const paths = new Set();
+  const pathKeys = new Set();
+  let previousPath = null;
+  for (let index = 1; index < lines.length; index += 1) {
+    const lineNumber = index + 1;
+    if (lines[index].length > MAX_MANAGED_FILES_ROW_LENGTH) {
+      throw manifestParseError(lineNumber, "manifest row exceeds the length limit");
+    }
+    const fields = lines[index].split("\t");
+    if (fields.length !== 4) {
+      throw manifestParseError(lineNumber, "manifest row must have exactly four columns");
+    }
+    const [relativePath, type, ownership, sourceSha256] = fields;
+    if (relativePath.length > MAX_MANAGED_PATH_LENGTH) {
+      throw manifestParseError(
+        lineNumber,
+        "manifest path exceeds the length limit",
+        "E004",
+      );
+    }
+    for (const field of fields) rejectUnsafeManifestField(field, lineNumber);
+    assertSafeManagedPath(relativePath, lineNumber);
+    if (paths.has(relativePath)) {
+      throw manifestParseError(lineNumber, "manifest contains a duplicate path");
+    }
+    const pathKey = relativePath.replace(/[A-Z]/gu, (character) => character.toLowerCase());
+    if (pathKeys.has(pathKey)) {
+      throw manifestParseError(
+        lineNumber,
+        "manifest contains a case-fold path alias",
+        "E004",
+      );
+    }
+    if (previousPath !== null && compareCodePointText(previousPath, relativePath) >= 0) {
+      throw manifestParseError(
+        lineNumber,
+        "manifest rows must be sorted in code-point path order",
+      );
+    }
+    if (type !== "file") {
+      throw manifestParseError(lineNumber, "manifest has an unsupported type", "E004");
+    }
+    if (![OWNERSHIP.FRAMEWORK, OWNERSHIP.PROJECT, OWNERSHIP.SESSION].includes(ownership)) {
+      throw manifestParseError(lineNumber, "manifest has unknown ownership", "E004");
+    }
+    if (ownership === OWNERSHIP.FRAMEWORK) {
+      if (!/^[a-f0-9]{64}$/u.test(sourceSha256)) {
+        throw manifestParseError(
+          lineNumber,
+          "framework manifest row requires a lowercase SHA-256 hash",
+          "E004",
+        );
+      }
+    } else if (sourceSha256 !== "") {
+      throw manifestParseError(
+        lineNumber,
+        `${ownership} manifest row must have an empty source hash`,
+        "E004",
+      );
+    }
+    paths.add(relativePath);
+    pathKeys.add(pathKey);
+    previousPath = relativePath;
+    rows.push({
+      path: relativePath,
+      type,
+      ownership,
+      source_sha256: sourceSha256,
+    });
+  }
+  return rows;
+}
+
 function fileSpec(relativePath, ownership, source = null, generated = false, mode = 0o644) {
   return Object.freeze({
     path: relativePath,
@@ -556,6 +740,7 @@ module.exports = {
   CanonicalParseError,
   parseCanonicalToml,
   parseCanonicalYaml,
+  parseManagedFiles,
   LAYOUT_VERSION,
   LAYOUT_MODE,
   OWNERSHIP,

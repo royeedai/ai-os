@@ -24,6 +24,17 @@ function tmpDir() {
   return fs.realpathSync.native(rawTmpDir());
 }
 
+function extendAgentsToLogicalLines(target, lineCount) {
+  const agents = path.join(target, "AGENTS.md");
+  const content = fs.readFileSync(agents, "utf8");
+  const lines = content.endsWith("\n")
+    ? content.slice(0, -1).split("\n")
+    : content.split("\n");
+  while (lines.length < lineCount) lines.push(`project warning fixture ${lines.length + 1}`);
+  assert.equal(lines.length, lineCount);
+  fs.writeFileSync(agents, `${lines.join("\n")}\n`);
+}
+
 function runInjectedFilesystemProbe(entry, mode, target, operation, failurePath, message) {
   const source = String.raw`
     const fs = require("node:fs");
@@ -104,6 +115,7 @@ test("doctor: requiring from a temporary cwd is inert and main returns a status"
     assert.equal(payload.status, 0);
     assert.equal(payload.writes.stderr, "");
     assert.match(payload.writes.stdout, /Usage:/);
+    assert.match(payload.writes.stdout, /--strict[\s\S]*delivery readiness/i);
     assert.deepEqual(payload.entries, []);
   } finally {
     cleanup(dir);
@@ -121,14 +133,14 @@ test("doctor: exported main contains filesystem failures without a stack", () =>
       const doctor = require(process.argv[1]);
       const target = process.argv[2];
       const agents = path.join(target, "AGENTS.md");
-      const originalRead = fs.readFileSync;
-      fs.readFileSync = function injectedRead(file, ...args) {
+      const originalOpen = fs.openSync;
+      fs.openSync = function injectedOpen(file, ...args) {
         if (path.resolve(String(file)) === agents) {
           const error = new Error("injected unreadable AGENTS.md");
           error.code = "EACCES";
           throw error;
         }
-        return originalRead.call(this, file, ...args);
+        return originalOpen.call(this, file, ...args);
       };
       const writes = { stdout: "", stderr: "" };
       const io = {
@@ -245,7 +257,7 @@ test("doctor: every entrypoint surfaces inaccessible framework versions", () => 
     ];
     for (const [entry, mode, label, failurePath] of entries) {
       assertContainedFilesystemFailure(
-        runInjectedFilesystemProbe(entry, mode, dir, "readFileSync", failurePath, message),
+        runInjectedFilesystemProbe(entry, mode, dir, "openSync", failurePath, message),
         message,
         label,
       );
@@ -261,7 +273,9 @@ test("doctor: clean install returns 0", () => {
     runInstall([dir]);
     const result = runDoctor([dir]);
     assert.equal(result.status, 0, "doctor exits 0 on clean install");
-    assert.ok(result.stdout.includes("All checks passed"), "doctor reports all checks passed");
+    assert.ok(result.stdout.includes("Layout checks: PASS"), "doctor reports layout pass");
+    assert.ok(result.stdout.includes("Delivery ready: NO"), "doctor reports provisional readiness false");
+    assert.doesNotMatch(result.stdout, /All checks passed|looks healthy/i);
     assert.ok(result.stdout.includes("shared-root-default-lane"), "doctor reports canonical layout mode");
   } finally {
     cleanup(dir);
@@ -329,7 +343,7 @@ test("doctor: on-demand artifacts are not checked", () => {
     // No risk-register / release-plan / verification-matrix / specs / design-pack
     // / evals exist on a clean install; doctor must not warn about them.
     const result = runDoctor([dir, "--strict"]);
-    assert.equal(result.status, 0, "doctor --strict passes without on-demand artifacts");
+    assert.equal(result.status, 1, "Task 3 strict mode fails provisional delivery readiness");
     assert.ok(!result.stdout.includes("risk-register"), "doctor does not mention risk-register");
     assert.ok(!result.stdout.includes("verification-matrix"), "doctor does not mention verification-matrix");
   } finally {
@@ -355,15 +369,23 @@ test("doctor: --json output includes layout metadata", () => {
   }
 });
 
-test("doctor: --strict treats warnings as errors", () => {
+test("doctor: --strict preserves warning diagnostics while readiness is false", () => {
   const dir = tmpDir();
   try {
     runInstall([dir]);
-    fs.unlinkSync(path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml"));
-    const normal = runDoctor([dir]);
+    extendAgentsToLogicalLines(dir, 151);
+    const normal = runDoctor([dir, "--json"]);
     assert.equal(normal.status, 0, "doctor without --strict exits 0 on warning");
-    const strict = runDoctor([dir, "--strict"]);
-    assert.equal(strict.status, 1, "doctor --strict exits 1 on warning");
+    const strict = runDoctor([dir, "--json", "--strict"]);
+    assert.equal(strict.status, 1, "doctor --strict exits 1 while readiness is false");
+    const normalReport = JSON.parse(normal.stdout);
+    const strictReport = JSON.parse(strict.stdout);
+    assert.ok(normalReport.issues.some((issue) => issue.code === "W010"));
+    assert.deepEqual(strictReport.issues, normalReport.issues);
+    assert.equal(normalReport.layout_ok, true);
+    assert.equal(strictReport.layout_ok, true);
+    assert.equal(normalReport.delivery_ready, false);
+    assert.equal(strictReport.delivery_ready, false);
   } finally {
     cleanup(dir);
   }
@@ -459,7 +481,8 @@ test("doctor: vendored local entry runs offline with no external request", () =>
     runInstall([dir]);
     const local = runLocalDoctor(dir, [dir]);
     assert.equal(local.status, 0, "local doctor exits 0 on clean install");
-    assert.ok(local.stdout.includes("All checks passed"), "local doctor reports all checks passed");
+    assert.ok(local.stdout.includes("Layout checks: PASS"), "local doctor reports layout pass");
+    assert.ok(local.stdout.includes("Delivery ready: NO"), "local doctor reports provisional readiness false");
 
     // parity with the source doctor on the same project
     const localJson = JSON.parse(runLocalDoctor(dir, [dir, "--json"]).stdout);
@@ -472,20 +495,21 @@ test("doctor: vendored local entry runs offline with no external request", () =>
   }
 });
 
-test("doctor: embedded entry uses adjacent VERSION when metadata is missing", () => {
+test("doctor: embedded entry fails closed when committed metadata is missing", () => {
   const dir = tmpDir();
   try {
     runInstall([dir]);
-    // Missing framework metadata is damage, but the committed local doctor still
-    // has an adjacent VERSION and can complete its read-only structural checks.
+    // Adjacent VERSION is executable identity, never a substitute for target metadata.
     fs.unlinkSync(path.join(dir, ".ai-os", "framework.toml"));
     const result = runLocalDoctor(dir, [dir, "--json"]);
-    assert.equal(result.status, 0, "local doctor exits 0 without framework.toml");
+    assert.equal(result.status, 1, "local doctor exits 1 without framework.toml");
     const parsed = JSON.parse(result.stdout);
-    assert.equal(parsed.ok, true, "local doctor ok=true without framework.toml");
+    assert.equal(parsed.ok, false, "local doctor fails closed without framework.toml");
     const e001 = parsed.issues.find((it) => it.code === "E001");
-    assert.ok(!e001, "local doctor does not report E001 in embedded mode without framework.toml");
-    assert.equal(parsed.installedVersion, "11.0.0", "local doctor falls back to committed VERSION as installed version");
+    assert.ok(e001, "local doctor reports E001 in embedded mode without framework.toml");
+    assert.equal(parsed.installedVersion, null);
+    assert.equal(parsed.layout_version, null);
+    assert.equal(parsed.layout_mode, null);
   } finally {
     cleanup(dir);
   }
@@ -529,15 +553,22 @@ test("doctor: source doctor still reports E001 (strict) when framework.toml is a
   }
 });
 
-test("doctor: vendored local entry honors --strict", () => {
+test("doctor: vendored strict report differs only in ok while readiness is false", () => {
   const dir = tmpDir();
   try {
     runInstall([dir]);
-    fs.unlinkSync(path.join(dir, ".ai-os", "lanes", "default", "tasks.yaml"));
-    const normal = runLocalDoctor(dir, [dir]);
+    extendAgentsToLogicalLines(dir, 151);
+    const normal = runLocalDoctor(dir, [dir, "--json"]);
     assert.equal(normal.status, 0, "local doctor without --strict exits 0 on warning");
-    const strict = runLocalDoctor(dir, [dir, "--strict"]);
-    assert.equal(strict.status, 1, "local doctor --strict exits 1 on warning");
+    const strict = runLocalDoctor(dir, [dir, "--json", "--strict"]);
+    assert.equal(strict.status, 1, "local doctor --strict exits 1 while readiness is false");
+    const normalReport = JSON.parse(normal.stdout);
+    const strictReport = JSON.parse(strict.stdout);
+    const { ok: normalOk, ...normalComparable } = normalReport;
+    const { ok: strictOk, ...strictComparable } = strictReport;
+    assert.equal(normalOk, true);
+    assert.equal(strictOk, false);
+    assert.deepEqual(strictComparable, normalComparable);
   } finally {
     cleanup(dir);
   }
