@@ -50,8 +50,8 @@ function tmpDir() {
   return dir;
 }
 
-function cleanup(dir) {
-  fs.rmSync(dir, { recursive: true, force: true });
+function cleanup(...dirs) {
+  for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
 }
 
 function readFile(dir, relPath) {
