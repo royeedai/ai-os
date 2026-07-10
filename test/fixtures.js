@@ -114,9 +114,28 @@ function snapshotTree(root) {
   return snapshot;
 }
 
+function materializePlanFixture(plan) {
+  const owner = ownedFixtureRoot();
+  const target = path.join(owner.root, "target");
+
+  try {
+    for (const operation of plan.operations) {
+      if (operation.action !== "create") continue;
+      const destination = fixturePath(target, operation.relativePath);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.writeFileSync(destination, operation.content, { mode: operation.mode });
+    }
+    return target;
+  } catch (error) {
+    owner.cleanup();
+    throw error;
+  }
+}
+
 module.exports = {
   symlinkFixture,
   symlinkParentFixture,
   snapshotTree,
+  materializePlanFixture,
   readRepo,
 };

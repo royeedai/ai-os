@@ -147,11 +147,11 @@ test("docs: no doc references deleted files or removed doctor codes", () => {
   }
 });
 
-test("docs: bin contains exactly 4 scripts", () => {
+test("docs: bin contains exactly 5 scripts", () => {
   const binDir = path.join(repoRoot, "bin");
   const files = fs.readdirSync(binDir).sort();
-  const expected = ["ai-os-doctor.js", "create-ai-os.js", "doctor-shared.js", "shared.js"];
-  assert.deepEqual(files, expected, `bin/ has exactly 4 scripts: ${files.join(", ")}`);
+  const expected = ["ai-os-doctor.js", "create-ai-os.js", "doctor-shared.js", "installer.js", "shared.js"];
+  assert.deepEqual(files, expected, `bin/ has exactly 5 scripts: ${files.join(", ")}`);
 });
 
 test("docs: doctor semantic warnings are exactly W070 and W071", () => {
