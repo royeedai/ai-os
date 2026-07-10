@@ -15,7 +15,7 @@ const {
 
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
-const BASELINE_ID_PATTERN = /^BL-(\d{8})-(\d{6})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const BASELINE_ID_PATTERN = /^BL-(\d{8})-(\d{6})-([a-z0-9]+(?:-[a-z0-9]+)*)$/;
 const CANONICAL_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.]\d{3}Z$/;
 const INITIAL_BASELINE_FILE_TOKEN = "{{INITIAL_BASELINE_FILE}}";
 const INITIAL_BASELINE_PATH = `.ai-os/lanes/default/baseline-log/${INITIAL_BASELINE_FILE_TOKEN}`;
@@ -433,6 +433,235 @@ function inspectDestination(targetRoot, relativePath) {
   }
 }
 
+function canonicalBaselineBootstrap(baselineId) {
+  const match = baselineId.match(BASELINE_ID_PATTERN);
+  if (!match) {
+    return { error: "lane.toml baseline_id must be a canonical BL identifier" };
+  }
+  if (match[3] === "retrospective") {
+    return { error: "lane.toml baseline_id cannot point to a retrospective record" };
+  }
+
+  const compactDate = match[1];
+  const compactTime = match[2];
+  const date = [
+    compactDate.slice(0, 4),
+    "-",
+    compactDate.slice(4, 6),
+    "-",
+    compactDate.slice(6, 8),
+    "T",
+    compactTime.slice(0, 2),
+    ":",
+    compactTime.slice(2, 4),
+    ":",
+    compactTime.slice(4, 6),
+    ".000Z",
+  ].join("");
+  const parsed = new Date(date);
+  if (
+    !Number.isFinite(Date.prototype.getTime.call(parsed))
+    || Date.prototype.toISOString.call(parsed) !== date
+  ) {
+    return { error: "lane.toml baseline_id must contain a canonical UTC second" };
+  }
+  return {
+    bootstrap: Object.freeze({
+      id: baselineId,
+      file: `${baselineId}.md`,
+      date,
+    }),
+  };
+}
+
+function findTomlMultilineClose(line, delimiter, start) {
+  let index = line.indexOf(delimiter, start);
+  while (index !== -1) {
+    if (delimiter === "'''") return index;
+    let escapes = 0;
+    for (let cursor = index - 1; cursor >= 0 && line[cursor] === "\\"; cursor -= 1) {
+      escapes += 1;
+    }
+    if (escapes % 2 === 0) return index;
+    index = line.indexOf(delimiter, index + delimiter.length);
+  }
+  return -1;
+}
+
+function tomlCodeOutsideMultiline(line, activeDelimiter) {
+  if (activeDelimiter !== null) {
+    const close = findTomlMultilineClose(line, activeDelimiter, 0);
+    return {
+      code: "",
+      activeDelimiter: close === -1 ? activeDelimiter : null,
+      error: null,
+    };
+  }
+
+  let code = "";
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (quote !== null) {
+      code += character;
+      if (quote === '"' && character === "\\") {
+        index += 1;
+        if (index < line.length) code += line[index];
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === "#") break;
+    const delimiter = line.startsWith('"""', index)
+      ? '"""'
+      : line.startsWith("'''", index) ? "'''" : null;
+    if (delimiter !== null) {
+      code += delimiter;
+      const close = findTomlMultilineClose(line, delimiter, index + delimiter.length);
+      if (close === -1) return { code, activeDelimiter: delimiter, error: null };
+      code += delimiter;
+      index = close + delimiter.length - 1;
+      continue;
+    }
+    if (character === '"' || character === "'") quote = character;
+    code += character;
+  }
+  const kind = quote === '"' ? "basic" : "literal";
+  return {
+    code,
+    activeDelimiter: null,
+    error: quote === null ? null : `lane.toml contains an unterminated ${kind} string`,
+  };
+}
+
+function decodeTomlBasicKey(raw) {
+  const simpleEscapes = {
+    b: "\b",
+    t: "\t",
+    n: "\n",
+    f: "\f",
+    r: "\r",
+    '"': '"',
+    "\\": "\\",
+  };
+  let decoded = "";
+  for (let index = 0; index < raw.length; index += 1) {
+    if (raw[index] !== "\\") {
+      decoded += raw[index];
+      continue;
+    }
+    index += 1;
+    const escape = raw[index];
+    if (Object.hasOwn(simpleEscapes, escape)) {
+      decoded += simpleEscapes[escape];
+      continue;
+    }
+    if (escape !== "u" && escape !== "U") {
+      return { error: "lane.toml contains an invalid escape in a quoted root key" };
+    }
+    const length = escape === "u" ? 4 : 8;
+    const digits = raw.slice(index + 1, index + 1 + length);
+    if (digits.length !== length || !/^[a-fA-F0-9]+$/.test(digits)) {
+      return { error: "lane.toml contains an invalid Unicode escape in a quoted root key" };
+    }
+    const codePoint = Number.parseInt(digits, 16);
+    if (codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+      return { error: "lane.toml contains an invalid Unicode scalar in a quoted root key" };
+    }
+    decoded += String.fromCodePoint(codePoint);
+    index += length;
+  }
+  return { value: decoded };
+}
+
+function tomlRootKey(code) {
+  const bare = code.match(/^([A-Za-z0-9_-]+)\s*=/);
+  if (bare) return { value: bare[1], error: null };
+  const literal = code.match(/^'([^']*)'\s*=/);
+  if (literal) return { value: literal[1], error: null };
+  const basic = code.match(/^"((?:\\.|[^"\\])*)"\s*=/);
+  if (basic) {
+    const decoded = decodeTomlBasicKey(basic[1]);
+    return decoded.error
+      ? { value: null, error: decoded.error }
+      : { value: decoded.value, error: null };
+  }
+  if (code.startsWith('"') || code.startsWith("'")) {
+    return { value: null, error: "lane.toml contains a malformed quoted root key" };
+  }
+  return { value: null, error: null };
+}
+
+function rootBaselineDeclarations(content) {
+  const declarations = [];
+  let activeDelimiter = null;
+  let insideTable = false;
+  for (const line of content.split(/\r?\n/)) {
+    const scanned = tomlCodeOutsideMultiline(line, activeDelimiter);
+    if (scanned.error !== null) return { declarations, error: scanned.error };
+    activeDelimiter = scanned.activeDelimiter;
+    const trimmed = scanned.code.trimStart();
+    if (trimmed.length === 0) continue;
+    if (trimmed.startsWith("[")) {
+      insideTable = true;
+      continue;
+    }
+    if (insideTable) continue;
+    const key = tomlRootKey(trimmed);
+    if (key.error !== null) return { declarations, error: key.error };
+    if (key.value === "baseline_id") declarations.push(line);
+  }
+  return {
+    declarations,
+    error: activeDelimiter === null ? null : "lane.toml contains an unterminated multiline string",
+  };
+}
+
+function existingLaneBootstrap(destination) {
+  if (!destination.exists) {
+    return { exists: false, bootstrap: null, error: null };
+  }
+  if (destination.error || destination.kind !== "file" || !destination.bytes) {
+    return {
+      exists: true,
+      bootstrap: null,
+      error: destination.error || "lane.toml is not a regular file",
+    };
+  }
+
+  const scanned = rootBaselineDeclarations(destination.bytes.toString("utf8"));
+  if (scanned.error !== null) {
+    return { exists: true, bootstrap: null, error: scanned.error };
+  }
+  const { declarations } = scanned;
+  if (declarations.length !== 1) {
+    return {
+      exists: true,
+      bootstrap: null,
+      error: `lane.toml must contain exactly one baseline_id declaration at TOML root; found ${declarations.length}`,
+    };
+  }
+
+  const declaration = declarations[0].match(/^baseline_id = "([^"]+)"$/);
+  if (!declaration) {
+    return {
+      exists: true,
+      bootstrap: null,
+      error: "lane.toml baseline_id declaration must use canonical baseline_id syntax",
+    };
+  }
+  const parsed = canonicalBaselineBootstrap(declaration[1]);
+  if (parsed.error) {
+    return {
+      exists: true,
+      bootstrap: null,
+      error: parsed.error,
+    };
+  }
+  return { exists: true, bootstrap: parsed.bootstrap, error: null };
+}
+
 function classifyDestination(source, destination, options = {}) {
   if (destination.error || (destination.exists && destination.kind !== "file")) return "conflict";
   if (!destination.exists) return "create";
@@ -500,17 +729,11 @@ function buildInstallPlan(targetDir, options = {}) {
     failPlanner("targetDir must be a non-empty string");
   }
 
-  const bootstrap = normalizeBootstrap(options.bootstrap, options.clock);
   const compatibleHashes = normalizeHashMap(options.compatibleHashes, "compatibleHashes");
   const obsoleteHashes = normalizeHashMap(
     options.obsoleteFrameworkHashes,
     "obsoleteFrameworkHashes",
   );
-  const inventory = sourceInventory(options, bootstrap);
-  const currentPaths = new Set(inventory.map((entry) => entry.relativePath));
-  for (const obsoletePath of obsoleteHashes.keys()) {
-    if (currentPaths.has(obsoletePath)) failPlanner(`obsolete path is still current: ${obsoletePath}`);
-  }
 
   let resolvedTarget = path.resolve(targetDir);
   let targetExisted = false;
@@ -527,7 +750,71 @@ function buildInstallPlan(targetDir, options = {}) {
     targetError = error;
   }
   const destinationSnapshots = new Map();
+  const laneDestination = targetError
+    ? { exists: true, kind: "invalid", hash: null, bytes: null, error: targetError.message }
+    : inspectDestination(resolvedTarget, DEFAULT_LANE_METADATA_PATH);
+  destinationSnapshots.set(DEFAULT_LANE_METADATA_PATH, laneDestination);
+  const laneContext = targetError === null
+    ? existingLaneBootstrap(laneDestination)
+    : { exists: false, bootstrap: null, error: null };
+  if (laneContext.error !== null) {
+    return immutablePlan(
+      resolvedTarget,
+      [immutableOperation({
+        relativePath: DEFAULT_LANE_METADATA_PATH,
+        type: "file",
+        ownership: OWNERSHIP.PROJECT,
+        action: "conflict",
+        content: null,
+        mode: 0o644,
+        previousHash: laneDestination.hash,
+      })],
+      [immutableConflict(DEFAULT_LANE_METADATA_PATH, laneContext.error)],
+      {
+        baselineId: null,
+        layoutVersion: LAYOUT_VERSION,
+        targetExisted,
+      },
+    );
+  }
+  const bootstrap = laneContext.exists
+    ? laneContext.bootstrap
+    : normalizeBootstrap(options.bootstrap, options.clock);
+  let currentBaselineRelativePath = null;
+  let currentBaselineDestination = null;
+  let currentBaselineError = null;
+  if (laneContext.exists && laneContext.error === null) {
+    currentBaselineRelativePath = (
+      `.ai-os/lanes/default/baseline-log/${laneContext.bootstrap.file}`
+    );
+    currentBaselineDestination = inspectDestination(
+      resolvedTarget,
+      currentBaselineRelativePath,
+    );
+    destinationSnapshots.set(currentBaselineRelativePath, currentBaselineDestination);
+    if (!currentBaselineDestination.exists) {
+      currentBaselineError = "current baseline record is missing";
+    } else if (
+      currentBaselineDestination.error
+      || currentBaselineDestination.kind !== "file"
+    ) {
+      currentBaselineError = destinationConflictReason(
+        currentBaselineRelativePath,
+        currentBaselineDestination,
+      );
+    }
+  }
+  const inventory = sourceInventory(options, bootstrap);
+  const currentPaths = new Set(Object.values(FILE_SPECS).map((descriptor) => (
+    descriptor.path.split(INITIAL_BASELINE_FILE_TOKEN).join(bootstrap.file)
+  )));
+  for (const entry of inventory) currentPaths.add(entry.relativePath);
+  for (const obsoletePath of obsoleteHashes.keys()) {
+    if (currentPaths.has(obsoletePath)) failPlanner(`obsolete path is still current: ${obsoletePath}`);
+  }
+
   for (const entry of inventory) {
+    if (destinationSnapshots.has(entry.relativePath)) continue;
     destinationSnapshots.set(
       entry.relativePath,
       targetError
@@ -535,14 +822,8 @@ function buildInstallPlan(targetDir, options = {}) {
         : inspectDestination(resolvedTarget, entry.relativePath),
     );
   }
-  if (targetError === null && !destinationSnapshots.has(DEFAULT_LANE_METADATA_PATH)) {
-    destinationSnapshots.set(
-      DEFAULT_LANE_METADATA_PATH,
-      inspectDestination(resolvedTarget, DEFAULT_LANE_METADATA_PATH),
-    );
-  }
   const freshDefaultLane = targetError === null
-    && !destinationSnapshots.get(DEFAULT_LANE_METADATA_PATH).exists;
+    && !laneContext.exists;
 
   const operations = [];
   const conflicts = [];
@@ -564,6 +845,16 @@ function buildInstallPlan(targetDir, options = {}) {
       action = "conflict";
       reason = entry.error;
     } else if (
+      laneContext.exists
+      && entry.rawPath === INITIAL_BASELINE_PATH
+    ) {
+      if (currentBaselineError !== null) {
+        action = "conflict";
+        reason = currentBaselineError;
+      } else {
+        action = "preserve";
+      }
+    } else if (
       freshDefaultLane
       && entry.rawPath === INITIAL_BASELINE_PATH
       && destination.exists
@@ -573,6 +864,24 @@ function buildInstallPlan(targetDir, options = {}) {
     ) {
       action = "conflict";
       reason = "fresh bootstrap record collision: existing bytes do not match expected bootstrap";
+    } else if (
+      laneContext.exists
+      && entry.relativePath === "AGENTS.md"
+      && destination.exists
+      && destination.kind === "file"
+      && !destination.error
+      && destination.hash === sourceHash
+    ) {
+      action = "preserve";
+    } else if (
+      laneContext.exists
+      && entry.relativePath !== "AGENTS.md"
+      && [OWNERSHIP.PROJECT, OWNERSHIP.SESSION].includes(entry.ownership)
+      && destination.exists
+      && destination.kind === "file"
+      && !destination.error
+    ) {
+      action = "preserve";
     } else {
       action = classifyDestination(source, destination, { force: options.force === true });
       if (action === "conflict") {
@@ -603,6 +912,37 @@ function buildInstallPlan(targetDir, options = {}) {
     });
     operations.push(operation);
     if (reason !== null) conflicts.push(immutableConflict(entry.relativePath, reason));
+  }
+
+  const plannedPaths = new Set(operations.map((operation) => operation.relativePath));
+  if (laneContext.exists && !plannedPaths.has(DEFAULT_LANE_METADATA_PATH)) {
+    operations.push(immutableOperation({
+      relativePath: DEFAULT_LANE_METADATA_PATH,
+      type: "file",
+      ownership: OWNERSHIP.PROJECT,
+      action: "preserve",
+      content: null,
+      mode: 0o644,
+      previousHash: laneDestination.hash,
+    }));
+  }
+  if (
+    currentBaselineRelativePath !== null
+    && !plannedPaths.has(currentBaselineRelativePath)
+  ) {
+    const action = currentBaselineError === null ? "preserve" : "conflict";
+    operations.push(immutableOperation({
+      relativePath: currentBaselineRelativePath,
+      type: "file",
+      ownership: OWNERSHIP.PROJECT,
+      action,
+      content: null,
+      mode: 0o644,
+      previousHash: currentBaselineDestination.hash,
+    }));
+    if (currentBaselineError !== null) {
+      conflicts.push(immutableConflict(currentBaselineRelativePath, currentBaselineError));
+    }
   }
 
   if (!targetError) {

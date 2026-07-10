@@ -235,7 +235,7 @@ test("custom project artifact is preserved even with force", () => {
   assert.deepEqual(snapshotTree(target), before);
 });
 
-test("current project template is recognized by its fully rendered hash", () => {
+test("current project template in an existing lane is preserved", () => {
   const bootstrap = {
     id: "BL-20260710-010203-rendered",
     file: "BL-20260710-010203-rendered.md",
@@ -256,7 +256,7 @@ test("current project template is recognized by its fully rendered hash", () => 
 
   assert.equal(
     operation(plan, ".ai-os/lanes/default/lane.toml").action,
-    "replace-pristine-project",
+    "preserve",
   );
 });
 
@@ -285,7 +285,11 @@ test("fresh-lane classification reuses the inventory destination snapshot", () =
   const baselineRelativePath = (
     `.ai-os/lanes/default/baseline-log/${options.bootstrap.file}`
   );
-  const lanePath = writeTargetFile(target, laneRelativePath, "USER LANE\n");
+  const lanePath = writeTargetFile(target, laneRelativePath, [
+    `baseline_id = "${options.bootstrap.id}"`,
+    "# USER LANE SENTINEL",
+    "",
+  ].join("\n"));
   writeTargetFile(target, baselineRelativePath, "FOREIGN BASELINE\n");
   const originalLstatSync = fs.lstatSync;
   const originalReadFileSync = fs.readFileSync;
