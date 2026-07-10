@@ -680,27 +680,59 @@ function ensureTargetForTransaction(plan, fsOps, tx) {
   });
 }
 
-function acquireLock(targetDir, fsOps) {
+function captureLockIdentity(lock, fsOps) {
+  const stat = fsOps.fstat(lock.fd);
+  if (stat.isSymbolicLink() || !stat.isFile()) {
+    throw new Error("opened lock is not a regular file");
+  }
+  lock.identity = fileIdentity(stat);
+  lock.expectedMode = stat.mode & 0o777;
+}
+
+function writeLockNonce(lock, fsOps) {
+  let offset = 0;
+  while (offset < lock.nonce.length) {
+    const written = fsOps.write(
+      lock.fd,
+      lock.nonce,
+      offset,
+      lock.nonce.length - offset,
+      null,
+    );
+    if (!Number.isInteger(written) || written <= 0) {
+      throw new Error("lock nonce write made no forward progress");
+    }
+    offset += written;
+    lock.expectedHash = sha256(lock.nonce.subarray(0, offset));
+  }
+  fsOps.fsync(lock.fd);
+  lock.nonceWritten = true;
+}
+
+function acquireLock(targetDir, fsOps, tx) {
   const lockPath = path.join(targetDir, ".ai-os-install.lock");
   const flags = fs.constants.O_WRONLY
     | fs.constants.O_CREAT
     | fs.constants.O_EXCL
     | (fs.constants.O_NOFOLLOW || 0);
+  const nonce = crypto.randomBytes(32);
   try {
     const fd = fsOps.open(lockPath, flags, 0o600);
-    const stat = fsOps.fstat(fd);
-    if (stat.isSymbolicLink() || !stat.isFile()) {
-      throw new Error("opened lock is not a regular file");
-    }
-    return {
+    const lock = {
       fd,
       path: lockPath,
       closed: false,
       owned: true,
-      identity: fileIdentity(stat),
+      identity: null,
+      nonce,
+      nonceWritten: false,
       expectedHash: sha256(Buffer.alloc(0)),
-      expectedMode: stat.mode & 0o777,
+      expectedMode: null,
     };
+    tx.lock = lock;
+    writeLockNonce(lock, fsOps);
+    captureLockIdentity(lock, fsOps);
+    return lock;
   } catch (error) {
     const detail = error.code === "EEXIST"
       ? "installation already in progress"
@@ -819,6 +851,7 @@ function stageOperations(plan, fsOps, tx) {
       backupExpectedHash: operation.previousHash,
       backupExpectedMode: null,
       installStarted: false,
+      installOwned: false,
       removeStarted: false,
       destinationIdentity: null,
       destinationMode: null,
@@ -966,10 +999,18 @@ function reserveBackup(plan, record, fsOps) {
   for (let attempt = 0; attempt < MAX_BACKUP_RESERVATIONS; attempt += 1) {
     revalidateDestinationsBeforeCommit(plan, fsOps, [record]);
     try {
+      record.backupStarted = true;
       fsOps.link(record.destination, backupPath);
       recordOwnedBackup(record, backupPath);
       return;
     } catch (error) {
+      if (error.code === "EEXIST") {
+        if (attempt === MAX_BACKUP_RESERVATIONS - 1) {
+          throw filesystemError("commit backup", record.operation.relativePath, error);
+        }
+        backupPath = uniqueTransactionPath(record.destination, "backup");
+        continue;
+      }
       const inspected = inspectRollbackFile(
         backupPath,
         record.destinationIdentity,
@@ -983,10 +1024,7 @@ function reserveBackup(plan, record, fsOps) {
         recordOwnedBackup(record, backupPath);
         throw filesystemError("commit backup", record.operation.relativePath, error);
       }
-      if (error.code !== "EEXIST" || attempt === MAX_BACKUP_RESERVATIONS - 1) {
-        throw filesystemError("commit backup", record.operation.relativePath, error);
-      }
-      backupPath = uniqueTransactionPath(record.destination, "backup");
+      throw filesystemError("commit backup", record.operation.relativePath, error);
     }
   }
 }
@@ -998,13 +1036,40 @@ function commitStaged(plan, staged, fsOps) {
       try {
         record.installStarted = true;
         fsOps.link(record.tempPath, record.destination);
+        record.installOwned = true;
         record.committed = true;
         const cleanupErrors = unlinkOwnedRecordPath(record, "temp", fsOps, "commit create");
         if (cleanupErrors.length > 0) {
           throw appendCleanupErrors(cleanupErrors[0], cleanupErrors.slice(1));
         }
       } catch (error) {
-        throw filesystemError("commit create", record.operation.relativePath, error);
+        let ownershipError = null;
+        if (error.code !== "EEXIST" && !record.installOwned) {
+          const inspected = inspectRollbackFile(
+            record.destination,
+            record.stagedIdentity,
+            sha256(record.operation.content),
+            record.operation.mode,
+            fsOps,
+            record.operation.relativePath,
+            "commit create",
+          );
+          if (!inspected.error && inspected.state === "owned") {
+            record.installOwned = true;
+          } else if (inspected.error) {
+            ownershipError = inspected.error;
+          } else if (inspected.state === "foreign") {
+            ownershipError = filesystemError(
+              "rollback create",
+              record.operation.relativePath,
+              new Error("create destination is no longer owned by this transaction"),
+            );
+          }
+        }
+        throw appendCleanupErrors(
+          filesystemError("commit create", record.operation.relativePath, error),
+          ownershipError === null ? [] : [ownershipError],
+        );
       }
       continue;
     }
@@ -1173,7 +1238,7 @@ function rollbackStaged(staged, fsOps) {
   for (const record of [...staged].reverse()) {
     const relativePath = record.operation.relativePath;
     if (record.operation.action === "create") {
-      if (!record.installStarted) continue;
+      if (!record.installOwned) continue;
       const result = unlinkVerifiedPath(
         record.destination,
         record.stagedIdentity,
@@ -1187,6 +1252,7 @@ function rollbackStaged(staged, fsOps) {
       errors.push(...result.errors);
       if (result.relinquished) {
         record.installStarted = false;
+        record.installOwned = false;
         record.committed = false;
       }
       continue;
@@ -1323,8 +1389,70 @@ function cleanupStaged(tx, fsOps) {
   return errors;
 }
 
+function inspectLockByNonce(lock, fsOps) {
+  if (!lock.nonceWritten) {
+    const cause = new Error("lock identity and complete nonce are unavailable");
+    return { state: "unknown", error: filesystemError("remove lock", null, cause) };
+  }
+
+  let before;
+  try {
+    before = fsOps.lstat(lock.path);
+  } catch (error) {
+    if (error.code === "ENOENT") return { state: "missing", error: null };
+    return { state: "unknown", error: filesystemError("remove lock", null, error) };
+  }
+  if (before.isSymbolicLink() || !before.isFile()) {
+    return { state: "foreign", error: null };
+  }
+
+  let bytes;
+  let after;
+  try {
+    bytes = fsOps.readFile(lock.path);
+    after = fsOps.lstat(lock.path);
+  } catch (error) {
+    return { state: "unknown", error: filesystemError("remove lock", null, error) };
+  }
+  if (
+    after.isSymbolicLink()
+    || !after.isFile()
+    || !sameFileIdentity(before, after)
+    || !Buffer.isBuffer(bytes)
+    || !bytes.equals(lock.nonce)
+  ) {
+    return { state: "foreign", error: null };
+  }
+  return { state: "owned", error: null, identity: fileIdentity(after), mode: after.mode & 0o777 };
+}
+
+function unlinkLockByNonce(lock, fsOps) {
+  const inspected = inspectLockByNonce(lock, fsOps);
+  if (inspected.error) return { relinquished: false, errors: [inspected.error] };
+  if (inspected.state === "missing") return { relinquished: true, errors: [] };
+  if (inspected.state === "foreign") {
+    return {
+      relinquished: true,
+      errors: [filesystemError(
+        "remove lock",
+        null,
+        new Error("lock path is no longer owned by this transaction"),
+      )],
+    };
+  }
+  return unlinkVerifiedPath(lock.path, inspected.identity, sha256(lock.nonce), inspected.mode,
+    fsOps, "remove lock", null, "lock path");
+}
+
 function releaseLock(lock, fsOps) {
   const errors = [];
+  if (!lock.closed && lock.identity === null) {
+    try {
+      captureLockIdentity(lock, fsOps);
+    } catch (error) {
+      errors.push(filesystemError("capture lock identity", null, error));
+    }
+  }
   if (!lock.closed) {
     try {
       fsOps.close(lock.fd);
@@ -1335,16 +1463,18 @@ function releaseLock(lock, fsOps) {
     }
   }
   if (lock.owned) {
-    const result = unlinkVerifiedPath(
-      lock.path,
-      lock.identity,
-      lock.expectedHash,
-      lock.expectedMode,
-      fsOps,
-      "remove lock",
-      null,
-      "lock path",
-    );
+    const result = lock.identity === null
+      ? unlinkLockByNonce(lock, fsOps)
+      : unlinkVerifiedPath(
+        lock.path,
+        lock.identity,
+        lock.expectedHash,
+        lock.expectedMode,
+        fsOps,
+        "remove lock",
+        null,
+        "lock path",
+      );
     errors.push(...result.errors);
     if (result.relinquished) {
       lock.owned = false;
@@ -1431,7 +1561,7 @@ function executeInstallPlan(plan, { fsOps: overrides = {} } = {}) {
 
   try {
     ensureTargetForTransaction(plan, fsOps, tx);
-    tx.lock = acquireLock(plan.targetDir, fsOps);
+    acquireLock(plan.targetDir, fsOps, tx);
     stageOperations(plan, fsOps, tx);
     commitStaged(plan, tx.staged, fsOps);
     tx.committed = true;

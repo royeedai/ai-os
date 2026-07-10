@@ -658,6 +658,47 @@ test("a create destination race is rejected without replacing the foreign file",
   assert.deepEqual(transactionArtifacts(target), []);
 });
 
+test("create EEXIST preserves a destination prelinked to the staged inode", () => {
+  const target = path.join(temporaryRoot(), "target");
+  fs.mkdirSync(target);
+  const plan = installer.buildInstallPlan(
+    target,
+    installOptions({ fileSpecs: [EXECUTABLE_SPEC] }),
+  );
+  const defaults = installer.createDefaultFsOps();
+  const destination = path.join(target, ".ai-os", "bin", "create-ai-os.js");
+  let collisionIdentity = null;
+  let collisionCreated = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      link(from, to) {
+        if (
+          !collisionCreated
+          && from.includes(".ai-os-install-stage-")
+          && to === destination
+        ) {
+          defaults.link(from, to);
+          collisionIdentity = fs.lstatSync(to);
+          collisionCreated = true;
+        }
+        return defaults.link(from, to);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "commit create");
+  assert.equal(error.cause.code, "EEXIST");
+  assert.equal(collisionCreated, true);
+  const preserved = fs.lstatSync(destination);
+  assert.equal(preserved.dev, collisionIdentity.dev);
+  assert.equal(preserved.ino, collisionIdentity.ino);
+  assert.deepEqual(fs.readFileSync(destination), plan.operations[0].content);
+  assert.equal(preserved.mode & 0o777, plan.operations[0].mode);
+  assert.deepEqual(transactionArtifacts(target), []);
+});
+
 for (const unsafePoint of ["target", ".ai-os/bin"]) {
   test(`commit preflight rejects an unsafe ${unsafePoint} directory mutation`, () => {
     const root = temporaryRoot();
@@ -1180,6 +1221,91 @@ test("lock release preserves a foreign lock path substituted after descriptor cl
   assert.equal(fs.lstatSync(lockPath).mode & 0o777, 0o640);
 });
 
+test("a one-shot lock fstat failure closes and removes the partial lock before retry", () => {
+  const target = path.join(temporaryRoot(), "target");
+  fs.mkdirSync(target);
+  const plan = installer.buildInstallPlan(target, installOptions({ fileSpecs: [] }));
+  const defaults = installer.createDefaultFsOps();
+  const lockPath = path.join(target, ".ai-os-install.lock");
+  const cause = Object.assign(new Error("injected one-shot lock fstat failure"), {
+    code: "EIO",
+  });
+  let lockFd = null;
+  let injected = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        const fd = defaults.open(file, flags, mode);
+        if (file === lockPath) lockFd = fd;
+        return fd;
+      },
+      fstat(fd) {
+        if (fd === lockFd && !injected) {
+          injected = true;
+          throw cause;
+        }
+        return defaults.fstat(fd);
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "acquire lock");
+  assert.equal(error.cause, cause);
+  assert.equal(injected, true);
+  assert.throws(() => defaults.fstat(lockFd), { code: "EBADF" });
+  assert.equal(fs.existsSync(lockPath), false);
+
+  const retry = installer.executeInstallPlan(plan);
+  assert.equal(retry.created, 0);
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test("a partial lock without descriptor identity preserves a foreign close substitution", () => {
+  const target = path.join(temporaryRoot(), "target");
+  fs.mkdirSync(target);
+  const plan = installer.buildInstallPlan(target, installOptions({ fileSpecs: [] }));
+  const defaults = installer.createDefaultFsOps();
+  const lockPath = path.join(target, ".ai-os-install.lock");
+  const cause = Object.assign(new Error("injected persistent lock fstat failure"), {
+    code: "EIO",
+  });
+  let lockFd = null;
+  let substituted = false;
+
+  const error = captureError(() => installer.executeInstallPlan(plan, {
+    fsOps: {
+      open(file, flags, mode) {
+        const fd = defaults.open(file, flags, mode);
+        if (file === lockPath) lockFd = fd;
+        return fd;
+      },
+      fstat(fd) {
+        if (fd === lockFd) throw cause;
+        return defaults.fstat(fd);
+      },
+      close(fd) {
+        const result = defaults.close(fd);
+        if (fd === lockFd && !substituted) {
+          substituted = true;
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, "FOREIGN PARTIAL LOCK\n", { mode: 0o640 });
+        }
+        return result;
+      },
+    },
+  }));
+
+  assert.ok(error instanceof installer.InstallFilesystemError);
+  assert.equal(error.phase, "acquire lock");
+  assert.equal(error.cause, cause);
+  assert.equal(substituted, true);
+  assert.ok(error.cleanupErrors.some((item) => /lock/i.test(item.message)));
+  assert.equal(fs.readFileSync(lockPath, "utf8"), "FOREIGN PARTIAL LOCK\n");
+  assert.equal(fs.lstatSync(lockPath).mode & 0o777, 0o640);
+});
+
 test("a target created by the transaction is retained when a concurrent file makes it nonempty", () => {
   const root = temporaryRoot();
   const target = path.join(root, "target");
@@ -1525,7 +1651,10 @@ for (const releaseOperation of ["close", "unlink"]) {
           return fd;
         },
         write(fd, buffer, offset, length, position) {
-          if (!stageFailureInjected) {
+          if (
+            descriptors.get(fd).includes(".ai-os-install-stage-")
+            && !stageFailureInjected
+          ) {
             stageFailureInjected = true;
             throw primaryCause;
           }
@@ -1595,7 +1724,10 @@ test("cleanup errors can be appended twice without replacing the original cause"
         return fd;
       },
       write(fd, buffer, offset, length, position) {
-        if (!writeFailed) {
+        if (
+          descriptors.get(fd).includes(".ai-os-install-stage-")
+          && !writeFailed
+        ) {
           writeFailed = true;
           throw primaryCause;
         }
@@ -1806,6 +1938,53 @@ for (const collisionKind of ["file", "symlink"]) {
     );
   });
 }
+
+test("backup EEXIST preserves a destination hardlink collision and reserves a new name", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const relativePath = ".ai-os/bin/VERSION";
+  const original = "ORIGINAL VERSION\n";
+  const destination = writeTargetFile(target, relativePath, original, 0o600);
+  const plan = installer.buildInstallPlan(target, installOptions({
+    force: true,
+    fileSpecs: [FILE_SPECS[relativePath]],
+  }));
+  const defaults = installer.createDefaultFsOps();
+  const backupAttempts = [];
+  let collisionPath = null;
+  let collisionIdentity = null;
+
+  const result = installer.executeInstallPlan(plan, {
+    fsOps: {
+      link(from, to) {
+        if (from === destination && to.includes(".ai-os-install-backup-")) {
+          backupAttempts.push(to);
+          if (collisionPath === null) {
+            defaults.link(from, to);
+            collisionPath = to;
+            collisionIdentity = fs.lstatSync(to);
+          }
+        }
+        return defaults.link(from, to);
+      },
+    },
+  });
+
+  assert.equal(result.replaced, 1);
+  assert.ok(backupAttempts.length >= 2);
+  assert.notEqual(backupAttempts[0], backupAttempts[1]);
+  const preserved = fs.lstatSync(collisionPath);
+  assert.equal(preserved.dev, collisionIdentity.dev);
+  assert.equal(preserved.ino, collisionIdentity.ino);
+  assert.equal(fs.readFileSync(collisionPath, "utf8"), original);
+  assert.equal(preserved.mode & 0o777, 0o600);
+  assert.deepEqual(fs.readFileSync(destination), plan.operations[0].content);
+  assert.deepEqual(
+    transactionArtifacts(target).filter((item) => (
+      path.join(target, ...item.split("/")) !== collisionPath
+    )),
+    [],
+  );
+});
 
 for (const action of ["replace", "remove"]) {
   test(`${action} revalidates the destination again after reserving its backup`, () => {
