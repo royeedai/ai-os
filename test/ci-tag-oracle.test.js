@@ -25,14 +25,31 @@ function workflowJobBlocks(source) {
 
 function checkoutStep(source) {
   const lines = source.split("\n");
+  const jobHeader = lines.find((line) => line.trim() !== "");
+  assert.ok(jobHeader, "full-suite block has a job header");
+  const jobIndentation = jobHeader.match(/^\s*/)[0].length;
+  const stepsLine = `${" ".repeat(jobIndentation + 2)}steps:`;
+  const stepsIndexes = lines.flatMap((line, index) => line === stepsLine ? [index] : []);
+  assert.equal(stepsIndexes.length, 1, "full-suite block has exactly one direct steps mapping");
+  const [stepsStart] = stepsIndexes;
+  const stepsIndentation = jobIndentation + 2;
+  let stepsEnd = stepsStart + 1;
+  while (stepsEnd < lines.length) {
+    const line = lines[stepsEnd];
+    if (line.trim() !== "" && line.match(/^\s*/)[0].length <= stepsIndentation) break;
+    stepsEnd += 1;
+  }
+  const indentation = stepsIndentation + 2;
+  const checkoutPattern = new RegExp(
+    `^${" ".repeat(indentation)}- uses: actions/checkout@\\S+(?:\\s+#.*)?$`,
+  );
   const starts = lines.flatMap((line, index) => (
-    line.includes("- uses: actions/checkout@") ? [index] : []
+    index > stepsStart && index < stepsEnd && checkoutPattern.test(line) ? [index] : []
   ));
   assert.equal(starts.length, 1, "full-suite block has exactly one actions/checkout step");
   const [start] = starts;
-  const indentation = lines[start].match(/^\s*/)[0].length;
   let end = start + 1;
-  while (end < lines.length) {
+  while (end < stepsEnd) {
     const lineIndentation = lines[end].match(/^\s*/)[0].length;
     if (lineIndentation === indentation && lines[end].trimStart().startsWith("- ")) break;
     end += 1;
@@ -103,7 +120,7 @@ test("CI full-suite scanner recognizes quoted and equivalent npm commands", () =
 });
 
 test("CI checkout policy binds tag inputs to the checkout with mapping", () => {
-  const misplaced = [
+  const nestedWith = [
     "  Full_Suite:",
     "    steps:",
     "      - uses: actions/checkout@example",
@@ -114,8 +131,20 @@ test("CI checkout policy binds tag inputs to the checkout with mapping", () => {
     "      - run: npm test",
     "",
   ].join("\n");
+  const fakeCheckoutInRunBlock = [
+    "  Full_Suite:",
+    "    steps:",
+    "      - run: |",
+    "          - uses: actions/checkout@example",
+    "            with:",
+    "              fetch-depth: 0",
+    "              fetch-tags: true",
+    "          npm test",
+    "",
+  ].join("\n");
 
-  assert.throws(() => assertFullSuiteCheckout(misplaced, "synthetic job"));
+  assert.throws(() => assertFullSuiteCheckout(nestedWith, "nested with job"));
+  assert.throws(() => assertFullSuiteCheckout(fakeCheckoutInRunBlock, "run block job"));
 });
 
 test("every workflow full npm test job fetches the v10 tag oracle", () => {
@@ -134,11 +163,13 @@ test("every workflow full npm test job fetches the v10 tag oracle", () => {
 test("CI security plan preserves tags for every full-suite checkout", () => {
   const plan = readRepo("docs/superpowers/plans/2026-07-10-ai-os-v11-ci-security-plan.md");
   const yamlExamples = [...plan.matchAll(/```yaml\n([\s\S]*?)```/g)].map((match) => match[1]);
-  const fullSuiteExamples = yamlExamples.filter((source) => runsFullSuite(source));
+  const fullSuiteExamples = yamlExamples.flatMap((source) => (
+    workflowJobBlocks(source).filter((job) => runsFullSuite(job.source))
+  ));
 
   assert.ok(fullSuiteExamples.length > 0, "plan has a full-suite workflow example");
-  for (const [index, source] of fullSuiteExamples.entries()) {
-    assertFullSuiteCheckout(source, `plan full-suite example ${index + 1}`);
+  for (const [index, job] of fullSuiteExamples.entries()) {
+    assertFullSuiteCheckout(job.source, `plan full-suite example ${index + 1} job ${job.id}`);
   }
   assert.match(
     plan,
