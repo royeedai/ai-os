@@ -152,11 +152,6 @@ function readPackagedBytes(sourceRoot, sourcePath, expectedMode, overrides, dest
   const overrideKey = overrides.has(sourcePath)
     ? sourcePath
     : overrides.has(destinationPath) ? destinationPath : null;
-  if (overrideKey !== null) {
-    const bytes = overrides.get(overrideKey);
-    if (bytes === null) return { error: `packaged source ${sourcePath} is missing` };
-    return { bytes: Buffer.from(bytes) };
-  }
 
   let inspected;
   try {
@@ -184,7 +179,11 @@ function readPackagedBytes(sourceRoot, sourcePath, expectedMode, overrides, dest
   }
 
   try {
-    return { bytes: fs.readFileSync(inspected.absolute) };
+    const packagedBytes = fs.readFileSync(inspected.absolute);
+    if (overrideKey === null) return { bytes: packagedBytes };
+    const overrideBytes = overrides.get(overrideKey);
+    if (overrideBytes === null) return { error: `packaged source ${sourcePath} is missing` };
+    return { bytes: Buffer.from(overrideBytes) };
   } catch (error) {
     return { error: `packaged source ${sourcePath} is unreadable: ${error.message}` };
   }

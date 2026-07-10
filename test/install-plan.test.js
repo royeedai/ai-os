@@ -329,6 +329,28 @@ test("a linked packaged source is a conflict and is never followed", () => {
   assert.equal(fs.existsSync(target), false);
 });
 
+test("a source override cannot bypass a linked packaged source", () => {
+  const sourceRoot = copiedSourceRoot();
+  const sourcePath = "docs/artifacts.md";
+  const source = path.join(sourceRoot, ...sourcePath.split("/"));
+  const outside = path.join(temporaryRoot(), "outside.md");
+  fs.writeFileSync(outside, "OUTSIDE SENTINEL\n");
+  fs.unlinkSync(source);
+  fs.symlinkSync(outside, source, "file");
+
+  const plan = buildInstallPlan(
+    path.join(temporaryRoot(), "not-created-yet"),
+    defaultOptions({
+      sourceRoot,
+      sourceOverrides: { [sourcePath]: "OVERRIDE BYTES\n" },
+    }),
+  );
+
+  assert.equal(operation(plan, ".ai-os/reference/artifacts.md").action, "conflict");
+  assert.match(conflict(plan, ".ai-os/reference/artifacts.md").reason, /symbolic link|junction/i);
+  assert.equal(fs.readFileSync(outside, "utf8"), "OUTSIDE SENTINEL\n");
+});
+
 test("a packaged source with the wrong executable class is a conflict", {
   skip: process.platform === "win32" ? "POSIX executable bits are not portable on Windows" : false,
 }, () => {
@@ -342,6 +364,42 @@ test("a packaged source with the wrong executable class is a conflict", {
 
   assert.equal(operation(plan, ".ai-os/bin/VERSION").action, "conflict");
   assert.match(conflict(plan, ".ai-os/bin/VERSION").reason, /source mode/i);
+});
+
+test("a source override cannot bypass a packaged source with the wrong mode", {
+  skip: process.platform === "win32" ? "POSIX executable bits are not portable on Windows" : false,
+}, () => {
+  const sourceRoot = copiedSourceRoot();
+  fs.chmodSync(path.join(sourceRoot, "VERSION"), 0o755);
+
+  const plan = buildInstallPlan(
+    path.join(temporaryRoot(), "not-created-yet"),
+    defaultOptions({
+      sourceRoot,
+      sourceOverrides: { VERSION: "OVERRIDE VERSION\n" },
+    }),
+  );
+
+  assert.equal(operation(plan, ".ai-os/bin/VERSION").action, "conflict");
+  assert.match(conflict(plan, ".ai-os/bin/VERSION").reason, /source mode/i);
+});
+
+test("a source override cannot bypass a non-regular packaged source", () => {
+  const sourceRoot = copiedSourceRoot();
+  const version = path.join(sourceRoot, "VERSION");
+  fs.unlinkSync(version);
+  fs.mkdirSync(version);
+
+  const plan = buildInstallPlan(
+    path.join(temporaryRoot(), "not-created-yet"),
+    defaultOptions({
+      sourceRoot,
+      sourceOverrides: { VERSION: "OVERRIDE VERSION\n" },
+    }),
+  );
+
+  assert.equal(operation(plan, ".ai-os/bin/VERSION").action, "conflict");
+  assert.match(conflict(plan, ".ai-os/bin/VERSION").reason, /not a regular file/i);
 });
 
 test("recognized obsolete framework bytes are planned for removal", () => {
