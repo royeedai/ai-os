@@ -1,6 +1,13 @@
 "use strict";
 
-const { assert, readRepo, test } = require("./helpers");
+const fs = require("node:fs");
+const path = require("node:path");
+const {
+  assert,
+  readRepo,
+  repoRoot,
+  test,
+} = require("./helpers");
 
 function workflowJobBlocks(source) {
   const lines = source.split("\n");
@@ -18,8 +25,11 @@ function workflowJobBlocks(source) {
 
 function checkoutStep(source) {
   const lines = source.split("\n");
-  const start = lines.findIndex((line) => line.includes("- uses: actions/checkout@"));
-  assert.notEqual(start, -1, "full-suite block has an actions/checkout step");
+  const starts = lines.flatMap((line, index) => (
+    line.includes("- uses: actions/checkout@") ? [index] : []
+  ));
+  assert.equal(starts.length, 1, "full-suite block has exactly one actions/checkout step");
+  const [start] = starts;
   const indentation = lines[start].match(/^\s*/)[0].length;
   let end = start + 1;
   while (end < lines.length) {
@@ -27,17 +37,45 @@ function checkoutStep(source) {
     if (lineIndentation === indentation && lines[end].trimStart().startsWith("- ")) break;
     end += 1;
   }
-  return lines.slice(start, end).join("\n");
+  return { indentation, lines: lines.slice(start, end) };
 }
 
 function assertFullSuiteCheckout(source, label) {
   const checkout = checkoutStep(source);
-  assert.match(checkout, /^\s+fetch-depth: 0\s*$/m, `${label}: fetches complete history`);
-  assert.match(checkout, /^\s+fetch-tags: true\s*$/m, `${label}: fetches compatibility tags`);
+  const withIndex = checkout.lines.findIndex((line) => (
+    line.match(/^\s*/)[0].length > checkout.indentation && line.trim() === "with:"
+  ));
+  assert.notEqual(withIndex, -1, `${label}: checkout has a with mapping`);
+  const withIndentation = checkout.lines[withIndex].match(/^\s*/)[0].length;
+  let withEnd = withIndex + 1;
+  while (withEnd < checkout.lines.length) {
+    const line = checkout.lines[withEnd];
+    if (line.trim() !== "" && line.match(/^\s*/)[0].length <= withIndentation) break;
+    withEnd += 1;
+  }
+  const withLines = checkout.lines.slice(withIndex + 1, withEnd);
+  const inputIndentation = " ".repeat(withIndentation + 2);
+  assert.equal(
+    withLines.filter((line) => line === `${inputIndentation}fetch-depth: 0`).length,
+    1,
+    `${label}: fetches complete history through the checkout with mapping`,
+  );
+  assert.equal(
+    withLines.filter((line) => line === `${inputIndentation}fetch-tags: true`).length,
+    1,
+    `${label}: fetches compatibility tags through the checkout with mapping`,
+  );
 }
 
 function runsFullSuite(source) {
-  return /\bnpm test(?:\s|$)|\bnpm run test:coverage(?:\s|$)/m.test(source);
+  return /\bnpm (?:test|run(?:-script)? (?:test|test:coverage))(?=$|[\s'"`;&|()])/m.test(source);
+}
+
+function workflowFiles() {
+  const directory = path.join(repoRoot, ".github", "workflows");
+  return fs.readdirSync(directory)
+    .filter((name) => /[.]ya?ml$/i.test(name))
+    .sort();
 }
 
 test("CI job scanner includes underscore and uppercase GitHub job IDs", () => {
@@ -53,13 +91,43 @@ test("CI job scanner includes underscore and uppercase GitHub job IDs", () => {
   assert.deepEqual(workflowJobBlocks(workflow).map(({ id }) => id), ["Full_Suite"]);
 });
 
-test("CI full npm test jobs fetch the v10 tag oracle", () => {
-  const workflow = readRepo(".github/workflows/ci.yml");
-  const fullSuiteJobs = workflowJobBlocks(workflow)
-    .filter(({ source }) => runsFullSuite(source));
+test("CI full-suite scanner recognizes quoted and equivalent npm commands", () => {
+  for (const command of [
+    '- run: "npm test"',
+    "- run: 'npm run test'",
+    '- run: "npm run test:coverage"',
+    "- run: 'npm run-script test:coverage'",
+  ]) {
+    assert.equal(runsFullSuite(command), true, command);
+  }
+});
 
-  assert.ok(fullSuiteJobs.length > 0, "workflow has at least one full-suite job");
-  for (const job of fullSuiteJobs) assertFullSuiteCheckout(job.source, `job ${job.id}`);
+test("CI checkout policy binds tag inputs to the checkout with mapping", () => {
+  const misplaced = [
+    "  Full_Suite:",
+    "    steps:",
+    "      - uses: actions/checkout@example",
+    "        env:",
+    "          fetch-depth: 0",
+    "          fetch-tags: true",
+    "      - run: npm test",
+    "",
+  ].join("\n");
+
+  assert.throws(() => assertFullSuiteCheckout(misplaced, "synthetic job"));
+});
+
+test("every workflow full npm test job fetches the v10 tag oracle", () => {
+  const fullSuiteJobs = workflowFiles().flatMap((name) => (
+    workflowJobBlocks(readRepo(`.github/workflows/${name}`))
+      .filter(({ source }) => runsFullSuite(source))
+      .map((job) => ({ ...job, workflow: name }))
+  ));
+
+  assert.ok(fullSuiteJobs.length > 0, "workflows have at least one full-suite job");
+  for (const job of fullSuiteJobs) {
+    assertFullSuiteCheckout(job.source, `${job.workflow} job ${job.id}`);
+  }
 });
 
 test("CI security plan preserves tags for every full-suite checkout", () => {

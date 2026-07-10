@@ -1032,6 +1032,42 @@ for (const [label, relativePath, mutate] of [
     (bytes) => Buffer.concat([bytes, Buffer.from("  \tcustom: value\n")]),
   ],
   [
+    "tasks indented document-root baseline",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([
+      Buffer.from('  baseline_id: "BL-20260710-010203-conflicting"\n'),
+      bytes,
+    ]),
+  ],
+  [
+    "tasks bare-CR hidden root baseline",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      '# hidden prefix\rbaseline_id: "BL-20260710-010203-conflicting"\n',
+    )]),
+  ],
+  [
+    "tasks NEL hidden root baseline",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      '# hidden prefix\u0085baseline_id: "BL-20260710-010203-conflicting"\n',
+    )]),
+  ],
+  [
+    "tasks line-separator hidden root baseline",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      '# hidden prefix\u2028baseline_id: "BL-20260710-010203-conflicting"\n',
+    )]),
+  ],
+  [
+    "tasks paragraph-separator hidden root baseline",
+    ".ai-os/lanes/default/tasks.yaml",
+    (bytes) => Buffer.concat([bytes, Buffer.from(
+      '# hidden prefix\u2029baseline_id: "BL-20260710-010203-conflicting"\n',
+    )]),
+  ],
+  [
     "MISSION fenced baseline marker",
     ".ai-os/lanes/default/MISSION.md",
     (bytes) => Buffer.from(bytes.toString("utf8").replace(
@@ -1061,6 +1097,43 @@ for (const [label, relativePath, mutate] of [
     (bytes) => Buffer.from(bytes.toString("utf8").replace(
       `- **当前基线 ID**：${BASELINE_ID}`,
       `<!-- - **当前基线 ID**：${BASELINE_ID} -->`,
+    )),
+  ],
+  [
+    "MISSION same-line raw HTML comment baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `<!-- hidden raw block -->- **当前基线 ID**：${BASELINE_ID}`,
+    )),
+  ],
+  [
+    "MISSION HTML comment closing suffix cannot open a fence",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.concat([bytes, Buffer.from([
+      "<!--",
+      "comment",
+      "-->```text",
+      "- **当前基线 ID**：BL-20260710-010203-conflicting",
+      "",
+    ].join("\n"))]),
+  ],
+  [
+    "MISSION fence info cannot leak HTML comment state",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.concat([bytes, Buffer.from([
+      "```text <!--",
+      "```",
+      "-->- **当前基线 ID**：BL-20260710-010203-conflicting",
+      "",
+    ].join("\n"))]),
+  ],
+  [
+    "MISSION multiline code span baseline marker",
+    ".ai-os/lanes/default/MISSION.md",
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **当前基线 ID**：${BASELINE_ID}`,
+      `\`\n- **当前基线 ID**：${BASELINE_ID}\n\``,
     )),
   ],
   [
@@ -1133,6 +1206,22 @@ for (const [label, relativePath, mutate] of [
     (bytes) => Buffer.from(bytes.toString("utf8").replace(
       `- **Confirmed At**: ${BASELINE_DATE}`,
       `<pre>\n- **Confirmed At**: ${BASELINE_DATE}\n</pre>`,
+    )),
+  ],
+  [
+    "record same-line raw HTML comment Confirmed At",
+    `.ai-os/lanes/default/baseline-log/${BASELINE_FILE}`,
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **Confirmed At**: ${BASELINE_DATE}`,
+      `<!-- hidden raw block -->- **Confirmed At**: ${BASELINE_DATE}`,
+    )),
+  ],
+  [
+    "record multiline code span Confirmed At",
+    `.ai-os/lanes/default/baseline-log/${BASELINE_FILE}`,
+    (bytes) => Buffer.from(bytes.toString("utf8").replace(
+      `- **Confirmed At**: ${BASELINE_DATE}`,
+      `\`\`\n- **Confirmed At**: ${BASELINE_DATE}\n\`\``,
     )),
   ],
   [

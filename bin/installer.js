@@ -1367,9 +1367,13 @@ function canonicalContextText(destination, relativePath, label) {
   const content = destination.bytes.toString("utf8");
   if (
     !Buffer.from(content, "utf8").equals(destination.bytes)
-    || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(content)
+    || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u2028\u2029]/.test(content)
+    || /\r(?!\n)/.test(content)
   ) {
-    return { error: `${label} must be canonical UTF-8 text without control bytes`, content: null };
+    return {
+      error: `${label} must be canonical UTF-8 text without unsupported control or line-separator bytes`,
+      content: null,
+    };
   }
   return { error: null, content };
 }
@@ -1378,10 +1382,27 @@ function startsRawHtmlBlock(line) {
   return /^<(?:\/?[A-Za-z][A-Za-z0-9-]*(?=[\s/>]|$)|[?]|![A-Za-z]|!\[CDATA\[)/i.test(line);
 }
 
+function hasMultilineCodeSpan(lines) {
+  const runs = [];
+  for (const [lineIndex, line] of lines.entries()) {
+    for (const match of line.matchAll(/`+/g)) {
+      runs.push({ length: match[0].length, lineIndex });
+    }
+  }
+  for (let index = 0; index < runs.length; index += 1) {
+    const close = runs.findIndex((run, candidate) => (
+      candidate > index && run.length === runs[index].length
+    ));
+    if (close === -1) continue;
+    if (runs[close].lineIndex !== runs[index].lineIndex) return true;
+    index = close;
+  }
+  return false;
+}
+
 function visibleMarkdownLines(content) {
   const result = [];
   let fence = null;
-  let inComment = false;
   for (const raw of content.split(/\r?\n/)) {
     if (fence !== null) {
       const fenceMatch = raw.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
@@ -1395,43 +1416,24 @@ function visibleMarkdownLines(content) {
       ) fence = null;
       continue;
     }
-    let visible = "";
-    let cursor = 0;
-    while (cursor < raw.length) {
-      if (inComment) {
-        const close = raw.indexOf("-->", cursor);
-        if (close === -1) {
-          break;
-        }
-        inComment = false;
-        cursor = close + 3;
-        continue;
-      }
-      const open = raw.indexOf("<!--", cursor);
-      if (open === -1) {
-        visible += raw.slice(cursor);
-        break;
-      }
-      visible += raw.slice(cursor, open);
-      inComment = true;
-      cursor = open + 4;
-    }
-    const trimmed = visible.trimStart();
-    const fenceMatch = visible.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    const fenceMatch = raw.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
     const marker = fenceMatch?.[1] || null;
     if (marker !== null) {
       if (marker[0] === "`" && fenceMatch[2].includes("`")) {
-        result.push(visible);
+        result.push(raw);
         continue;
       }
       fence = marker;
       result.push("");
       continue;
     }
-    if (startsRawHtmlBlock(trimmed)) {
+    if (raw.includes("<!--") || startsRawHtmlBlock(raw.trimStart())) {
       return { error: "raw HTML blocks cannot authorize v10 migration", lines: null };
     }
-    result.push(visible);
+    result.push(raw);
+  }
+  if (hasMultilineCodeSpan(result)) {
+    return { error: "multiline code spans cannot authorize v10 migration", lines: null };
   }
   return { error: null, lines: result };
 }
@@ -1469,7 +1471,7 @@ function v10YamlRootKey(line) {
   ) {
     return { error: "v10 tasks.yaml contains an unsafe or malformed root value", key: null };
   }
-  return { error: null, key };
+  return { error: null, key, allowsIndentedChildren: value === "" };
 }
 
 function v10YamlLineLexicalError(line) {
@@ -1519,6 +1521,8 @@ function strictV10TasksBaseline(destination, relativePath) {
   if (text.error) return { error: text.error, value: null };
   const values = [];
   const rootKeys = new Set();
+  let sawRootKey = false;
+  let allowsIndentedChildren = false;
   for (const line of text.content.split(/\r?\n/)) {
     const lexicalError = v10YamlLineLexicalError(line);
     if (lexicalError) return { error: lexicalError, value: null };
@@ -1533,13 +1537,20 @@ function strictV10TasksBaseline(destination, relativePath) {
     if (/^ *\t/.test(line)) {
       return { error: "v10 tasks.yaml contains invalid root indentation", value: null };
     }
-    if (/^ /.test(line)) continue;
+    if (/^ /.test(line)) {
+      if (!sawRootKey || !allowsIndentedChildren) {
+        return { error: "v10 tasks.yaml contains ambiguous root indentation", value: null };
+      }
+      continue;
+    }
     const root = v10YamlRootKey(line);
     if (root.error) return { error: root.error, value: null };
     if (rootKeys.has(root.key)) {
       return { error: "v10 tasks.yaml contains a duplicate semantic root key", value: null };
     }
     rootKeys.add(root.key);
+    sawRootKey = true;
+    allowsIndentedChildren = root.allowsIndentedChildren;
     if (root.key === "baseline_id") {
       const canonical = line.match(/^baseline_id: "([^"\r\n]+)"$/);
       if (canonical) {
