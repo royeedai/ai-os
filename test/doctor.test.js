@@ -18,9 +18,59 @@ const {
 } = require("./helpers");
 
 const DOCTOR_CLI = path.resolve(__dirname, "..", "bin", "ai-os-doctor.js");
+const INSTALLER_CLI = path.resolve(__dirname, "..", "bin", "create-ai-os.js");
 
 function tmpDir() {
   return fs.realpathSync.native(rawTmpDir());
+}
+
+function runInjectedFilesystemProbe(entry, mode, target, operation, failurePath, message) {
+  const source = String.raw`
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const [entry, mode, target, operation, failurePath, message] = process.argv.slice(1);
+    const original = fs[operation];
+    fs[operation] = function injectedFilesystemFailure(file, ...args) {
+      if (path.resolve(String(file)) === path.resolve(failurePath)) {
+        const error = new Error(message);
+        error.code = "EACCES";
+        throw error;
+      }
+      return original.call(this, file, ...args);
+    };
+    const command = require(entry);
+    const writes = { stdout: "", stderr: "" };
+    const io = {
+      stdout: { write(value) { writes.stdout += String(value); } },
+      stderr: { write(value) { writes.stderr += String(value); } },
+    };
+    const argv = mode === "routed" ? ["doctor", target] : [target];
+    const status = command.main(argv, io);
+    process.stdout.write(JSON.stringify({ status, writes }));
+  `;
+  return spawnSync(process.execPath, [
+    "-e",
+    source,
+    entry,
+    mode,
+    target,
+    operation,
+    failurePath,
+    message,
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function assertContainedFilesystemFailure(result, message, label) {
+  assert.equal(result.status, 0, `${label}: probe process exits without an uncaught stack: ${result.stderr}`);
+  assert.equal(result.stderr, "", `${label}: probe process emits no uncaught stack`);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.status, 1, `${label}: main returns failure`);
+  assert.equal(payload.writes.stdout, "", `${label}: failed inspection emits no partial report`);
+  assert.equal(payload.writes.stderr, `Error: ${message}\n`, `${label}: real filesystem error remains observable`);
+  assert.doesNotMatch(payload.writes.stderr, /\n\s+at\s|node:fs/, `${label}: diagnostic has no stack`);
 }
 
 test("doctor: requiring from a temporary cwd is inert and main returns a status", () => {
@@ -100,6 +150,106 @@ test("doctor: exported main contains filesystem failures without a stack", () =>
     assert.equal(payload.writes.stdout, "", "failed inspection emits no partial report");
     assert.match(payload.writes.stderr, /^Error: injected unreadable AGENTS[.]md\n$/);
     assert.doesNotMatch(payload.writes.stderr, /\n\s+at\s|node:fs/);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("doctor: every entrypoint surfaces inaccessible AI-OS roots", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    const installed = runInstall([dir]);
+    assert.equal(installed.status, 0, installed.stderr);
+    const failurePath = path.join(dir, ".ai-os");
+    const message = "injected inaccessible .ai-os";
+    const entries = [
+      [DOCTOR_CLI, "direct", "source doctor"],
+      [path.join(dir, ".ai-os", "bin", "ai-os-doctor.js"), "direct", "vendored doctor"],
+      [INSTALLER_CLI, "routed", "installer doctor route"],
+    ];
+    for (const [entry, mode, label] of entries) {
+      assertContainedFilesystemFailure(
+        runInjectedFilesystemProbe(entry, mode, dir, "accessSync", failurePath, message),
+        message,
+        label,
+      );
+    }
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("doctor: every entrypoint surfaces inaccessible regular artifacts", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    const installed = runInstall([dir]);
+    assert.equal(installed.status, 0, installed.stderr);
+    const failurePath = path.join(dir, "AGENTS.md");
+    const message = "injected inaccessible AGENTS.md metadata";
+    const entries = [
+      [DOCTOR_CLI, "direct", "source doctor"],
+      [path.join(dir, ".ai-os", "bin", "ai-os-doctor.js"), "direct", "vendored doctor"],
+      [INSTALLER_CLI, "routed", "installer doctor route"],
+    ];
+    for (const [entry, mode, label] of entries) {
+      assertContainedFilesystemFailure(
+        runInjectedFilesystemProbe(entry, mode, dir, "statSync", failurePath, message),
+        message,
+        label,
+      );
+    }
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("doctor: every entrypoint surfaces inaccessible required directories", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    const installed = runInstall([dir]);
+    assert.equal(installed.status, 0, installed.stderr);
+    const failurePath = path.join(dir, ".ai-os", "lanes", "default");
+    const message = "injected inaccessible default lane";
+    const entries = [
+      [DOCTOR_CLI, "direct", "source doctor"],
+      [path.join(dir, ".ai-os", "bin", "ai-os-doctor.js"), "direct", "vendored doctor"],
+      [INSTALLER_CLI, "routed", "installer doctor route"],
+    ];
+    for (const [entry, mode, label] of entries) {
+      assertContainedFilesystemFailure(
+        runInjectedFilesystemProbe(entry, mode, dir, "statSync", failurePath, message),
+        message,
+        label,
+      );
+    }
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("doctor: every entrypoint surfaces inaccessible framework versions", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    const installed = runInstall([dir]);
+    assert.equal(installed.status, 0, installed.stderr);
+    const message = "injected inaccessible VERSION";
+    const entries = [
+      [DOCTOR_CLI, "direct", "source doctor", path.resolve(__dirname, "..", "VERSION")],
+      [
+        path.join(dir, ".ai-os", "bin", "ai-os-doctor.js"),
+        "direct",
+        "vendored doctor",
+        path.join(dir, ".ai-os", "bin", "VERSION"),
+      ],
+      [INSTALLER_CLI, "routed", "installer doctor route", path.resolve(__dirname, "..", "VERSION")],
+    ];
+    for (const [entry, mode, label, failurePath] of entries) {
+      assertContainedFilesystemFailure(
+        runInjectedFilesystemProbe(entry, mode, dir, "readFileSync", failurePath, message),
+        message,
+        label,
+      );
+    }
   } finally {
     cleanup(dir);
   }

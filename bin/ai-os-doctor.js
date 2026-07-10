@@ -57,20 +57,26 @@ function parseArgs(argv) {
   return opts;
 }
 
+function isAbsentFilesystemError(error) {
+  return error && (error.code === "ENOENT" || error.code === "ENOTDIR");
+}
+
 function fileExists(absPath) {
   try {
     fs.accessSync(absPath);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isAbsentFilesystemError(error)) return false;
+    throw error;
   }
 }
 
 function isDirectory(absPath) {
   try {
     return fs.statSync(absPath).isDirectory();
-  } catch {
-    return false;
+  } catch (error) {
+    if (isAbsentFilesystemError(error)) return false;
+    throw error;
   }
 }
 
@@ -82,8 +88,9 @@ function readFrameworkVersion() {
     try {
       const version = fs.readFileSync(candidate, "utf8").trim();
       if (version) return version;
-    } catch {
-      // Try the package-root location after the adjacent vendored location.
+    } catch (error) {
+      if (!isAbsentFilesystemError(error)) throw error;
+      // Try the package-root location after a missing adjacent vendored location.
     }
   }
   return "0.0.0";
@@ -140,8 +147,9 @@ function issue(level, code, message) {
 function isRegularFile(absPath) {
   try {
     return fs.statSync(absPath).isFile();
-  } catch {
-    return false;
+  } catch (error) {
+    if (isAbsentFilesystemError(error)) return false;
+    throw error;
   }
 }
 
