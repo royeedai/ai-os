@@ -1,8 +1,8 @@
 # [项目名 / 当前交付主题] Mission
 
-> 本文件是当前 lane 的唯一交付基线真理源。宿主项目长期上下文写在根层 `.ai-os/MISSION.md`。
+> 本文件是当前 lane 的产品 / 验收基线内容的真理源。宿主项目长期上下文写在根层 `.ai-os/MISSION.md`。
 > 任何需求补充、范围调整或验收变化，都必须先写 `baseline-log/CR-*.md` 做影响分析，再按需更新本文件和相关 spec。
-> 本节中的 tier 与 baseline ID 是 `lane.toml` 机器真理源的可读镜像，必须保持单值且一致。
+> `lane.toml` 是 baseline pointer 与 tier 的机器真理源；本节中的 tier 与 baseline ID 只是可读镜像，必须保持单值且一致。
 
 ## 1. 当前交付基线摘要
 

@@ -190,6 +190,14 @@ Fresh templates use `unassessed` for `quality_tier`, `risk_tier`, and `governanc
 
 ### 8.3 Baseline lifecycle
 
+Every baseline-log parser uses one record boundary: the first H1 is the record
+ID, the record region contains exactly one H1, and its canonical metadata block
+ends before the first `##` or at EOF when no H2 exists. The H1 is not a metadata
+key. Explanatory
+sections, examples, and fenced contracts after the first H2 are ignored when
+classifying the current record. This prevents sample Type/Status fields from
+being parsed as live metadata while allowing standalone canonical skeletons.
+
 The lifecycle is:
 
 ```text
@@ -201,15 +209,42 @@ bootstrap-unconfirmed
   -> new immutable confirmed BL
 ```
 
-The bootstrap record has no confirmation timestamp or confirmation claim. A confirmed BL records `previous_baseline_id`, `confirmed_by`, `confirmed_at`, and source references. A CR records status, current behavior, proposed delta, affected artifacts, acceptance delta, approval, close condition, and preventability review.
+The bootstrap record has no confirmation timestamp or confirmation claim. A
+confirmed BL records `previous_baseline_id`, `confirmed_by`, `confirmed_at`, and
+source references. A CR records status, current behavior, proposed delta,
+affected artifacts, acceptance delta, approval, close condition, and a nested
+preventability review. `preventability_review.status` is `pending` or
+`completed`; a completed review records `preventable` as `yes`, `no`, or
+`partial`, plus a non-empty root cause and guard (or the explicit value `none`).
+The canonical transition matrix alone defines which fields are mutable, which
+approval transition freezes scope, and which combinations may enter the
+immutable `applied` or `rejected` terminal states. A CR cannot become applied
+until it names a newly created confirmed BL and its preventability review is
+completed. The matrix is a normative authoring/review rule. With only one
+current record snapshot, doctor validates current-state invariants, required
+values, and empty-value combinations; it does not claim to prove a historical
+freeze or traverse Git history to reconstruct one.
 
-`lane.toml.baseline_id` is the current pointer. Tasks bind to a baseline snapshot. STATE may display the current ID only as a recoverable mirror.
+A formal baseline-log `retrospective` subtype is immutable and closed. It uses
+the strict filename `BL-YYYYMMDD-HHMMSS-retrospective.md`, a non-empty unique
+`source_cr_ids` list, and string lists for preventable findings and suggested
+framework changes. It is validated by the parser but is not an active confirmed
+BL and never participates in the baseline pointer chain.
+
+`lane.toml.baseline_id` is the current pointer. Tasks bind to a baseline
+snapshot. STATE may display the current ID only as a recoverable mirror. When a
+new baseline becomes active, every task approval and evidence binding is
+reevaluated: an old approval or old evidence cannot satisfy the new baseline,
+and AI must not mechanically rewrite a previous human decision. Any required
+task needs a new explicit human approval for that baseline.
 
 ## 9. Task, approval, and evidence schema
 
 The canonical task schema becomes version 5. Every task keeps its existing identity, dependency, priority, acceptance, and scope fields and adds structured approval/evidence.
 
 ```yaml
+evidence_required:
+  - "test-log"
 approval:
   required: true
   status: pending        # not-required | pending | approved | rejected | expired
@@ -220,11 +255,11 @@ approval:
   conditions: []
   evidence_ref: ""
 evidence_produced:
-  - id: EV-001
+  - id: "test-log"
     kind: test           # static | test | runtime | data | manual | release
     command: "npm test"
     exit_code: 0
-    git_sha: "<full commit>"
+    git_sha: "<full observed commit>"
     environment: "node-24 / ubuntu"
     observed_at: "<ISO-8601>"
     artifact: "<path or URL>"
@@ -240,7 +275,36 @@ The angle-bracket values above describe field meaning in this design, not shippe
 Rules:
 
 - An AI agent cannot populate a human approval decision from inference.
-- `done`/`shipped` requires valid `acceptance_refs` and fresh observed evidence bound to the active baseline/commit.
+- `evidence_required` entries are stable, non-empty requirement IDs unique
+  within a task. Each `evidence_produced[].id` is unique within that same task
+  and exactly binds one of its requirement IDs; cross-task names may repeat,
+  with `(task.id, evidence.id)` as the compound identity. `kind` is an
+  independent classification enum.
+- A produced evidence object has exactly nine keys: `id`, `kind`, `command`,
+  `exit_code`, `git_sha`, `environment`, `observed_at`, `artifact`, and
+  `confidence`. Extra or missing keys fail closed.
+- `done`/`shipped` requires valid `acceptance_refs` and one current observed
+  evidence record for every required ID. The task file baseline must equal the
+  active lane baseline. `git_sha` is the full observed commit on which the
+  command actually ran, must be an ancestor of current HEAD, and the current
+  worktree must be clean; command/environment/artifact must be non-empty and
+  exit code must be zero.
+- From the observed commit to current HEAD, start with all tracked repository
+  paths and mechanically exclude only `.ai-os/lanes/<other-lane-id>/**`
+  subtrees. Every remaining changed path must exactly equal
+  `.ai-os/lanes/<current-lane-id>/tasks.yaml`; root config, lockfile, CI,
+  migration, schema, asset, shared-root, project, and other current-lane changes
+  invalidate evidence. Strict parsed semantic comparison allows any
+  task's `status`, `evidence_produced`, and `delivery_state` to change for one
+  or more evidence-only commits; version, baseline/scope, milestones, task set,
+  identity, dependencies, acceptance/evidence requirements, change scope, and
+  approval remain equal. Any other impact-scoped change invalidates the evidence.
+- Evidence freshness is anchored to the active confirmed BL and an injected
+  clock: `confirmed_at <= observed_at <= fixed now`. There is no TTL; missing or
+  duplicate-within-task evidence IDs, future timestamps, pre-baseline
+  timestamps, old baseline, non-ancestor SHA, non-permitted tracked diff,
+  semantic drift, and a dirty worktree are
+  deterministic rejection cases.
 - Inferred or unknown evidence cannot satisfy a completion gate.
 - Code/data/runtime state is persisted, not only stated in chat.
 

@@ -118,6 +118,8 @@ milestone 标题描述待达成目标，不是 fresh bootstrap 的完成声明�
 
 ## Canonical baseline 与 CR lifecycle
 
+解析边界固定为：first H1 是 record ID，record region 内必须 exactly one H1；其后的 canonical metadata block 终止于 first `##` 或 EOF。H1 不属于 metadata key block。parser 只解析 metadata；first `##` 之后的说明、示例和 fenced contract 全部忽略，不得把示例中的 Type / Status 当成当前记录。
+
 字段名、大小写、标点和枚举值都是可确定解析的 contract，不得改写或翻译：bootstrap 使用 `Type: bootstrap` / `Status: unconfirmed`；confirmed BL 使用 `Type: baseline` / `Status: confirmed`；CR 使用 `Type: change`，`Status` 只允许 `proposed` / `approved` / `applied` / `rejected`。
 
 ```text
@@ -129,7 +131,7 @@ bootstrap-unconfirmed
   -> new immutable confirmed BL
 ```
 
-bootstrap 与 confirmed BL 创建后不可变。CR 在 `proposed` 状态可编辑；进入 `approved` 后，`approval` 冻结已决定的范围；进入 `applied` 后整条 CR 完整不可变。只有 `approved` CR 可进入 `applied`，且 `result_baseline_id` 必须指向由该 CR 新建的 confirmed BL。
+bootstrap 与 confirmed BL 创建后不可变。CR 的可变字段、冻结点、合法 transition 与终态组合只以 `ai-os-cr-transition-matrix` 为准。
 
 ### Bootstrap skeleton
 
@@ -172,27 +174,123 @@ bootstrap 与 confirmed BL 创建后不可变。CR 在 `proposed` 状态可编�
   - <acceptance-ref-or-delta>
 - **approval**: ""
 - **close_condition**: <non-empty>
-- **preventability_review**: <yes-or-no-or-partial-with-reason-and-guard>
+- **preventability_review**:
+  - **status**: pending
+  - **preventable**: ""
+  - **root_cause**: ""
+  - **suggested_guard**: ""
 - **result_baseline_id**: ""
 ```
 
-`current_behavior`、`proposed_delta`、`close_condition` 与 `preventability_review` 是非空字符串；`affected_artifacts`、`acceptance_delta` 是非空字符串列表。`approval` 在 proposed 时为空；进入 approved / rejected 时写入明确的人类审批证据引用。`result_baseline_id` 在 applied 前为空，applied 时必须是新建 confirmed BL 的完整 ID。
+`current_behavior`、`proposed_delta`、`close_condition` 是非空字符串；`affected_artifacts`、`acceptance_delta` 是非空字符串列表。`approval` 在 proposed 时为空；进入 approved / rejected 时写入明确的人类审批证据引用。`result_baseline_id` 在 applied 前为空，applied 时必须是新建 confirmed BL 的完整 ID。
+
+### CR transition matrix
+
+```ai-os-cr-transition-matrix
+review.pending=preventable-empty,root_cause-empty,suggested_guard-empty
+review.completed=preventable-yes-or-no-or-partial,root_cause-non-empty,suggested_guard-non-empty-or-none
+state.proposed.mutable=Status,current_behavior,proposed_delta,affected_artifacts,acceptance_delta,approval,close_condition,preventability_review
+state.proposed.result_baseline_id=empty
+transition.proposed-to-approved.requires=approval-human-evidence
+transition.proposed-to-approved.freezes=current_behavior,proposed_delta,affected_artifacts,acceptance_delta,approval,close_condition
+state.approved.mutable=Status,preventability_review,result_baseline_id
+state.approved.review=pending-or-completed
+state.approved.result_baseline_id=empty
+transition.approved-to-applied.requires=result_baseline_id-new-confirmed-bl,preventability_review-completed
+state.applied.review=completed
+state.applied.terminal=immutable
+transition.proposed-to-rejected.requires=approval-human-evidence,result_baseline_id-empty,preventability_review-completed
+state.rejected.review=completed
+state.rejected.terminal=immutable
+```
+
+该 transition matrix 是规范写入 / 评审规则。doctor 面对单个当前快照时只验证当前状态组合、必填值与空值约束，不能证明历史冻结字段从未被修改，也不遍历 Git history 伪造这种证明。
+
+`pending` 只允许出现在 proposed / approved，且 `preventable`、`root_cause`、`suggested_guard` 全为空。applied / rejected 前 review 必须为 `completed`，`preventable` 为 `yes` / `no` / `partial`，`root_cause` 与 `suggested_guard` 非空；确无建议时 `suggested_guard` 明确写 `none`。
 
 应用 CR 并新建 baseline 时，在同一个变更集中对齐 `lane.toml.baseline_id`、`MISSION.md` baseline 镜像、`tasks.yaml` 顶层 `baseline_id`，以及存在时的 `STATE.md` baseline 镜像。task `approval.baseline_id` 是审批快照，不得随当前 baseline 机械重写。
 
-CR 的 `preventability_review` 记录 `Preventable: yes / no / partial`、`If yes, root cause`、`Suggested guard`。lane 关闭前可新建 `BL-YYYYMMDD-HHMMSS-retrospective.md` 聚合 Preventable findings 与 Suggested framework changes；记录纯本地、入版本控制，不做遥测。
+新 baseline 建立后，每个 task approval 必须重新评估；旧 approval.baseline_id 与旧 evidence 不得满足新 baseline。不得机械改写旧人类决定；required task 需要新的明确人类审批。
+
+CR 的 `preventability_review` 使用 canonical 子字段 `status`、`preventable`、`root_cause`、`suggested_guard`；记录纯本地、入版本控制，不做遥测。
+
+### Retrospective subtype
+
+```ai-os-retrospective
+# BL-YYYYMMDD-HHMMSS-retrospective
+
+- **Type**: retrospective
+- **Status**: closed
+- **source_cr_ids**:
+  - <CR-id>
+- **preventable_findings**: []
+- **suggested_framework_changes**: []
+```
+
+文件名严格匹配 `^BL-\d{8}-\d{6}-retrospective\.md$`。`source_cr_ids` 是非空且元素唯一的 CR ID string list；`preventable_findings` 与 `suggested_framework_changes` 都是 string list，无条目时明确写 `[]`。
+
+retrospective 创建后不可变，parser 必须校验其 metadata、字段类型、列表与文件名；它不是 current confirmed baseline，不进入 baseline pointer chain，也不得成为 `lane.toml.baseline_id`。
 
 ## Task v5 approval、evidence 与 delivery state
 
 - task `status`（`string`）：`todo` / `in-progress` / `blocked` / `done` / `shipped`
 - `depends_on`、`acceptance_refs`、`evidence_required`、`evidence_produced`、`change_scope`、`approved_scope`、`conditions` 都是 list；fresh 空列表必须写 `[]`，不得放空字符串伪 ID
 - `approval.required` 是 boolean；其余 approval scalar 是 string，`approved_scope` / `conditions` 是 string list
-- `evidence_required` 是 evidence kind 列表，只允许 `static` / `test` / `runtime` / `data` / `manual` / `release`
-- `evidence_produced` 是对象列表；每个对象只使用既有字段 `id`、`kind`、`command`、`exit_code`、`git_sha`、`environment`、`observed_at`、`artifact`、`confidence`
-- evidence 的 `id`、`kind`、`command`、`git_sha`、`environment`、`observed_at`、`artifact`、`confidence` 都是 string；`exit_code` 是 integer
-- evidence `confidence` 只允许 `observed` / `inferred` / `unknown`；`observed_at` 是 ISO-8601，`git_sha` 是产生证据时的完整 commit SHA
-- 每个 `evidence_required` kind 都必须有同一 kind 的 fresh、`observed` `evidence_produced` 才能满足；inferred / unknown、旧 baseline、旧 commit 或非零 / 缺失 exit code 不能满足完成门
+- `evidence_required` 是稳定的 requirement ID string list；每个 ID 非空且在同一 task 内唯一，例如 `design-note`、`build-log`、`test-log`
+- `evidence_produced` 是对象列表；每个 `id` 非空、在同一 task 内唯一，并必须精确匹配该 task 的一个 `evidence_required` ID。跨 task 可以重复同名 requirement / evidence ID；`(task.id, evidence.id)` 是复合身份
+- evidence `kind` 是与 requirement ID 独立的分类，只允许 `static` / `test` / `runtime` / `data` / `manual` / `release`
 - `delivery_state.code` / `data` / `runtime` 只允许 `observed` / `inferred` / `unknown` / `not-applicable`，三个维度分别持久化
+
+每个 produced evidence 对象必须严格使用以下九个字段，不允许额外字段：
+
+```ai-os-evidence
+id: "<requirement-id>"
+kind: test
+command: "<non-empty-command>"
+exit_code: 0
+git_sha: "<full-observed-commit-SHA>"
+environment: "<non-empty-environment>"
+observed_at: "<ISO-8601>"
+artifact: "<non-empty-path-or-URL>"
+confidence: observed
+```
+
+`id`、`kind`、`command`、`git_sha`、`environment`、`observed_at`、`artifact`、`confidence` 是 string，`exit_code` 是 integer。`confidence` 的记录枚举是 `observed` / `inferred` / `unknown`，但只有 `observed` 可通过完成门。完成门只接受下列确定性 contract：
+
+```ai-os-evidence-gate
+required_id=non-empty-and-unique-within-task
+evidence_id=non-empty-and-unique-within-task
+identity=task.id-plus-evidence.id
+binding=evidence_produced.id-exactly-matches-evidence_required-id-in-same-task
+keys=id,kind,command,exit_code,git_sha,environment,observed_at,artifact,confidence
+extra_keys=forbidden
+kind=static-or-test-or-runtime-or-data-or-manual-or-release
+command=non-empty
+exit_code=0
+git_sha=full-observed-commit
+git_relation=git_sha-is-ancestor-of-current-HEAD
+environment=non-empty
+artifact=non-empty
+confidence=observed
+baseline=tasks.yaml.baseline_id-equals-active-lane.toml.baseline_id
+worktree=clean
+impact_scope=all-tracked-repository-paths
+impact_exclusion=.ai-os/lanes/<lane-id-other-than-current-lane>/**
+tracked_diff=only-.ai-os/lanes/<current-lane-id>/tasks.yaml-after-impact-exclusion
+semantic_change=any-task.status,evidence_produced,delivery_state
+semantic_unchanged=version,baseline_id,scope,milestones,task-set,task.id,title,milestone,owner,priority,approval,depends_on,acceptance_refs,evidence_required,change_scope
+freshness=active-confirmed-BL.confirmed_at<=observed_at<=fixed-now
+ttl=none
+reject=missing-key,duplicate-id,future-time,pre-baseline-time,old-baseline,non-ancestor-SHA,non-evidence-tracked-diff,semantic-drift,dirty-worktree
+```
+
+因此 `done` / `shipped` 的每个 requirement ID 都要有一条精确绑定的 evidence；produced ID 在各自 task 内唯一。evidence 必须是合法 kind、`confidence: observed`、`exit_code: 0`，并具有非空 command / environment / artifact 与 ISO-8601 `observed_at`。
+
+`git_sha` 是实际执行验证的 full observed commit，不是写入 evidence 后的自引用 SHA；它必须是当前 HEAD 的祖先，当前 worktree 必须 clean。对 observed / current 两版任务做 strict parsed semantic comparison 时，允许一个或多个 task 的 `status`、`evidence_produced`、`delivery_state` 发生 evidence-recording 变化，其余 top-level 和 task contract 字段必须不变。因此可以用一个或多个 evidence-only commit 持久化结果，又不会要求 commit hash 引用自身。
+
+Impact scope 不按“代码 / 文档”等主观类别判断。执行 `git diff --name-only <observed-sha>..<current-HEAD>` 取得全部 tracked path，将严格位于 `.ai-os/lanes/<other-lane-id>/**` 的其他 lane 子树路径排除；其余路径只能精确等于 `.ai-os/lanes/<current-lane-id>/tasks.yaml`。因此其他 lane 的治理文件不影响当前 lane evidence，而任何 root config、lockfile、CI、migration、schema、asset、共享根层、项目文件或当前 lane 其他文件的差异都会使旧 evidence 失效。
+
+`tasks.yaml.baseline_id` 必须等于 active `lane.toml.baseline_id`；时间窗固定为 active confirmed BL 的 `confirmed_at <= observed_at <= fixed now`，采用 no TTL。缺字段、task 内重复 ID、未来时间、早于 baseline、旧 baseline、非祖先 SHA、impact scope 内非 evidence 的 tracked diff、semantic drift 或 dirty worktree 一律不能通过完成门。
 
 Approval 组合规则：
 
@@ -202,7 +300,7 @@ Approval 组合规则：
 - `approval.baseline_id` 是非空 string，始终是审批发生时的快照，不是当前指针镜像
 - AI 不得自我审批，也不得从上下文推断人类决定；AI 只能抄录可引用的明确人类审批证据
 
-`done` / `shipped` 还必须具备有效 `acceptance_refs` 和与当前 baseline / commit 绑定的 fresh observed evidence。
+`done` / `shipped` 还必须具备有效 `acceptance_refs` 和通过上述当前 baseline / commit 证据门的 observed evidence。
 
 ## 按需工件（默认不安装）
 

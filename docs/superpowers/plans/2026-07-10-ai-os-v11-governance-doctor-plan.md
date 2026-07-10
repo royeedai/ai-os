@@ -43,41 +43,67 @@
 
 **Interfaces:**
 - Produces lane schema with `quality_tier`, `risk_tier`, `governance_tier`, `baseline_id`.
-- Produces tasks schema version 5 with `approval`, `evidence_produced`, and `delivery_state`.
+- Makes lane `MISSION.md` the product/acceptance content truth while `lane.toml`
+  remains the machine truth for the baseline pointer and tiers.
+- Produces one exact tasks schema version 5 snapshot with `approval`, stable
+  `evidence_required` IDs (`design-note`, `build-log`, `test-log`),
+  `evidence_produced`, and `delivery_state`; every `evidence_produced[].id`
+  binds an ID required by the same task, is unique within that task, and uses
+  `(task.id, evidence.id)` as its compound identity.
+- Defines the baseline-log record boundary: the first H1 is the record ID, the
+  record region contains exactly one H1, metadata ends at the first `##` or EOF,
+  and H1 is not a metadata key. Defines
+  nested `preventability_review.status`, the exact normative CR transition
+  matrix and doctor current-state invariants, and the immutable `retrospective`
+  subtype with `source_cr_ids`.
+- Defines the exact nine-key evidence object and freshness gate anchored to the
+  active confirmed BL: `git_sha` is the full observed commit and an ancestor of
+  current HEAD. Its path rule starts with all tracked repository paths, excludes
+  only other-lane subtrees, and permits only current-lane tasks.yaml plus the
+  evidence semantic envelope. Freshness is
+  `confirmed_at <= observed_at <= fixed now`, with no TTL.
 
 - [ ] **Step 1: Write template-schema tests**
 
+Use exact stripped-file snapshots and exact-once fenced contracts, not token-only
+presence checks. Assert tier/baseline mirrors occur once, MISSION/lane.toml
+authority is unambiguous, both v4 task identities and stable evidence requirement
+IDs are preserved, and the bootstrap/confirmed BL/CR/retrospective skeletons are
+byte-deterministic. Assert the CR transition matrix, evidence object, and evidence
+gate are each present exactly once in every canonical source that owns them.
+
 ```js
-test("fresh lane is explicitly unassessed", () => {
+// Each *_SKELETON / *_MATRIX / *_GATE constant is the complete literal
+// contract shown by the approved template/reference, not a token fragment.
+test("fresh lane mirrors are unique and authority is unambiguous", () => {
   const lane = readRepo("framework/.agents/templates/lane/lane.toml");
+  const mission = readRepo("framework/.agents/templates/lane/MISSION.md");
   assert.match(lane, /quality_tier = "unassessed"/);
   assert.match(lane, /risk_tier = "unassessed"/);
   assert.match(lane, /governance_tier = "unassessed"/);
+  assertUniqueMirrorsEqualToml(mission, lane);
+  assert.match(mission, /产品 \/ 验收基线内容的真理源/);
+  assert.match(mission, /lane\.toml.*baseline pointer.*tier.*机器真理源/s);
 });
 
-test("task schema separates governance, priority, approval, and evidence", () => {
+test("task schema is one exact v5 YAML contract", () => {
   const tasks = readRepo("framework/.agents/templates/lane/tasks.yaml");
-  for (const token of ["version: 5", "approval:", "required:", "status:", "decided_by:",
-    "baseline_id:", "approved_scope:", "evidence_ref:", "evidence_produced:",
-    "git_sha:", "observed_at:", "confidence:", "delivery_state:", "runtime:"]) {
-    assert.ok(tasks.includes(token), `tasks contains ${token}`);
-  }
+  assert.equal(stripYamlComments(tasks), TASKS_YAML);
 });
 
-test("bootstrap is unconfirmed", () => {
+test("record contracts and metadata boundary are exact", () => {
   const baseline = readRepo("framework/.agents/templates/lane/baseline-log/BL-template.md");
-  assert.match(baseline, /Status\*\*: unconfirmed/);
-  assert.doesNotMatch(baseline, /Confirmed At/);
-});
-
-test("baseline and change records define the complete lifecycle", () => {
   const docs = readRepo("docs/artifacts.md");
-  for (const field of ["previous_baseline_id", "confirmed_by", "confirmed_at",
-    "source_refs", "current_behavior", "proposed_delta", "affected_artifacts",
-    "acceptance_delta", "approval", "close_condition", "preventability_review"]) {
-    assert.ok(docs.includes(field), `lifecycle documents ${field}`);
+  assert.equal(recordRegion(baseline).envelope, BOOTSTRAP_SKELETON);
+  assert.equal(recordRegion(CONFIRMED_BL_SKELETON).terminatedBy, "EOF");
+  for (const content of [baseline, docs]) {
+    assert.equal(extractFence(content, "ai-os-confirmed-bl"), CONFIRMED_BL_SKELETON);
+    assert.equal(extractFence(content, "ai-os-change-request"), CR_SKELETON);
+    assert.equal(extractFence(content, "ai-os-cr-transition-matrix"), CR_TRANSITION_MATRIX);
+    assert.equal(extractFence(content, "ai-os-retrospective"), RETROSPECTIVE_SKELETON);
   }
-  assert.match(docs, /bootstrap-unconfirmed.*confirmed BL.*proposed CR.*approved CR.*applied CR.*confirmed BL/s);
+  assert.equal(extractFence(docs, "ai-os-evidence"), EVIDENCE_SKELETON);
+  assert.equal(extractFence(docs, "ai-os-evidence-gate"), EVIDENCE_GATE);
 });
 
 test("memory records cannot represent two active truths", () => {
@@ -97,6 +123,9 @@ node --test test/governance-schema.test.js
 ```
 
 Expected: FAIL on medium/default tiers, tasks version 4, and confirmed bootstrap.
+The second-review contract also fails until requirement IDs, the metadata
+boundary, nested preventability state, retrospective subtype, exact transition
+matrix, and evidence freshness gate are deterministic.
 
 - [ ] **Step 3: Update lane and baseline templates**
 
@@ -135,7 +164,12 @@ delivery_state:
   runtime: unknown
 ```
 
-Document allowed enums and the prohibition on AI self-approval in `docs/artifacts.md`.
+Keep the requirement IDs from the prior schema (`design-note`, `build-log`,
+`test-log`) instead of converting them into evidence kinds. Document exact ID
+binding and within-task uniqueness, `(task.id, evidence.id)` identity, the
+nine-key produced-evidence object, allowed kind enums, reachable ancestor plus
+evidence-only semantic envelope, deterministic freshness, and the prohibition
+on AI self-approval in `docs/artifacts.md`.
 
 - [ ] **Step 5: Make memory conflict-safe**
 
@@ -346,6 +380,27 @@ git commit -m "feat: validate layout v11 across lanes"
 - Produces `parseBaselineRecord(content, filename)` and
   `resolveGitState(targetDir): { sha, dirty } | null`; git resolution is local,
   bounded, and performs no network request.
+- Produces `resolveEvidenceGitEnvelope(targetDir, laneId, observedShas)`. For
+  each validated full SHA it returns the ancestor result, impact-scoped tracked
+  paths, and the strictly parsed historical active-lane `tasks.yaml`; malformed
+  or absent historical task content fails closed. All Git calls are local,
+  argument-array based, full-SHA validated, and bounded by produced evidence.
+- Validates the formal retrospective subtype and `source_cr_ids`, enforces the
+  baseline-log record boundary where the first H1 is the record ID, the record
+  region contains exactly one H1, and metadata ends at the first `##` or EOF,
+  and applies current-state invariants from the
+  exact CR transition matrix, including `preventability_review.status`
+  terminal-state requirements. A current snapshot does not prove historical
+  freeze compliance and Task 4 does not traverse CR history to claim it does.
+- Binds every `evidence_produced[].id` to an ID required by the same task and
+  treats `(task.id, evidence.id)` as identity. It checks evidence against the
+  active confirmed BL and injected fixed now using
+  `confirmed_at <= observed_at <= fixed now`, with no TTL. The evidence SHA is
+  the full observed commit, must be an ancestor of current HEAD, and is accepted
+  only when the impact-scoped tracked diff and strict semantic comparison allow
+  evidence-only changes to task `status`, `evidence_produced`, and
+  `delivery_state`. Path comparison starts with all tracked repository paths,
+  excludes only other-lane subtrees, and permits only current-lane tasks.yaml.
 
 - [ ] **Step 1: Write fresh-install readiness test**
 
@@ -367,19 +422,38 @@ invalid filename, and unconfirmed current record. Validate the exact lifecycle:
 bootstrap has no confirmation claim; confirmed BL requires
 `previous_baseline_id`, `confirmed_by`, `confirmed_at`, and `source_refs`; CR
 requires status, current/proposed behavior, affected artifacts, acceptance
-delta, approval, close condition, and preventability review; only approved CR
-may become applied and point to a new confirmed BL. STATE mismatch is a
-readiness warning/rebuild instruction, not baseline authority.
+delta, approval, close condition, and nested preventability review. Table-test
+the current-state invariants for each proposed/approved/applied/rejected status,
+pending/completed review combination, required/empty fields, and applied/rejected
+terminal-state shape. Treat the matrix's transition/freeze rows as normative
+authoring/review rules; do not claim one snapshot proves historical immutability.
+Parse metadata only after the first H1 and before the first `##` or EOF; H1 is
+the record ID rather than a metadata key, and examples/fences after H2 are ignored.
+Validate the strict retrospective filename, metadata, unique non-empty
+`source_cr_ids`, list types, immutability, and exclusion from the baseline
+pointer chain. Only approved CR may become applied and point to a new confirmed
+BL. A new baseline forces approval/evidence reevaluation instead of rewriting an
+old human decision. STATE mismatch is a readiness warning/rebuild instruction,
+not baseline authority.
 
 - [ ] **Step 3: Write task readiness table tests**
 
 Cover field reordering, duplicate IDs, missing owner, invalid status, missing
-dependency/AC, done without evidence, inferred evidence, stale git SHA/baseline,
-nonzero/missing exit code, missing environment/artifact, invalid/non-ISO
-`observed_at`, dirty worktree, no Git repository, approval self-filled by AI,
+dependency/AC, done without evidence, missing/extra evidence keys, requirement
+ID mismatches, duplicate evidence IDs within one task (while equal IDs across
+tasks are allowed), future timestamps, pre-baseline timestamps, dirty worktree,
+inferred evidence, stale baseline, non-ancestor observed SHA, root config,
+lockfile, CI, migration, schema, asset, shared-root/project/current-
+lane drift, accepted other-lane-only subtree changes,
+evidence-only commits for one or several tasks, forbidden semantic changes,
+nonzero/missing exit code, missing command/environment/artifact, invalid/non-ISO
+`observed_at`, no Git repository, approval self-filled by AI,
 empty approved scope, invalid conditions/evidence ref, pending/rejected/expired
 G2 approval, invalid code/data/runtime delivery enums, and missing G2 minimum
-artifacts. Inject `currentGitSha` and a fixed clock so freshness is deterministic.
+artifacts. Table-test ancestor relation, tracked diff impact scope, and strict
+semantic comparison of observed/current parsed tasks. Inject the Git envelope
+and a fixed clock so freshness is deterministic; accept only
+`confirmed_at <= observed_at <= fixed now` and apply no TTL.
 
 - [ ] **Step 4: Verify tests fail**
 
@@ -396,14 +470,24 @@ Add pure functions:
 ```js
 checkTierReadiness(laneMeta)
 checkBaselineReadiness(laneMeta, mission, tasks, state, baselineFiles)
-checkTaskReadiness(tasks, designAcceptanceIds, currentBaselineId, gitState, now)
+checkTaskReadiness(tasks, designAcceptanceIds, currentBaselineId, evidenceGitEnvelope, now)
 checkApprovalReadiness(task, governanceTier)
-checkEvidenceReadiness(task, currentBaselineId, gitState, now)
+checkEvidenceReadiness(tasks, currentBaselineId, evidenceGitEnvelope, now)
 checkG2Artifacts(lanePath, governanceTier, tasksScope)
 ```
 
-Observed completion evidence must match the active baseline and full current
-HEAD SHA; a dirty tree cannot be claimed by the recorded SHA. If Git is absent,
+Build `evidenceGitEnvelope` with the bounded
+`resolveEvidenceGitEnvelope(targetDir, laneId, observedShas)` adapter, then pass
+the immutable result into the pure readiness functions. This history read exists
+only for evidence reachability; CR freeze checks remain current-snapshot checks.
+
+Observed completion evidence must match the active baseline; each full observed
+commit must be an ancestor of current HEAD, and the current worktree must be
+clean. Enumerate all tracked repository paths changed since each observed SHA,
+exclude only `.ai-os/lanes/<other-lane-id>/**`, and require every remaining path
+to equal `.ai-os/lanes/<current-lane-id>/tasks.yaml`. Then compare strictly parsed
+tasks semantics so only current-lane evidence recording can follow verification.
+If Git is absent,
 completed work requiring git evidence is not ready, while todo-only lanes do not
 gain a false git claim. G2 always requires risk register plus verification
 matrix. Release plan is additionally required when `tasks.scope.mode` is

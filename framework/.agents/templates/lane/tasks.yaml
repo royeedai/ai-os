@@ -35,8 +35,7 @@ tasks:
     acceptance_refs:
       - "AC-001"
     evidence_required:
-      # v4 design-note 语义映射为 canonical static evidence kind。
-      - static
+      - "design-note"
     evidence_produced: []
     delivery_state:
       code: unknown
@@ -64,9 +63,8 @@ tasks:
     acceptance_refs:
       - "AC-001"
     evidence_required:
-      # v4 build-log / test-log 语义映射为 canonical static / test evidence kinds。
-      - static
-      - test
+      - "build-log"
+      - "test-log"
     evidence_produced: []
     delivery_state:
       code: unknown
