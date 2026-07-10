@@ -16,11 +16,6 @@ const {
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const INITIAL_BASELINE_FILE_TOKEN = "{{INITIAL_BASELINE_FILE}}";
-const DEFAULT_BOOTSTRAP = Object.freeze({
-  id: "BL-19700101-000000-bootstrap-unconfirmed",
-  file: "BL-19700101-000000-bootstrap-unconfirmed.md",
-  date: "1970-01-01T00:00:00.000Z",
-});
 const GENERATED_SOURCE_PATHS = Object.freeze({
   ".ai-os/lanes/default/baseline-log/{{INITIAL_BASELINE_FILE}}":
     "framework/.agents/templates/lane/baseline-log/BL-template.md",
@@ -97,8 +92,18 @@ function normalizedRelativePath(value, label) {
   return normalized;
 }
 
-function normalizeBootstrap(value) {
-  const bootstrap = value === undefined ? DEFAULT_BOOTSTRAP : value;
+function generatedBootstrap(clock = () => new Date()) {
+  const instant = clock();
+  const date = instant.toISOString();
+  const timestamp = `${date.slice(0, 10).replaceAll("-", "")}-${date
+    .slice(11, 19)
+    .replaceAll(":", "")}`;
+  const id = `BL-${timestamp}-bootstrap-unconfirmed`;
+  return { id, file: `${id}.md`, date };
+}
+
+function normalizeBootstrap(value, clock) {
+  const bootstrap = value === undefined ? generatedBootstrap(clock) : value;
   if (!bootstrap || typeof bootstrap !== "object") {
     failPlanner("bootstrap must be an object");
   }
@@ -443,7 +448,7 @@ function buildInstallPlan(targetDir, options = {}) {
     failPlanner("targetDir must be a non-empty string");
   }
 
-  const bootstrap = normalizeBootstrap(options.bootstrap);
+  const bootstrap = normalizeBootstrap(options.bootstrap, options.clock);
   const compatibleHashes = normalizeHashMap(options.compatibleHashes, "compatibleHashes");
   const obsoleteHashes = normalizeHashMap(
     options.obsoleteFrameworkHashes,

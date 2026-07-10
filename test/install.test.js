@@ -8,17 +8,188 @@
 const fs = require("fs");
 const path = require("path");
 const {
+  FILE_SPECS,
+  OWNERSHIP,
+  sha256,
+} = require("../bin/doctor-shared");
+const { installProject } = require("../bin/installer");
+const {
   test,
   assert,
   runInstall,
   tmpDir,
   cleanup,
   readFile,
+  readRepo,
   exists,
   repoRoot,
   listBaselineRecords,
   BASELINE_RECORD_NAME_PATTERN,
 } = require("./helpers");
+
+const FIXED_BOOTSTRAP_DATE = "2026-07-10T12:34:56.789Z";
+const FIXED_BOOTSTRAP_ID = "BL-20260710-123456-bootstrap-unconfirmed";
+const FIXED_BOOTSTRAP_FILE = `${FIXED_BOOTSTRAP_ID}.md`;
+
+function parseTomlStrings(content) {
+  const result = {};
+  for (const line of content.split(/\r?\n/)) {
+    const match = line.match(/^([A-Za-z_]+)\s*=\s*"([^"]*)"\s*$/);
+    if (match) result[match[1]] = match[2];
+  }
+  return result;
+}
+
+function installedFiles(root) {
+  const result = [];
+
+  function visit(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile()) result.push(path.relative(root, absolute).split(path.sep).join("/"));
+    }
+  }
+
+  visit(root);
+  return result.sort();
+}
+
+function assertManifestMatchesInstall(target, bootstrapFile) {
+  const manifestPath = ".ai-os/managed-files.tsv";
+  const manifest = readFile(target, manifestPath);
+  const lines = manifest.split("\n");
+  assert.equal(lines.at(-1), "", "manifest ends with one complete line");
+  assert.equal(lines[0], "# path\ttype\townership\tsource_sha256", "manifest header is exact");
+
+  const rowLines = lines.slice(1, -1);
+  assert.deepEqual(rowLines, [...rowLines].sort(), "manifest rows are sorted");
+
+  const rows = rowLines.map((line) => {
+    const fields = line.split("\t");
+    assert.equal(fields.length, 4, `manifest row has four fields: ${line}`);
+    return {
+      path: fields[0],
+      type: fields[1],
+      ownership: fields[2],
+      sourceSha256: fields[3],
+    };
+  });
+  const manifestPaths = rows.map((row) => row.path);
+  assert.equal(new Set(manifestPaths).size, manifestPaths.length, "each path has exactly one row");
+  assert.ok(!manifestPaths.includes(manifestPath), "manifest does not recursively list itself");
+
+  const actualFiles = installedFiles(target).filter((relativePath) => relativePath !== manifestPath);
+  assert.deepEqual(manifestPaths, actualFiles, "manifest covers every other installed file exactly once");
+
+  const expectedSpecs = new Map(Object.values(FILE_SPECS).map((descriptor) => [
+    descriptor.path.replace("{{INITIAL_BASELINE_FILE}}", bootstrapFile),
+    descriptor,
+  ]));
+  for (const row of rows) {
+    const descriptor = expectedSpecs.get(row.path);
+    assert.ok(descriptor, `manifest path belongs to the canonical inventory: ${row.path}`);
+    assert.equal(row.type, descriptor.type, `${row.path} type`);
+    assert.equal(row.ownership, descriptor.ownership, `${row.path} ownership`);
+    if (row.ownership === OWNERSHIP.FRAMEWORK) {
+      assert.match(row.sourceSha256, /^[a-f0-9]{64}$/, `${row.path} has a lowercase SHA-256`);
+      assert.equal(
+        row.sourceSha256,
+        sha256(fs.readFileSync(path.join(target, ...row.path.split("/")))),
+        `${row.path} hash matches installed bytes`,
+      );
+    } else {
+      assert.equal(row.sourceSha256, "", `${row.path} has no project/session source hash`);
+    }
+  }
+}
+
+test("install: safe installer creates a truthful fresh v11 layout", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  let clockCalls = 0;
+  try {
+    const result = installProject(dir, {
+      clock() {
+        clockCalls += 1;
+        return new Date(FIXED_BOOTSTRAP_DATE);
+      },
+    });
+
+    assert.equal(clockCalls, 1, "one clock sample defines the whole bootstrap identity");
+    assert.equal(result.baselineId, FIXED_BOOTSTRAP_ID);
+    assert.equal(result.layoutVersion, "11");
+
+    const metadataContent = readFile(dir, ".ai-os/framework.toml");
+    assert.doesNotMatch(metadataContent, /^\s*(?:installed_at|updated_at)\s*=/im);
+    const metadata = parseTomlStrings(metadataContent);
+    assert.deepEqual(metadata, {
+      schema_version: "11",
+      layout_version: "11",
+      layout_mode: "shared-root-default-lane",
+      default_lane: "default",
+      framework_version: "11.0.0",
+    });
+    assert.equal(metadata.installed_at, undefined);
+    assert.equal(metadata.updated_at, undefined);
+    assert.equal(
+      readFile(dir, ".ai-os/reference/artifacts.md"),
+      readRepo("docs/artifacts.md"),
+      "offline reference is copied byte-for-byte",
+    );
+
+    const records = listBaselineRecords(dir);
+    assert.deepEqual(records, [FIXED_BOOTSTRAP_FILE], "fresh install creates one bootstrap record");
+    const baseline = readFile(dir, `.ai-os/lanes/default/baseline-log/${records[0]}`);
+    assert.match(baseline, new RegExp(`^# ${FIXED_BOOTSTRAP_ID}$`, "m"));
+    assert.match(baseline, /^- \*\*Type\*\*: bootstrap$/m);
+    assert.match(baseline, /^- \*\*Status\*\*: unconfirmed$/m);
+    assert.match(baseline, new RegExp(`^- \\*\\*Created At\\*\\*: ${FIXED_BOOTSTRAP_DATE}$`, "m"));
+    assert.doesNotMatch(baseline, /Confirmed At/i);
+
+    const laneToml = readFile(dir, ".ai-os/lanes/default/lane.toml");
+    const mission = readFile(dir, ".ai-os/lanes/default/MISSION.md");
+    const state = readFile(dir, ".ai-os/lanes/default/STATE.md");
+    const tasks = readFile(dir, ".ai-os/lanes/default/tasks.yaml");
+    assert.match(laneToml, new RegExp(`^baseline_id = "${FIXED_BOOTSTRAP_ID}"$`, "m"));
+    assert.match(laneToml, /^quality_tier = "unassessed"$/m);
+    assert.match(laneToml, /^risk_tier = "unassessed"$/m);
+    assert.match(laneToml, /^governance_tier = "unassessed"$/m);
+    for (const content of [mission, state]) {
+      assert.match(content, new RegExp(FIXED_BOOTSTRAP_ID));
+    }
+    assert.match(tasks, new RegExp(`^baseline_id: "${FIXED_BOOTSTRAP_ID}"$`, "m"));
+    const approvals = tasks.match(/^    approval:$/gm) || [];
+    const approvalBaselines = tasks.match(
+      new RegExp(`^      baseline_id: "${FIXED_BOOTSTRAP_ID}"$`, "gm"),
+    ) || [];
+    assert.equal(approvalBaselines.length, approvals.length, "every task approval binds to the bootstrap");
+    for (const content of [laneToml, mission, state, tasks, baseline]) {
+      assert.doesNotMatch(content, /\{\{INITIAL_BASELINE_(?:ID|FILE|DATE)\}\}/);
+    }
+
+    assertManifestMatchesInstall(dir, FIXED_BOOTSTRAP_FILE);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("install: safe installer manifest reflects no-team/no-ide inventory", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    installProject(dir, {
+      clock: () => new Date(FIXED_BOOTSTRAP_DATE),
+      teamConfig: false,
+      ideFiles: false,
+    });
+
+    for (const relativePath of [".gitignore", ".gitattributes", "CLAUDE.md", "GEMINI.md"]) {
+      assert.equal(exists(dir, relativePath), false, `${relativePath} is not installed`);
+    }
+    assertManifestMatchesInstall(dir, FIXED_BOOTSTRAP_FILE);
+  } finally {
+    cleanup(dir);
+  }
+});
 
 test("install: default install into fresh dir", () => {
   const dir = tmpDir();
