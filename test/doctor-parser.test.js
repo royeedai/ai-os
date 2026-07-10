@@ -206,6 +206,217 @@ next: canonical
   assert.equal(parsed.next, "canonical");
 });
 
+for (const [name, content, line] of [
+  ["NBSP pseudo-indentation", "root:\n\u00a0\u00a0id: A\n", 2],
+  ["EM SPACE pseudo-indentation", "root:\n\u2003\u2003id: A\n", 2],
+  ["NBSP scalar delimiter", "id: \u00a0A\n", 1],
+]) {
+  test(`canonical YAML rejects ${name}`, () => {
+    assertCanonicalError(
+      () => parseCanonicalYaml(content),
+      { line, reason: "unsupported YAML mapping" },
+    );
+  });
+}
+
+for (const [name, content] of [
+  ["leading NBSP", '\u00a0id = "A"\n'],
+  ["trailing NBSP", 'id = "A"\u00a0\n'],
+]) {
+  test(`canonical TOML rejects ${name}`, () => {
+    assertCanonicalError(
+      () => parseCanonicalToml(content, { requiredKeys: ["id"] }),
+      { line: 1, reason: "unsupported TOML assignment" },
+    );
+  });
+}
+
+test("canonical YAML rejects quoted C1 controls", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml('value: "A\u0081B"\n'),
+    { line: 1, reason: "unsupported control character" },
+  );
+});
+
+test("canonical TOML rejects quoted C1 controls", () => {
+  assertCanonicalError(
+    () => parseCanonicalToml('id = "A\u009fB"\n', { requiredKeys: ["id"] }),
+    { line: 1, reason: "unsupported control character" },
+  );
+});
+
+test("canonical line accounting accepts CRLF and reports the physical failing line", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml("root:\r\n  id: A\r\n  value: &anchor\r\n"),
+    { line: 3, reason: "unsupported YAML form" },
+  );
+  assertCanonicalError(
+    () => parseCanonicalToml('id = "A"\r\nextra = "B"\r\n', { requiredKeys: ["id"] }),
+    { line: 2, reason: "unknown key extra" },
+  );
+});
+
+test("canonical parsers reject bare carriage returns at their physical line", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml("id: A\rowner: AI\n"),
+    { line: 1, reason: "unsupported line break" },
+  );
+  assertCanonicalError(
+    () => parseCanonicalToml('id = "A"\rstatus = "active"\n', {
+      requiredKeys: ["id", "status"],
+    }),
+    { line: 1, reason: "unsupported line break" },
+  );
+});
+
+test("canonical parsers classify NEL as an unsupported line break", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml("id: A\u0085owner: AI\n"),
+    { line: 1, reason: "unsupported line break" },
+  );
+  assertCanonicalError(
+    () => parseCanonicalToml('id = "A"\u0085status = "active"\n', {
+      requiredKeys: ["id", "status"],
+    }),
+    { line: 1, reason: "unsupported line break" },
+  );
+});
+
+test("canonical YAML supports the minimal mapping, sequence, and dedent stack", () => {
+  const parsed = parseCanonicalYaml(`root:
+  map:
+    value: A
+  list:
+    - one
+    - id: two
+      nested:
+        leaf: true
+tail: done
+`);
+  assert.equal(parsed.root.map.value, "A");
+  assert.equal(parsed.root.list[0], "one");
+  assert.equal(parsed.root.list[1].id, "two");
+  assert.equal(parsed.root.list[1].nested.leaf, true);
+  assert.equal(parsed.tail, "done");
+});
+
+for (const [name, content, line, reason] of [
+  ["mapping-to-sequence mixing", "root:\n  id: A\n  - item\n", 3, "cannot mix mappings and sequences"],
+  ["sequence-to-mapping mixing", "root:\n  - item\n  id: A\n", 3, "cannot mix mappings and sequences"],
+  ["implicit value at EOF", "root:\n", 1, "empty scalar root"],
+  ["bare sequence marker", "root:\n  -\n", 2, "empty sequence item"],
+]) {
+  test(`canonical YAML rejects ${name}`, () => {
+    assertCanonicalError(() => parseCanonicalYaml(content), { line, reason });
+  });
+}
+
+test("canonical YAML accepts exactly safe canonical integer boundaries", () => {
+  const parsed = parseCanonicalYaml([
+    "minimum: -9007199254740991",
+    "maximum: 9007199254740991",
+    "positive: +7",
+    "zero: 0",
+    "",
+  ].join("\n"));
+  assert.equal(parsed.minimum, Number.MIN_SAFE_INTEGER);
+  assert.equal(parsed.maximum, Number.MAX_SAFE_INTEGER);
+  assert.equal(parsed.positive, 7);
+  assert.equal(parsed.zero, 0);
+});
+
+for (const [name, scalar, reason] of [
+  ["integer above the safe range", "9007199254740992", "integer is outside the safe range"],
+  ["integer below the safe range", "-9007199254740992", "integer is outside the safe range"],
+  ["leading-zero integer", "01", "unsupported YAML scalar"],
+  ["negative leading-zero integer", "-01", "unsupported YAML scalar"],
+  ["exponent number", "1e3", "unsupported YAML scalar"],
+]) {
+  test(`canonical YAML rejects ${name}`, () => {
+    assertCanonicalError(
+      () => parseCanonicalYaml(`value: ${scalar}\n`),
+      { line: 1, reason },
+    );
+  });
+}
+
+test("canonical YAML keeps prototype-named keys safe in nested and sequence mappings", () => {
+  const parsed = parseCanonicalYaml(`nested:
+  __proto__: nested-own
+  constructor: nested-constructor
+items:
+  - __proto__: sequence-own
+    constructor: sequence-constructor
+left:
+  id: A
+right:
+  id: B
+`);
+  for (const value of [parsed.nested, parsed.items[0]]) {
+    assert.equal(Object.getPrototypeOf(value), Object.prototype);
+    assert.equal(Object.hasOwn(value, "__proto__"), true);
+    assert.equal(Object.hasOwn(value, "constructor"), true);
+  }
+  assert.equal(parsed.nested.__proto__, "nested-own");
+  assert.equal(parsed.items[0].constructor, "sequence-constructor");
+  assert.equal(parsed.left.id, "A");
+  assert.equal(parsed.right.id, "B");
+});
+
+test("canonical YAML duplicate keys are local to one nested mapping", () => {
+  assertCanonicalError(
+    () => parseCanonicalYaml("root:\n  id: A\n  id: B\n"),
+    { line: 3, reason: "duplicate key id" },
+  );
+});
+
+for (const [name, content, line, reason] of [
+  ["document start", "---\n", 1, "unsupported YAML mapping"],
+  ["document end", "...\n", 1, "unsupported YAML mapping"],
+  ["YAML directive", "%YAML 1.2\n", 1, "unsupported YAML mapping"],
+  ["second document", "id: A\n---\nid: B\n", 2, "unsupported YAML mapping"],
+  ["merge key", "<<: *defaults\n", 1, "unsupported YAML mapping"],
+  ["literal block modifier", "value: |-\n", 1, "unsupported YAML form"],
+  ["folded block modifier", "value: >+\n", 1, "unsupported YAML form"],
+  ["empty flow map", "value: {}\n", 1, "unsupported YAML form"],
+  ["spaced flow sequence", "value: [ ]\n", 1, "unsupported YAML form"],
+]) {
+  test(`canonical YAML rejects ${name}`, () => {
+    assertCanonicalError(() => parseCanonicalYaml(content), { line, reason });
+  });
+}
+
+test("canonical YAML accepts only the five documented escapes", () => {
+  const parsed = parseCanonicalYaml(String.raw`backslash: "\\"
+quote: "\""
+newline: "\n"
+carriage: "\r"
+tab: "\t"
+even_before_close: "tail\\" # comment
+`);
+  assert.equal(parsed.backslash, "\\");
+  assert.equal(parsed.quote, '"');
+  assert.equal(parsed.newline, "\n");
+  assert.equal(parsed.carriage, "\r");
+  assert.equal(parsed.tab, "\t");
+  assert.equal(parsed.even_before_close, "tail\\");
+});
+
+for (const escape of ["0", "b", "f", "/", "v", "x", "u"]) {
+  test(`canonical YAML rejects escape \\${escape}`, () => {
+    assertCanonicalError(
+      () => parseCanonicalYaml('value: "\\' + escape + '"\n'),
+      { line: 1, reason: "unsupported escape" },
+    );
+  });
+}
+
+test("canonical YAML and TOML retain NBSP inside quoted string data", () => {
+  assert.equal(parseCanonicalYaml('value: "A\u00a0B"\n').value, "A\u00a0B");
+  const toml = parseCanonicalToml('id = "A\u00a0B"\n', { requiredKeys: ["id"] });
+  assert.equal(toml.id, "A\u00a0B");
+});
+
 for (const [name, content, line, reason] of [
   ["duplicate mapping keys", "id: A\nid: B\n", 2, "duplicate key id"],
   ["tabs", "tasks:\n\t- id: A\n", 2, "tabs are not supported"],

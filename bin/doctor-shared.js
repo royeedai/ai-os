@@ -36,9 +36,13 @@ function splitCanonicalLines(content) {
 }
 
 function rejectControlCharacters(line, lineNumber) {
-  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(line)) {
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u.test(line)) {
     throw new CanonicalParseError(lineNumber, "unsupported control character");
   }
+}
+
+function trimAsciiSpaces(value) {
+  return value.replace(/^[ ]+/, "").replace(/[ ]+$/, "");
 }
 
 function parseCanonicalToml(
@@ -52,7 +56,7 @@ function parseCanonicalToml(
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index];
     rejectControlCharacters(raw, index + 1);
-    const line = raw.trim();
+    const line = trimAsciiSpaces(raw);
     if (!line || line.startsWith("#")) continue;
     const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)[ ]*=[ ]*"([^"]*)"$/);
     if (!match) {
@@ -109,8 +113,11 @@ function tokenizeCanonicalYaml(content) {
     }
     rejectControlCharacters(raw, lineNumber);
     const uncommented = stripYamlComment(raw).replace(/[ ]+$/, "");
-    if (!uncommented.trim()) continue;
-    const indent = uncommented.length - uncommented.trimStart().length;
+    if (!uncommented) continue;
+    if (uncommented[0] !== " " && /^\s/u.test(uncommented)) {
+      throw new CanonicalParseError(lineNumber, "unsupported YAML mapping");
+    }
+    const indent = (uncommented.match(/^[ ]*/) || [""])[0].length;
     if (indent % 2 !== 0) {
       throw new CanonicalParseError(
         lineNumber,
@@ -186,7 +193,11 @@ function yamlMappingParts(text, line) {
   if (!match || (match[2] && !match[2].startsWith(" "))) {
     throw new CanonicalParseError(line, "unsupported YAML mapping");
   }
-  return { key: match[1], scalar: match[2].trim() };
+  const scalar = trimAsciiSpaces(match[2]);
+  if (/^\s/u.test(scalar)) {
+    throw new CanonicalParseError(line, "unsupported YAML mapping");
+  }
+  return { key: match[1], scalar };
 }
 
 function defineYamlKey(target, key, value, line) {
