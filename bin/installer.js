@@ -23,9 +23,10 @@ const DEFAULT_LANE_METADATA_PATH = ".ai-os/lanes/default/lane.toml";
 const GENERATED_SOURCE_PATHS = Object.freeze({
   [INITIAL_BASELINE_PATH]: "framework/.agents/templates/lane/baseline-log/BL-template.md",
 });
-const TEAM_CONFIG_PATHS = new Set([".gitignore", ".gitattributes"]);
-const IDE_PATHS = new Set(["CLAUDE.md", "GEMINI.md"]);
+const TEAM_CONFIG_PATHS = new Set([".gitignore", ".gitattributes"].map(filesystemPathKey));
+const IDE_PATHS = new Set(["CLAUDE.md", "GEMINI.md"].map(filesystemPathKey));
 const OWNERSHIP_VALUES = new Set(Object.values(OWNERSHIP));
+const OBSOLETE_FRAMEWORK_PREFIXES = Object.freeze([".ai-os/bin/"]);
 const MAX_BACKUP_RESERVATIONS = 8;
 
 class InstallPlannerError extends Error {
@@ -96,6 +97,36 @@ function normalizedRelativePath(value, label) {
     failPlanner(`${label} is not a normalized relative path: ${value}`);
   }
   return normalized;
+}
+
+function filesystemPathKey(relativePath) {
+  return relativePath.replace(/[A-Z]/g, (character) => character.toLowerCase());
+}
+
+function requirePortablePathSpelling(relativePath, label) {
+  if (!/^[ -~]+$/.test(relativePath)) {
+    failPlanner(`${label} must use printable ASCII path spelling: ${relativePath}`);
+  }
+  for (const segment of relativePath.split("/")) {
+    if (segment.startsWith(" ")) {
+      failPlanner(`${label} must use portable path spelling; segment starts with space: ${relativePath}`);
+    }
+    if (/[. ]$/.test(segment)) {
+      failPlanner(`${label} must use portable path spelling; segment ends with dot or space: ${relativePath}`);
+    }
+    if (/[<>:"|?*~$]/.test(segment)) {
+      failPlanner(`${label} must use portable path spelling; segment has an unsafe character: ${relativePath}`);
+    }
+    const basename = segment.split(".", 1)[0].replace(/ +$/g, "");
+    if (/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(basename)) {
+      failPlanner(`${label} must use portable path spelling; segment has a reserved device name: ${relativePath}`);
+    }
+  }
+}
+
+function isLaneNamespacePath(relativePath) {
+  const key = filesystemPathKey(relativePath);
+  return key === ".ai-os/lanes" || key.startsWith(".ai-os/lanes/");
 }
 
 function bootstrapTimestamp(date) {
@@ -183,8 +214,17 @@ function collectionEntries(value, label) {
 
 function normalizeHashMap(value, label) {
   const result = new Map();
+  const filesystemPaths = new Map();
   for (const [rawPath, rawHashes] of collectionEntries(value, label)) {
     const relativePath = normalizedRelativePath(rawPath, `${label} key`);
+    requirePortablePathSpelling(relativePath, `${label} key`);
+    const pathKey = filesystemPathKey(relativePath);
+    if (filesystemPaths.has(pathKey)) {
+      failPlanner(
+        `${label} contains duplicate filesystem path aliases: ${filesystemPaths.get(pathKey)}, ${relativePath}`,
+      );
+    }
+    filesystemPaths.set(pathKey, relativePath);
     let values;
     if (rawHashes instanceof Set || Array.isArray(rawHashes)) values = [...rawHashes];
     else if (typeof rawHashes === "string") values = [rawHashes];
@@ -223,6 +263,7 @@ function validateDescriptor(descriptor) {
     failPlanner("source inventory descriptor must be an object");
   }
   const rawPath = normalizedRelativePath(descriptor.path, "source inventory destination");
+  requirePortablePathSpelling(rawPath, "source inventory destination");
   if (descriptor.type !== "file") {
     failPlanner(`unsupported source type for ${rawPath}: ${descriptor.type}`);
   }
@@ -334,6 +375,15 @@ function managedFilesManifest(entries) {
   return Buffer.from(["# path\ttype\townership\tsource_sha256", ...rows, ""].join("\n"));
 }
 
+function canonicalDestinationContracts(bootstrap) {
+  return new Map(Object.values(FILE_SPECS).map((descriptor) => {
+    const relativePath = descriptor.path
+      .split(INITIAL_BASELINE_FILE_TOKEN)
+      .join(bootstrap.file);
+    return [filesystemPathKey(relativePath), { relativePath, descriptor }];
+  }));
+}
+
 function sourceInventory(options, bootstrap = normalizeBootstrap(options.bootstrap)) {
   const sourceRoot = path.resolve(options.sourceRoot || PACKAGE_ROOT);
   const overrides = normalizeSourceOverrides(options.sourceOverrides);
@@ -344,16 +394,36 @@ function sourceInventory(options, bootstrap = normalizeBootstrap(options.bootstr
 
   const entries = [];
   const destinations = new Set();
+  const canonicalContracts = canonicalDestinationContracts(bootstrap);
   for (const descriptor of descriptors) {
     const rawPath = validateDescriptor(descriptor);
-    if (options.teamConfig === false && TEAM_CONFIG_PATHS.has(rawPath)) continue;
-    if (options.ideFiles === false && IDE_PATHS.has(rawPath)) continue;
+    const rawPathKey = filesystemPathKey(rawPath);
+    if (options.teamConfig === false && TEAM_CONFIG_PATHS.has(rawPathKey)) continue;
+    if (options.ideFiles === false && IDE_PATHS.has(rawPathKey)) continue;
     const relativePath = normalizedRelativePath(
       rawPath.split(INITIAL_BASELINE_FILE_TOKEN).join(bootstrap.file),
       "rendered destination",
     );
-    if (destinations.has(relativePath)) failPlanner(`duplicate destination: ${relativePath}`);
-    destinations.add(relativePath);
+    const relativePathKey = filesystemPathKey(relativePath);
+    const canonical = canonicalContracts.get(relativePathKey);
+    if (canonical && descriptor.ownership !== canonical.descriptor.ownership) {
+      failPlanner(
+        `${relativePath} must use canonical ownership ${canonical.descriptor.ownership}; received ${descriptor.ownership}`,
+      );
+    }
+    if (isLaneNamespacePath(relativePath) && descriptor.ownership === OWNERSHIP.FRAMEWORK) {
+      failPlanner(`${relativePath} is a lane path and cannot use framework ownership`);
+    }
+    if (canonical && descriptor.type !== canonical.descriptor.type) {
+      failPlanner(
+        `${relativePath} must use canonical type ${canonical.descriptor.type}; received ${descriptor.type}`,
+      );
+    }
+    if (canonical && relativePath !== canonical.relativePath) {
+      failPlanner(`${relativePath} must use canonical path spelling ${canonical.relativePath}`);
+    }
+    if (destinations.has(relativePathKey)) failPlanner(`duplicate destination: ${relativePath}`);
+    destinations.add(relativePathKey);
     entries.push({
       rawPath,
       relativePath,
@@ -393,7 +463,7 @@ function sourceInventory(options, bootstrap = normalizeBootstrap(options.bootstr
       } else {
         entry.content = frameworkMetadata(versionEntry.content.toString("utf8").trim());
       }
-    } else if (TEAM_CONFIG_PATHS.has(entry.relativePath)) {
+    } else if (TEAM_CONFIG_PATHS.has(filesystemPathKey(entry.relativePath))) {
       entry.content = generatedTeamConfig(entry.relativePath);
     }
   }
@@ -407,6 +477,12 @@ function sourceInventory(options, bootstrap = normalizeBootstrap(options.bootstr
     }
   }
   return entries;
+}
+
+function isAllowedObsoleteFrameworkPath(relativePath) {
+  return OBSOLETE_FRAMEWORK_PREFIXES.some((prefix) => (
+    relativePath.startsWith(prefix) && relativePath.length > prefix.length
+  ));
 }
 
 function inspectDestination(targetRoot, relativePath) {
@@ -806,11 +882,18 @@ function buildInstallPlan(targetDir, options = {}) {
   }
   const inventory = sourceInventory(options, bootstrap);
   const currentPaths = new Set(Object.values(FILE_SPECS).map((descriptor) => (
-    descriptor.path.split(INITIAL_BASELINE_FILE_TOKEN).join(bootstrap.file)
+    filesystemPathKey(
+      descriptor.path.split(INITIAL_BASELINE_FILE_TOKEN).join(bootstrap.file),
+    )
   )));
-  for (const entry of inventory) currentPaths.add(entry.relativePath);
+  for (const entry of inventory) currentPaths.add(filesystemPathKey(entry.relativePath));
   for (const obsoletePath of obsoleteHashes.keys()) {
-    if (currentPaths.has(obsoletePath)) failPlanner(`obsolete path is still current: ${obsoletePath}`);
+    if (currentPaths.has(filesystemPathKey(obsoletePath))) {
+      failPlanner(`obsolete path is still current: ${obsoletePath}`);
+    }
+    if (!isAllowedObsoleteFrameworkPath(obsoletePath)) {
+      failPlanner(`obsolete framework path is outside the allowed namespace: ${obsoletePath}`);
+    }
   }
 
   for (const entry of inventory) {
@@ -846,7 +929,7 @@ function buildInstallPlan(targetDir, options = {}) {
       reason = entry.error;
     } else if (
       laneContext.exists
-      && entry.rawPath === INITIAL_BASELINE_PATH
+      && entry.relativePath === currentBaselineRelativePath
     ) {
       if (currentBaselineError !== null) {
         action = "conflict";
@@ -856,7 +939,7 @@ function buildInstallPlan(targetDir, options = {}) {
       }
     } else if (
       freshDefaultLane
-      && entry.rawPath === INITIAL_BASELINE_PATH
+      && entry.relativePath === `.ai-os/lanes/default/baseline-log/${bootstrap.file}`
       && destination.exists
       && destination.kind === "file"
       && !destination.error

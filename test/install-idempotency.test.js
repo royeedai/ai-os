@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const {
+  FILE_SPECS,
   OWNERSHIP,
   PROJECT_FILES,
   SESSION_FILES,
@@ -408,6 +409,123 @@ test("existing lane invariants cannot be removed by a trimmed source inventory",
       /missing/i,
     );
     assert.equal(counter.calls, 0);
+  } finally {
+    cleanup(root);
+  }
+});
+
+test("obsolete hashes cannot delete on-demand data before planner rejection", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const target = path.join(root, "target");
+  const relativePath = ".ai-os/lanes/default/risk-register.md";
+  try {
+    installProject(target, { clock: () => new Date(INITIAL_DATE) });
+    writeSentinel(installedPath(target, relativePath), "risk must remain project data", 0o600);
+    const before = snapshotTree(root);
+    const counter = { calls: 0 };
+
+    assert.throws(
+      () => installProject(target, {
+        clock: throwingClock(counter),
+        fileSpecs: [],
+        obsoleteFrameworkHashes: {
+          [relativePath]: [sha256("SENTINEL risk must remain project data\n")],
+        },
+      }),
+      (error) => (
+        error instanceof InstallPlannerError
+        && error.code === "ERR_INSTALL_PLANNER"
+        && /obsolete framework path.*allowed namespace/i.test(error.message)
+      ),
+    );
+
+    assert.equal(counter.calls, 0);
+    assert.deepEqual(snapshotTree(root), before);
+  } finally {
+    cleanup(root);
+  }
+});
+
+for (const [label, descriptor] of [
+  [
+    "lane truth",
+    {
+      ...FILE_SPECS[".ai-os/lanes/default/lane.toml"],
+      ownership: OWNERSHIP.FRAMEWORK,
+    },
+  ],
+  [
+    "current baseline",
+    {
+      path: `.ai-os/lanes/default/baseline-log/${INITIAL_FILE}`,
+      type: "file",
+      ownership: OWNERSHIP.FRAMEWORK,
+      mode: 0o644,
+      source: "framework/.agents/templates/lane/baseline-log/BL-template.md",
+      generated: false,
+    },
+  ],
+]) {
+  test(`framework descriptor cannot claim existing ${label}`, () => {
+    const root = fs.realpathSync.native(tmpDir());
+    const target = path.join(root, "target");
+    try {
+      installProject(target, { clock: () => new Date(INITIAL_DATE) });
+      const before = snapshotTree(root);
+      const counter = { calls: 0 };
+
+      assert.throws(
+        () => installProject(target, {
+          force: true,
+          clock: throwingClock(counter),
+          fileSpecs: [descriptor],
+        }),
+        (error) => (
+          error instanceof InstallPlannerError
+          && error.code === "ERR_INSTALL_PLANNER"
+          && /canonical ownership.*project/i.test(error.message)
+        ),
+      );
+
+      assert.equal(counter.calls, 0);
+      assert.deepEqual(snapshotTree(root), before);
+    } finally {
+      cleanup(root);
+    }
+  });
+}
+
+test("custom project descriptor preserves the current record and cannot recreate it", () => {
+  const root = fs.realpathSync.native(tmpDir());
+  const target = path.join(root, "target");
+  const relativePath = `.ai-os/lanes/default/baseline-log/${INITIAL_FILE}`;
+  const descriptor = {
+    path: relativePath,
+    type: "file",
+    ownership: OWNERSHIP.PROJECT,
+    mode: 0o644,
+    source: "framework/.agents/templates/lane/baseline-log/BL-template.md",
+    generated: false,
+  };
+  try {
+    installProject(target, { clock: () => new Date(INITIAL_DATE) });
+    const counter = { calls: 0 };
+    const plan = buildInstallPlan(target, {
+      clock: throwingClock(counter),
+      fileSpecs: [descriptor],
+    });
+    assert.equal(operation(plan, relativePath).ownership, OWNERSHIP.PROJECT);
+    assert.equal(operation(plan, relativePath).action, "preserve");
+
+    fs.unlinkSync(installedPath(target, relativePath));
+    const before = snapshotTree(root);
+    const error = captureConflict(() => installProject(target, {
+      clock: throwingClock(counter),
+      fileSpecs: [descriptor],
+    }));
+    assertConflictAt(error, relativePath, /current baseline record is missing/i);
+    assert.equal(counter.calls, 0);
+    assert.deepEqual(snapshotTree(root), before);
   } finally {
     cleanup(root);
   }

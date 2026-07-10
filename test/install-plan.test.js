@@ -22,6 +22,7 @@ const {
 const {
   InstallPlannerError,
   buildInstallPlan,
+  installProject,
 } = require("../bin/installer");
 
 const temporaryRoots = new Set();
@@ -509,20 +510,29 @@ test("a source override cannot bypass a non-regular packaged source", () => {
 });
 
 test("recognized obsolete framework bytes are planned for removal", () => {
-  const target = path.join(temporaryRoot(), "target");
+  const target = path.join(temporaryRoot(), "Unicode 目标 project");
   const legacy = "PRISTINE V10 SHARED\n";
+  const unknownRelativePath = "用户资料.txt";
   writeTargetFile(target, ".ai-os/bin/shared.js", legacy);
-
-  const plan = buildInstallPlan(target, defaultOptions({
+  writeTargetFile(target, unknownRelativePath, "UNKNOWN USER DATA\n");
+  const options = defaultOptions({
     obsoleteFrameworkHashes: {
       ".ai-os/bin/shared.js": [sha256(legacy)],
     },
-  }));
+  });
+
+  const plan = buildInstallPlan(target, options);
 
   const obsolete = operation(plan, ".ai-os/bin/shared.js");
   assert.equal(obsolete.action, "remove-framework");
   assert.equal(obsolete.ownership, OWNERSHIP.FRAMEWORK);
   assert.equal(obsolete.previousHash, sha256(legacy));
+
+  installProject(target, options);
+  assert.equal(fs.existsSync(path.join(target, ".ai-os/bin/shared.js")), false);
+  assert.equal(fs.readFileSync(path.join(target, unknownRelativePath), "utf8"), "UNKNOWN USER DATA\n");
+  assert.equal(fs.existsSync(path.join(target, "AGENTS.md")), true);
+  assert.equal(fs.existsSync(path.join(target, ".ai-os/lanes/default/lane.toml")), true);
 });
 
 test("unknown obsolete framework bytes are a conflict and are never deleted", () => {
@@ -539,6 +549,445 @@ test("unknown obsolete framework bytes are a conflict and are never deleted", ()
   assert.equal(operation(plan, ".ai-os/bin/shared.js").action, "conflict");
   assert.match(conflict(plan, ".ai-os/bin/shared.js").reason, /unrecognized obsolete framework/i);
   assert.deepEqual(snapshotTree(target), before);
+});
+
+test("obsolete framework removal rejects every lane and on-demand namespace", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const forbiddenPaths = [
+    ".ai-os/lanes/default/baseline-log/BL-20260709-000000-historical.md",
+    ".ai-os/lanes/default/baseline-log/CR-20260709-010000-history.md",
+    ".ai-os/lanes/default/risk-register.md",
+    ".ai-os/lanes/default/release-plan.md",
+    ".ai-os/lanes/default/verification-matrix.yaml",
+    ".ai-os/lanes/default/specs/contracts/nested.md",
+    ".ai-os/lanes/default/design-pack/reverse/nested.md",
+    ".ai-os/lanes/default/evals/cases/nested.yaml",
+    ".ai-os/lanes/other/unknown.md",
+    ".ai-os/lanes/default/user/unknown.txt",
+    ".ai-os/bin",
+  ];
+  const obsoleteFrameworkHashes = {};
+  for (const [index, relativePath] of forbiddenPaths.entries()) {
+    const bytes = `USER SENTINEL ${index}\n`;
+    writeTargetFile(target, relativePath, bytes);
+    obsoleteFrameworkHashes[relativePath] = [sha256(bytes)];
+  }
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      fileSpecs: [],
+      obsoleteFrameworkHashes,
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /obsolete framework path.*allowed namespace/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("framework descriptors cannot claim arbitrary lane or on-demand paths", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const relativePath = ".ai-os/lanes/default/risk-register.md";
+  writeTargetFile(target, relativePath, "USER RISK DATA\n");
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      force: true,
+      fileSpecs: [{
+        path: relativePath,
+        type: "file",
+        ownership: OWNERSHIP.FRAMEWORK,
+        mode: 0o644,
+        source: "docs/artifacts.md",
+        generated: false,
+      }],
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /lane path.*framework ownership/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("framework descriptors cannot claim case aliases of lane paths", () => {
+  const target = path.join(temporaryRoot(), "target");
+  writeTargetFile(target, ".ai-os/lanes/default/risk-register.md", "USER RISK DATA\n");
+  const before = snapshotTree(target);
+  const options = defaultOptions({
+    force: true,
+    fileSpecs: [{
+      path: ".AI-OS/LANES/default/risk-register.md",
+      type: "file",
+      ownership: OWNERSHIP.FRAMEWORK,
+      mode: 0o644,
+      source: "docs/artifacts.md",
+      generated: false,
+    }],
+  });
+  const rejectsLaneAlias = (error) => (
+    error instanceof InstallPlannerError
+    && error.code === "ERR_INSTALL_PLANNER"
+    && /lane path.*framework ownership/i.test(error.message)
+  );
+
+  assert.throws(() => buildInstallPlan(target, options), rejectsLaneAlias);
+  assert.throws(() => installProject(target, options), rejectsLaneAlias);
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("the lane namespace root cannot be created as a framework file", () => {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const options = defaultOptions({
+    fileSpecs: [{
+      path: ".AI-OS/LANES",
+      type: "file",
+      ownership: OWNERSHIP.FRAMEWORK,
+      mode: 0o644,
+      source: "docs/artifacts.md",
+      generated: false,
+    }],
+  });
+  const before = snapshotTree(root);
+  const rejectsLaneRoot = (error) => (
+    error instanceof InstallPlannerError
+    && error.code === "ERR_INSTALL_PLANNER"
+    && /lane path.*framework ownership/i.test(error.message)
+  );
+
+  assert.throws(() => buildInstallPlan(target, options), rejectsLaneRoot);
+  assert.throws(() => installProject(target, options), rejectsLaneRoot);
+
+  assert.deepEqual(snapshotTree(root), before);
+  assert.equal(fs.existsSync(target), false);
+});
+
+test("canonical ownership applies to filesystem case aliases", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      fileSpecs: [{
+        path: ".AI-OS/BIN/VERSION",
+        type: "file",
+        ownership: OWNERSHIP.PROJECT,
+        mode: 0o644,
+        source: "VERSION",
+        generated: false,
+      }],
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /canonical ownership.*framework/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("obsolete framework aliases cannot bypass current path protection", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const bytes = "CURRENT VERSION SENTINEL\n";
+  writeTargetFile(target, ".ai-os/bin/VERSION", bytes);
+  const before = snapshotTree(target);
+  const options = defaultOptions({
+    fileSpecs: [],
+    obsoleteFrameworkHashes: {
+      ".ai-os/bin/version": [sha256(bytes)],
+    },
+  });
+  const rejectsCurrentAlias = (error) => (
+    error instanceof InstallPlannerError
+    && error.code === "ERR_INSTALL_PLANNER"
+    && /obsolete path is still current/i.test(error.message)
+  );
+
+  assert.throws(() => buildInstallPlan(target, options), rejectsCurrentAlias);
+  assert.throws(() => installProject(target, options), rejectsCurrentAlias);
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("obsolete hash keys reject filesystem case aliases", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const bytes = "LEGACY FRAMEWORK SENTINEL\n";
+  writeTargetFile(target, ".ai-os/bin/legacy.js", bytes);
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      fileSpecs: [],
+      obsoleteFrameworkHashes: {
+        ".ai-os/bin/legacy.js": [sha256(bytes)],
+        ".ai-os/bin/LEGACY.js": [sha256(bytes)],
+      },
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /obsoleteFrameworkHashes.*duplicate filesystem path/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("obsolete framework removal requires canonical namespace spelling", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const relativePath = ".AI-OS/BIN/obsolete.js";
+  const bytes = "UPPERCASE USER SENTINEL\n";
+  writeTargetFile(target, relativePath, bytes);
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      fileSpecs: [],
+      obsoleteFrameworkHashes: {
+        [relativePath]: [sha256(bytes)],
+      },
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /obsolete framework path.*allowed namespace/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("non-ASCII namespace aliases cannot claim lane data", () => {
+  const target = path.join(temporaryRoot(), "target");
+  writeTargetFile(target, ".ai-os/lanes/default/risk-register.md", "USER RISK DATA\n");
+  const before = snapshotTree(target);
+  const options = defaultOptions({
+    force: true,
+    fileSpecs: [{
+      path: ".ai-oſ/lanes/default/risk-register.md",
+      type: "file",
+      ownership: OWNERSHIP.FRAMEWORK,
+      mode: 0o644,
+      source: "docs/artifacts.md",
+      generated: false,
+    }],
+  });
+  const rejectsNonAsciiPath = (error) => (
+    error instanceof InstallPlannerError
+    && error.code === "ERR_INSTALL_PLANNER"
+    && /destination.*ASCII path spelling/i.test(error.message)
+  );
+
+  assert.throws(() => buildInstallPlan(target, options), rejectsNonAsciiPath);
+  assert.throws(() => installProject(target, options), rejectsNonAsciiPath);
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("non-ASCII canonical aliases cannot change destination ownership", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      fileSpecs: [{
+        path: ".ai-os/lanes/default/MIßION.md",
+        type: "file",
+        ownership: OWNERSHIP.SESSION,
+        mode: 0o644,
+        source: "docs/artifacts.md",
+        generated: false,
+      }],
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /destination.*ASCII path spelling/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+test("non-ASCII obsolete aliases cannot bypass current path protection", () => {
+  const target = path.join(temporaryRoot(), "target");
+  const bytes = "CURRENT VERSION SENTINEL\n";
+  writeTargetFile(target, ".ai-os/bin/VERSION", bytes);
+  const before = snapshotTree(target);
+
+  assert.throws(
+    () => buildInstallPlan(target, defaultOptions({
+      fileSpecs: [],
+      obsoleteFrameworkHashes: {
+        ".ai-os/bin/verſion": [sha256(bytes)],
+      },
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /obsoleteFrameworkHashes key.*ASCII path spelling/i.test(error.message)
+    ),
+  );
+
+  assert.deepEqual(snapshotTree(target), before);
+});
+
+const WINDOWS_UNSAFE_DESTINATION_PATHS = [
+  ["trailing dot", "AGENTS.md."],
+  ["trailing space", "AGENTS.md "],
+  ["leading-space leaf", " AGENTS.md"],
+  ["leading-space parent", ".ai-os/ lanes/default/MISSION.md"],
+  ["leading-space device", " CON.txt"],
+  ["alternate data stream", "AGENTS.md::$DATA"],
+  ["trailing-dot parent", ".ai-os/lanes./default/MISSION.md"],
+  ["CON device", "CON"],
+  ["PRN device extension", "PRN.txt"],
+  ["AUX device", "AUX"],
+  ["NUL device extension", "NUL.txt"],
+  ["COM device", "COM1.log"],
+  ["last COM device", "COM9"],
+  ["LPT device extension", "LPT1.txt"],
+  ["last LPT device", "LPT9"],
+  ["nested device", ".ai-os/bin/CON"],
+  ["less-than", "unsafe<name.md"],
+  ["greater-than", "unsafe>name.md"],
+  ["double quote", "unsafe\"name.md"],
+  ["pipe", "unsafe|name.md"],
+  ["question mark", "unsafe?name.md"],
+  ["asterisk", "unsafe*name.md"],
+  ["dollar/device alias", "CONIN$"],
+  ["short-name alias", ".ai-os/MANAGE~1.TSV"],
+];
+
+const WINDOWS_UNSAFE_OBSOLETE_PATHS = [
+  ["trailing dot", ".ai-os/bin/VERSION."],
+  ["trailing space", ".ai-os/bin/VERSION "],
+  ["leading-space leaf", ".ai-os/bin/ VERSION"],
+  ["leading-space parent", ".ai-os/ bin/legacy.js"],
+  ["leading-space device", ".ai-os/bin/ CON.txt"],
+  ["alternate data stream", ".ai-os/bin/VERSION::$DATA"],
+  ["trailing-dot parent", ".ai-os/bin/legacy./file.js"],
+  ["CON device", ".ai-os/bin/CON"],
+  ["PRN device extension", ".ai-os/bin/PRN.txt"],
+  ["AUX device", ".ai-os/bin/AUX"],
+  ["NUL device extension", ".ai-os/bin/NUL.txt"],
+  ["COM device", ".ai-os/bin/COM1.log"],
+  ["LPT device extension", ".ai-os/bin/LPT9.txt"],
+  ["less-than", ".ai-os/bin/unsafe<name.js"],
+  ["greater-than", ".ai-os/bin/unsafe>name.js"],
+  ["double quote", ".ai-os/bin/unsafe\"name.js"],
+  ["pipe", ".ai-os/bin/unsafe|name.js"],
+  ["question mark", ".ai-os/bin/unsafe?name.js"],
+  ["asterisk", ".ai-os/bin/unsafe*name.js"],
+  ["dollar/device alias", ".ai-os/bin/CONOUT$"],
+  ["short-name alias", ".ai-os/bin/MANAGE~1.TSV"],
+];
+
+function assertPortablePlannerRejection(options, label) {
+  const root = temporaryRoot();
+  const target = path.join(root, "target");
+  const before = snapshotTree(root);
+  const rejectsUnsafePath = (error) => (
+    error instanceof InstallPlannerError
+    && error.code === "ERR_INSTALL_PLANNER"
+    && /portable path spelling/i.test(error.message)
+  );
+
+  assert.throws(() => buildInstallPlan(target, options), rejectsUnsafePath, label);
+  assert.throws(() => installProject(target, options), rejectsUnsafePath, label);
+  assert.deepEqual(snapshotTree(root), before, label);
+  assert.equal(fs.existsSync(target), false, label);
+}
+
+test("fileSpecs reject Windows path aliases before every write", () => {
+  for (const [label, relativePath] of WINDOWS_UNSAFE_DESTINATION_PATHS) {
+    assertPortablePlannerRejection(defaultOptions({
+      fileSpecs: [{
+        path: relativePath,
+        type: "file",
+        ownership: OWNERSHIP.FRAMEWORK,
+        mode: 0o644,
+        source: "docs/artifacts.md",
+        generated: false,
+      }],
+    }), label);
+  }
+});
+
+test("compatible hash keys reject Windows path aliases before every write", () => {
+  for (const [label, relativePath] of WINDOWS_UNSAFE_DESTINATION_PATHS) {
+    assertPortablePlannerRejection(defaultOptions({
+      compatibleHashes: {
+        [relativePath]: [sha256("COMPATIBLE SENTINEL\n")],
+      },
+    }), label);
+  }
+});
+
+test("obsolete hash keys reject Windows path aliases before every write", () => {
+  for (const [label, relativePath] of WINDOWS_UNSAFE_OBSOLETE_PATHS) {
+    assertPortablePlannerRejection(defaultOptions({
+      fileSpecs: [],
+      obsoleteFrameworkHashes: {
+        [relativePath]: [sha256("OBSOLETE SENTINEL\n")],
+      },
+    }), label);
+  }
+});
+
+test("portable destinations retain ordinary internal spaces", () => {
+  const target = path.join(temporaryRoot(), "Unicode 目标 project");
+  const relativePath = ".ai-os/custom project.md";
+  const options = defaultOptions({
+    fileSpecs: [{
+      path: relativePath,
+      type: "file",
+      ownership: OWNERSHIP.PROJECT,
+      mode: 0o644,
+      source: "docs/artifacts.md",
+      generated: false,
+    }],
+  });
+
+  const plan = buildInstallPlan(target, options);
+  assert.equal(operation(plan, relativePath).action, "create");
+  installProject(target, options);
+  assert.equal(fs.existsSync(path.join(target, relativePath)), true);
+});
+
+test("filesystem case aliases are duplicate rendered destinations", () => {
+  const descriptor = {
+    path: ".ai-os/bin/legacy.js",
+    type: "file",
+    ownership: OWNERSHIP.FRAMEWORK,
+    mode: 0o644,
+    source: "docs/artifacts.md",
+    generated: false,
+  };
+
+  assert.throws(
+    () => buildInstallPlan(path.join(temporaryRoot(), "target"), defaultOptions({
+      fileSpecs: [
+        descriptor,
+        { ...descriptor, path: ".AI-OS/BIN/legacy.js" },
+      ],
+    })),
+    (error) => (
+      error instanceof InstallPlannerError
+      && error.code === "ERR_INSTALL_PLANNER"
+      && /duplicate destination/i.test(error.message)
+    ),
+  );
 });
 
 test("duplicate rendered destinations raise a stable planner error", () => {
