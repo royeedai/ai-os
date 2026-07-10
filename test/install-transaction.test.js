@@ -229,11 +229,33 @@ for (const scenario of [
 
     scenario.mutate(destination);
     const afterMutation = fixtures.snapshotTree(target);
-    const error = captureError(() => installer.executeInstallPlan(plan));
+    const defaults = installer.createDefaultFsOps();
+    const lockPath = path.join(target, ".ai-os-install.lock");
+    const events = [];
+    const error = captureError(() => installer.executeInstallPlan(plan, {
+      fsOps: {
+        open(file, flags, mode) {
+          if (file === lockPath) events.push("lock-open");
+          else if (file.includes(".ai-os-install-stage-")) events.push("stage-open");
+          return defaults.open(file, flags, mode);
+        },
+        lstat(file) {
+          if (file === destination) events.push("preserve-lstat");
+          return defaults.lstat(file);
+        },
+        readFile(file, options) {
+          if (file === destination) events.push("preserve-read");
+          return defaults.readFile(file, options);
+        },
+      },
+    }));
 
     assert.ok(error instanceof installer.InstallFilesystemError);
     assert.equal(error.phase, "revalidate preserve");
     assert.equal(error.relativePath, scenario.relativePath);
+    assert.equal(events[0], "lock-open");
+    assert.ok(events.includes("preserve-lstat"));
+    assert.equal(events.includes("stage-open"), false);
     assert.equal(fs.existsSync(createdDestination), false);
     assert.deepEqual(fixtures.snapshotTree(target), afterMutation);
     assert.deepEqual(transactionArtifacts(target), []);

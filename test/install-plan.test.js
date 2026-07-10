@@ -83,8 +83,13 @@ function assertPlannerFailureWithoutWrites(
   if (expectsCause) {
     assert.equal(Object.hasOwn(error, "cause"), true);
     assert.equal(error.cause, cause);
+  } else if (causeType === undefined) {
+    assert.equal(Object.hasOwn(error, "cause"), false);
   }
-  if (causeType !== undefined) assert.ok(error.cause instanceof causeType);
+  if (causeType !== undefined) {
+    assert.equal(Object.hasOwn(error, "cause"), true);
+    assert.ok(error.cause instanceof causeType);
+  }
   assert.deepEqual(snapshotTree(root), before);
   assert.equal(fs.existsSync(target), false);
 }
