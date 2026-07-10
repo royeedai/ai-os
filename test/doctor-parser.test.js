@@ -488,6 +488,20 @@ test("canonical YAML accepts the maximum nesting depth", () => {
   assert.equal(value.leaf, "value");
 });
 
+test("canonical YAML accepts sequence container variants at the maximum depth", () => {
+  let scalarSequence = parseCanonicalYaml(nestedMapping(64, "- value"));
+  for (let index = 0; index < 64; index += 1) {
+    scalarSequence = scalarSequence[`level_${index}`];
+  }
+  assert.deepEqual(scalarSequence, ["value"]);
+
+  let mappingSequence = parseCanonicalYaml(nestedMapping(63, "- id: value"));
+  for (let index = 0; index < 63; index += 1) {
+    mappingSequence = mappingSequence[`level_${index}`];
+  }
+  assert.equal(mappingSequence[0].id, "value");
+});
+
 test("canonical YAML rejects excessive nesting before native stack exhaustion", () => {
   assertCanonicalError(
     () => parseCanonicalYaml(nestedMapping(2_500)),
