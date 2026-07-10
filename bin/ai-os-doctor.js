@@ -459,17 +459,7 @@ function formatReport(issues) {
   return lines.join("\n") + "\n";
 }
 
-function main(argv = process.argv.slice(2), io = process) {
-  let opts;
-  try {
-    opts = parseArgs(argv);
-  } catch (error) {
-    const message = String(error && error.message ? error.message : error)
-      .replace(/[\r\n]+/g, " ")
-      .trim();
-    io.stderr.write(`Error: ${message}\n`);
-    return 1;
-  }
+function runDoctor(opts, io) {
   if (opts.help) {
     printHelp(io);
     return 0;
@@ -539,6 +529,18 @@ function main(argv = process.argv.slice(2), io = process) {
   if (errors.length > 0) return 1;
   if (opts.strict && warnings.length > 0) return 1;
   return 0;
+}
+
+function main(argv = process.argv.slice(2), io = process) {
+  try {
+    return runDoctor(parseArgs(argv), io);
+  } catch (error) {
+    const message = String(error && error.message ? error.message : error)
+      .replace(/[\r\n]+/g, " ")
+      .trim();
+    io.stderr.write(`Error: ${message}\n`);
+    return 1;
+  }
 }
 
 if (require.main === module) process.exitCode = main();

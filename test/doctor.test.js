@@ -60,6 +60,51 @@ test("doctor: requiring from a temporary cwd is inert and main returns a status"
   }
 });
 
+test("doctor: exported main contains filesystem failures without a stack", () => {
+  const dir = fs.realpathSync.native(tmpDir());
+  try {
+    const installed = runInstall([dir]);
+    assert.equal(installed.status, 0, installed.stderr);
+    const source = String.raw`
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const doctor = require(process.argv[1]);
+      const target = process.argv[2];
+      const agents = path.join(target, "AGENTS.md");
+      const originalRead = fs.readFileSync;
+      fs.readFileSync = function injectedRead(file, ...args) {
+        if (path.resolve(String(file)) === agents) {
+          const error = new Error("injected unreadable AGENTS.md");
+          error.code = "EACCES";
+          throw error;
+        }
+        return originalRead.call(this, file, ...args);
+      };
+      const writes = { stdout: "", stderr: "" };
+      const io = {
+        stdout: { write(value) { writes.stdout += String(value); } },
+        stderr: { write(value) { writes.stderr += String(value); } },
+      };
+      const status = doctor.main([target], io);
+      process.stdout.write(JSON.stringify({ status, writes }));
+    `;
+    const result = spawnSync(process.execPath, ["-e", source, DOCTOR_CLI, dir], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "", "probe process emits no uncaught stack");
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.status, 1);
+    assert.equal(payload.writes.stdout, "", "failed inspection emits no partial report");
+    assert.match(payload.writes.stderr, /^Error: injected unreadable AGENTS[.]md\n$/);
+    assert.doesNotMatch(payload.writes.stderr, /\n\s+at\s|node:fs/);
+  } finally {
+    cleanup(dir);
+  }
+});
+
 test("doctor: clean install returns 0", () => {
   const dir = tmpDir();
   try {
