@@ -190,11 +190,19 @@ Task priority continues to use `P0` / `P1` / `P2` / `P3`. Governance uses a dist
 |---|---|---|
 | `G0` | low risk, clear scope, exploratory quality | confirmed goal/scope and project-native verification |
 | `G1` | standard delivery or medium uncertainty/risk | confirmed design/AC, task/evidence traceability, regression checks |
-| `G2` | high risk, strict quality, irreversible/production/asset/permission/external effects | structured human approval, risk/release/verification artifacts, rollback evidence |
+| `G2` | high risk, strict quality, irreversible/production/asset/permission/external effects | structured human approval, risk and verification artifacts, release artifact when release intent exists, rollback evidence |
 
 Fresh templates use `unassessed` for `quality_tier`, `risk_tier`, and `governance_tier`. Delivery is not ready until they are assessed.
 
 `lane.toml` is the tier truth source. Human-readable mirrors are allowed only where doctor verifies equality.
+
+Tier consistency is mechanical rather than interpretive. `exploratory`, `low`,
+and `G0` have rank 0; `standard`, `medium`, and `G1` have rank 1; `strict`,
+`high`, and `G2` have rank 2. An active lane is not ready when any tier is
+`unassessed`, outside its enum, or when the governance rank is lower than the
+maximum quality/risk rank. Choosing a higher governance tier is allowed. This
+means a lane that explicitly declares `risk_tier = "high"` or
+`quality_tier = "strict"` cannot lower its governance below G2.
 
 ### 8.3 Baseline lifecycle
 
@@ -316,6 +324,28 @@ Rules:
 - Inferred or unknown evidence cannot satisfy a completion gate.
 - Code/data/runtime state is persisted, not only stated in chat.
 
+An active lane is delivery-ready only when `tasks` is non-empty and every task
+is `done` or `shipped`; `todo`, `in-progress`, or `blocked` is an explicit
+incomplete state, not a partial success. Every terminal task has at least one
+non-empty `evidence_required` ID, so an empty requirement set cannot pass by
+vacuous truth. Its produced IDs equal that required set exactly, and each of
+`delivery_state.code`, `data`, and `runtime` is `observed` or
+`not-applicable`. Dependencies are existing, non-self, acyclic task IDs and a
+terminal task may depend only on terminal tasks. Acceptance references are
+non-empty, unique within a task, and resolve to the canonical acceptance table
+in DESIGN; every live DESIGN acceptance ID is covered by at least one task.
+
+Approval validation proves only a deterministic declaration, not identity
+authentication or fulfillment of free-text conditions. Every approval state
+has a non-empty baseline snapshot. `not-required` and `pending` have empty
+decision fields and lists; `approved`, `rejected`, and `expired` have a
+non-empty declared human identity, canonical UTC decision time, and evidence
+reference. Only `approved` has non-empty approved scope. A required terminal
+task, and every terminal G2 task, needs `approved` on the active baseline. The
+doctor rejects explicit AI self-identities but never describes an approver as
+authenticated. Evidence commands, artifacts, URLs, conditions, and approval
+references are declarations only: doctor never executes or dereferences them.
+
 ## 10. On-demand trigger matrix
 
 | Artifact | Trigger |
@@ -340,7 +370,10 @@ JSON and text output distinguish:
 - `layout_ok`: supported layout, metadata, path types, containment, and required artifacts;
 - `delivery_ready`: confirmed baseline, assessed tiers, valid task/AC/evidence state, and required G2 approval/artifacts.
 
-`ok` retains CLI compatibility and means no errors plus, under `--strict`, no warnings.
+`ok` retains CLI compatibility: non-strict uses `layout_ok`; strict uses
+`layout_ok && delivery_ready && no warning-severity issue`. Info severity does
+not independently change an exit, while active readiness findings make strict
+fail through `delivery_ready: false`.
 
 ### 11.2 Exit codes
 
@@ -351,6 +384,18 @@ JSON and text output distinguish:
 A fresh install can have `layout_ok=true` and `delivery_ready=false`. It passes non-strict layout inspection and fails strict delivery gating until alignment is confirmed.
 
 Top-level `delivery_ready` is true only when every active lane is ready. Closed lanes retain structural/history checks but do not block active delivery readiness. Per-lane readiness is included in JSON output.
+
+Only exact `status = "closed"` is excluded from aggregation; an invalid status
+cannot bypass readiness. Closed lanes expose `delivery_ready: false`, retain
+layout, baseline/history, alignment, and task-schema diagnostics, but skip tier
+assessment, terminal-task, current approval/evidence/Git, and triggered-artifact
+gates. With zero active lanes top-level `delivery_ready` is false rather than
+the vacuous result of `every([])`. Readiness (`R001`-`R031`) issues use
+`severity: info`; they affect `delivery_ready`, not `layout_ok` or the strict
+warning count. Existing structural/history warnings, including those on a
+closed lane, retain normal strict-warning behavior. A stale optional STATE
+mirror produces `W072` and a rebuild instruction; STATE never becomes baseline
+or tier authority and does not change `delivery_ready`.
 
 ### 11.3 Deterministic checks
 
@@ -368,6 +413,23 @@ Doctor validates:
 - on-demand artifact structure when present and deterministic trigger-required presence;
 - exact active `.gitignore` managed rules, including negation/order handling;
 - distributed constitution identity/required anchors without claiming semantic proof it cannot provide.
+
+Git evidence uses only a bounded local Git CLI allowlist with argument arrays
+and `shell: false`; it never fetches, executes evidence fields, or invokes a
+runtime verifier. The runner strips inherited `GIT_*` configuration, disables
+lazy object fetching, replace/graft objects, fsmonitor, untracked cache,
+external diff/text conversion, pagers, prompts, optional locks, and all Git
+protocols. It applies per-command and total deadlines plus output, historical
+task, and unique-SHA limits. Object format determines whether canonical full
+IDs are 40-hex SHA-1 or 64-hex SHA-256. Repository discovery starts at the
+target but all subsequent status/diff/history operations run at the real
+repository root, so monorepo, linked-worktree, and submodule-root semantics are
+explicit. Git paths are NUL-delimited buffers; historical tasks use literal
+`ls-tree` plus raw `cat-file`, accept only regular blobs, and never use
+`git show sha:path`. Missing shallow/promisor objects fail locally without a
+network fallback. Diagnostics map failures to stable reason classes and never
+include raw stderr, absolute repository paths, or attacker-controlled evidence
+text.
 
 Unsupported or malformed canonical TOML/YAML fails closed with a specific issue. Doctor does not attempt a general TOML/YAML implementation.
 

@@ -395,20 +395,25 @@ git commit -m "feat: validate layout v11 across lanes"
 **Files:**
 - Modify: `bin/doctor-shared.js`
 - Modify: `bin/ai-os-doctor.js`
+- Modify: `test/doctor-layout.test.js`
+- Modify: `test/doctor.test.js`
 - Create: `test/doctor-readiness.test.js`
 
 **Interfaces:**
 - Replaces Task 3's provisional `delivery_ready: false` values with the complete
   per-lane and every-active-lane readiness calculation. `ok` remains
   `layout_ok` in non-strict mode and becomes `layout_ok && delivery_ready &&`
-  no warnings in strict mode; info never blocks either mode.
+  no warnings in strict mode. Info severity never independently blocks an exit;
+  an active R issue blocks strict only through `delivery_ready: false`.
 - Produces readiness codes `R001` unconfirmed, `R002` unassessed, `R010`
   baseline mismatch/lifecycle, `R020` task contract, `R021` evidence, `R022`
-  uncommitted code state, `R030` approval, `R031` G2 minimum artifacts.
+  unavailable/dirty Git state, `R030` approval, `R031` required artifacts.
 - Produces `parseBaselineRecord(content, filename)` and
-  `resolveGitState(targetDir): { sha, dirty } | null`; git resolution is local,
-  bounded, and performs no network request.
-- Produces `resolveEvidenceGitEnvelope(targetDir, laneId, observedShas)`. For
+  `resolveGitState(targetDir, options): GitStateResult`; git resolution is
+  local, bounded, performs no network request, and returns a frozen
+  discriminated result with repository root, project prefix, object format,
+  current HEAD, dirty state, or a stable unavailable reason.
+- Produces `resolveEvidenceGitEnvelope(targetDir, laneId, observedShas, options)`. For
   each validated full SHA it returns the ancestor result, impact-scoped tracked
   paths, and the strictly parsed historical active-lane `tasks.yaml`; malformed
   or absent historical task content fails closed. All Git calls are local,
@@ -423,12 +428,166 @@ git commit -m "feat: validate layout v11 across lanes"
 - Binds every `evidence_produced[].id` to an ID required by the same task and
   treats `(task.id, evidence.id)` as identity. It checks evidence against the
   active confirmed BL and injected fixed now using
-  `confirmed_at <= observed_at <= fixed now`, with no TTL. The evidence SHA is
+  `confirmed_at <= decided_at <= observed_at <= fixed now` when approval is
+  required (otherwise `confirmed_at <= observed_at <= fixed now`), with no
+  TTL. The evidence SHA is
   the full observed commit, must be an ancestor of current HEAD, and is accepted
   only when the impact-scoped tracked diff and strict semantic comparison allow
   evidence-only changes to task `status`, `evidence_produced`, and
   `delivery_state`. Path comparison starts with all tracked repository paths,
   excludes only other-lane subtrees, and permits only current-lane tasks.yaml.
+
+**Locked Task 4 evaluation contract:**
+
+- Every `R001`-`R031` issue has `level === severity === "info"` and blocks only
+  the affected readiness calculation. It is not a structural error or strict
+  warning. `semantic_warnings` remains the compatibility filter for W070/W071.
+  Optional STATE baseline/tier drift is W072, instructs rebuild, and never
+  supplies authority or an R010 finding.
+- Tier rank is exact: `exploratory/low/G0 = 0`,
+  `standard/medium/G1 = 1`, `strict/high/G2 = 2`. Active lanes reject
+  unassessed/invalid tiers and governance below `max(quality, risk)` with R002;
+  higher governance is allowed. MISSION tier mirrors must equal lane.toml or
+  produce R002; MISSION/tasks baseline mirrors must equal the lane pointer or
+  produce R010.
+- Only exact `closed` is excluded from top aggregation. Closed lanes have
+  per-lane `delivery_ready: false`, retain layout, baseline/history/alignment,
+  and task-schema checks, but skip tier, terminal completion, current
+  approval/evidence/Git, and trigger-presence gates. Existing W warnings can
+  still fail strict mode. Invalid statuses block aggregation. Zero active lanes
+  yields top-level false plus one global R020.
+- Active readiness requires a non-empty task set and every task `done` or
+  `shipped`. `todo`, `in-progress`, or `blocked` produces one R020 for that lane
+  and makes zero Git calls. Terminal tasks require non-empty, unique
+  `acceptance_refs`, `evidence_required`, and `change_scope`; produced evidence
+  IDs equal the required set exactly; all delivery-state dimensions are only
+  `observed` or `not-applicable`. Dependencies exist, are non-self and acyclic,
+  and resolve to terminal tasks. Every task acceptance ref resolves to the
+  canonical DESIGN table and every live DESIGN AC is covered.
+- DESIGN acceptance extraction reads only the first exact five-column table
+  under exactly one live `## 9. 验收标准`, ignores fenced/comment/example
+  decoys, requires the canonical header, unique `AC-[0-9]{3,}` IDs and
+  non-empty cells, and stops at the next H2. Mapping-field order is irrelevant.
+  Set-like lists and
+  milestone/task sets are uniqueness-checked and canonicalized by code-point
+  order for historical semantic comparison.
+- Task v5 exact keys are frozen: top
+  `version,baseline_id,scope,milestones,tasks`; scope
+  `mode,focus,baseline_source`; milestone `id,title,goal`; task
+  `id,title,milestone,status,owner,priority,approval,depends_on,acceptance_refs,evidence_required,evidence_produced,delivery_state,change_scope`;
+  approval
+  `required,status,decided_by,decided_at,baseline_id,approved_scope,conditions,evidence_ref`;
+  evidence has the approved nine keys; delivery state has `code,data,runtime`.
+  `version` is integer 5; scope mode is only `change` or `release`; task status
+  is `todo/in-progress/blocked/done/shipped`; priority is P0-P3; evidence kind
+  is `static/test/runtime/data/manual/release`; confidence is
+  `observed/inferred/unknown`; delivery dimensions are
+  `observed/inferred/unknown/not-applicable`. IDs and list elements have the
+  documented scalar types, and milestone/task IDs are unique with valid refs.
+  Malformed task schema emits only R020 and skips downstream approval,
+  evidence, artifact-trigger, and Git gates.
+- Every approval status has a non-empty baseline snapshot. `not-required`
+  (`required=false`) and `pending` (`required=true`) keep decision fields and
+  lists empty. `approved/rejected/expired` use `required=true`, a non-empty
+  declared human identity, canonical UTC millisecond timestamp, and non-empty
+  evidence ref; only approved has non-empty approved scope. A required terminal
+  task and every terminal G2 task must be approved on the active baseline.
+  Reserved case-insensitive exact identities
+  `ai/agent/assistant/bot/model/chatgpt/codex/claude/gemini` are rejected, but
+  doctor does not claim to authenticate a person or prove conditions fulfilled.
+  Approval must already
+  exist in the observed historical tasks and its decision time cannot be after
+  the evidence time.
+- `evidence_required` cannot be empty for a terminal task. Evidence command,
+  artifact, URL, environment, condition, and approval-reference fields are
+  declarations only and are never executed or dereferenced. Canonical times
+  use `YYYY-MM-DDTHH:mm:ss.sssZ`, round-trip through `Date`, and are compared
+  inclusively against one fixed clock sample:
+  `confirmed_at <= decided_at <= observed_at <= fixed_now` when approval is
+  required, otherwise `confirmed_at <= observed_at <= fixed_now`.
+- Baseline records use exact per-subtype keys inside the first-H1/first-H2
+  boundary: bootstrap `Type,Status,Created At`; confirmed baseline
+  `Type,Status,previous_baseline_id,confirmed_by,confirmed_at,source_refs`;
+  change request
+  `Type,Status,current_behavior,proposed_delta,affected_artifacts,acceptance_delta,approval,close_condition,preventability_review,result_baseline_id`
+  with nested `status,preventable,root_cause,suggested_guard`; retrospective
+  `Type,Status,source_cr_ids,preventable_findings,suggested_framework_changes`.
+  The current active pointer is ready only when it names a valid
+  confirmed BL. Confirmed records form an existing, acyclic
+  `previous_baseline_id` chain ending at a valid bootstrap record; source refs
+  are non-empty strings but need not be unique. `confirmed_by` follows the same
+  declared-human/reserved-identity syntax guard as task approval, without an
+  authentication claim. Bootstrap `Created At` is a
+  canonical UTC millisecond time whose UTC second matches its BL identifier.
+  CR current-shape validation follows the approved Cartesian
+  state/review/result matrix without claiming
+  historical freeze or result-BL newness. An applied CR result resolves to a
+  confirmed BL on the current confirmed lineage. Retrospectives never enter
+  the pointer chain; their unique source CR IDs must resolve to parsed terminal
+  (`applied` or `rejected`) CR records.
+- R-code cascade is stable: R001 only valid current bootstrap/unconfirmed;
+  R002 lane status/tier assessment; R010 baseline/alignment/lifecycle/history;
+  R020 tasks/dependencies/AC/completion; R021 evidence/time/ancestor/diff/
+  historical semantic binding; R022 Git unavailable/dirty/budget failure;
+  R030 approval; R031 required artifact presence/type/non-empty. Prefer one
+  issue per code/lane and skip downstream checks after an upstream parse fails.
+- Trigger presence in Task 4 is mechanical: G2 (including high/strict lanes
+  raised to the G2 floor) requires regular non-empty `risk-register.md` and
+  `verification-matrix.yaml`; `tasks.scope.mode == "release"` requires regular
+  non-empty `release-plan.md`. Non-release G2 does not require a release plan.
+  Task 5 owns schemas for present on-demand artifacts and subjective triggers.
+- `inspectProject` samples the injected clock exactly once and shares it across
+  lanes. Near-ready lanes share one repository root/object-format/HEAD/status
+  probe; todo/upstream-invalid/no-evidence lanes make zero Git calls.
+- `createLocalGitRunner({ spawnSyncImpl, monotonicNow, limits })` (or an
+  equivalent injected interface) is the only process boundary. Fake runners
+  can assert executable, argv, environment, `shell:false`, timeout, maxBuffer,
+  and call count. The default runner receives fixed operation enums only; no
+  evidence field can enter argv. The trust boundary is the local `git`
+  executable found through PATH.
+- The runner constructs an allowlist environment instead of copying process
+  `GIT_*` values. It sets `GIT_NO_LAZY_FETCH=1`, `GIT_OPTIONAL_LOCKS=0`,
+  `GIT_TERMINAL_PROMPT=0`, `GIT_NO_REPLACE_OBJECTS=1`,
+  `GIT_GRAFT_FILE=os.devNull`, `GIT_CONFIG_NOSYSTEM=1`,
+  `GIT_CONFIG_GLOBAL=os.devNull`, `GIT_PAGER=cat`, `LC_ALL=C`, `LANG=C`, and
+  `TZ=UTC`; only PATH and required Windows process variables are inherited.
+  Every invocation uses `--no-pager`, `-c core.fsmonitor=false`,
+  `-c core.untrackedCache=false`, `-c protocol.allow=never`, and
+  `shell:false`. Fetch, remote, LFS, hooks, submodule update, external diff, and
+  text conversion are never invoked.
+- The exact command allowlist is: `rev-parse --is-inside-work-tree`;
+  `rev-parse --path-format=absolute --show-toplevel`; `rev-parse --show-prefix`;
+  `rev-parse --show-object-format`;
+  `rev-parse --verify --end-of-options HEAD^{commit}`;
+  `status --porcelain=v2 -z --untracked-files=all --ignore-submodules=none --no-renames`;
+  `merge-base --is-ancestor <sha> <head>`;
+  `diff --no-ext-diff --no-textconv --no-renames --name-only -z <sha> <head> --`;
+  global `--literal-pathspecs` plus
+  `ls-tree -z --full-tree <sha> -- <repo-relative-tasks-path>`; and
+  `cat-file blob <validated-blob-oid>`.
+- Default limits are 64 unique observed SHAs after code-point sort/deduplication,
+  3 seconds per command, 15 seconds total envelope time, 4 MiB status/diff
+  output, 64 KiB discovery/tree output, 1 MiB historical tasks, and 65,536 NUL
+  path records. Output stays Buffer-first until bounded parsing. Text metadata
+  and paths use fatal UTF-8; NUL protocols require exactly one terminal NUL and
+  no empty interior record, then paths are deduplicated and code-point sorted.
+- Repository discovery begins at targetDir; all later calls run at the real
+  repo root using its target-relative POSIX prefix. Linked worktrees use that
+  worktree's own HEAD/index/status. A target inside a submodule uses the
+  submodule as its repository root; a submodule inside the target is observed
+  by the parent status. Staged, unstaged, untracked, and dirty gitlink/submodule
+  state are dirty; ignored files are not. Only the target project's exact
+  other-lane subtree is excluded from impact scope.
+- Object format selects lowercase full 40-hex SHA-1 or 64-hex SHA-256. History
+  reads use the literal `ls-tree -z` plus `cat-file blob` pair; exactly one
+  `100644`/`100755` regular blob at the exact repo-relative tasks path is
+  accepted. Merge-base exit 0/1 means ancestor/non-ancestor; any other status is
+  a failure. Discovery, status, dirty state, runner timeout/signal, or runner
+  output-budget failure maps to R022. Non-ancestor, diff impact, missing/wrong
+  historical tasks, parse failure, or semantic drift maps to R021. Raw stderr,
+  argv, absolute repo paths, and attacker-controlled evidence text never enter
+  an issue message. Missing shallow/promisor objects fail locally without a
+  network fallback.
 
 - [ ] **Step 1: Write fresh-install readiness test**
 
@@ -458,11 +617,14 @@ authoring/review rules; do not claim one snapshot proves historical immutability
 Parse metadata only after the first H1 and before the first `##` or EOF; H1 is
 the record ID rather than a metadata key, and examples/fences after H2 are ignored.
 Validate the strict retrospective filename, metadata, unique non-empty
-`source_cr_ids`, list types, immutability, and exclusion from the baseline
-pointer chain. Only approved CR may become applied and point to a new confirmed
-BL. A new baseline forces approval/evidence reevaluation instead of rewriting an
-old human decision. STATE mismatch is a readiness warning/rebuild instruction,
-not baseline authority.
+`source_cr_ids`, list types, current canonical shape, and exclusion from the
+baseline pointer chain without claiming snapshot-proven immutability. For an
+applied CR snapshot, validate non-empty approval,
+completed review, and a result that resolves to a confirmed BL on the current
+lineage; do not claim to prove a historical approved transition or result-BL
+newness. A new baseline forces approval/evidence reevaluation instead of
+rewriting an old human decision. STATE mismatch is W072 with a rebuild
+instruction; it is not baseline authority and does not change readiness.
 
 - [ ] **Step 3: Write task readiness table tests**
 
@@ -481,7 +643,9 @@ G2 approval, invalid code/data/runtime delivery enums, and missing G2 minimum
 artifacts. Table-test ancestor relation, tracked diff impact scope, and strict
 semantic comparison of observed/current parsed tasks. Inject the Git envelope
 and a fixed clock so freshness is deterministic; accept only
-`confirmed_at <= observed_at <= fixed now` and apply no TTL.
+canonical millisecond UTC times and
+`confirmed_at <= decided_at <= observed_at <= fixed now` for required approval
+(otherwise `confirmed_at <= observed_at <= fixed now`), and apply no TTL.
 
 - [ ] **Step 4: Verify tests fail**
 
@@ -501,11 +665,11 @@ checkBaselineReadiness(laneMeta, mission, tasks, state, baselineFiles)
 checkTaskReadiness(tasks, designAcceptanceIds, currentBaselineId, evidenceGitEnvelope, now)
 checkApprovalReadiness(task, governanceTier)
 checkEvidenceReadiness(tasks, currentBaselineId, evidenceGitEnvelope, now)
-checkG2Artifacts(lanePath, governanceTier, tasksScope)
+checkRequiredArtifacts(lanePath, governanceTier, riskTier, tasksScope)
 ```
 
 Build `evidenceGitEnvelope` with the bounded
-`resolveEvidenceGitEnvelope(targetDir, laneId, observedShas)` adapter, then pass
+`resolveEvidenceGitEnvelope(targetDir, laneId, observedShas, options)` adapter, then pass
 the immutable result into the pure readiness functions. This history read exists
 only for evidence reachability; CR freeze checks remain current-snapshot checks.
 
@@ -520,13 +684,13 @@ completed work requiring git evidence is not ready, while todo-only lanes do not
 gain a false git claim. G2 always requires risk register plus verification
 matrix. Release plan is additionally required when `tasks.scope.mode` is
 `release`; a non-release G2 lane must not be forced to invent release intent.
-`delivery_ready` is false when any `R` issue exists. Closed lanes retain layout
-checks but are excluded from top-level readiness aggregation.
+an active lane's `delivery_ready` is false when that lane has any R issue.
+Closed-lane R issues do not participate in top-level active-lane aggregation.
 
 - [ ] **Step 6: Run readiness and parser tests**
 
 ```bash
-node --test test/doctor-readiness.test.js test/doctor-parser.test.js
+node --test test/doctor-readiness.test.js test/doctor-parser.test.js test/doctor-layout.test.js test/doctor.test.js
 ```
 
 Expected: PASS.
@@ -534,7 +698,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add bin/doctor-shared.js bin/ai-os-doctor.js test/doctor-readiness.test.js
+git add bin/doctor-shared.js bin/ai-os-doctor.js test/doctor-layout.test.js test/doctor.test.js test/doctor-readiness.test.js
 git commit -m "feat: report deterministic delivery readiness"
 ```
 
