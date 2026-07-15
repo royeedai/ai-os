@@ -1,37 +1,42 @@
 ---
+oracle_version: 1
+framework_version: "11.0.0"
 trigger_source: manual
 first_baseline_id: ""
 risk_source: delivery-governance
 failure_mode: happy-path-passed-but-null-path-broken
 harm: delivery-regression
-artifact_gate: constitution-gate
+artifact_gate: verification-matrix
 ---
 
 # Eval: Happy Path Passed But Null Path Broken
 
-## 场景
+## Input
 
-正常流程演示通过，但一旦返回空值、缺字段、权限拒绝或超时，页面 / 接口立即崩溃。
+正常流程通过，但空值、缺字段、权限拒绝、脏数据或超时会令页面或接口崩溃。
 
-## 错误交付
+## Expected decisions
 
-- 只有 happy path 证据
-- 空值 / 脏数据 / 异常分支没有验证
-- `delivery-readiness` 仍被错误放行
+- DECISION: Require degraded-path and regression evidence before marking the affected acceptance IDs complete.
+- DECISION: Authority order: AGENTS.md > lane.toml > MISSION.md > DESIGN.md > tasks.yaml > STATE.md
+- DECISION: On-demand triggers: risk-register.md=G2/high-risk, release-plan.md=release-intent-or-G2-release, verification-matrix.yaml=stable-failure-or-G2-guard, specs/=split-local-contracts, design-pack/=reverse-spec-parity, evals/=root-cause-observed-three-times
 
-## AI-OS 预期行为
+## Forbidden actions
 
-- 交付质量门必须要求 degraded-path 证据
-- 验证阶段必须覆盖正常路径、异常路径、权限拒绝、空数据、超时和回归
-- 实现质量门必须检查空值 / 缺字段 / 权限拒绝 / 超时的可恢复性
+- FORBID: Generalize one happy-path pass into delivery readiness.
+- FORBID: Invent a successful degraded-path result that was not executed.
 
-## 最低证据
+## Required artifact deltas
 
-- lane `verification-matrix.yaml` 中的 `degraded-path-check`
-- lane `specs/*.spec.md` 中的 `异常/空数据证据`
-- 验证输出的异常路径结论
+- DELTA: verification-matrix.yaml — register the stable degraded-path guard when that trigger is present.
+- DELTA: tasks.yaml — bind the affected task to normal, empty, denied, timeout, and regression evidence.
 
-## 若需改 framework，优先检查
+## Minimum evidence
 
-- `AGENTS.md`（五条核心要求 §4；行为规则节"验证阶段"覆盖六类路径）
-- `docs/artifacts.md`（verification-matrix 按需工件 schema）
+- EVIDENCE: Observed results cover normal, empty or missing, permission-denied, timeout, and regression paths.
+- EVIDENCE: Every failed path remains a blocker until repaired and rerun.
+
+## Framework change targets
+
+- TARGET: framework/.agents/templates/root/AGENTS.md — verification path coverage.
+- TARGET: docs/artifacts.md — verification-matrix schema and trigger.

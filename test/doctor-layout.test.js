@@ -101,7 +101,7 @@ function jsonRoutedDoctor(root, { strict = false } = {}) {
 function assertIssueShape(issue) {
   assert.deepEqual(Object.keys(issue), ISSUE_KEYS);
   assert.equal(issue.level, issue.severity);
-  assert.match(issue.code, /^[EWI]\d{3}$/);
+  assert.match(issue.code, /^[EWIR]\d{3}$/);
   assert.equal(typeof issue.message, "string");
 }
 
@@ -437,7 +437,7 @@ test("inspectProject returns the minimal not-project report directly", () => {
   });
 });
 
-test("clean JSON report is additive and readiness remains provisionally false", () => {
+test("fresh JSON report is additive and reports deterministic readiness blockers", () => {
   const root = installedFixture();
   const probe = jsonDoctor(root);
   assertHealthyLayout(probe);
@@ -448,12 +448,18 @@ test("clean JSON report is additive and readiness remains provisionally false", 
   assert.equal(probe.report.installedVersion, "11.0.0");
   assert.equal(probe.report.layout_version, "11");
   assert.equal(probe.report.layout_mode, "shared-root-default-lane");
-  assert.deepEqual(probe.report.issues, []);
+  assert.deepEqual(
+    probe.report.issues.map((item) => item.code),
+    ["R001", "R002", "R020"],
+  );
   assert.deepEqual(probe.report.semantic_warnings, []);
   assert.deepEqual(Object.keys(probe.report.lanes), ["default"]);
   assert.equal(probe.report.lanes.default.layout_ok, true);
   assert.equal(probe.report.lanes.default.delivery_ready, false);
-  assert.deepEqual(probe.report.lanes.default.issues, []);
+  assert.deepEqual(
+    probe.report.lanes.default.issues.map((item) => item.code),
+    ["R001", "R002", "R020"],
+  );
   assert.deepEqual(
     Object.keys(probe.report.lanes.default),
     ["layout_ok", "delivery_ready", "issues"],

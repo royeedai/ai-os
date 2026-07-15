@@ -47,11 +47,11 @@ AI-OS 不 ship MCP server；这只是 wire-level 契约，任何 MCP server 实�
 | `aios://lane/{laneId}/baseline-log/{id}` | `baseline-log/{id}.md` | L3 |
 | 按需工件（risk-register / release-plan / verification-matrix / spec / eval / parity-map） | 对应 lane 文件（存在时） | L2 / L3 |
 
-约定：`{laneId}` 默认 `default`；资源只读，写入走用户监督的宪法流程；`STATE` 优先级最高（session 恢复入口）。
+约定：`{laneId}` 由明确请求、task/baseline 归属或唯一 active lane 选择；资源只读，写入走用户监督的宪法流程。`STATE.md` is rebuildable navigation；冲突时以 committed truth 重建。
 
 ## Agent 间交接（A2A 等）
 
-`tasks.yaml` 的字段可直接映射到 A2A 等交接协议：`id` / `status` → Task；`acceptance_refs` / `evidence_required` → 计划 artifacts；`evidence_produced` → 返回 artifacts。远程 / 后台 agent 不得直接写 `.ai-os/lanes/`，必须经用户监督的 CR 流程回流。
+协调写入者分配 bounded work，worker 只返回一次精确 tuple：`task_id,lane_id,baseline_id,change_ref,evidence_refs,blockers`。`tasks.yaml` 的 `acceptance_refs` / `evidence_required` 映射计划 artifacts，`evidence_produced` 映射返回 artifacts。远程 / 后台 agent 不得直接写 `.ai-os/lanes/`；协调写入者核验后才回流 committed truth。
 
 ## 反模式（汇总）
 

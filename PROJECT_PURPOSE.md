@@ -1,5 +1,8 @@
 # AI-OS 项目目的
 
+下游项目必须动态选择 `{laneId}`。`STATE.md` is rebuildable navigation，
+不得覆盖 lane.toml、MISSION、DESIGN 或 tasks.yaml 的 committed truth。
+
 ## 1. 最终目的
 
 AI-OS 的最终目的不是让 AI 更自动写代码，而是让 AI 更稳定地把项目做对：

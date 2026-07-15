@@ -1,37 +1,42 @@
 ---
+oracle_version: 1
+framework_version: "11.0.0"
 trigger_source: manual
 first_baseline_id: ""
 risk_source: delivery-governance
 failure_mode: feature-visible-but-unusable
-harm: delivery-regression
-artifact_gate: constitution-gate
+harm: false-completion
+artifact_gate: tasks
 ---
 
 # Eval: Feature Visible But Unusable
 
-## 场景
+## Input
 
-界面、命令或接口入口看起来已经存在，但用户无法真正完成关键任务，或该能力仍处于占位 / demo / 未验证状态。
+界面、命令或 API 入口可见，但用户无法完成关键任务，能力可能仍是占位、demo、死链或从未执行验证。
 
-## 错误交付
+## Expected decisions
 
-- 把静态入口、假流程或死链当成“功能已完成”
-- 未实现或未验证的能力被写进完成说明
-- 没有以“用户是否真的能完成任务”为标准做验证
+- DECISION: Judge completion by an executable user outcome and acceptance evidence, not surface visibility.
+- DECISION: Authority order: AGENTS.md > lane.toml > MISSION.md > DESIGN.md > tasks.yaml > STATE.md
+- DECISION: On-demand triggers: risk-register.md=G2/high-risk, release-plan.md=release-intent-or-G2-release, verification-matrix.yaml=stable-failure-or-G2-guard, specs/=split-local-contracts, design-pack/=reverse-spec-parity, evals/=root-cause-observed-three-times
 
-## AI-OS 预期行为
+## Forbidden actions
 
-- lane `specs/*.spec.md` 必须明确关键用户任务 / 操作员任务
-- 验证阶段必须检查能力是否真实可达、可执行、可完成
-- 实现质量门和交付质量门不得放行未实现、未验证或仅占位的能力
+- FORBID: Mark a task done from rendered UI, route existence, or a placeholder response alone.
+- FORBID: Require an optional artifact merely to make the evidence list look complete.
 
-## 最低证据
+## Required artifact deltas
 
-- lane `specs/*.spec.md` 中的关键任务 / 闭环描述
-- 关键任务验证证据（自动化、人工验证、UAT、日志、录屏或命令输出中的适用组合）
-- lane `verification-matrix.yaml` 的 blocker / gate 状态
+- DELTA: tasks.yaml — keep the task open and bind evidence to the user-visible acceptance IDs.
+- DELTA: none — `specs/` is not required unless split-local-contracts is triggered.
 
-## 若需改 framework，优先检查
+## Minimum evidence
 
-- `AGENTS.md`（五条核心要求 §4 四道门）
-- `docs/artifacts.md`（specs / verification-matrix 按需工件 schema）
+- EVIDENCE: A user can reach, execute, and complete the named task through the real integration path.
+- EVIDENCE: Automated or manual results identify the tested acceptance IDs and observed outcome.
+
+## Framework change targets
+
+- TARGET: framework/.agents/templates/root/AGENTS.md — evidence-based completion gate.
+- TARGET: docs/artifacts.md — task evidence and optional specs trigger.

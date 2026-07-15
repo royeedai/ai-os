@@ -66,11 +66,11 @@ Agent runs:
 - Project-native static check (`pnpm build`, `pnpm typecheck`)
 - Regression: all existing tests still pass (no new failures introduced)
 - Edge cases: empty CSV, malformed CSV, duplicate SKUs, 10k+ rows, permission denied
-- Writes results to `.ai-os/lanes/default/verification-matrix.yaml` (on-demand artifact, created when the first failure-mode guard is registered)
+- Writes results to `.ai-os/lanes/default/verification-matrix.yaml` (on-demand artifact, created when this stable failure guard is registered)
 
 ## 6. Ship
 
-Release plan includes:
+The user's explicit request to ship triggers `.ai-os/lanes/default/release-plan.md`; release intent is the trigger, and the plan includes:
 
 - "Code state": deployed
 - "Data state": no migration of existing data (greenfield import)

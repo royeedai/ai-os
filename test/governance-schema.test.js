@@ -406,9 +406,13 @@ test("v11 installed artifact reference matches layout, ownership, and trigger tr
   assert.match(docs, /只有.*STATE\.md.*不入版本控制/s);
   assert.match(docs, /doctor.*校验.*已存在.*按需工件/s);
   assert.match(docs, /risk-register\.md.*G2.*high-risk/s);
-  assert.match(docs, /verification-matrix\.yaml.*stable failure.*G2 minimum/s);
-  assert.match(docs, /release-plan\.md.*显式.*release intent.*G2 release preparation/s);
+  assert.match(docs, /verification-matrix\.yaml.*stable-failure-or-G2-guard/s);
+  assert.match(docs, /release-plan\.md.*release-intent-or-G2-release/s);
   assert.match(docs, /非 release.*G2.*不.*强制.*release-plan\.md/s);
+  for (const token of ["oracle_version", "framework_version", "Expected decisions", "Forbidden actions", "Required artifact deltas", "Minimum evidence", "Framework change targets"]) {
+    assert.ok(docs.includes(token), `artifact reference documents eval oracle ${token}`);
+  }
+  assert.doesNotMatch(docs, /exact keys `scenario \/ expected \/ trigger_source \/ first_baseline_id`/);
 });
 
 test("fresh memory has empty active and archived sections plus a non-record schema", () => {

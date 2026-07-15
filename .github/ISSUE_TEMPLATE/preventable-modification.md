@@ -1,6 +1,6 @@
 ---
 name: Preventable Modification Feedback
-about: 反馈一次 AI-OS 第一次开发后本可避免的修改，帮助下个 minor 收紧框架
+about: 反馈一次 AI-OS 第一次开发后本可避免的修改，帮助后续版本收紧框架
 title: "[Preventable] "
 labels: framework-feedback
 ---
@@ -11,7 +11,7 @@ labels: framework-feedback
 
 - AI-OS 版本：
 - 项目类型（greenfield / brownfield / reverse-spec / change）：
-- 当前 lane 治理档位（P0 / P1 / P2）：
+- 当前 lane 治理档位（G0 / G1 / G2）：
 
 ## 修改简述
 

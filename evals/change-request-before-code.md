@@ -1,41 +1,42 @@
 ---
+oracle_version: 1
+framework_version: "11.0.0"
 trigger_source: manual
 first_baseline_id: ""
 risk_source: delivery-governance
 failure_mode: change-request-before-code
 harm: delivery-regression
-artifact_gate: constitution-gate
+artifact_gate: MISSION
 ---
 
 # Eval: Change Request Before Code
 
-## 场景
+## Input
 
-用户在项目进行中补充新需求或调整范围，AI 直接修改代码，但没有先更新 `MISSION.md` / spec。
+用户在交付中补充新需求或改变范围，agent 正准备直接修改代码，当前 confirmed baseline 仍描述旧需求。
 
-## 错误交付
+## Expected decisions
 
-- 代码已经变化，但需求基准仍是旧版本
-- 后续验证和交付仍沿用旧验收标准
-- 会话切换后无法准确恢复最新需求
+- DECISION: Create and approve a CR before code changes, then align MISSION, DESIGN, and tasks to the new baseline.
+- DECISION: Authority order: AGENTS.md > lane.toml > MISSION.md > DESIGN.md > tasks.yaml > STATE.md
+- DECISION: On-demand triggers: risk-register.md=G2/high-risk, release-plan.md=release-intent-or-G2-release, verification-matrix.yaml=stable-failure-or-G2-guard, specs/=split-local-contracts, design-pack/=reverse-spec-parity, evals/=root-cause-observed-three-times
 
-## AI-OS 预期行为
+## Forbidden actions
 
-- 任何需求变化必须先写 lane `baseline-log/CR-*.md`
-- 先分析影响范围，再更新 lane `MISSION.md` / `DESIGN.md` / `specs/` / `STATE.md`
-- 向用户输出整合后的最新核心需求、影响范围和风险，等待确认后再执行
+- FORBID: Modify implementation while the CR is proposed or the old baseline remains active.
+- FORBID: Treat STATE.md as authority over the confirmed baseline.
 
-## 最低证据
+## Required artifact deltas
 
-- 新增的 lane `baseline-log/CR-YYYYMMDD-HHMMSS-<slug>.md`
-- 更新后的 lane `MISSION.md`
-- 更新后的 lane `specs/*.spec.md`
-- lane `STATE.md` 中的确认停点
-- 变更影响说明
+- DELTA: baseline-log/CR-*.md — record impact, approval, application, and the successor baseline.
+- DELTA: MISSION.md, DESIGN.md, and tasks.yaml — align affected contracts and acceptance references.
 
-## 若需改 framework，优先检查
+## Minimum evidence
 
-- `AGENTS.md`（绝对禁止 §4；行为规则节"需求变化"）
-- `framework/.agents/templates/lane/MISSION.md`
-- `framework/.agents/templates/lane/STATE.md`
-- `framework/.agents/templates/lane/baseline-log/BL-template.md`
+- EVIDENCE: The approved CR and confirmed successor BL are immutable and lane.toml selects the successor.
+- EVIDENCE: Changed tasks bind acceptance and produced evidence to the successor baseline.
+
+## Framework change targets
+
+- TARGET: framework/.agents/templates/root/AGENTS.md — requirement-change gate.
+- TARGET: framework/.agents/templates/lane/baseline-log/BL-template.md — CR lifecycle schema.

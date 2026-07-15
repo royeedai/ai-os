@@ -13,6 +13,8 @@ test("package: tarball contains and installs the complete distribution", () => {
   const packDir = tmpDir();
   const consumerDir = fs.realpathSync.native(tmpDir());
   const projectsRoot = fs.realpathSync.native(tmpDir());
+  const npmCache = fs.realpathSync.native(tmpDir());
+  const npmEnv = { ...process.env, npm_config_cache: npmCache };
   const safeProjectDir = path.join(projectsRoot, "safe project with 空格");
   const cliProjectDir = path.join(projectsRoot, "legacy CLI project with 空格");
 
@@ -20,6 +22,7 @@ test("package: tarball contains and installs the complete distribution", () => {
     const pack = spawnSync("npm", ["pack", "--json", "--pack-destination", packDir], {
       cwd: repoRoot,
       encoding: "utf8",
+      env: npmEnv,
     });
     assert.equal(pack.status, 0, pack.stderr);
 
@@ -31,6 +34,7 @@ test("package: tarball contains and installs the complete distribution", () => {
 
     const required = [
       "README.md",
+      "SECURITY.md",
       "VERSION",
       "docs/artifacts.md",
       "framework/.agents/templates/root/AGENTS.md",
@@ -60,7 +64,7 @@ test("package: tarball contains and installs the complete distribution", () => {
         name.startsWith("bin/")
         || name.startsWith("framework/")
         || /^docs\/[^/]+[.]md$/.test(name)
-        || ["LICENSE", "README.md", "VERSION"].includes(name)
+        || ["LICENSE", "README.md", "SECURITY.md", "VERSION"].includes(name)
       )
     ));
     expectedFiles.push("package.json");
@@ -69,6 +73,7 @@ test("package: tarball contains and installs the complete distribution", () => {
     const install = spawnSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], {
       cwd: consumerDir,
       encoding: "utf8",
+      env: npmEnv,
     });
     assert.equal(install.status, 0, install.stderr);
 
@@ -175,6 +180,6 @@ test("package: tarball contains and installs the complete distribution", () => {
     assert.equal(doctor.status, 0, doctor.stderr);
     assert.equal(JSON.parse(doctor.stdout).ok, true);
   } finally {
-    cleanup(packDir, consumerDir, projectsRoot);
+    cleanup(packDir, consumerDir, projectsRoot, npmCache);
   }
 });

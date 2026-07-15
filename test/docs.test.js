@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Documentation / constitution consistency checks for the v10 layout
+ * Documentation / constitution consistency checks for the v11 layout
  * (core default artifacts + on-demand extension artifacts).
  */
 
@@ -133,7 +133,6 @@ test("docs: no doc references deleted files or removed doctor codes", () => {
     "docs/reverse-spec-url-intake.md",
     "docs/change-evaluation-template.md",
     "docs/interop/",
-    "W072",
     "W074",
     "W076",
     "W077",
@@ -168,15 +167,39 @@ test("docs: CLI reference describes the v11 safe installer boundary", () => {
   assert.ok(!cli.includes("generated file ignores"));
 });
 
-test("docs: doctor semantic warnings are exactly W070 and W071", () => {
+test("docs: doctor distinguishes compatibility warnings from STATE drift", () => {
   const doctor = read("bin/ai-os-doctor.js");
-  assert.ok(doctor.includes('["W070", "W071"]'), "doctor semantic warning range is W070-W071");
-  for (const code of ["W072", "W074", "W076", "W077", "W078", "W079"]) {
+  assert.ok(doctor.includes('["W070", "W071", "W072"]'), "doctor semantic warning range is W070-W072");
+  assert.ok(doctor.includes("W072"), "doctor contains the STATE drift warning");
+  for (const code of ["W074", "W076", "W077", "W078", "W079"]) {
     assert.ok(!doctor.includes(code), `doctor does not contain removed code ${code}`);
   }
   const cli = read("docs/cli.md");
   assert.ok(cli.includes("W070"), "cli.md documents W070");
   assert.ok(cli.includes("W071"), "cli.md documents W071");
+  assert.ok(cli.includes("W072"), "cli.md documents W072");
+});
+
+test("docs: doctor contract lists every code and locks the fresh JSON report", () => {
+  const source = read("bin/ai-os-doctor.js");
+  const codes = [...source.matchAll(/^  ([EWIR]\d{3}): /gm)]
+    .map((match) => match[1]);
+  assert.ok(codes.length > 0);
+  const cli = read("docs/cli.md");
+  for (const code of codes) assert.ok(cli.includes(`\`${code}\``), `cli documents ${code}`);
+  assert.match(cli, /fresh install.*not delivery-ready/i);
+  assert.match(cli, /layout_ok.*delivery_ready.*warnings/is);
+  assert.doesNotMatch(cli, /not structurally checked by doctor/i);
+
+  const fixture = JSON.parse(read("test/fixtures/doctor-report.json"));
+  const match = cli.match(/<!-- doctor-report:start -->\s*```json\s*([\s\S]*?)\s*```\s*<!-- doctor-report:end -->/u);
+  assert.ok(match, "cli contains one marked doctor report fence");
+  assert.deepEqual(JSON.parse(match[1]), fixture);
+
+  const readme = read("README.md");
+  assert.match(readme, /layout_ok/i);
+  assert.match(readme, /delivery_ready/i);
+  assert.match(readme, /fresh install.*not delivery-ready/i);
 });
 
 test("docs: framework templates ship core artifacts only", () => {
@@ -271,7 +294,7 @@ test("docs: BL-template ships CR delta lifecycle and framework feedback schema",
 test("docs: artifacts.md declares core + on-demand split and progressive disclosure", () => {
   const content = read("docs/artifacts.md");
   assert.ok(content.includes("核心工件（默认安装）"), "artifacts.md has core artifact section");
-  assert.ok(content.includes("按需工件（默认不安装）"), "artifacts.md has on-demand artifact section");
+  assert.ok(content.includes("按需工件触发矩阵"), "artifacts.md has on-demand trigger section");
   for (const artifact of ["risk-register.md", "release-plan.md", "verification-matrix.yaml", "specs/", "design-pack/", "evals/"]) {
     assert.ok(content.includes(artifact), `artifacts.md documents on-demand artifact ${artifact}`);
   }
@@ -309,16 +332,16 @@ test("docs: activation gate keeps ordinary conversation outside lane governance"
 
   assert.ok(agents.includes("delivery-affecting work"), "AGENTS.md gates on delivery-affecting work");
   assert.ok(agents.includes("不读写 `.ai-os/lanes/*`") || agents.includes("不读取或写入"), "AGENTS.md forbids lane access for ordinary conversation");
-  assert.ok(agents.includes("用户已明确要求分析、修复、实现、验证或发布时视为已进入交付"), "AGENTS.md lets explicit delivery requests enter governance without re-asking");
+  assert.ok(agents.includes("用户已明确要求分析、修复、实现、验证或发布时直接进入交付"), "AGENTS.md lets explicit delivery requests enter governance without re-asking");
 
   assert.ok(readme.includes("run the Activation Gate before loading lane artifacts"), "README routes agents through Activation Gate before lane loading");
   assert.ok(readme.includes("Just discuss / brainstorm / explain"), "README includes ordinary conversation row");
   assert.ok(readme.includes("do not read or write lane artifacts"), "README tells agents not to touch lane artifacts for discussion");
   assert.ok(readme.includes("if the user already asked to fix and scope is clear"), "README does not force a second go on already-authorized fixes");
 
-  assert.ok(skill.includes("Run the Activation Gate before reading L1"), "skill invocation contract runs gate before L1");
-  assert.ok(skill.includes("ordinary conversation"), "skill wrapper excludes ordinary conversation");
-  assert.ok(skill.includes("Explicit delivery requests"), "skill wrapper recognizes explicit delivery requests");
+  assert.ok(skill.includes("Run the local AGENTS Activation Gate before lane reads"), "skill invocation contract runs gate before L1");
+  assert.ok(skill.includes("Ordinary discussion"), "skill wrapper excludes ordinary conversation");
+  assert.ok(skill.includes("Explicit analyze-and-fix"), "skill wrapper recognizes explicit delivery requests");
 });
 
 test("docs: on-demand artifacts documented consistently across surfaces", () => {
@@ -329,11 +352,11 @@ test("docs: on-demand artifacts documented consistently across surfaces", () => 
 
   assert.ok(readme.includes("On-demand artifacts"), "README documents on-demand artifacts");
   assert.ok(cli.includes("on-demand"), "cli.md documents on-demand artifacts");
-  assert.ok(skill.includes("On-demand artifacts"), "skill wrapper documents on-demand artifacts");
+  assert.ok(skill.includes("on-demand"), "skill wrapper routes on-demand artifacts");
   assert.ok(gettingStarted.includes("created on demand"), "getting-started documents on-demand artifacts");
-  for (const surface of [readme, cli, skill]) {
-    assert.ok(surface.includes("docs/artifacts.md") || surface.includes("artifacts.md"), "surface points to artifacts.md for schemas");
-  }
+  assert.ok(readme.includes("docs/artifacts.md"));
+  assert.ok(cli.includes("docs/artifacts.md"));
+  assert.ok(skill.includes(".ai-os/reference/artifacts.md"));
 });
 
 test("docs: interop.md consolidates all tool coexistence guidance", () => {
@@ -469,11 +492,11 @@ test("docs: official ai-os-delivery SKILL.md follows agentskills.io spec", () =>
   assert.ok(descMatch[1].length <= 1024, `SKILL.md description <=1024 chars (got ${descMatch[1].length})`);
   const body = content.slice(fmEnd + 5);
   const bodyLines = body.split(/\r?\n/).length;
-  assert.ok(bodyLines <= 200, `SKILL.md body stays compact (got ${bodyLines} lines)`);
-  assert.ok(body.includes("Five core requirements"), "SKILL.md carries the five core requirements");
-  assert.ok(body.includes("On-demand artifacts"), "SKILL.md documents on-demand artifacts");
-  assert.ok(body.includes("Implicit mechanism change gate"), "SKILL.md documents implicit mechanism change gate");
-  assert.ok(body.includes("High-risk state flow"), "SKILL.md documents high-risk state flow");
+  assert.ok(bodyLines <= 60, `SKILL.md body stays thin (got ${bodyLines} lines)`);
+  assert.ok(body.includes("local `AGENTS.md`"), "SKILL.md delegates to local constitution");
+  assert.ok(body.includes("{laneId}"), "SKILL.md selects a lane dynamically");
+  assert.ok(body.includes("L1") && body.includes("L2") && body.includes("L3"));
+  assert.ok(!body.includes("Five core requirements"), "SKILL.md does not duplicate constitution rules");
 });
 
 test("docs: AI-OS repo does not commit lane state", () => {
@@ -497,4 +520,42 @@ test("docs: framework feedback loop is documented", () => {
   assert.ok(maintainers.includes("framework-feedback"), "maintainers.md mentions framework-feedback issue label");
   assert.ok(issueTemplate.includes("framework-feedback"), "issue template uses framework-feedback label");
   assert.ok(issueTemplate.includes("Preventability review"), "issue template asks for Preventability review section");
+});
+
+test("docs: maintainer feedback surfaces use current issue, eval, and governance vocabulary", () => {
+  const pr = read(".github/PULL_REQUEST_TEMPLATE.md");
+  const issue = read(".github/ISSUE_TEMPLATE/preventable-modification.md");
+  const maintainers = read("docs/maintainers.md");
+
+  for (const content of [pr, issue, maintainers]) {
+    assert.doesNotMatch(content, /PL-[xX]+|PG-[xX]+|问题台账/);
+  }
+  assert.match(pr, /Issue \/ eval \/ failure-mode reference/);
+  assert.match(pr, /Code state/);
+  assert.match(pr, /Data state/);
+  assert.match(pr, /Runtime state/);
+  assert.match(issue, /G0 \/ G1 \/ G2/);
+  assert.match(issue, /^labels: framework-feedback$/m);
+  assert.match(maintainers, /`framework-feedback`/);
+});
+
+test("docs: every release uses the complete seven-claim release gate", () => {
+  const maintainers = read("docs/maintainers.md");
+
+  for (const command of ["npm test", "npm run test:coverage", "npm run lint", "git diff --check", "npm pack"]) {
+    assert.ok(maintainers.includes(`\`${command}\``), `release checklist includes ${command}`);
+  }
+  for (const claim of [
+    "VERSION / package.json / package-lock.json / CHANGELOG / candidate tag",
+    "README / docs / RELEASED_VERSION",
+    "supported-platform CI / tarball smoke",
+    "production audit",
+    "release commit / annotated tag trust",
+    "GitHub Release / exact tag / checksum / package contents",
+    "pinned-ref installation smoke",
+  ]) {
+    assert.ok(maintainers.includes(claim), `release checklist includes ${claim}`);
+  }
+  assert.match(maintainers, /patch \/ minor \/ major[^\n]*tag/i);
+  assert.match(maintainers, /remote readback/i);
 });

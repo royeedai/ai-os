@@ -1,10 +1,13 @@
 # 贡献指南
 
+下游指导必须动态使用 `{laneId}`，不能硬编码初始 lane。`STATE.md` is
+rebuildable navigation，不是 committed truth。
+
 感谢你对 AI-OS 的关注。
 
 ## 开发环境
 
-- Node.js 18+
+- Node.js 22.13+
 - 零外部依赖，只使用 Node.js 内置模块
 
 ## 快速开始

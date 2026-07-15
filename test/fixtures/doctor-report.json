@@ -1,0 +1,70 @@
+{
+  "ok": true,
+  "version": "11.0.0",
+  "package": "create-ai-os@11.0.0",
+  "targetDir": "<target-dir>",
+  "installedVersion": "11.0.0",
+  "layout_version": "11",
+  "layout_mode": "shared-root-default-lane",
+  "issues": [
+    {
+      "level": "info",
+      "code": "R001",
+      "message": "Current baseline is the unconfirmed bootstrap record.",
+      "severity": "info",
+      "path": ".ai-os/lanes/default/baseline-log/<bootstrap-id>.md",
+      "lane_id": "default"
+    },
+    {
+      "level": "info",
+      "code": "R002",
+      "message": "Lane tiers are unassessed, inconsistent, or below the required governance floor.",
+      "severity": "info",
+      "path": ".ai-os/lanes/default/lane.toml",
+      "lane_id": "default"
+    },
+    {
+      "level": "info",
+      "code": "R020",
+      "message": "Every active task must be terminal with complete AC, dependency, evidence, and delivery state.",
+      "severity": "info",
+      "path": ".ai-os/lanes/default/tasks.yaml",
+      "lane_id": "default"
+    }
+  ],
+  "semantic_warnings": [],
+  "layout_ok": true,
+  "delivery_ready": false,
+  "lanes": {
+    "default": {
+      "layout_ok": true,
+      "delivery_ready": false,
+      "issues": [
+        {
+          "level": "info",
+          "code": "R001",
+          "message": "Current baseline is the unconfirmed bootstrap record.",
+          "severity": "info",
+          "path": ".ai-os/lanes/default/baseline-log/<bootstrap-id>.md",
+          "lane_id": "default"
+        },
+        {
+          "level": "info",
+          "code": "R002",
+          "message": "Lane tiers are unassessed, inconsistent, or below the required governance floor.",
+          "severity": "info",
+          "path": ".ai-os/lanes/default/lane.toml",
+          "lane_id": "default"
+        },
+        {
+          "level": "info",
+          "code": "R020",
+          "message": "Every active task must be terminal with complete AC, dependency, evidence, and delivery state.",
+          "severity": "info",
+          "path": ".ai-os/lanes/default/tasks.yaml",
+          "lane_id": "default"
+        }
+      ]
+    }
+  }
+}

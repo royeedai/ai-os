@@ -25,12 +25,14 @@ You now have: `AGENTS.md` + shared root `.ai-os/` + `.ai-os/lanes/default/` star
    - Key exception / boundary branches: oversized upload rejected, duplicate post, private-album access denied
    - Explicitly out of scope: stock-photo marketplace, pro workflows
    - Success criteria: first 100 beta users can upload and share within 60 seconds
-3. Writes `.ai-os/lanes/default/baseline-log/CR-20260422-101500-initial-alignment.md` capturing what it asked vs. what you answered
+3. Keeps the installer-created unconfirmed bootstrap record as immutable history; initial alignment is not a change request
 4. Restate-and-confirm gate (per AGENTS.md §1): before locking anything, the agent restates its understanding back to you in structured form — "Here's what I understood: **goal** = ship a 60-second upload-and-share loop for hobbyists; **core main flow** = sign in -> upload -> tag season -> publish -> notify followers; **state transitions** = draft -> published -> archived; **key exception paths** = oversized upload, duplicate post, private-album access denied. Confirm or correct before I lock the MISSION."
 
 **You**: "Correct, but archived albums must stay viewable by the owner." → agent updates that exception branch in MISSION.md §2 and re-asks.
 
 **You**: "Confirmed."
+
+The agent now appends the immutable confirmed `BL-20260422-101500-nature-sharing.md` record and points `lane.toml` at it. Later requirement changes use CR records; the first agreement does not.
 
 ## 2. Design lock (agent detects design is not yet locked)
 
@@ -63,11 +65,11 @@ Agent rule: key design must be confirmed before broad implementation.
 
 ## 5. Ship
 
-Agent creates `.ai-os/lanes/default/release-plan.md` (on-demand artifact, created at ship time):
+After your explicit release intent ("ship it"), the agent creates `.ai-os/lanes/default/release-plan.md`; this release intent is the trigger, not generic high-risk work:
 
 - Implemented: REQ-001...REQ-007
 - NOT included: pro workflows (explicitly out-of-scope)
-- AI done vs. human needed: "Need you to run `pnpm deploy:prod` and create Stripe webhook"
+- AI done vs. human needed: "Need you to run `pnpm deploy:prod` after reviewing the production target"
 - Rollback conditions
 
 **You**: review + "ship it."

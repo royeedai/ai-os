@@ -1,0 +1,8 @@
+/.github/CODEOWNERS @royeedai
+/.github/workflows/ @royeedai
+/bin/ @royeedai
+/framework/ @royeedai
+/VERSION @royeedai
+/RELEASED_VERSION @royeedai
+/package.json @royeedai
+/package-lock.json @royeedai

@@ -1,63 +1,54 @@
 # AI-OS regression evals
 
-Failure-mode samples used to regression-test AI-OS itself. Each entry describes a real project failure mode AI-OS is designed to intercept — not a "does the CLI run" check, but a "does the constitution actually prevent wrong delivery" check.
+This directory contains 11 machine-readable behavior oracles for delivery-governance failure modes. They test whether a constitution or model response makes the required decisions, avoids concrete forbidden actions, updates only triggered artifacts, and produces sufficient evidence. They are not a live model harness.
 
-## Structure of each eval
+## Oracle contract
 
-Every eval starts with YAML frontmatter:
+Every non-README Markdown file has strict scalar frontmatter:
 
 ```yaml
 ---
-trigger_source: manual                  # or: promoted-from-verification-matrix
-first_baseline_id: ""                   # baseline-log/CR-* id when promoted
-risk_source: delivery-governance        # stable taxonomy source
-failure_mode: missing-user-confirmation # short failure-mode slug
-harm: wrong-work                        # likely delivery harm
-artifact_gate: MISSION                  # artifact gate that should catch it
+oracle_version: 1
+framework_version: "11.0.0"
+trigger_source: manual
+first_baseline_id: ""
+risk_source: delivery-governance
+failure_mode: missing-user-confirmation
+harm: wrong-work
+artifact_gate: MISSION
 ---
 ```
 
-`trigger_source` lets the constitution distinguish hand-authored regression cases from failure modes that have been observed often enough in a downstream project's `verification-matrix.yaml` to be promoted into evals (per the `AGENTS.md` 稳定失败模式 rule: same root cause hit ≥3 times → promote here).
+`trigger_source` is `manual` or `promoted-from-verification-matrix`. A downstream failure mode is promoted only after the same root cause is observed three times. `first_baseline_id` records that provenance when one exists.
 
-After the frontmatter, every eval answers 5 questions:
+Each oracle has exactly these sections and parseable list prefixes:
 
-1. **Scenario**: what input situation triggers this failure mode
-2. **Wrong delivery**: what the bad outcome looks like
-3. **AI-OS expected behavior**: which constitution rule should intercept it
-4. **Minimum evidence**: which artifacts should contain proof
-5. **If AI-OS needs changes**: where in `AGENTS.md` to strengthen the rule
+- `Input`
+- `Expected decisions` with `DECISION:` items
+- `Forbidden actions` with `FORBID:` items
+- `Required artifact deltas` with `DELTA:` items
+- `Minimum evidence` with `EVIDENCE:` items
+- `Framework change targets` with `TARGET:` items
 
-An optional free-form `trajectory_signature` field may describe the execution-trajectory shape that reproduces the failure (e.g. `"session-resume → skip-STATE.md → write-code"`); omit it when there is no clear trajectory pattern.
+`DELTA: none — reason` is the only empty-delta form. Optional artifacts remain governed by the canonical trigger matrix; an oracle cannot require one merely to make its evidence list larger.
 
-## Current baseline samples
+## Current oracle inventory
 
-Grouped by the five core requirements they enforce.
+- `missing-user-confirmation.md`
+- `change-request-before-code.md`
+- `inferred-treated-as-fact-into-execution.md`
+- `design-not-locked-before-build.md`
+- `shared-layer-side-effect-audit-missed.md`
+- `implicit-mechanism-change-gate-missed.md`
+- `debug-overreach-regression.md`
+- `feature-visible-but-unusable.md`
+- `happy-path-passed-but-null-path-broken.md`
+- `fix-complete-but-data-runtime-not-recovered.md`
+- `release-truth-drift.md`
 
-### R1: Goal and user confirmation first
+## Maintainer use
 
-- `missing-user-confirmation.md` — AI proceeds without user confirmation
-- `change-request-before-code.md` — AI changes code before updating baseline
-- `inferred-treated-as-fact-into-execution.md` — Inferred / unknown treated as confirmed and carried into execution or closure
-
-### R2: Key design and logic locked first
-
-- `design-not-locked-before-build.md` — Implementation before design confirmed
-- `shared-layer-side-effect-audit-missed.md` — No side-effect list for shared-layer changes
-- `implicit-mechanism-change-gate-missed.md` — Implicit mechanism changed without entry / scope / order / failure audit
-
-### R3: Adaptive governance
-
-- `debug-overreach-regression.md` — Bug fix scopes creep into unrelated code
-
-### R4: Evidence-based completion
-
-- `feature-visible-but-unusable.md` — UI entry exists but not functional
-- `happy-path-passed-but-null-path-broken.md` — Happy path passes, edges crash
-- `fix-complete-but-data-runtime-not-recovered.md` — Code fixed but data/runtime not
-- `release-truth-drift.md` — Release / publish request drifts from lane state and release artifacts
-
-## Using evals
-
-- When you propose any change to `AGENTS.md`, check if an eval would break.
-- When you hit a new real-world failure mode, add a new eval with the 5-question template.
-- When a failure mode becomes inert (e.g., covered by model-level self-verification in a future upgrade), archive rather than delete the eval.
+- Run `node --test test/evals.test.js` after changing the distributed constitution, artifact schema, skill, or an oracle.
+- A maintainer may manually run the same inputs against a dated model matrix and attach results to an issue or pull request.
+- Matrix runs are manual maintainer evidence, not product telemetry: AI-OS does not collect prompts, responses, usage, or background analytics.
+- Archive an obsolete oracle with an explicit rationale; do not silently weaken or delete a regression contract.

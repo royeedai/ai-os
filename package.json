@@ -17,12 +17,13 @@
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "test:coverage": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include=bin/**/*.js --test-coverage-lines=94 --test-coverage-branches=72 --test-coverage-functions=98 test/*.test.js",
-    "lint": "eslint bin/ test/"
+    "lint": "eslint bin/ scripts/ test/"
   },
   "files": [
     "bin",
     "framework",
     "docs/*.md",
+    "SECURITY.md",
     "LICENSE",
     "README.md",
     "VERSION"
@@ -30,6 +31,6 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.1.0"
+    "eslint": "^10.7.0"
   }
 }

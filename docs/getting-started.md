@@ -21,17 +21,19 @@ Extension artifacts (risk-register, release-plan, verification-matrix, specs, de
 1. `AGENTS.md`
 2. Activation Gate: decide whether the request is delivery-affecting work
 3. For ordinary conversation, answer directly without reading or writing lane artifacts
-4. For delivery-affecting work, read `.ai-os/lanes/default/STATE.md`
-5. Then read `.ai-os/lanes/default/MISSION.md`, `.ai-os/MISSION.md`, and `.ai-os/lanes/default/DESIGN.md` as needed
+4. For delivery-affecting work, select `{laneId}` and read its lane.toml plus optional STATE
+5. Then read `.ai-os/lanes/{laneId}/MISSION.md`, `.ai-os/MISSION.md`, and `.ai-os/lanes/{laneId}/DESIGN.md` as needed
 
 ## 3. Recovery order
 
 When resuming work:
 
-1. `.ai-os/lanes/default/STATE.md`
-2. `.ai-os/lanes/default/MISSION.md`
-3. latest `.ai-os/lanes/default/baseline-log/*.md`
+1. `.ai-os/lanes/{laneId}/lane.toml` and optional STATE
+2. `.ai-os/lanes/{laneId}/MISSION.md`
+3. latest `.ai-os/lanes/{laneId}/baseline-log/*.md`
 4. `.ai-os/MISSION.md`
+
+`STATE.md` is rebuildable navigation; it never overrides committed truth.
 
 ## 4. Governance split
 

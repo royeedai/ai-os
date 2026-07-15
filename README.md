@@ -57,12 +57,17 @@ There is one default layout. The default install contains only the **core artifa
 Root `.ai-os/MISSION.md` is the **shared host-project context**.  
 `.ai-os/lanes/default/MISSION.md` is the **current delivery baseline**.
 
+For active work, select `{laneId}` from the explicit request, task/baseline
+ownership, or the sole active lane. `STATE.md` is rebuildable navigation; it
+never overrides committed lane truth.
+
 **On-demand artifacts** are created by the agent when their trigger condition is hit, never installed by default (schemas in [docs/artifacts.md](docs/artifacts.md)):
 
 | Artifact | Created when |
 |---|---|
-| `risk-register.md` + `release-plan.md` | work enters the high-risk tier |
-| `verification-matrix.yaml` | a stable failure mode / regression guard is registered |
+| `risk-register.md` | work enters G2 / high-risk governance |
+| `release-plan.md` | explicit release intent or G2 release preparation |
+| `verification-matrix.yaml` | a stable failure mode or G2 minimum guard |
 | `specs/` | a large project needs DESIGN split into local contracts |
 | `design-pack/` | reverse-spec work needs parity evidence |
 | `evals/` | the same failure root cause is hit ≥3 times |
@@ -92,7 +97,11 @@ No slash commands. No profile flags. No proprietary AI-OS skill system; the `age
 
 Stronger models improve single-shot compliance, but prompt-style guidance still reaches only partial compliance and cannot enforce project-level contracts by itself. Safety-critical boundaries need **deterministic enforcement** — a check whose exit code the model cannot override.
 
-AI-OS uses `doctor` for exactly this: structural layout checks plus two semantic warnings (W070 baseline consistency, W071 task ownership). The same local command can be wired into pre-commit, CI, or IDE hooks. All runs use the committed local entry, so they run offline:
+AI-OS uses `doctor` for exactly this: `layout_ok` reports structural health,
+while `delivery_ready` reports confirmed governance, task, approval, evidence,
+and local Git readiness across every active lane. A fresh install is layout-valid but not delivery-ready. The same local command can be wired into
+pre-commit, CI, or IDE hooks. All runs use the committed local entry, so they
+run offline:
 
 ```bash
 node .ai-os/bin/ai-os-doctor.js . --strict
@@ -111,8 +120,8 @@ There are no slash commands. When an AI agent opens an installed project with `A
 
 - read `AGENTS.md`
 - run the Activation Gate before loading lane artifacts
-- for delivery-affecting work, read `.ai-os/lanes/default/STATE.md` first for current recovery
-- then read `.ai-os/lanes/default/MISSION.md` for the active delivery baseline and `.ai-os/MISSION.md` for shared host-project context
+- for delivery-affecting work, select `{laneId}`, then read `.ai-os/lanes/{laneId}/lane.toml` and optional STATE navigation
+- then read `.ai-os/lanes/{laneId}/MISSION.md` for the active delivery baseline and `.ai-os/MISSION.md` for shared host-project context
 
 AI-OS artifact governance applies to delivery-affecting work: code or project artifact edits, feature work, requirement changes, bug fixes, verification, shipping, session recovery, and high-risk actions. It does not apply to ordinary conversation, brainstorming, explanation, learning questions, temporary commands, or non-repo tasks.
 

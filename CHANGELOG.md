@@ -21,7 +21,7 @@ This file tracks releases from v11.0.0 onward. For v5.x – v10.x history, see [
 - layout schema 升为 **v10**（`LAYOUT_VERSION = "10"`）；`.gitignore` / `.gitattributes` 受管段落标题去掉版本号。
 - doctor 收敛为结构检查 + 两个语义警告：**W070**（baseline ID 与 baseline-log 不一致）、**W071**（task 缺 owner）。
 - `docs/` 收敛为 5 个文件：`artifacts.md`（核心 + 按需工件 schema）、`getting-started.md`、`cli.md`、`maintainers.md`、`interop.md`（原 `docs/interop/` 6 个文件合并）。
-- `evals/` 收敛为 10 个最核心失败模式；`examples/` 收敛为 3 个场景（greenfield / brownfield-change / debug-bounded-fix）。
+- `evals/` 收敛为 11 个可确定解析的行为 oracle；`examples/` 收敛为 3 个场景（greenfield / brownfield-change / debug-bounded-fix）。模型矩阵只由 maintainer 手工记录，不引入产品遥测。
 - README、PROJECT_PURPOSE、官方 skill wrapper 同步新布局与新宪法。
 
 ### Removed
@@ -38,6 +38,6 @@ This file tracks releases from v11.0.0 onward. For v5.x – v10.x history, see [
 
 ### Migration
 
-- 已安装项目：使用固定发布版 `npx --yes github:royeedai/ai-os#v10.5.1 .` 安装宪法、模板与 vendored doctor。旧的 `risk-register.md` / `release-plan.md` / `verification-matrix.yaml` / `specs/` / `design-pack/` / `evals/` 不会被删除，作为已创建的按需工件继续有效；doctor 不再对它们做结构检查。
+- 已安装项目：使用固定发布版 `npx --yes github:royeedai/ai-os#v10.5.1 .` 安装宪法、模板与 vendored doctor。旧的 `risk-register.md` / `release-plan.md` / `verification-matrix.yaml` / `specs/` / `design-pack/` / `evals/` 不会被删除，作为已创建的按需工件继续有效；doctor 会对已存在的按需工件执行确定性结构检查。
 - 旧 `framework.toml`（schema v9）会触发 E002，按提示重装即可。
 - 依赖 W072 / W074 / W076 / W077 / W078 的 CI `--strict` 门禁需移除对应预期；对应语义由宪法行为规则承载。

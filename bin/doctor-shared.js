@@ -23,6 +23,15 @@ class CanonicalParseError extends Error {
   }
 }
 
+class GovernanceValidationError extends Error {
+  constructor(reason) {
+    super(`governance validation failed: ${reason}`);
+    this.name = "GovernanceValidationError";
+    this.code = "ERR_GOVERNANCE_VALIDATION";
+    this.reason = reason;
+  }
+}
+
 function splitCanonicalLines(content) {
   if (typeof content !== "string") {
     throw new CanonicalParseError(0, "content must be a string");
@@ -582,6 +591,728 @@ function parseManagedFiles(content) {
   return rows;
 }
 
+const BASELINE_ID_PATTERN = /^BL-\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+const CR_ID_PATTERN = /^CR-\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+const RETROSPECTIVE_ID_PATTERN = /^BL-\d{8}-\d{6}-retrospective$/u;
+const CANONICAL_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.]\d{3}Z$/u;
+const RESERVED_AI_IDENTITIES = new Set([
+  "ai",
+  "agent",
+  "assistant",
+  "bot",
+  "model",
+  "chatgpt",
+  "codex",
+  "claude",
+  "gemini",
+]);
+
+function governanceFail(reason) {
+  throw new GovernanceValidationError(reason);
+}
+
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) deepFreeze(child);
+  return Object.freeze(value);
+}
+
+function isCanonicalUtc(value) {
+  if (typeof value !== "string" || !CANONICAL_UTC_PATTERN.test(value)) return false;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+function assertCanonicalUtc(value, label) {
+  if (!isCanonicalUtc(value)) governanceFail(`${label} must be canonical UTC milliseconds`);
+  return value;
+}
+
+function assertDeclaredHuman(value, label) {
+  if (
+    typeof value !== "string"
+    || !value.trim()
+    || value !== value.trim()
+    || value.length > 200
+    || /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/u.test(value)
+  ) {
+    governanceFail(`${label} must contain a declared human identity`);
+  }
+  if (RESERVED_AI_IDENTITIES.has(value.trim().toLowerCase())) {
+    governanceFail(`${label} must not use a reserved AI identity`);
+  }
+  return value;
+}
+
+function assertExactKeys(value, expected, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    governanceFail(`${label} must be a mapping`);
+  }
+  const actual = Object.keys(value).sort(compareCodePointText);
+  const canonical = [...expected].sort(compareCodePointText);
+  if (actual.length !== canonical.length || actual.some((key, index) => key !== canonical[index])) {
+    governanceFail(`${label} keys must be exact`);
+  }
+}
+
+function assertNonEmptyString(value, label) {
+  if (typeof value !== "string" || !value.trim()) governanceFail(`${label} must be non-empty`);
+  return value;
+}
+
+function assertStringList(value, label, { nonEmpty = false, unique = false } = {}) {
+  if (!Array.isArray(value)) governanceFail(`${label} must be a string list`);
+  if (nonEmpty && value.length === 0) governanceFail(`${label} must be non-empty`);
+  const result = value.map((item, index) => assertNonEmptyString(item, `${label}[${index}]`));
+  if (unique && new Set(result).size !== result.length) governanceFail(`${label} must be unique`);
+  return result;
+}
+
+function recordScalar(value) {
+  const trimmed = value.trim();
+  if (trimmed === '""') return "";
+  if (trimmed === "[]") return [];
+  return trimmed;
+}
+
+function parseRecordMetadata(lines) {
+  const fields = Object.create(null);
+  let currentKey = null;
+  for (let index = 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line) continue;
+    const top = line.match(/^- \*\*([A-Za-z_][A-Za-z0-9_]*|Created At|Type|Status)\*\*: ?(.*)$/u);
+    if (top) {
+      const [, key, rawValue] = top;
+      if (Object.hasOwn(fields, key)) governanceFail(`record contains duplicate key ${key}`);
+      currentKey = key;
+      const value = recordScalar(rawValue);
+      fields[key] = value === "" && rawValue === "" ? [] : value;
+      continue;
+    }
+    const nested = line.match(/^  - \*\*([a-z_][a-z0-9_]*)\*\*: ?(.*)$/u);
+    if (nested) {
+      if (currentKey !== "preventability_review") {
+        governanceFail("nested record field is outside preventability_review");
+      }
+      if (Array.isArray(fields[currentKey])) fields[currentKey] = Object.create(null);
+      const [, key, rawValue] = nested;
+      if (Object.hasOwn(fields[currentKey], key)) {
+        governanceFail(`preventability_review contains duplicate key ${key}`);
+      }
+      fields[currentKey][key] = recordScalar(rawValue);
+      continue;
+    }
+    const item = line.match(/^  - (.+)$/u);
+    if (item) {
+      if (!currentKey || !Array.isArray(fields[currentKey])) {
+        governanceFail("record list item has no list field");
+      }
+      fields[currentKey].push(recordScalar(item[1]));
+      continue;
+    }
+    governanceFail("record metadata contains unsupported syntax");
+  }
+  return fields;
+}
+
+function timestampFromRecordId(recordId) {
+  const match = recordId.match(/^(?:BL|CR)-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-/u);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match;
+  const value = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+  return isCanonicalUtc(value) ? value : null;
+}
+
+function parseBaselineRecord(content, filename) {
+  if (typeof content !== "string") governanceFail("record content must be a string");
+  if (typeof filename !== "string" || !filename.endsWith(".md")) {
+    governanceFail("record filename must end in .md");
+  }
+  const allLines = splitCanonicalLines(content);
+  const firstH2 = allLines.findIndex((line, index) => index > 0 && /^##(?: |$)/u.test(line));
+  const lines = allLines.slice(0, firstH2 === -1 ? allLines.length : firstH2);
+  if (!lines[0] || !/^# [^#].*$/u.test(lines[0])) {
+    governanceFail("record must start with the first H1 record ID");
+  }
+  if (lines.filter((line) => /^# /u.test(line)).length !== 1) {
+    governanceFail("record region must contain exactly one H1");
+  }
+  const id = lines[0].slice(2);
+  const stem = filename.slice(0, -3);
+  if (id !== stem) governanceFail("record ID must match filename stem");
+  const fields = parseRecordMetadata(lines);
+  const type = fields.Type;
+  const status = fields.Status;
+
+  if (type === "bootstrap") {
+    assertExactKeys(fields, ["Type", "Status", "Created At"], "bootstrap record");
+    if (!BASELINE_ID_PATTERN.test(id) || RETROSPECTIVE_ID_PATTERN.test(id)) {
+      governanceFail("bootstrap record ID is invalid");
+    }
+    if (status !== "unconfirmed") governanceFail("bootstrap status must be unconfirmed");
+    const createdAt = assertCanonicalUtc(fields["Created At"], "bootstrap Created At");
+    if (timestampFromRecordId(id) !== createdAt) {
+      governanceFail("bootstrap Created At must match its record ID UTC second");
+    }
+    return deepFreeze({ id, type, status, created_at: createdAt });
+  }
+
+  if (type === "baseline") {
+    assertExactKeys(
+      fields,
+      ["Type", "Status", "previous_baseline_id", "confirmed_by", "confirmed_at", "source_refs"],
+      "confirmed baseline record",
+    );
+    if (!BASELINE_ID_PATTERN.test(id) || RETROSPECTIVE_ID_PATTERN.test(id)) {
+      governanceFail("confirmed baseline record ID is invalid");
+    }
+    if (status !== "confirmed") governanceFail("baseline status must be confirmed");
+    if (!BASELINE_ID_PATTERN.test(fields.previous_baseline_id)) {
+      governanceFail("previous_baseline_id must be a BL ID");
+    }
+    assertDeclaredHuman(fields.confirmed_by, "confirmed_by");
+    assertCanonicalUtc(fields.confirmed_at, "confirmed_at");
+    const sourceRefs = assertStringList(fields.source_refs, "source_refs", { nonEmpty: true });
+    return deepFreeze({
+      id,
+      type,
+      status,
+      previous_baseline_id: fields.previous_baseline_id,
+      confirmed_by: fields.confirmed_by,
+      confirmed_at: fields.confirmed_at,
+      source_refs: [...sourceRefs],
+    });
+  }
+
+  if (type === "change") {
+    assertExactKeys(fields, [
+      "Type", "Status", "current_behavior", "proposed_delta", "affected_artifacts",
+      "acceptance_delta", "approval", "close_condition", "preventability_review",
+      "result_baseline_id",
+    ], "change request record");
+    if (!CR_ID_PATTERN.test(id)) governanceFail("change request ID is invalid");
+    if (!["proposed", "approved", "applied", "rejected"].includes(status)) {
+      governanceFail("change request status is invalid");
+    }
+    for (const key of ["current_behavior", "proposed_delta", "close_condition"]) {
+      assertNonEmptyString(fields[key], `change request ${key}`);
+    }
+    const affected = assertStringList(fields.affected_artifacts, "affected_artifacts", {
+      nonEmpty: true,
+      unique: true,
+    });
+    const acceptance = assertStringList(fields.acceptance_delta, "acceptance_delta", {
+      nonEmpty: true,
+      unique: true,
+    });
+    assertExactKeys(
+      fields.preventability_review,
+      ["status", "preventable", "root_cause", "suggested_guard"],
+      "preventability_review",
+    );
+    const review = fields.preventability_review;
+    if (!["pending", "completed"].includes(review.status)) {
+      governanceFail("preventability_review status is invalid");
+    }
+    if (review.status === "pending") {
+      if ([review.preventable, review.root_cause, review.suggested_guard].some((value) => value !== "")) {
+        governanceFail("pending preventability review fields must be empty");
+      }
+    } else {
+      if (!["yes", "no", "partial"].includes(review.preventable)) {
+        governanceFail("completed preventability review has invalid preventable value");
+      }
+      assertNonEmptyString(review.root_cause, "preventability root_cause");
+      assertNonEmptyString(review.suggested_guard, "preventability suggested_guard");
+    }
+    const approval = fields.approval;
+    const resultId = fields.result_baseline_id;
+    if (status === "proposed" && (approval !== "" || resultId !== "")) {
+      governanceFail("proposed change requires empty approval and result baseline");
+    }
+    if (status === "approved" && (!approval || resultId !== "")) {
+      governanceFail("approved change requires approval and empty result baseline");
+    }
+    if (status === "applied") {
+      if (!approval || review.status !== "completed" || !BASELINE_ID_PATTERN.test(resultId)) {
+        governanceFail("applied change requires approval, completed review, and result BL");
+      }
+    }
+    if (status === "rejected" && (!approval || review.status !== "completed" || resultId !== "")) {
+      governanceFail("rejected change requires approval, completed review, and empty result BL");
+    }
+    return deepFreeze({
+      id,
+      type,
+      status,
+      current_behavior: fields.current_behavior,
+      proposed_delta: fields.proposed_delta,
+      affected_artifacts: [...affected],
+      acceptance_delta: [...acceptance],
+      approval,
+      close_condition: fields.close_condition,
+      preventability_review: { ...review },
+      result_baseline_id: resultId,
+    });
+  }
+
+  if (type === "retrospective") {
+    assertExactKeys(
+      fields,
+      ["Type", "Status", "source_cr_ids", "preventable_findings", "suggested_framework_changes"],
+      "retrospective record",
+    );
+    if (!RETROSPECTIVE_ID_PATTERN.test(id)) governanceFail("retrospective filename is invalid");
+    if (status !== "closed") governanceFail("retrospective status must be closed");
+    const sourceCrIds = assertStringList(fields.source_cr_ids, "source_cr_ids", {
+      nonEmpty: true,
+      unique: true,
+    });
+    if (sourceCrIds.some((sourceId) => !CR_ID_PATTERN.test(sourceId))) {
+      governanceFail("retrospective source_cr_ids must contain CR IDs");
+    }
+    const findings = assertStringList(fields.preventable_findings, "preventable_findings");
+    const changes = assertStringList(fields.suggested_framework_changes, "suggested_framework_changes");
+    return deepFreeze({
+      id,
+      type,
+      status,
+      source_cr_ids: [...sourceCrIds],
+      preventable_findings: [...findings],
+      suggested_framework_changes: [...changes],
+    });
+  }
+
+  governanceFail("record Type is invalid");
+}
+
+function visibleMarkdownLines(content) {
+  const result = [];
+  const lines = splitCanonicalLines(content);
+  let fence = null;
+  let inComment = false;
+  for (const rawLine of lines) {
+    if (fence) {
+      const closer = rawLine.match(/^ {0,3}([`~]+)[ \t]*$/u);
+      if (closer && closer[1][0] === fence.character && closer[1].length >= fence.length
+        && [...closer[1]].every((character) => character === fence.character)) {
+        fence = null;
+      }
+      result.push(null);
+      continue;
+    }
+    let cursor = 0;
+    let visible = "";
+    while (cursor < rawLine.length) {
+      if (inComment) {
+        const close = rawLine.indexOf("-->", cursor);
+        if (close === -1) {
+          break;
+        }
+        inComment = false;
+        cursor = close + 3;
+        continue;
+      }
+      const open = rawLine.indexOf("<!--", cursor);
+      if (open === -1) {
+        visible += rawLine.slice(cursor);
+        break;
+      }
+      visible += rawLine.slice(cursor, open);
+      inComment = true;
+      cursor = open + 4;
+    }
+    const opener = visible.match(/^ {0,3}((`{3,})|(~{3,}))(.*)$/u);
+    if (opener && (opener[1][0] !== "`" || !opener[4].includes("`"))) {
+      fence = { character: opener[1][0], length: opener[1].length };
+      result.push(null);
+      continue;
+    }
+    result.push(visible);
+  }
+  return result;
+}
+
+function markdownTableCells(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|") || !trimmed.endsWith("|") || trimmed.includes("\\|")) {
+    return null;
+  }
+  const cells = trimmed.slice(1, -1).split("|").map((cell) => cell.trim());
+  return cells.length === 5 ? cells : null;
+}
+
+function extractDesignAcceptanceIds(content) {
+  if (typeof content !== "string") governanceFail("DESIGN content must be a string");
+  const lines = visibleMarkdownLines(content);
+  const headingIndexes = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index] && /^ {0,3}## 9[.] 验收标准[ \t]*$/u.test(lines[index])) {
+      headingIndexes.push(index);
+    }
+  }
+  if (headingIndexes.length !== 1) governanceFail("DESIGN must contain exactly one live acceptance heading");
+  const start = headingIndexes[0] + 1;
+  let end = lines.length;
+  for (let index = start; index < lines.length; index += 1) {
+    if (lines[index] && /^ {0,3}##(?: |$)/u.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+  const expectedHeader = ["AC ID", "需求 ID", "验收描述", "验证方式", "证据"];
+  let headerIndex = -1;
+  for (let index = start; index < end; index += 1) {
+    const cells = lines[index] === null ? null : markdownTableCells(lines[index]);
+    if (cells && cells.every((cell, cellIndex) => cell === expectedHeader[cellIndex])) {
+      headerIndex = index;
+      break;
+    }
+  }
+  if (headerIndex === -1) governanceFail("DESIGN acceptance table header is missing");
+  const separator = lines[headerIndex + 1] === null ? null : markdownTableCells(lines[headerIndex + 1]);
+  if (!separator || separator.some((cell) => cell !== "---")) {
+    governanceFail("DESIGN acceptance table separator is not canonical");
+  }
+  const ids = [];
+  for (let index = headerIndex + 2; index < end; index += 1) {
+    if (lines[index] === null || !lines[index].trim()) break;
+    const cells = markdownTableCells(lines[index]);
+    if (!cells || cells.some((cell) => !cell)) governanceFail("DESIGN acceptance row must have five non-empty cells");
+    if (!/^AC-[0-9]{3,}$/u.test(cells[0])) governanceFail("DESIGN acceptance ID is invalid");
+    ids.push(cells[0]);
+  }
+  if (ids.length === 0) governanceFail("DESIGN acceptance table must have at least one row");
+  if (new Set(ids).size !== ids.length) governanceFail("DESIGN acceptance IDs must be unique");
+  return Object.freeze([...ids]);
+}
+
+const TASK_TOP_KEYS = ["version", "baseline_id", "scope", "milestones", "tasks"];
+const TASK_SCOPE_KEYS = ["mode", "focus", "baseline_source"];
+const MILESTONE_KEYS = ["id", "title", "goal"];
+const TASK_KEYS = [
+  "id", "title", "milestone", "status", "owner", "priority", "approval",
+  "depends_on", "acceptance_refs", "evidence_required", "evidence_produced",
+  "delivery_state", "change_scope",
+];
+const APPROVAL_KEYS = [
+  "required", "status", "decided_by", "decided_at", "baseline_id",
+  "approved_scope", "conditions", "evidence_ref",
+];
+const EVIDENCE_KEYS = [
+  "id", "kind", "command", "exit_code", "git_sha", "environment",
+  "observed_at", "artifact", "confidence",
+];
+const DELIVERY_KEYS = ["code", "data", "runtime"];
+
+function canonicalStringSet(value, label, options) {
+  return assertStringList(value, label, { ...options, unique: true }).sort(compareCodePointText);
+}
+
+function validateApproval(value, label) {
+  assertExactKeys(value, APPROVAL_KEYS, label);
+  if (typeof value.required !== "boolean") governanceFail(`${label}.required must be boolean`);
+  if (!["not-required", "pending", "approved", "rejected", "expired"].includes(value.status)) {
+    governanceFail(`${label}.status is invalid`);
+  }
+  for (const key of ["decided_by", "decided_at", "baseline_id", "evidence_ref"]) {
+    if (typeof value[key] !== "string") governanceFail(`${label}.${key} must be a string`);
+  }
+  assertNonEmptyString(value.baseline_id, `${label}.baseline_id`);
+  const scope = canonicalStringSet(value.approved_scope, `${label}.approved_scope`);
+  const conditions = canonicalStringSet(value.conditions, `${label}.conditions`);
+  if (value.status === "not-required") {
+    if (value.required || value.decided_by || value.decided_at || value.evidence_ref
+      || scope.length || conditions.length) governanceFail(`${label} not-required shape is invalid`);
+  } else if (value.status === "pending") {
+    if (!value.required || value.decided_by || value.decided_at || value.evidence_ref
+      || scope.length || conditions.length) governanceFail(`${label} pending shape is invalid`);
+  } else {
+    if (!value.required) governanceFail(`${label} decided status requires required=true`);
+    assertDeclaredHuman(value.decided_by, `${label}.decided_by`);
+    assertCanonicalUtc(value.decided_at, `${label}.decided_at`);
+    assertNonEmptyString(value.evidence_ref, `${label}.evidence_ref`);
+    if (value.status === "approved" && scope.length === 0) {
+      governanceFail(`${label}.approved_scope must be non-empty when approved`);
+    }
+    if (value.status !== "approved" && scope.length !== 0) {
+      governanceFail(`${label}.approved_scope must be empty unless approved`);
+    }
+  }
+  return {
+    required: value.required,
+    status: value.status,
+    decided_by: value.decided_by,
+    decided_at: value.decided_at,
+    baseline_id: value.baseline_id,
+    approved_scope: scope,
+    conditions,
+    evidence_ref: value.evidence_ref,
+  };
+}
+
+function validateEvidence(value, label, requiredIds, seenIds) {
+  assertExactKeys(value, EVIDENCE_KEYS, label);
+  for (const key of ["id", "kind", "command", "git_sha", "environment", "observed_at", "artifact", "confidence"]) {
+    if (typeof value[key] !== "string") governanceFail(`${label}.${key} must be a string`);
+  }
+  assertNonEmptyString(value.id, `${label}.id`);
+  if (seenIds.has(value.id)) governanceFail(`${label}.id must be unique within its task`);
+  seenIds.add(value.id);
+  if (!requiredIds.has(value.id)) governanceFail(`${label}.id must bind an evidence_required ID`);
+  if (!["static", "test", "runtime", "data", "manual", "release"].includes(value.kind)) {
+    governanceFail(`${label}.kind is invalid`);
+  }
+  assertNonEmptyString(value.command, `${label}.command`);
+  if (!Number.isInteger(value.exit_code)) governanceFail(`${label}.exit_code must be an integer`);
+  assertNonEmptyString(value.git_sha, `${label}.git_sha`);
+  assertNonEmptyString(value.environment, `${label}.environment`);
+  assertCanonicalUtc(value.observed_at, `${label}.observed_at`);
+  assertNonEmptyString(value.artifact, `${label}.artifact`);
+  if (!["observed", "inferred", "unknown"].includes(value.confidence)) {
+    governanceFail(`${label}.confidence is invalid`);
+  }
+  return { ...value };
+}
+
+function validateTasksV5(document, { acceptanceIds = null } = {}) {
+  assertExactKeys(document, TASK_TOP_KEYS, "tasks document");
+  if (document.version !== 5) governanceFail("tasks document version must be integer 5");
+  assertNonEmptyString(document.baseline_id, "tasks baseline_id");
+  assertExactKeys(document.scope, TASK_SCOPE_KEYS, "tasks scope");
+  if (!["change", "release"].includes(document.scope.mode)) governanceFail("tasks scope.mode is invalid");
+  assertNonEmptyString(document.scope.focus, "tasks scope.focus");
+  assertNonEmptyString(document.scope.baseline_source, "tasks scope.baseline_source");
+  if (!Array.isArray(document.milestones)) governanceFail("milestones must be a list");
+  if (!Array.isArray(document.tasks)) governanceFail("tasks must be a list");
+
+  const milestoneIds = new Set();
+  const milestones = document.milestones.map((milestone, index) => {
+    const label = `milestones[${index}]`;
+    assertExactKeys(milestone, MILESTONE_KEYS, label);
+    for (const key of MILESTONE_KEYS) assertNonEmptyString(milestone[key], `${label}.${key}`);
+    if (milestoneIds.has(milestone.id)) governanceFail("milestone IDs must be unique");
+    milestoneIds.add(milestone.id);
+    return { id: milestone.id, title: milestone.title, goal: milestone.goal };
+  }).sort((left, right) => compareCodePointText(left.id, right.id));
+
+  const acceptanceSet = acceptanceIds === null ? null : new Set(acceptanceIds);
+  const referencedAcceptance = new Set();
+  const taskIds = new Set();
+  const tasks = document.tasks.map((task, index) => {
+    const label = `tasks[${index}]`;
+    assertExactKeys(task, TASK_KEYS, label);
+    for (const key of ["id", "title", "milestone", "status", "owner", "priority"]) {
+      assertNonEmptyString(task[key], `${label}.${key}`);
+    }
+    if (taskIds.has(task.id)) governanceFail("task IDs must be unique");
+    taskIds.add(task.id);
+    if (!milestoneIds.has(task.milestone)) governanceFail(`${label}.milestone must reference a milestone`);
+    if (!["todo", "in-progress", "blocked", "done", "shipped"].includes(task.status)) {
+      governanceFail(`${label}.status is invalid`);
+    }
+    if (!/^P[0-3]$/u.test(task.priority)) governanceFail(`${label}.priority is invalid`);
+    const approval = validateApproval(task.approval, `${label}.approval`);
+    const dependsOn = canonicalStringSet(task.depends_on, `${label}.depends_on`);
+    const acceptanceRefs = canonicalStringSet(task.acceptance_refs, `${label}.acceptance_refs`);
+    for (const acceptanceId of acceptanceRefs) {
+      if (!/^AC-[0-9]{3,}$/u.test(acceptanceId)) governanceFail(`${label}.acceptance_refs contains an invalid ID`);
+      if (acceptanceSet && !acceptanceSet.has(acceptanceId)) {
+        governanceFail(`${label}.acceptance_refs contains an unknown DESIGN AC`);
+      }
+      referencedAcceptance.add(acceptanceId);
+    }
+    const evidenceRequired = canonicalStringSet(task.evidence_required, `${label}.evidence_required`);
+    const requiredIds = new Set(evidenceRequired);
+    if (!Array.isArray(task.evidence_produced)) governanceFail(`${label}.evidence_produced must be a list`);
+    const seenEvidence = new Set();
+    const evidenceProduced = task.evidence_produced.map((evidence, evidenceIndex) => (
+      validateEvidence(evidence, `${label}.evidence_produced[${evidenceIndex}]`, requiredIds, seenEvidence)
+    )).sort((left, right) => compareCodePointText(left.id, right.id));
+    assertExactKeys(task.delivery_state, DELIVERY_KEYS, `${label}.delivery_state`);
+    const deliveryState = {};
+    for (const key of DELIVERY_KEYS) {
+      if (!["observed", "inferred", "unknown", "not-applicable"].includes(task.delivery_state[key])) {
+        governanceFail(`${label}.delivery_state.${key} is invalid`);
+      }
+      deliveryState[key] = task.delivery_state[key];
+    }
+    const changeScope = canonicalStringSet(task.change_scope, `${label}.change_scope`);
+    return {
+      id: task.id,
+      title: task.title,
+      milestone: task.milestone,
+      status: task.status,
+      owner: task.owner,
+      priority: task.priority,
+      approval,
+      depends_on: dependsOn,
+      acceptance_refs: acceptanceRefs,
+      evidence_required: evidenceRequired,
+      evidence_produced: evidenceProduced,
+      delivery_state: deliveryState,
+      change_scope: changeScope,
+    };
+  }).sort((left, right) => compareCodePointText(left.id, right.id));
+
+  for (const task of tasks) {
+    for (const dependency of task.depends_on) {
+      if (!taskIds.has(dependency)) governanceFail(`task ${task.id} depends on an unknown task`);
+      if (dependency === task.id) governanceFail(`task ${task.id} must not depend on itself`);
+    }
+  }
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const visiting = new Set();
+  const visited = new Set();
+  const visit = (taskId) => {
+    if (visiting.has(taskId)) governanceFail("task dependencies must be acyclic");
+    if (visited.has(taskId)) return;
+    visiting.add(taskId);
+    for (const dependency of byId.get(taskId).depends_on) visit(dependency);
+    visiting.delete(taskId);
+    visited.add(taskId);
+  };
+  for (const task of tasks) visit(task.id);
+  if (acceptanceSet) {
+    for (const acceptanceId of acceptanceSet) {
+      if (!referencedAcceptance.has(acceptanceId)) governanceFail(`DESIGN acceptance ${acceptanceId} is not covered by a task`);
+    }
+  }
+  return deepFreeze({
+    version: 5,
+    baseline_id: document.baseline_id,
+    scope: {
+      mode: document.scope.mode,
+      focus: document.scope.focus,
+      baseline_source: document.scope.baseline_source,
+    },
+    milestones,
+    tasks,
+  });
+}
+
+function projectTasksForEvidence(document) {
+  const tasks = document.tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    milestone: task.milestone,
+    owner: task.owner,
+    priority: task.priority,
+    approval: task.approval,
+    depends_on: task.depends_on,
+    acceptance_refs: task.acceptance_refs,
+    evidence_required: task.evidence_required,
+    change_scope: task.change_scope,
+  })).sort((left, right) => compareCodePointText(left.id, right.id));
+  return deepFreeze({
+    version: document.version,
+    baseline_id: document.baseline_id,
+    scope: document.scope,
+    milestones: [...document.milestones].sort((left, right) => compareCodePointText(left.id, right.id)),
+    tasks,
+  });
+}
+
+function parseManagedBlock(content, begin, end) {
+  if (typeof content !== "string") governanceFail("managed block content must be a string");
+  for (const [label, marker] of [["begin", begin], ["end", end]]) {
+    if (typeof marker !== "string" || !marker || /[\r\n]/u.test(marker)) {
+      governanceFail(`managed block ${label} marker must be one non-empty line`);
+    }
+  }
+  if (begin === end) governanceFail("managed block markers must differ");
+  const lines = splitCanonicalLines(content);
+  const begins = [];
+  const ends = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index] === begin) begins.push(index);
+    if (lines[index] === end) ends.push(index);
+  }
+  if (begins.length !== 1 || ends.length !== 1 || ends[0] <= begins[0]) {
+    governanceFail("managed block markers must form exactly one ordered range");
+  }
+  return Object.freeze(lines.slice(begins[0] + 1, ends[0]));
+}
+
+function parseEffectiveGitignoreRules(content) {
+  if (typeof content !== "string") governanceFail("gitignore content must be a string");
+  const rules = [];
+  for (const line of splitCanonicalLines(content)) {
+    if (!line || line.startsWith("#")) continue;
+    if (line.includes("\0") || line.length > 4096) {
+      governanceFail("gitignore rule exceeds the canonical resource boundary");
+    }
+    if (rules.length >= 4096) governanceFail("gitignore exceeds the canonical rule limit");
+    rules.push(line);
+  }
+  return Object.freeze(rules);
+}
+
+function escapeRegexCharacter(character) {
+  return /[\\^$.*+?()[\]{}|]/u.test(character) ? `\\${character}` : character;
+}
+
+function gitignoreGlobSource(pattern) {
+  let source = "";
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index];
+    if (character === "*" && pattern[index + 1] === "*") {
+      if (pattern[index + 2] === "/") {
+        source += "(?:.*/)?";
+        index += 2;
+      } else {
+        source += ".*";
+        index += 1;
+      }
+    } else if (character === "*") {
+      source += "[^/]*";
+    } else if (character === "?" || character === "[" || character === "]" || character === "\\") {
+      return null;
+    } else {
+      source += escapeRegexCharacter(character);
+    }
+  }
+  return source;
+}
+
+function gitignoreRuleMatches(rule, relativePath) {
+  let pattern = rule;
+  if (pattern.startsWith("\\#") || pattern.startsWith("\\!")) pattern = pattern.slice(1);
+  const anchored = pattern.startsWith("/");
+  if (anchored) pattern = pattern.slice(1);
+  const directory = pattern.endsWith("/");
+  if (directory) pattern = pattern.slice(0, -1);
+  if (!pattern) return false;
+  const source = gitignoreGlobSource(pattern);
+  if (source === null) return null;
+  const containsSlash = pattern.includes("/");
+  const prefix = anchored || containsSlash ? "^" : "(?:^|/)";
+  const suffix = directory ? "(?:/.*)?$" : "$";
+  return new RegExp(`${prefix}${source}${suffix}`, "u").test(relativePath);
+}
+
+function isPathIgnored(rules, relativePath) {
+  if (!Array.isArray(rules) || typeof relativePath !== "string") return false;
+  if (
+    !relativePath
+    || relativePath.startsWith("/")
+    || relativePath.includes("\\")
+    || relativePath.split("/").some((segment) => !segment || segment === "." || segment === "..")
+  ) return false;
+  let ignored = false;
+  for (const rawRule of rules) {
+    if (typeof rawRule !== "string" || !rawRule) continue;
+    const escapedMarker = rawRule.startsWith("\\#") || rawRule.startsWith("\\!");
+    const negated = !escapedMarker && rawRule.startsWith("!");
+    const rule = negated ? rawRule.slice(1) : rawRule;
+    const matches = gitignoreRuleMatches(rule, relativePath);
+    if (matches === true) ignored = !negated;
+    if (matches === null && negated) ignored = false;
+  }
+  return ignored;
+}
+
 function fileSpec(relativePath, ownership, source = null, generated = false, mode = 0o644) {
   return Object.freeze({
     path: relativePath,
@@ -738,9 +1469,18 @@ function inspectPath(root, relative) {
 
 module.exports = {
   CanonicalParseError,
+  GovernanceValidationError,
   parseCanonicalToml,
   parseCanonicalYaml,
   parseManagedFiles,
+  parseBaselineRecord,
+  extractDesignAcceptanceIds,
+  validateTasksV5,
+  projectTasksForEvidence,
+  isCanonicalUtc,
+  parseManagedBlock,
+  parseEffectiveGitignoreRules,
+  isPathIgnored,
   LAYOUT_VERSION,
   LAYOUT_MODE,
   OWNERSHIP,

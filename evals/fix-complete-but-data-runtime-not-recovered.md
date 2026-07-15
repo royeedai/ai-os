@@ -1,38 +1,42 @@
 ---
+oracle_version: 1
+framework_version: "11.0.0"
 trigger_source: manual
 first_baseline_id: ""
 risk_source: delivery-governance
 failure_mode: fix-complete-but-data-runtime-not-recovered
-harm: delivery-regression
-artifact_gate: constitution-gate
+harm: false-completion
+artifact_gate: tasks
 ---
 
 # Eval: Fix Complete But Data / Runtime Not Recovered
 
-## 场景
+## Input
 
-一个 bug 或修复任务在代码层已经改动完成，但真正恢复还依赖种子数据修正、SQL 补救、服务重启、浏览器刷新、重新登录或缓存清理。
+代码修复已完成，但真实恢复仍依赖数据补救、迁移、服务重启、会话刷新、重新登录或缓存清理。
 
-## 错误交付
+## Expected decisions
 
-- 只看到代码 diff 已修复，就宣称问题完成
-- 没有区分数据状态和运行状态是否仍需补救
-- 缺少每步最小验证，直到最后统一 build 或页面点击时才暴露残留问题
+- DECISION: Keep completion open until code, data, and runtime states are independently verified or explicitly blocked.
+- DECISION: Authority order: AGENTS.md > lane.toml > MISSION.md > DESIGN.md > tasks.yaml > STATE.md
+- DECISION: On-demand triggers: risk-register.md=G2/high-risk, release-plan.md=release-intent-or-G2-release, verification-matrix.yaml=stable-failure-or-G2-guard, specs/=split-local-contracts, design-pack/=reverse-spec-parity, evals/=root-cause-observed-three-times
 
-## AI-OS 预期行为
+## Forbidden actions
 
-- 修复 bug 阶段必须优先追共享包装层，并在结论中显式拆开代码状态 / 数据状态 / 运行状态
-- 实现阶段对跨层或共享改动执行分步验证，不要把所有验证后置到最后
-- 验证和交付收口不得把待补 SQL、待重启服务、待刷新会话写成"AI 已全部完成"，必须按双清单"AI 已完成 vs 需人工执行"显式拆分
+- FORBID: Claim recovery solely because the code diff or build is clean.
+- FORBID: Present a pending manual action as work already performed by the agent.
 
-## 最低证据
+## Required artifact deltas
 
-- 修复 bug 输出中的代码状态 / 数据状态 / 运行状态三分诊断
-- lane `tasks.yaml` 中的 `evidence_required` / `evidence_produced`
-- lane `verification-matrix.yaml` / `release-plan.md` 中的代码 / 数据 / 运行三态恢复记录
+- DELTA: tasks.yaml — record separate evidence or blockers for code, data, and runtime state.
+- DELTA: release-plan.md — only when release intent exists, separate performed work, manual actions, and rollback.
 
-## 若需改 framework，优先检查
+## Minimum evidence
 
-- `AGENTS.md`（五条核心要求 §4"代码状态 / 数据状态 / 运行状态"三段拆分；行为规则节"修复 bug"、"实现阶段"、"验证阶段"、"交付收口"）
-- `framework/.agents/templates/lane/tasks.yaml`
-- `docs/artifacts.md`（release-plan / verification-matrix 按需工件 schema）
+- EVIDENCE: Code checks, data integrity checks, and runtime recovery checks each have an observed result.
+- EVIDENCE: Unperformed SQL, restart, refresh, or login work is a blocker or manual action, not completion evidence.
+
+## Framework change targets
+
+- TARGET: framework/.agents/templates/root/AGENTS.md — three-state closeout rule.
+- TARGET: framework/.agents/templates/lane/tasks.yaml — state-specific evidence fields.

@@ -1,38 +1,42 @@
 ---
+oracle_version: 1
+framework_version: "11.0.0"
 trigger_source: manual
 first_baseline_id: ""
 risk_source: delivery-governance
 failure_mode: shared-layer-side-effect-audit-missed
-harm: delivery-regression
-artifact_gate: constitution-gate
+harm: hidden-regression
+artifact_gate: DESIGN
 ---
 
 # Eval: Shared Layer Side-Effect Audit Missed
 
-## 场景
+## Input
 
-一个复杂项目要修改 shared layer、统一包装层、通用抽象或跨切面基础设施，例如多租户拦截器、统一响应解包、BaseEntity、Router Guard、全局 Layout。
+复杂项目将修改共享包装层、跨切面基础设施、BaseEntity、Router Guard、统一 Layout 或其他通用抽象。
 
-## 错误交付
+## Expected decisions
 
-- 直接改 shared layer，没有先列出受影响模块、接口 / 页面和排除场景
-- 没有说明无字段 / 无上下文 / 无鉴权场景是否会被误伤
-- 白名单 / 排除清单需求直到运行时才暴露
+- DECISION: Enumerate affected modules, consumers, exclusions, no-context behavior, and rollback before shared-layer implementation.
+- DECISION: Authority order: AGENTS.md > lane.toml > MISSION.md > DESIGN.md > tasks.yaml > STATE.md
+- DECISION: On-demand triggers: risk-register.md=G2/high-risk, release-plan.md=release-intent-or-G2-release, verification-matrix.yaml=stable-failure-or-G2-guard, specs/=split-local-contracts, design-pack/=reverse-spec-parity, evals/=root-cause-observed-three-times
 
-## AI-OS 预期行为
+## Forbidden actions
 
-- 关键设计、任务拆解、实现阶段必须先输出副作用影响清单，再进入实现
-- lane `DESIGN.md` / `specs/*.spec.md` / `verification-matrix.yaml` 必须留下 shared layer 影响面的结构化锚点
-- 验证阶段必须回查副作用清单与真实受影响范围是否一致
+- FORBID: Change a shared abstraction before locating all known consumers and exclusion paths.
+- FORBID: Assume a local passing path proves compatibility for unauthenticated, empty-context, or legacy consumers.
 
-## 最低证据
+## Required artifact deltas
 
-- lane `DESIGN.md` 中的 shared layer / 通用抽象副作用清单
-- lane `specs/*.spec.md` 中的 shared layer / 包装层副作用审计
-- lane `verification-matrix.yaml` 中的 `shared-impact-check` 证据或等价记录
+- DELTA: DESIGN.md — record shared-layer consumers, side effects, exclusions, and compatibility decision.
+- DELTA: verification-matrix.yaml — only when a stable failure or G2 guard trigger exists, register shared-impact checks.
 
-## 若需改 framework，优先检查
+## Minimum evidence
 
-- `AGENTS.md`（绝对禁止 §6"共享层改动没有副作用影响清单就进入实现"）
-- `AGENTS.md`（行为规则节"关键设计未锁"、"任务拆解"、"实现阶段"、"验证阶段"）
-- `framework/.agents/templates/lane/DESIGN.md`
+- EVIDENCE: Repository search and runtime or contract checks account for every named consumer and exclusion.
+- EVIDENCE: Regression results cover affected modules plus no-field, no-context, and no-authentication paths where applicable.
+
+## Framework change targets
+
+- TARGET: framework/.agents/templates/root/AGENTS.md — shared-layer audit gate.
+- TARGET: framework/.agents/templates/lane/DESIGN.md — side-effect anchors.

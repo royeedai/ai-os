@@ -302,49 +302,50 @@ Approval 组合规则：
 
 `done` / `shipped` 还必须具备有效 `acceptance_refs` 和通过上述当前 baseline / commit 证据门的 observed evidence。
 
-## 按需工件（默认不安装）
+## 按需工件触发矩阵
 
 以下工件不随 install 生成。doctor 会校验所有已存在的按需工件的确定性 schema，并按 canonical trigger 检查必须存在的最小工件；它不根据主观猜测发明 release intent。
 
-| 工件 | canonical 触发 |
+| 工件 | canonical trigger |
 |---|---|
-| `risk-register.md` | `G2 / high-risk work` |
-| `verification-matrix.yaml` | `stable failure / G2 minimum guard` |
-| `release-plan.md` | 显式 `release intent / G2 release preparation` |
-| `specs/` | DESIGN 必须切分为局部契约 |
-| `design-pack/` | reverse-spec parity evidence |
-| `evals/` | 同一 root cause observed 至少三次 |
+| `risk-register.md` | `G2/high-risk` |
+| `release-plan.md` | `release-intent-or-G2-release` |
+| `verification-matrix.yaml` | `stable-failure-or-G2-guard` |
+| `specs/` | `split-local-contracts` |
+| `design-pack/` | `reverse-spec-parity` |
+| `evals/` | `root-cause-observed-three-times` |
 
 非 release 的 G2 工作不强制创建 `release-plan.md`；只有显式 publish / deploy / release 意图或 G2 release preparation 才创建。未执行发布必须写成 blocker / manual action / non-goal，不能伪造已发布状态。
 
 ### `risk-register.md`
 
-- **schema**：`| R-<id> | 风险描述 | 影响范围 | 缓解措施 | 状态 |`
+- **schema**：一个 exact `| ID | Risk | Impact | Mitigation | Status |` 表；ID 为唯一 `R-<id>`，状态仅为 `open / mitigated / accepted / closed`，至少一行
 - **加载层级**：L2
 
 ### `release-plan.md`
 
-- **schema**：release intent、发布步骤、回滚条件、blockers、manual steps
+- **schema**：exact 且非空的 `## Release intent`、`## Release steps`、`## Rollback conditions`、`## Blockers`、`## Manual steps`
 - **加载层级**：L2
 
 ### `verification-matrix.yaml`
 
-- **schema**：`impact_rules`（`when` / `run`）+ `failure_modes`（`id` / `scenario` / `expected` / `guard`）
+- **schema**：canonical YAML exact 顶层 `impact_rules`（`when` / `run`）+ `failure_modes`（`id` / `scenario` / `expected` / `guard`）；failure mode ID 唯一且至少一项
 - **加载层级**：L2
 
 ### `specs/`
 
-- **schema**：`*.spec.md` 锁定接口 / 数据 / 行为契约与验收映射；bug spec 锁定 root cause、reproduction、blast radius、planned files、regression guard
+- **schema**：每个 `*.spec.md` 各含一个非空 `## Interface contract`、`## Data contract`、`## Behavior contract`、`## Acceptance mapping`
 - **加载层级**：L3
 
 ### `design-pack/`
 
-- **schema**：`parity-map.md` 记录 capture manifest 与 visual / interaction / API parity；`confidence` 为 `observed` / `inferred` / `unknown`，只有 observed 可进入 confirmed acceptance criteria；证据写入前脱敏 cookies / tokens / PII
+- **schema**：`parity-map.md` 各含一个非空 `## Capture manifest`、`## Visual parity`、`## Interaction parity`、`## API parity`、`## Evidence`；evidence 表 ID 唯一且 `confidence` 为 `observed / inferred / unknown`
 - **加载层级**：L3
 
 ### `evals/`
 
-- **schema**：每个 eval 是一个 markdown 文件，记录 scenario、expected、trigger_source 与首次出现的 baseline-log ID
+- **schema**：每个 Markdown eval 是 `oracle_version: 1` 行为 oracle。canonical frontmatter required exact keys 为 `oracle_version / framework_version / trigger_source / first_baseline_id / risk_source / failure_mode / harm / artifact_gate`，只可选增加非空 `trajectory_signature`；`framework_version` 是 v11 SemVer，`trigger_source` 只允许 `manual / promoted-from-verification-matrix`，后者必须绑定 canonical `first_baseline_id`
+- **正文**：exact 且按顺序出现一个非空 `## Input`、`## Expected decisions`、`## Forbidden actions`、`## Required artifact deltas`、`## Minimum evidence`、`## Framework change targets`；后五段的每一项分别使用 `DECISION:`、`FORBID:`、`DELTA:`、`EVIDENCE:`、`TARGET:` 前缀。无工件变化只允许写 `DELTA: none — reason`
 - **加载层级**：L3
 
 ## 隐式机制审计落点

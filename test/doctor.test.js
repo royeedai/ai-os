@@ -446,7 +446,7 @@ test("doctor: W071 fires when a task has no owner", () => {
   }
 });
 
-test("doctor: removed semantic warnings W072-W078 no longer fire", () => {
+test("doctor: removed semantic warnings W074-W078 no longer fire on a clean install", () => {
   const dir = tmpDir();
   try {
     runInstall([dir]);
@@ -520,9 +520,11 @@ test("doctor: W041 checks only session-local STATE ignore", () => {
   try {
     runInstall([dir]);
     fs.writeFileSync(path.join(dir, ".gitignore"), [
-      "# intentionally wrong AI-OS ignore contract",
+      "# BEGIN AI-OS",
+      "# intentionally inactive AI-OS ignore contract",
       ".ai-os/framework.toml",
       ".ai-os/managed-files.tsv",
+      "# END AI-OS",
       "",
     ].join("\n"));
     const result = runDoctor([dir, "--json"]);

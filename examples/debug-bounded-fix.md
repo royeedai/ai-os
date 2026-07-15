@@ -38,19 +38,15 @@ Agent then runs `curl /api/categories` in the terminal (or asks you to) and find
      - (B) Update all 5 frontend consumers to `{ items }` (risk: lose downstream legacy clients)
 4. Asks you: "Which approach? (A) or (B)?"
 
-## 4. Agent flags this as P1, not P2
+## 4. Agent stops only for the actual design trade-off
 
-Because the fix touches shared infrastructure (wrapper) and multiple modules, it's no longer a single-point P2 debug. Agent escalates to P1 and adds the wrapper contract registry to root `.ai-os/memory.md` (cross-layer contract §6.2 — Wire 类型契约):
-
-```
-| Wire field | Defined in | Consumers | Change requires |
-|---|---|---|---|
-| { items: T[] } | backend/response.ts | 5 frontend components | All consumers updated together |
-```
+The original message is an explicit fix request, so diagnosis and bounded low-risk work continue without ritual reauthorization. The agent stops here because choosing the public wire contract is a design trade-off with possible external consumers. It would also stop for a high-risk action or scope expansion, but not merely because another safe diagnostic step is available.
 
 ## 5. Scoped fix
 
 **You**: "Go with (B), update all frontend consumers."
+
+That explicit choice authorizes the bounded fix, so the agent continues through implementation and verification without asking for the same approval again.
 
 Agent fills the `change_scope` field in `.ai-os/lanes/default/tasks.yaml`:
 
@@ -76,7 +72,7 @@ failure_modes:
   - id: wrapper-name-drift-items-vs-data
     scenario: "Frontend consumes { data: T[] } when backend returns { items: T[] }"
     expected: "All consumers of the wire wrapper move together; the mismatch is caught before merge"
-    guard: "CI wire-contract check across all 5 consumer files; memory.md §6.2 row updated before wrapper changes"
+    guard: "CI wire-contract check across all 5 consumer files before wrapper changes"
 ```
 
 Future agents reading AGENTS.md + lane `verification-matrix.yaml` will check this automatically.

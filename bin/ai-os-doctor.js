@@ -3,9 +3,8 @@
 /**
  * AI-OS doctor
  *
- * Checks the installed layout without consulting package-source bytes for
- * target truth. Delivery-readiness evaluation is added by the next phase; in
- * this phase it intentionally remains false for every active lane.
+ * Checks installed layout and deterministic delivery readiness without
+ * consulting package-source bytes for target truth.
  */
 
 "use strict";
@@ -13,16 +12,28 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const os = require("node:os");
+const { spawnSync } = require("node:child_process");
+const { performance } = require("node:perf_hooks");
 const { TextDecoder } = require("node:util");
 
 const {
   CanonicalParseError,
+  GovernanceValidationError,
   FILE_SPECS,
   LAYOUT_MODE,
   LAYOUT_VERSION,
   OWNERSHIP,
+  extractDesignAcceptanceIds,
+  parseBaselineRecord,
   parseCanonicalToml,
+  parseCanonicalYaml,
+  parseEffectiveGitignoreRules,
+  parseManagedBlock,
   parseManagedFiles,
+  projectTasksForEvidence,
+  isPathIgnored,
+  validateTasksV5,
 } = require("./doctor-shared");
 
 const PROJECT_STATE_ROOT = ".ai-os";
@@ -30,6 +41,8 @@ const LANES_ROOT = ".ai-os/lanes";
 const DEFAULT_LANE_ID = "default";
 const METADATA_PATH = ".ai-os/framework.toml";
 const MANIFEST_PATH = ".ai-os/managed-files.tsv";
+const MANAGED_BLOCK_BEGIN = "# BEGIN AI-OS";
+const MANAGED_BLOCK_END = "# END AI-OS";
 const TARGET_VERSION_PATH = ".ai-os/bin/VERSION";
 const PINNED_PUBLIC_INSTALL = "npx --yes github:royeedai/ai-os#v10.5.1 .";
 
@@ -62,7 +75,7 @@ const BASELINE_RECORD_PATTERN =
 const BASELINE_ID_PATTERN =
   /^(?:CR|BL)-\d{8}-\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const MAX_BASELINE_ID_LENGTH = 128;
-const SEMANTIC_WARNING_CODES = new Set(["W070", "W071"]);
+const SEMANTIC_WARNING_CODES = new Set(["W070", "W071", "W072"]);
 const CONSTITUTION_ANCHORS = Object.freeze([
   "## 五条核心要求",
   "## 绝对禁止",
@@ -86,7 +99,16 @@ const ISSUE_SEVERITY = Object.freeze({
   W041: "warning",
   W070: "warning",
   W071: "warning",
+  W072: "warning",
   I020: "info",
+  R001: "info",
+  R002: "info",
+  R010: "info",
+  R020: "info",
+  R021: "info",
+  R022: "info",
+  R030: "info",
+  R031: "info",
 });
 const MAX_EXECUTOR_VERSION_BYTES = 1024;
 const MAX_TARGET_VERSION_BYTES = 1024;
@@ -97,6 +119,28 @@ const MAX_FRAMEWORK_HASH_BYTES = 16 * 1024 * 1024;
 const MAX_LANE_ENTRIES = 256;
 const MAX_BASELINE_ENTRIES = 4096;
 const HASH_CHUNK_BYTES = 64 * 1024;
+const DEFAULT_GIT_LIMITS = Object.freeze({
+  uniqueShas: 64,
+  commandTimeoutMs: 3000,
+  totalTimeoutMs: 15000,
+  statusBytes: 4 * 1024 * 1024,
+  diffBytes: 4 * 1024 * 1024,
+  metadataBytes: 64 * 1024,
+  historicalTasksBytes: 1024 * 1024,
+  pathRecords: 65536,
+});
+const GIT_OPERATIONS = new Set([
+  "inside-work-tree",
+  "repository-root",
+  "project-prefix",
+  "object-format",
+  "head",
+  "status",
+  "ancestor",
+  "diff",
+  "historical-tree",
+  "historical-tasks",
+]);
 const UNSAFE_OUTPUT_VALUE_CHARACTERS =
   /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
 const UNSAFE_SERIALIZED_JSON_CHARACTERS =
@@ -387,6 +431,408 @@ function readDirectoryNamesBounded(absolutePath, maxEntries, label) {
     directory.closeSync();
   }
   return names;
+}
+
+function createGitEnvironment(environment = process.env) {
+  const allowed = Object.create(null);
+  if (typeof environment.PATH === "string") allowed.PATH = environment.PATH;
+  if (process.platform === "win32") {
+    for (const key of ["SystemRoot", "WINDIR", "ComSpec", "PATHEXT", "TEMP", "TMP"]) {
+      if (typeof environment[key] === "string") allowed[key] = environment[key];
+    }
+  }
+  Object.assign(allowed, {
+    GIT_NO_LAZY_FETCH: "1",
+    GIT_OPTIONAL_LOCKS: "0",
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_NO_REPLACE_OBJECTS: "1",
+    GIT_GRAFT_FILE: os.devNull,
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_CONFIG_GLOBAL: os.devNull,
+    GIT_PAGER: "cat",
+    LC_ALL: "C",
+    LANG: "C",
+    TZ: "UTC",
+  });
+  // Node's coverage runtime may append NODE_V8_COVERAGE while spawning a child.
+  // Keep the allowlisted environment mutable for child_process compatibility;
+  // a fresh object is still created for every runner and is never shared.
+  return allowed;
+}
+
+function isFullObjectId(value) {
+  return typeof value === "string" && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u.test(value);
+}
+
+function isSafeGitPath(value) {
+  return typeof value === "string"
+    && value.length > 0
+    && !value.includes("\0")
+    && !value.includes("\r")
+    && !value.includes("\n")
+    && !path.isAbsolute(value)
+    && value.split("/").every((segment) => segment && segment !== "." && segment !== "..");
+}
+
+function isAllowedGitCommand(operation, args) {
+  const exact = {
+    "inside-work-tree": ["rev-parse", "--is-inside-work-tree"],
+    "repository-root": ["rev-parse", "--path-format=absolute", "--show-toplevel"],
+    "project-prefix": ["rev-parse", "--show-prefix"],
+    "object-format": ["rev-parse", "--show-object-format"],
+    head: ["rev-parse", "--verify", "--end-of-options", "HEAD^{commit}"],
+    status: [
+      "status",
+      "--porcelain=v2",
+      "-z",
+      "--untracked-files=all",
+      "--ignore-submodules=none",
+      "--no-renames",
+    ],
+  };
+  if (Object.hasOwn(exact, operation)) {
+    return args.length === exact[operation].length
+      && args.every((value, index) => value === exact[operation][index]);
+  }
+  if (operation === "ancestor") {
+    return args.length === 4
+      && args[0] === "merge-base"
+      && args[1] === "--is-ancestor"
+      && isFullObjectId(args[2])
+      && isFullObjectId(args[3]);
+  }
+  if (operation === "diff") {
+    return args.length === 9
+      && args.slice(0, 6).every((value, index) => value === [
+        "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z",
+      ][index])
+      && isFullObjectId(args[6])
+      && isFullObjectId(args[7])
+      && args[8] === "--";
+  }
+  if (operation === "historical-tree") {
+    return args.length === 7
+      && args[0] === "--literal-pathspecs"
+      && args[1] === "ls-tree"
+      && args[2] === "-z"
+      && args[3] === "--full-tree"
+      && isFullObjectId(args[4])
+      && args[5] === "--"
+      && isSafeGitPath(args[6]);
+  }
+  if (operation === "historical-tasks") {
+    return args.length === 3
+      && args[0] === "cat-file"
+      && args[1] === "blob"
+      && isFullObjectId(args[2]);
+  }
+  return false;
+}
+
+function unavailableGit(reason) {
+  return Object.freeze({ state: "unavailable", reason });
+}
+
+function createLocalGitRunner({
+  spawnSyncImpl = spawnSync,
+  monotonicNow = () => performance.now(),
+  limits = {},
+} = {}) {
+  const effectiveLimits = Object.freeze({ ...DEFAULT_GIT_LIMITS, ...limits });
+  const startedAt = monotonicNow();
+  const environment = createGitEnvironment();
+  return function runGit({ operation, cwd, args, maxOutputBytes }) {
+    if (!GIT_OPERATIONS.has(operation) || !Array.isArray(args)) {
+      return unavailableGit("command-not-allowed");
+    }
+    if (!isAllowedGitCommand(operation, args)) {
+      return unavailableGit("command-not-allowed");
+    }
+    if (typeof cwd !== "string" || !path.isAbsolute(cwd)) {
+      return unavailableGit("invalid-working-directory");
+    }
+    if (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes <= 0) {
+      return unavailableGit("invalid-output-budget");
+    }
+    const elapsed = monotonicNow() - startedAt;
+    const remaining = effectiveLimits.totalTimeoutMs - elapsed;
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      return unavailableGit("total-timeout");
+    }
+    const timeout = Math.max(
+      1,
+      Math.floor(Math.min(effectiveLimits.commandTimeoutMs, remaining)),
+    );
+    const prefix = [
+      "--no-pager",
+      "-c", "core.fsmonitor=false",
+      "-c", "core.untrackedCache=false",
+      "-c", "protocol.allow=never",
+      "-C", cwd,
+    ];
+    let result;
+    try {
+      result = spawnSyncImpl("git", [...prefix, ...args], {
+        encoding: null,
+        env: environment,
+        maxBuffer: maxOutputBytes,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout,
+        windowsHide: true,
+      });
+    } catch {
+      return unavailableGit("git-unavailable");
+    }
+    if (result && result.error) {
+      if (result.error.code === "ETIMEDOUT") return unavailableGit("command-timeout");
+      if (result.error.code === "ENOBUFS") return unavailableGit("output-limit");
+      return unavailableGit("git-unavailable");
+    }
+    if (!result || result.signal) return unavailableGit("command-failed");
+    const stdout = Buffer.isBuffer(result.stdout)
+      ? result.stdout
+      : Buffer.from(result.stdout || "");
+    if (stdout.length > maxOutputBytes) return unavailableGit("output-limit");
+    return Object.freeze({
+      state: "completed",
+      exit_code: Number.isInteger(result.status) ? result.status : null,
+      stdout,
+    });
+  };
+}
+
+function decodeGitLine(bytes) {
+  let value;
+  try {
+    value = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new TargetFormatError("Git metadata is not valid UTF-8");
+  }
+  if (!value.endsWith("\n") || value.slice(0, -1).includes("\n") || value.includes("\r")) {
+    throw new TargetFormatError("Git metadata is not one canonical line");
+  }
+  return value.slice(0, -1);
+}
+
+function parseGitNulRecords(bytes, maxRecords) {
+  if (!Buffer.isBuffer(bytes) || bytes.length === 0) return [];
+  if (bytes[bytes.length - 1] !== 0) {
+    throw new TargetFormatError("Git NUL output has no terminal delimiter");
+  }
+  const records = [];
+  let start = 0;
+  for (let index = 0; index < bytes.length; index += 1) {
+    if (bytes[index] !== 0) continue;
+    if (index === start) throw new TargetFormatError("Git NUL output has an empty record");
+    if (records.length >= maxRecords) {
+      throw new TargetFormatError("Git NUL output exceeds the record limit");
+    }
+    let record;
+    try {
+      record = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(start, index));
+    } catch {
+      throw new TargetFormatError("Git NUL output is not valid UTF-8");
+    }
+    records.push(record);
+    start = index + 1;
+  }
+  return [...new Set(records)].sort(compareCodePointText);
+}
+
+function gitCompleted(runGit, request, acceptedExitCodes = [0]) {
+  const result = runGit(request);
+  if (!result || result.state !== "completed") {
+    return { ok: false, reason: result && result.reason ? result.reason : "command-failed" };
+  }
+  if (!acceptedExitCodes.includes(result.exit_code)) {
+    return { ok: false, reason: "command-failed" };
+  }
+  return { ok: true, exitCode: result.exit_code, stdout: result.stdout };
+}
+
+function freezeGitRepository(repository) {
+  return Object.freeze({
+    root: repository.root,
+    project_prefix: repository.project_prefix,
+    object_format: repository.object_format,
+    head_sha: repository.head_sha,
+    dirty: repository.dirty,
+  });
+}
+
+function resolveGitState(targetDir, { runGit = createLocalGitRunner() } = {}) {
+  const target = path.resolve(targetDir || ".");
+  try {
+    const inside = gitCompleted(runGit, {
+      operation: "inside-work-tree",
+      cwd: target,
+      args: ["rev-parse", "--is-inside-work-tree"],
+      maxOutputBytes: DEFAULT_GIT_LIMITS.metadataBytes,
+    });
+    if (!inside.ok || decodeGitLine(inside.stdout) !== "true") {
+      return unavailableGit(inside.reason || "not-a-work-tree");
+    }
+    const rootResult = gitCompleted(runGit, {
+      operation: "repository-root",
+      cwd: target,
+      args: ["rev-parse", "--path-format=absolute", "--show-toplevel"],
+      maxOutputBytes: DEFAULT_GIT_LIMITS.metadataBytes,
+    });
+    if (!rootResult.ok) return unavailableGit(rootResult.reason);
+    const root = decodeGitLine(rootResult.stdout);
+    if (!path.isAbsolute(root)) return unavailableGit("invalid-repository-root");
+
+    const prefixResult = gitCompleted(runGit, {
+      operation: "project-prefix",
+      cwd: target,
+      args: ["rev-parse", "--show-prefix"],
+      maxOutputBytes: DEFAULT_GIT_LIMITS.metadataBytes,
+    });
+    const formatResult = gitCompleted(runGit, {
+      operation: "object-format",
+      cwd: root,
+      args: ["rev-parse", "--show-object-format"],
+      maxOutputBytes: DEFAULT_GIT_LIMITS.metadataBytes,
+    });
+    const headResult = gitCompleted(runGit, {
+      operation: "head",
+      cwd: root,
+      args: ["rev-parse", "--verify", "--end-of-options", "HEAD^{commit}"],
+      maxOutputBytes: DEFAULT_GIT_LIMITS.metadataBytes,
+    });
+    const statusResult = gitCompleted(runGit, {
+      operation: "status",
+      cwd: root,
+      args: [
+        "status", "--porcelain=v2", "-z", "--untracked-files=all",
+        "--ignore-submodules=none", "--no-renames",
+      ],
+      maxOutputBytes: DEFAULT_GIT_LIMITS.statusBytes,
+    });
+    for (const result of [prefixResult, formatResult, headResult, statusResult]) {
+      if (!result.ok) return unavailableGit(result.reason);
+    }
+    const projectPrefix = decodeGitLine(prefixResult.stdout);
+    const expectedPrefix = path.relative(root, target).split(path.sep).join("/");
+    const normalizedExpectedPrefix = expectedPrefix ? `${expectedPrefix}/` : "";
+    if (projectPrefix !== normalizedExpectedPrefix || expectedPrefix.startsWith("..")) {
+      return unavailableGit("project-outside-repository");
+    }
+    const objectFormat = decodeGitLine(formatResult.stdout);
+    if (!new Set(["sha1", "sha256"]).has(objectFormat)) {
+      return unavailableGit("unsupported-object-format");
+    }
+    const headSha = decodeGitLine(headResult.stdout);
+    const expectedLength = objectFormat === "sha1" ? 40 : 64;
+    if (!new RegExp(`^[a-f0-9]{${expectedLength}}$`, "u").test(headSha)) {
+      return unavailableGit("invalid-head");
+    }
+    if (statusResult.stdout.length > 0) {
+      parseGitNulRecords(statusResult.stdout, DEFAULT_GIT_LIMITS.pathRecords);
+    }
+    return Object.freeze({
+      state: "available",
+      repository: freezeGitRepository({
+        root,
+        project_prefix: projectPrefix,
+        object_format: objectFormat,
+        head_sha: headSha,
+        dirty: statusResult.stdout.length > 0,
+      }),
+    });
+  } catch (error) {
+    if (!(error instanceof TargetFormatError)) throw error;
+    return unavailableGit("invalid-git-output");
+  }
+}
+
+function resolveEvidenceGitEnvelope(
+  targetDir,
+  laneId,
+  observedShas,
+  { runGit = createLocalGitRunner(), gitState = null, limits = {} } = {},
+) {
+  const effectiveLimits = Object.freeze({ ...DEFAULT_GIT_LIMITS, ...limits });
+  if (!Array.isArray(observedShas)) return unavailableGit("invalid-observed-commits");
+  const shas = [...new Set(observedShas)].sort(compareCodePointText);
+  if (shas.length > effectiveLimits.uniqueShas || !shas.every(isFullObjectId)) {
+    return unavailableGit("invalid-observed-commits");
+  }
+  const state = gitState || resolveGitState(targetDir, { runGit });
+  if (!state || state.state !== "available") return state || unavailableGit("git-unavailable");
+  const repository = state.repository;
+  const expectedLength = repository.object_format === "sha1" ? 40 : 64;
+  if (shas.some((sha) => sha.length !== expectedLength)) {
+    return unavailableGit("invalid-observed-commits");
+  }
+  if (repository.dirty) return unavailableGit("dirty-work-tree");
+  const tasksPath = `${repository.project_prefix}.ai-os/lanes/${laneId}/tasks.yaml`;
+  if (!isSafeGitPath(tasksPath)) return unavailableGit("invalid-tasks-path");
+  const observations = [];
+  try {
+    for (const sha of shas) {
+      const ancestor = gitCompleted(runGit, {
+        operation: "ancestor",
+        cwd: repository.root,
+        args: ["merge-base", "--is-ancestor", sha, repository.head_sha],
+        maxOutputBytes: effectiveLimits.metadataBytes,
+      }, [0, 1]);
+      if (!ancestor.ok) return unavailableGit(ancestor.reason);
+      const diff = gitCompleted(runGit, {
+        operation: "diff",
+        cwd: repository.root,
+        args: [
+          "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z",
+          sha, repository.head_sha, "--",
+        ],
+        maxOutputBytes: effectiveLimits.diffBytes,
+      });
+      if (!diff.ok) return unavailableGit(diff.reason);
+      const changedPaths = parseGitNulRecords(diff.stdout, effectiveLimits.pathRecords);
+      const tree = gitCompleted(runGit, {
+        operation: "historical-tree",
+        cwd: repository.root,
+        args: ["--literal-pathspecs", "ls-tree", "-z", "--full-tree", sha, "--", tasksPath],
+        maxOutputBytes: effectiveLimits.metadataBytes,
+      });
+      if (!tree.ok) return unavailableGit(tree.reason);
+      const treeRecords = parseGitNulRecords(tree.stdout, 2);
+      if (treeRecords.length !== 1) return unavailableGit("historical-tasks-missing");
+      const treeMatch = treeRecords[0].match(/^(100644|100755) blob ([a-f0-9]+)\t(.+)$/u);
+      if (!treeMatch || treeMatch[3] !== tasksPath || treeMatch[2].length !== expectedLength) {
+        return unavailableGit("historical-tasks-invalid");
+      }
+      const historical = gitCompleted(runGit, {
+        operation: "historical-tasks",
+        cwd: repository.root,
+        args: ["cat-file", "blob", treeMatch[2]],
+        maxOutputBytes: effectiveLimits.historicalTasksBytes,
+      });
+      if (!historical.ok) return unavailableGit(historical.reason);
+      const historicalText = decodeTargetText(historical.stdout, "historical tasks.yaml");
+      const historicalTasks = validateTasksV5(parseCanonicalYaml(historicalText));
+      observations.push(Object.freeze({
+        git_sha: sha,
+        ancestor: ancestor.exitCode === 0,
+        changed_paths: Object.freeze(changedPaths),
+        historical_tasks: historicalTasks,
+      }));
+    }
+  } catch (error) {
+    if (
+      !(error instanceof TargetFormatError)
+      && !(error instanceof CanonicalParseError)
+      && !(error instanceof GovernanceValidationError)
+    ) throw error;
+    return unavailableGit("invalid-git-output");
+  }
+  return Object.freeze({
+    state: "available",
+    repository,
+    tasks_path: tasksPath,
+    observations: Object.freeze(observations),
+  });
 }
 
 function targetPath(targetDir, relativePath) {
@@ -958,8 +1404,19 @@ function inspectGitignore(targetDir, addGlobalIssue, { managed = false } = {}) {
     addGlobalIssue("error", "E003", `.gitignore is invalid: ${error.message}`);
     return;
   }
+  let rules;
+  try {
+    if (managed) parseManagedBlock(content, MANAGED_BLOCK_BEGIN, MANAGED_BLOCK_END);
+    rules = parseEffectiveGitignoreRules(content);
+  } catch (error) {
+    if (!(error instanceof GovernanceValidationError) && !(error instanceof CanonicalParseError)) {
+      throw error;
+    }
+    addGlobalIssue("error", "E003", `.gitignore managed structure is invalid: ${error.message}`);
+    return;
+  }
   const sessionState = ".ai-os/lanes/*/STATE.md";
-  if (!content.includes(sessionState)) {
+  if (!isPathIgnored(rules, ".ai-os/lanes/default/STATE.md")) {
     addGlobalIssue(
       "warning",
       "W041",
@@ -997,7 +1454,7 @@ function collectTopLevelTasks(tasksContent) {
     }
     if (!inTasks) continue;
     const idMatch = line.match(/^(\s+)-\s*id:\s*(.+?)\s*$/u);
-    if (idMatch) {
+    if (idMatch && idMatch[1].length === 2) {
       closeTask();
       const fields = Object.create(null);
       fields.id = [idMatch[2].trim()];
@@ -1037,6 +1494,372 @@ function hasMeaningfulTaskValue(value) {
   if (!normalized || normalized === "[]" || normalized === "{}") return false;
   if (/^(?:none|null|n\/a)$/iu.test(normalized)) return false;
   return !normalized.includes("[") && !normalized.includes("]");
+}
+
+function markdownCells(line, expectedCount) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|") || !trimmed.endsWith("|") || trimmed.includes("\\|")) {
+    return null;
+  }
+  const cells = trimmed.slice(1, -1).split("|").map((cell) => cell.trim());
+  return cells.length === expectedCount ? cells : null;
+}
+
+function requireMarkdownSections(content, headings) {
+  const lines = visibleMarkdownContentLines(content);
+  for (const heading of headings) {
+    const marker = `## ${heading}`;
+    const indexes = [];
+    for (let index = 0; index < lines.length; index += 1) {
+      if (lines[index].trim() === marker) indexes.push(index);
+    }
+    if (indexes.length !== 1) throw new GovernanceValidationError(`${marker} must occur once`);
+    let hasContent = false;
+    for (let index = indexes[0] + 1; index < lines.length; index += 1) {
+      if (/^ {0,3}##(?: |$)/u.test(lines[index])) break;
+      if (lines[index].trim()) hasContent = true;
+    }
+    if (!hasContent) throw new GovernanceValidationError(`${marker} must be non-empty`);
+  }
+  return lines;
+}
+
+function validateRiskRegister(content) {
+  const lines = visibleMarkdownContentLines(content);
+  const header = "| ID | Risk | Impact | Mitigation | Status |";
+  const indexes = lines.flatMap((line, index) => line.trim() === header ? [index] : []);
+  if (indexes.length !== 1) throw new GovernanceValidationError("risk table header must occur once");
+  const separator = markdownCells(lines[indexes[0] + 1] || "", 5);
+  if (!separator || separator.some((cell) => cell !== "---")) {
+    throw new GovernanceValidationError("risk table separator is invalid");
+  }
+  const ids = new Set();
+  let rows = 0;
+  for (let index = indexes[0] + 2; index < lines.length; index += 1) {
+    if (!lines[index].trim()) break;
+    const cells = markdownCells(lines[index], 5);
+    if (!cells || cells.some((cell) => !cell)) {
+      throw new GovernanceValidationError("risk rows must contain five non-empty cells");
+    }
+    if (!/^R-[A-Za-z0-9][A-Za-z0-9-]*$/u.test(cells[0]) || ids.has(cells[0])) {
+      throw new GovernanceValidationError("risk IDs must be valid and unique");
+    }
+    if (!new Set(["open", "mitigated", "accepted", "closed"]).has(cells[4])) {
+      throw new GovernanceValidationError("risk status is invalid");
+    }
+    ids.add(cells[0]);
+    rows += 1;
+  }
+  if (rows === 0) throw new GovernanceValidationError("risk register must contain a risk row");
+}
+
+function validateReleasePlan(content) {
+  requireMarkdownSections(content, [
+    "Release intent",
+    "Release steps",
+    "Rollback conditions",
+    "Blockers",
+    "Manual steps",
+  ]);
+}
+
+function assertMappingKeys(value, keys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new GovernanceValidationError(`${label} must be a mapping`);
+  }
+  const actual = Object.keys(value).sort(compareCodePointText);
+  const expected = [...keys].sort(compareCodePointText);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new GovernanceValidationError(`${label} keys must be exact`);
+  }
+}
+
+function assertNonEmptySchemaString(value, label) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new GovernanceValidationError(`${label} must be non-empty`);
+  }
+}
+
+function validateVerificationMatrix(content) {
+  const document = parseCanonicalYaml(content);
+  assertMappingKeys(document, ["impact_rules", "failure_modes"], "verification matrix");
+  if (!Array.isArray(document.impact_rules) || !Array.isArray(document.failure_modes)) {
+    throw new GovernanceValidationError("verification matrix values must be lists");
+  }
+  for (const [index, rule] of document.impact_rules.entries()) {
+    assertMappingKeys(rule, ["when", "run"], `impact_rules[${index}]`);
+    assertNonEmptySchemaString(rule.when, `impact_rules[${index}].when`);
+    assertNonEmptySchemaString(rule.run, `impact_rules[${index}].run`);
+  }
+  if (document.failure_modes.length === 0) {
+    throw new GovernanceValidationError("verification matrix needs a failure mode");
+  }
+  const ids = new Set();
+  for (const [index, mode] of document.failure_modes.entries()) {
+    assertMappingKeys(mode, ["id", "scenario", "expected", "guard"], `failure_modes[${index}]`);
+    for (const key of ["id", "scenario", "expected", "guard"]) {
+      assertNonEmptySchemaString(mode[key], `failure_modes[${index}].${key}`);
+    }
+    if (ids.has(mode.id)) throw new GovernanceValidationError("failure mode IDs must be unique");
+    ids.add(mode.id);
+  }
+}
+
+function validateSpec(content) {
+  requireMarkdownSections(content, [
+    "Interface contract",
+    "Data contract",
+    "Behavior contract",
+    "Acceptance mapping",
+  ]);
+}
+
+function validateParityMap(content) {
+  const lines = requireMarkdownSections(content, [
+    "Capture manifest",
+    "Visual parity",
+    "Interaction parity",
+    "API parity",
+    "Evidence",
+  ]);
+  const header = "| ID | Reference | Confidence |";
+  const indexes = lines.flatMap((line, index) => line.trim() === header ? [index] : []);
+  if (indexes.length !== 1) throw new GovernanceValidationError("parity evidence table must occur once");
+  const separator = markdownCells(lines[indexes[0] + 1] || "", 3);
+  if (!separator || separator.some((cell) => cell !== "---")) {
+    throw new GovernanceValidationError("parity evidence separator is invalid");
+  }
+  const ids = new Set();
+  let rows = 0;
+  for (let index = indexes[0] + 2; index < lines.length; index += 1) {
+    if (!lines[index].trim() || /^ {0,3}##(?: |$)/u.test(lines[index])) break;
+    const cells = markdownCells(lines[index], 3);
+    if (!cells || cells.some((cell) => !cell) || ids.has(cells[0])) {
+      throw new GovernanceValidationError("parity evidence rows must be non-empty and unique");
+    }
+    if (!new Set(["observed", "inferred", "unknown"]).has(cells[2])) {
+      throw new GovernanceValidationError("parity evidence confidence is invalid");
+    }
+    ids.add(cells[0]);
+    rows += 1;
+  }
+  if (rows === 0) throw new GovernanceValidationError("parity evidence must not be empty");
+}
+
+function validateLaneEval(content) {
+  const lines = content.split(/\r?\n/u);
+  if (lines[0] !== "---") throw new GovernanceValidationError("eval frontmatter is missing");
+  const end = lines.indexOf("---", 1);
+  if (end === -1) throw new GovernanceValidationError("eval frontmatter is unclosed");
+  const document = parseCanonicalYaml(lines.slice(1, end).join("\n"));
+  const requiredKeys = [
+    "oracle_version",
+    "framework_version",
+    "trigger_source",
+    "first_baseline_id",
+    "risk_source",
+    "failure_mode",
+    "harm",
+    "artifact_gate",
+  ];
+  const allowedKeys = new Set([...requiredKeys, "trajectory_signature"]);
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    throw new GovernanceValidationError("eval frontmatter must be a mapping");
+  }
+  if (
+    requiredKeys.some((key) => !Object.hasOwn(document, key))
+    || Object.keys(document).some((key) => !allowedKeys.has(key))
+  ) {
+    throw new GovernanceValidationError("eval frontmatter keys must be exact");
+  }
+  if (document.oracle_version !== 1) {
+    throw new GovernanceValidationError("eval oracle_version must be 1");
+  }
+  if (typeof document.framework_version !== "string" || !/^11\.\d+\.\d+$/u.test(document.framework_version)) {
+    throw new GovernanceValidationError("eval framework_version must be a v11 semantic version");
+  }
+  if (!new Set(["manual", "promoted-from-verification-matrix"]).has(document.trigger_source)) {
+    throw new GovernanceValidationError("eval trigger_source is invalid");
+  }
+  if (typeof document.first_baseline_id !== "string") {
+    throw new GovernanceValidationError("eval first_baseline_id must be a string");
+  }
+  if (
+    document.trigger_source === "promoted-from-verification-matrix"
+    && !BASELINE_ID_PATTERN.test(document.first_baseline_id)
+  ) {
+    throw new GovernanceValidationError("promoted eval first_baseline_id must be canonical");
+  }
+  if (document.risk_source !== "delivery-governance") {
+    throw new GovernanceValidationError("eval risk_source is invalid");
+  }
+  if (!new Set(["delivery-regression", "hidden-regression", "wrong-work", "false-completion"]).has(document.harm)) {
+    throw new GovernanceValidationError("eval harm is invalid");
+  }
+  if (typeof document.failure_mode !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(document.failure_mode)) {
+    throw new GovernanceValidationError("eval failure_mode is invalid");
+  }
+  assertNonEmptySchemaString(document.artifact_gate, "eval artifact_gate");
+  if (Object.hasOwn(document, "trajectory_signature")) {
+    assertNonEmptySchemaString(document.trajectory_signature, "eval trajectory_signature");
+  }
+
+  const body = lines.slice(end + 1).join("\n");
+  const visible = visibleMarkdownContentLines(body);
+  const headings = visible
+    .map((line) => line.match(/^ {0,3}## (.+)$/u))
+    .filter(Boolean)
+    .map((match) => match[1]);
+  const requiredHeadings = [
+    "Input",
+    "Expected decisions",
+    "Forbidden actions",
+    "Required artifact deltas",
+    "Minimum evidence",
+    "Framework change targets",
+  ];
+  if (JSON.stringify(headings) !== JSON.stringify(requiredHeadings)) {
+    throw new GovernanceValidationError("eval headings must be exact and ordered");
+  }
+  requireMarkdownSections(body, requiredHeadings);
+  const prefixes = new Map([
+    ["Expected decisions", "DECISION:"],
+    ["Forbidden actions", "FORBID:"],
+    ["Required artifact deltas", "DELTA:"],
+    ["Minimum evidence", "EVIDENCE:"],
+    ["Framework change targets", "TARGET:"],
+  ]);
+  for (let index = 0; index < visible.length; index += 1) {
+    const heading = visible[index].match(/^ {0,3}## (.+)$/u);
+    if (!heading || !prefixes.has(heading[1])) continue;
+    const prefix = prefixes.get(heading[1]);
+    for (index += 1; index < visible.length && !/^ {0,3}##(?: |$)/u.test(visible[index]); index += 1) {
+      if (visible[index].trim() && !visible[index].startsWith(`- ${prefix} `)) {
+        throw new GovernanceValidationError(`eval ${heading[1]} items must use ${prefix}`);
+      }
+    }
+    index -= 1;
+  }
+}
+
+function inspectOptionalSchemaFile(
+  targetDir,
+  relativePath,
+  validator,
+  addLaneIssue,
+  { required = false } = {},
+) {
+  const inspection = inspectTargetPathChain(targetDir, relativePath);
+  if (inspection.kind === "missing") {
+    if (required) addLaneIssue("error", "E003", `${relativePath} is required when its directory exists.`, relativePath);
+    return;
+  }
+  if (inspection.kind === "link") {
+    addLaneIssue("error", "E004", `${relativePath} is a symbolic link.`, relativePath);
+    return;
+  }
+  if (inspection.kind !== "ok" || !fs.statSync(inspection.absolute).isFile()) {
+    addLaneIssue("error", "E022", `${relativePath} exists but is not a file.`, relativePath);
+    return;
+  }
+  try {
+    const content = readTargetText(inspection.absolute, relativePath, {
+      maxBytes: MAX_TARGET_TEXT_BYTES,
+    });
+    validator(content);
+  } catch (error) {
+    if (
+      !(error instanceof TargetFormatError)
+      && !(error instanceof GovernanceValidationError)
+      && !(error instanceof CanonicalParseError)
+    ) throw error;
+    addLaneIssue("error", "E003", `${relativePath} has an invalid canonical schema.`, relativePath);
+  }
+}
+
+function inspectOptionalSchemaDirectory(
+  targetDir,
+  laneRootPath,
+  name,
+  suffix,
+  validator,
+  addLaneIssue,
+) {
+  const relativePath = `${laneRootPath}/${name}`;
+  const inspection = inspectTargetPathChain(targetDir, relativePath);
+  if (inspection.kind === "missing") return;
+  if (inspection.kind === "link") {
+    addLaneIssue("error", "E004", `${relativePath} is a symbolic link.`, relativePath);
+    return;
+  }
+  if (inspection.kind !== "ok" || !fs.statSync(inspection.absolute).isDirectory()) {
+    addLaneIssue("error", "E022", `${relativePath} exists but is not a directory.`, relativePath);
+    return;
+  }
+  let entries;
+  try {
+    entries = readDirectoryNamesBounded(inspection.absolute, 256, relativePath)
+      .sort(compareCodePointText);
+  } catch (error) {
+    if (!(error instanceof TargetFormatError)) throw error;
+    addLaneIssue("error", "E003", `${relativePath} exceeds the bounded entry limit.`, relativePath);
+    return;
+  }
+  for (const entry of entries) {
+    const entryPath = `${relativePath}/${entry}`;
+    if (!entry.endsWith(suffix)) {
+      addLaneIssue("error", "E003", `${entryPath} does not use the canonical suffix ${suffix}.`, entryPath);
+      continue;
+    }
+    inspectOptionalSchemaFile(targetDir, entryPath, validator, addLaneIssue, { required: true });
+  }
+}
+
+function inspectOnDemandArtifacts(targetDir, laneRootPath, addLaneIssue) {
+  for (const [name, validator] of [
+    ["risk-register.md", validateRiskRegister],
+    ["release-plan.md", validateReleasePlan],
+    ["verification-matrix.yaml", validateVerificationMatrix],
+  ]) {
+    inspectOptionalSchemaFile(
+      targetDir,
+      `${laneRootPath}/${name}`,
+      validator,
+      addLaneIssue,
+    );
+  }
+  inspectOptionalSchemaDirectory(
+    targetDir,
+    laneRootPath,
+    "specs",
+    ".spec.md",
+    validateSpec,
+    addLaneIssue,
+  );
+  inspectOptionalSchemaDirectory(
+    targetDir,
+    laneRootPath,
+    "evals",
+    ".md",
+    validateLaneEval,
+    addLaneIssue,
+  );
+  const designPackPath = `${laneRootPath}/design-pack`;
+  const designPack = inspectTargetPathChain(targetDir, designPackPath);
+  if (designPack.kind === "missing") return;
+  if (designPack.kind === "link") {
+    addLaneIssue("error", "E004", `${designPackPath} is a symbolic link.`, designPackPath);
+  } else if (designPack.kind !== "ok" || !fs.statSync(designPack.absolute).isDirectory()) {
+    addLaneIssue("error", "E022", `${designPackPath} exists but is not a directory.`, designPackPath);
+  } else {
+    inspectOptionalSchemaFile(
+      targetDir,
+      `${designPackPath}/parity-map.md`,
+      validateParityMap,
+      addLaneIssue,
+      { required: true },
+    );
+  }
 }
 
 function inspectLane(targetDir, lanesAbsolute, laneId, addTopIssue, managedLanePaths) {
@@ -1287,6 +2110,8 @@ function inspectLane(targetDir, lanesAbsolute, laneId, addTopIssue, managedLaneP
         }
       }
     }
+
+    inspectOnDemandArtifacts(targetDir, laneRootPath, addLaneIssue);
   }
 
   laneIssues.sort(compareIssues);
@@ -1305,6 +2130,459 @@ function parseMissionBaselineId(content) {
     if (value && !value.includes("{{")) return value;
   }
   return null;
+}
+
+function visibleMarkdownContentLines(content) {
+  const result = [];
+  const commentState = { inComment: false };
+  let fence = null;
+  for (const rawLine of logicalLines(content)) {
+    if (fence) {
+      const closer = rawLine.match(/^ {0,3}([`~]+)[ \t]*$/u);
+      if (
+        closer
+        && closer[1][0] === fence.character
+        && closer[1].length >= fence.length
+        && [...closer[1]].every((character) => character === fence.character)
+      ) fence = null;
+      continue;
+    }
+    const line = stripHtmlComments(rawLine, commentState);
+    if (commentState.inComment && !line) continue;
+    const opener = line.match(/^ {0,3}((`{3,})|(~{3,}))(.*)$/u);
+    if (opener) {
+      const run = opener[1];
+      if (run[0] !== "`" || !opener[4].includes("`")) {
+        fence = { character: run[0], length: run.length };
+        continue;
+      }
+    }
+    result.push(line);
+  }
+  return result;
+}
+
+function extractReadableMirror(content, label) {
+  const prefixes = {
+    "当前质量档位": "- **当前质量档位（quality_tier，lane.toml 镜像）**：",
+    "当前风险档位": "- **当前风险档位（risk_tier，lane.toml 镜像）**：",
+    "当前治理档位": "- **当前治理档位（governance_tier，lane.toml 镜像）**：",
+    "当前基线 ID": "- **当前基线 ID（lane.toml.baseline_id 镜像）**：",
+  };
+  const prefix = prefixes[label];
+  if (!prefix) return null;
+  const matches = visibleMarkdownContentLines(content)
+    .filter((line) => line.startsWith(prefix))
+    .map((line) => line.slice(prefix.length).trim());
+  return matches.length === 1 && matches[0] ? matches[0] : null;
+}
+
+function readLaneReadinessText(laneAbsolute, name) {
+  const absolute = path.join(laneAbsolute, name);
+  const stat = lstatIfPresent(absolute);
+  if (!stat || stat.isSymbolicLink() || !fs.statSync(absolute).isFile()) return null;
+  try {
+    return readTargetText(absolute, name, { maxBytes: MAX_TARGET_TEXT_BYTES });
+  } catch (error) {
+    if (!(error instanceof TargetFormatError)) throw error;
+    return null;
+  }
+}
+
+function inspectBaselineReadiness(laneAbsolute, currentId) {
+  const baselineAbsolute = path.join(laneAbsolute, "baseline-log");
+  const result = {
+    confirmedAt: null,
+    currentBootstrap: false,
+    ready: false,
+  };
+  try {
+    const stat = lstatIfPresent(baselineAbsolute);
+    if (!stat || stat.isSymbolicLink() || !fs.statSync(baselineAbsolute).isDirectory()) {
+      return result;
+    }
+    const entries = readDirectoryNamesBounded(
+      baselineAbsolute,
+      MAX_BASELINE_ENTRIES,
+      "baseline-log",
+    ).filter((entry) => entry.endsWith(".md")).sort(compareCodePointText);
+    const records = new Map();
+    for (const entry of entries) {
+      const absolute = path.join(baselineAbsolute, entry);
+      const entryStat = lstatIfPresent(absolute);
+      if (!entryStat || entryStat.isSymbolicLink() || !fs.statSync(absolute).isFile()) {
+        return result;
+      }
+      const content = readTargetText(absolute, entry, { maxBytes: MAX_TARGET_TEXT_BYTES });
+      const record = parseBaselineRecord(content, entry);
+      if (records.has(record.id)) return result;
+      records.set(record.id, record);
+    }
+    const current = records.get(currentId);
+    if (!current) return result;
+    if (current.type === "bootstrap" && current.status === "unconfirmed") {
+      result.currentBootstrap = true;
+      return result;
+    }
+    if (current.type !== "baseline" || current.status !== "confirmed") return result;
+    const lineage = new Set();
+    let cursor = current;
+    for (;;) {
+      if (lineage.has(cursor.id)) return result;
+      lineage.add(cursor.id);
+      const previous = records.get(cursor.previous_baseline_id);
+      if (!previous) return result;
+      if (previous.type === "bootstrap" && previous.status === "unconfirmed") {
+        lineage.add(previous.id);
+        break;
+      }
+      if (previous.type !== "baseline" || previous.status !== "confirmed") return result;
+      cursor = previous;
+    }
+    for (const record of records.values()) {
+      if (
+        record.type === "change"
+        && record.status === "applied"
+        && !lineage.has(record.result_baseline_id)
+      ) return result;
+      if (record.type === "retrospective") {
+        for (const sourceId of record.source_cr_ids) {
+          const source = records.get(sourceId);
+          if (!source || source.type !== "change" || !["applied", "rejected"].includes(source.status)) {
+            return result;
+          }
+        }
+      }
+    }
+    result.confirmedAt = current.confirmed_at;
+    result.ready = true;
+    return result;
+  } catch (error) {
+    if (
+      !(error instanceof TargetFormatError)
+      && !(error instanceof GovernanceValidationError)
+      && !(error instanceof CanonicalParseError)
+    ) throw error;
+    return result;
+  }
+}
+
+function tierReadiness(metadata, mission) {
+  const ranks = {
+    quality_tier: { exploratory: 0, standard: 1, strict: 2 },
+    risk_tier: { low: 0, medium: 1, high: 2 },
+    governance_tier: { G0: 0, G1: 1, G2: 2 },
+  };
+  const labels = {
+    quality_tier: "当前质量档位",
+    risk_tier: "当前风险档位",
+    governance_tier: "当前治理档位",
+  };
+  for (const key of Object.keys(ranks)) {
+    if (!Object.hasOwn(ranks[key], metadata[key])) return false;
+    if (extractReadableMirror(mission, labels[key]) !== metadata[key]) return false;
+  }
+  return ranks.governance_tier[metadata.governance_tier]
+    >= Math.max(ranks.quality_tier[metadata.quality_tier], ranks.risk_tier[metadata.risk_tier]);
+}
+
+function isTerminalTask(task) {
+  return task.status === "done" || task.status === "shipped";
+}
+
+function taskCompletionReady(tasks) {
+  if (tasks.tasks.length === 0 || tasks.tasks.some((task) => !isTerminalTask(task))) return false;
+  const byId = new Map(tasks.tasks.map((task) => [task.id, task]));
+  for (const task of tasks.tasks) {
+    if (
+      task.acceptance_refs.length === 0
+      || task.evidence_required.length === 0
+      || task.change_scope.length === 0
+      || task.depends_on.some((dependency) => !isTerminalTask(byId.get(dependency)))
+      || Object.values(task.delivery_state).some(
+        (value) => !["observed", "not-applicable"].includes(value),
+      )
+    ) return false;
+    const required = [...task.evidence_required].sort(compareCodePointText);
+    const produced = task.evidence_produced.map((item) => item.id).sort(compareCodePointText);
+    if (JSON.stringify(required) !== JSON.stringify(produced)) return false;
+  }
+  return true;
+}
+
+function approvalReadiness(tasks, governanceTier, baselineId, confirmedAt, fixedNowMs) {
+  const confirmedMs = Date.parse(confirmedAt);
+  for (const task of tasks.tasks) {
+    const approval = task.approval;
+    if (approval.baseline_id !== baselineId) return false;
+    const mustApprove = approval.required || governanceTier === "G2";
+    if (mustApprove && approval.status !== "approved") return false;
+    if (["approved", "rejected", "expired"].includes(approval.status)) {
+      const decidedMs = Date.parse(approval.decided_at);
+      if (decidedMs < confirmedMs || decidedMs > fixedNowMs) return false;
+    }
+  }
+  return true;
+}
+
+function pureEvidenceReadiness(tasks, baselineId, confirmedAt, fixedNowMs) {
+  if (tasks.baseline_id !== baselineId) return { ready: false, shas: [] };
+  const confirmedMs = Date.parse(confirmedAt);
+  const shas = [];
+  for (const task of tasks.tasks) {
+    for (const evidence of task.evidence_produced) {
+      const observedMs = Date.parse(evidence.observed_at);
+      if (
+        evidence.exit_code !== 0
+        || evidence.confidence !== "observed"
+        || !isFullObjectId(evidence.git_sha)
+        || observedMs < confirmedMs
+        || observedMs > fixedNowMs
+      ) return { ready: false, shas: [] };
+      if (task.approval.required && Date.parse(task.approval.decided_at) > observedMs) {
+        return { ready: false, shas: [] };
+      }
+      shas.push(evidence.git_sha);
+    }
+  }
+  return { ready: true, shas };
+}
+
+function requiredArtifactsReady(laneAbsolute, governanceTier, scopeMode) {
+  const required = [];
+  if (governanceTier === "G2") {
+    required.push("risk-register.md", "verification-matrix.yaml");
+  }
+  if (scopeMode === "release") required.push("release-plan.md");
+  for (const name of required) {
+    const absolute = path.join(laneAbsolute, name);
+    const stat = lstatIfPresent(absolute);
+    if (!stat || stat.isSymbolicLink() || !fs.statSync(absolute).isFile() || stat.size === 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function evidenceEnvelopeReady(envelope, currentTasks, laneId) {
+  if (!envelope || envelope.state !== "available") return false;
+  const laneRoot = `${envelope.repository.project_prefix}.ai-os/lanes/`;
+  const currentProjection = JSON.stringify(projectTasksForEvidence(currentTasks));
+  for (const observation of envelope.observations) {
+    if (!observation.ancestor) return false;
+    const impactPaths = observation.changed_paths.filter((changedPath) => {
+      if (!changedPath.startsWith(laneRoot)) return true;
+      const remainder = changedPath.slice(laneRoot.length);
+      const separator = remainder.indexOf("/");
+      return separator === -1 || remainder.slice(0, separator) === laneId;
+    });
+    if (impactPaths.some((changedPath) => changedPath !== envelope.tasks_path)) return false;
+    if (JSON.stringify(projectTasksForEvidence(observation.historical_tasks)) !== currentProjection) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function addLaneReadinessIssue(issues, laneReport, laneId, code, message, issuePath) {
+  const existing = laneReport.issues.find((item) => item.code === code);
+  if (existing) return existing;
+  const item = makeIssue("info", code, message, issuePath, laneId);
+  laneReport.issues.push(item);
+  issues.push(item);
+  return item;
+}
+
+function addStateDriftWarning(issues, laneReport, laneId, issuePath) {
+  if (laneReport.issues.some((item) => item.code === "W072")) return;
+  const item = makeIssue(
+    "warning",
+    "W072",
+    "STATE.md mirrors are stale; rebuild session state from committed lane truth.",
+    issuePath,
+    laneId,
+  );
+  laneReport.issues.push(item);
+  issues.push(item);
+}
+
+function evaluateLaneReadiness(
+  targetDir,
+  laneId,
+  laneReport,
+  issues,
+  { fixedNowMs, runGit, gitCache },
+) {
+  const laneRootPath = `${LANES_ROOT}/${laneId}`;
+  const laneAbsolute = targetPath(targetDir, laneRootPath);
+  const readinessPath = `${laneRootPath}/lane.toml`;
+  const add = (code, message, relativePath = readinessPath) => (
+    addLaneReadinessIssue(issues, laneReport, laneId, code, message, relativePath)
+  );
+  let metadata;
+  try {
+    const text = readLaneReadinessText(laneAbsolute, "lane.toml");
+    if (text === null) throw new TargetFormatError("lane metadata unavailable");
+    metadata = parseCanonicalToml(text, { requiredKeys: LANE_KEYS, allowedKeys: LANE_KEYS });
+  } catch (error) {
+    if (!(error instanceof TargetFormatError) && !(error instanceof CanonicalParseError)) throw error;
+    add("R002", "Lane status and tier metadata are not ready.");
+    laneReport.delivery_ready = false;
+    return { active: true, ready: false };
+  }
+  const closed = metadata.status === "closed";
+  const active = !closed;
+  if (!new Set(["active", "closed"]).has(metadata.status)) {
+    add("R002", "Lane status must be active or closed.");
+  }
+
+  const mission = readLaneReadinessText(laneAbsolute, "MISSION.md");
+  const state = readLaneReadinessText(laneAbsolute, "STATE.md");
+  if (mission === null || extractReadableMirror(mission, "当前基线 ID") !== metadata.baseline_id) {
+    add("R010", "MISSION baseline mirror must equal lane.toml baseline_id.", `${laneRootPath}/MISSION.md`);
+  }
+  if (state !== null) {
+    const stateMirrors = [
+      ["当前质量档位", metadata.quality_tier],
+      ["当前风险档位", metadata.risk_tier],
+      ["当前治理档位", metadata.governance_tier],
+      ["当前基线 ID", metadata.baseline_id],
+    ];
+    if (stateMirrors.some(([label, value]) => extractReadableMirror(state, label) !== value)) {
+      addStateDriftWarning(issues, laneReport, laneId, `${laneRootPath}/STATE.md`);
+    }
+  }
+
+  const baseline = inspectBaselineReadiness(laneAbsolute, metadata.baseline_id);
+  if (baseline.currentBootstrap) {
+    add("R001", "Current baseline is the unconfirmed bootstrap record.", `${laneRootPath}/baseline-log/${metadata.baseline_id}.md`);
+  } else if (!baseline.ready) {
+    add("R010", "Current baseline lifecycle or history is not ready.", `${laneRootPath}/baseline-log`);
+  }
+
+  let tasks = null;
+  try {
+    const designText = readLaneReadinessText(laneAbsolute, "DESIGN.md");
+    const tasksText = readLaneReadinessText(laneAbsolute, "tasks.yaml");
+    if (designText === null || tasksText === null) throw new GovernanceValidationError("task inputs unavailable");
+    const acceptanceIds = extractDesignAcceptanceIds(designText);
+    tasks = validateTasksV5(parseCanonicalYaml(tasksText), { acceptanceIds });
+    if (tasks.baseline_id !== metadata.baseline_id) {
+      add("R010", "tasks.yaml baseline_id must equal lane.toml baseline_id.", `${laneRootPath}/tasks.yaml`);
+    }
+  } catch (error) {
+    if (!(error instanceof GovernanceValidationError) && !(error instanceof CanonicalParseError)) {
+      throw error;
+    }
+    add("R020", "Task schema, dependencies, or DESIGN acceptance coverage is not ready.", `${laneRootPath}/tasks.yaml`);
+  }
+
+  if (closed) {
+    laneReport.delivery_ready = false;
+    laneReport.issues.sort(compareIssues);
+    return { active: false, ready: false };
+  }
+  if (mission === null || !tierReadiness(metadata, mission)) {
+    add("R002", "Lane tiers are unassessed, inconsistent, or below the required governance floor.");
+  }
+  if (tasks === null) {
+    laneReport.delivery_ready = false;
+    laneReport.issues.sort(compareIssues);
+    return { active, ready: false };
+  }
+  if (!taskCompletionReady(tasks)) {
+    add("R020", "Every active task must be terminal with complete AC, dependency, evidence, and delivery state.", `${laneRootPath}/tasks.yaml`);
+    laneReport.delivery_ready = false;
+    laneReport.issues.sort(compareIssues);
+    return { active, ready: false };
+  }
+  if (!baseline.ready) {
+    laneReport.delivery_ready = false;
+    laneReport.issues.sort(compareIssues);
+    return { active, ready: false };
+  }
+  if (!approvalReadiness(
+    tasks,
+    metadata.governance_tier,
+    metadata.baseline_id,
+    baseline.confirmedAt,
+    fixedNowMs,
+  )) add("R030", "Task approval declarations are not ready for the active baseline.", `${laneRootPath}/tasks.yaml`);
+
+  const evidence = pureEvidenceReadiness(
+    tasks,
+    metadata.baseline_id,
+    baseline.confirmedAt,
+    fixedNowMs,
+  );
+  if (!evidence.ready) {
+    add("R021", "Task evidence is incomplete, stale, inferred, or invalid.", `${laneRootPath}/tasks.yaml`);
+  }
+  if (!requiredArtifactsReady(laneAbsolute, metadata.governance_tier, tasks.scope.mode)) {
+    add("R031", "Required governance artifacts are missing, empty, or not regular files.", laneRootPath);
+  }
+
+  if (evidence.ready && !laneReport.issues.some((item) => ["R030", "R031"].includes(item.code))) {
+    if (!gitCache.resolved) {
+      gitCache.value = resolveGitState(targetDir, { runGit });
+      gitCache.resolved = true;
+    }
+    if (gitCache.value.state !== "available" || gitCache.value.repository.dirty) {
+      add("R022", "Local Git state is unavailable, dirty, or outside its resource budget.", `${laneRootPath}/tasks.yaml`);
+    } else {
+      const envelope = resolveEvidenceGitEnvelope(targetDir, laneId, evidence.shas, {
+        gitState: gitCache.value,
+        runGit,
+      });
+      if (envelope.state !== "available") {
+        const gitReasons = new Set([
+          "git-unavailable", "command-failed", "command-timeout", "total-timeout",
+          "output-limit", "dirty-work-tree", "invalid-git-output",
+        ]);
+        add(
+          gitReasons.has(envelope.reason) ? "R022" : "R021",
+          gitReasons.has(envelope.reason)
+            ? "Local Git evidence inspection was unavailable or exceeded its resource budget."
+            : "Historical evidence binding is invalid.",
+          `${laneRootPath}/tasks.yaml`,
+        );
+      } else if (!evidenceEnvelopeReady(envelope, tasks, laneId)) {
+        add("R021", "Evidence commit ancestry, impact scope, or historical task semantics are invalid.", `${laneRootPath}/tasks.yaml`);
+      }
+    }
+  }
+
+  const ready = laneReport.layout_ok
+    && !laneReport.issues.some((item) => item.code.startsWith("R"));
+  laneReport.delivery_ready = ready;
+  laneReport.issues.sort(compareIssues);
+  return { active, ready };
+}
+
+function evaluateReadiness(targetDir, lanes, issues, options) {
+  const gitCache = { resolved: false, value: null };
+  const states = [];
+  for (const laneId of Object.keys(lanes).sort(compareCodePointText)) {
+    states.push(evaluateLaneReadiness(
+      targetDir,
+      laneId,
+      lanes[laneId],
+      issues,
+      { ...options, gitCache },
+    ));
+  }
+  const active = states.filter((state) => state.active);
+  if (active.length === 0) {
+    issues.push(makeIssue(
+      "info",
+      "R020",
+      "No active lane exists; delivery readiness cannot be vacuously true.",
+      null,
+      null,
+    ));
+    return false;
+  }
+  return active.every((state) => state.ready);
 }
 
 function inspectLanes(targetDir, addGlobalIssue, addTopIssue, manifestRows) {
@@ -1363,7 +2641,14 @@ function inspectLanes(targetDir, addGlobalIssue, addTopIssue, manifestRows) {
   return lanes;
 }
 
-function inspectProject(targetDir, { strict = false } = {}) {
+function inspectProject(
+  targetDir,
+  {
+    strict = false,
+    now = () => new Date(),
+    runGit = createLocalGitRunner(),
+  } = {},
+) {
   const resolvedTarget = path.resolve(targetDir || ".");
   const stateRoot = targetPath(resolvedTarget, PROJECT_STATE_ROOT);
   const initialStateStat = lstatIfPresent(stateRoot);
@@ -1439,11 +2724,23 @@ function inspectProject(targetDir, { strict = false } = {}) {
     });
   }
 
+  let deliveryReady = false;
+  if (stateRootUsable) {
+    const fixedNow = now();
+    if (!(fixedNow instanceof Date) || !Number.isFinite(fixedNow.getTime())) {
+      throw new TypeError("doctor now() must return a valid Date");
+    }
+    deliveryReady = evaluateReadiness(resolvedTarget, lanes, issues, {
+      fixedNowMs: fixedNow.getTime(),
+      runGit,
+    });
+  }
   issues.sort(compareIssues);
   const semanticWarnings = issues.filter((item) => SEMANTIC_WARNING_CODES.has(item.code));
   const layoutOk = !issues.some((item) => item.severity === "error");
-  const deliveryReady = false;
-  const ok = layoutOk && (!strict || deliveryReady);
+  const ok = strict
+    ? layoutOk && deliveryReady && !issues.some((item) => item.severity === "warning")
+    : layoutOk;
 
   return {
     ok,
@@ -1538,4 +2835,10 @@ function main(argv = process.argv.slice(2), io = process) {
 
 if (require.main === module) process.exitCode = main();
 
-module.exports = { main, inspectProject };
+module.exports = {
+  createLocalGitRunner,
+  inspectProject,
+  main,
+  resolveEvidenceGitEnvelope,
+  resolveGitState,
+};

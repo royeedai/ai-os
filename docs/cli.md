@@ -45,12 +45,17 @@ Pin a release for reproducible installs: `npx --yes github:royeedai/ai-os#v10.5.
 
 Checks:
 
-- `AGENTS.md` exists
-- root shared artifacts exist
-- `.ai-os/lanes/default/` exists with core lane artifacts
-- baseline log naming is valid
-- `.gitignore` contains the only session-local ignore, lane `STATE.md`
-- layout mode is canonical
+- committed framework metadata and managed-file hashes
+- every lane's core layout and canonical metadata
+- baseline lifecycle, tier mirrors, task/AC/dependency state, approvals, evidence, and required artifacts
+- local Git ancestry, clean state, impact scope, and historical task semantics when completed evidence requires them
+- effective `.gitignore` rules, including ordered negation, for session-local lane `STATE.md`
+- deterministic schemas for every on-demand artifact that is present
+
+A fresh install is layout-valid but not delivery-ready: its bootstrap baseline is
+unconfirmed, tiers are unassessed, and example tasks are still `todo`. Doctor
+reports these as informational readiness codes without turning them into layout
+errors.
 
 ### Local doctor entry (zero external request)
 
@@ -62,33 +67,113 @@ node .ai-os/bin/ai-os-doctor.js . --strict
 
 The local runtime is deliberately small: `ai-os-doctor.js`, its read-only `doctor-shared.js` helper, and `VERSION`. `.ai-os/bin/`, `.ai-os/framework.toml`, and `.ai-os/managed-files.tsv` are committed so teammates and CI share the same doctor and framework identity. The AI-OS-managed ignore block contains only session-local lane `STATE.md`. A fresh install from the pinned release vendors the matching entry.
 
-### Structural & metadata codes
+### Issue codes
 
-`E001` / `E002` (missing or wrong-schema `framework.toml`), `E010` (missing `AGENTS.md`), `E020` (missing core lane artifact), `E022` (artifact path has the wrong type), `E050` / `E051` (`.ai-os/lanes` not a directory / missing default lane), `W001` (no `framework_version`), `W002` (installed framework older than current major), `W010` (`AGENTS.md` over the `<=150`-line target), `W011` (missing constitution section markers), `W020` / `W021` (missing extension artifact / empty file), `W030` / `W031` (empty baseline-log / non-conforming baseline name), `W040` / `W041` (`.gitignore` missing the session-local `STATE.md` ignore), `W050` (lane missing `lane.toml`), and `I020` (session-local `STATE.md` absent — informational). The authoritative list lives in `bin/ai-os-doctor.js`.
+The authoritative catalog lives in `bin/ai-os-doctor.js`:
+
+- Structural errors: `E001`, `E002`, `E003`, `E004`, `E010`, `E020`, `E022`, `E050`, `E051`.
+- Layout warnings: `W010`, `W011`, `W030`, `W031`, `W040`, `W041`.
+- Compatibility semantic warnings: `W070` for the readable MISSION baseline reference and `W071` for legacy owner scanning.
+- Session warning: `W072` means optional `STATE.md` mirrors are stale and must be rebuilt; STATE never becomes authority and this code is not copied into `semantic_warnings`.
+- Layout information: `I020` means optional session-local `STATE.md` is absent.
+- Readiness information: `R001` unconfirmed bootstrap, `R002` status/tier assessment, `R010` baseline alignment/lifecycle, `R020` task/dependency/AC/completion, `R021` evidence binding, `R022` local Git unavailable/dirty/budget failure, `R030` approval, and `R031` required artifact presence.
+
+Every issue has `level === severity`; R codes are informational and block the
+affected lane's `delivery_ready`, not `layout_ok`.
 
 ### Package boundary
 
 The packaged tarball contains four `bin/` scripts: the thin `create-ai-os.js` entry, the transactional `installer.js`, and the read-only doctor pair `ai-os-doctor.js` / `doctor-shared.js`. Installed projects receive only the doctor pair plus `VERSION`; installer code is never copied into `.ai-os/bin/`.
 
-### Semantic consistency warnings
-
-Warnings (non-blocking) by default; `--strict` upgrades them to errors.
-
-- **W070** — lane `MISSION.md` references a `当前基线 ID` that has no matching file in `baseline-log/`
-- **W071** — `tasks.yaml` has tasks under the top-level `tasks:` block without an `owner` field
-
-On-demand artifacts (risk-register, verification-matrix, etc.) are not structurally checked by doctor; their correct use is carried by `AGENTS.md` behavior rules and artifact schemas.
-
 ### Options
 
 - `--json` — machine-readable output for CI
-- `--strict` — exit non-zero on warnings as well as errors
+- `--strict` — require `layout_ok && delivery_ready` and no warnings
+
+Normal mode exits 0 when `layout_ok` is true, even when readiness is still
+false. Strict mode exits 1 for a layout error, any warning, or incomplete
+delivery readiness. A directory without `.ai-os/` exits 2.
 
 ### JSON output
 
-`doctor --json` returns:
+`doctor --json` returns the compatibility fields plus `layout_ok`,
+`delivery_ready`, and one report for every lane. `semantic_warnings` references
+the same W070/W071 issue objects; it is not a second diagnostic truth.
 
-- `layout_version`
-- `layout_mode`
-- `issues[]`
-- `semantic_warnings[]` — convenience filter of `issues[]` containing W070/W071 semantic warning codes
+The following normalized fixture is generated from a fresh install. Only the
+absolute target path and generated bootstrap ID are replaced.
+
+<!-- doctor-report:start -->
+```json
+{
+  "ok": true,
+  "version": "11.0.0",
+  "package": "create-ai-os@11.0.0",
+  "targetDir": "<target-dir>",
+  "installedVersion": "11.0.0",
+  "layout_version": "11",
+  "layout_mode": "shared-root-default-lane",
+  "issues": [
+    {
+      "level": "info",
+      "code": "R001",
+      "message": "Current baseline is the unconfirmed bootstrap record.",
+      "severity": "info",
+      "path": ".ai-os/lanes/default/baseline-log/<bootstrap-id>.md",
+      "lane_id": "default"
+    },
+    {
+      "level": "info",
+      "code": "R002",
+      "message": "Lane tiers are unassessed, inconsistent, or below the required governance floor.",
+      "severity": "info",
+      "path": ".ai-os/lanes/default/lane.toml",
+      "lane_id": "default"
+    },
+    {
+      "level": "info",
+      "code": "R020",
+      "message": "Every active task must be terminal with complete AC, dependency, evidence, and delivery state.",
+      "severity": "info",
+      "path": ".ai-os/lanes/default/tasks.yaml",
+      "lane_id": "default"
+    }
+  ],
+  "semantic_warnings": [],
+  "layout_ok": true,
+  "delivery_ready": false,
+  "lanes": {
+    "default": {
+      "layout_ok": true,
+      "delivery_ready": false,
+      "issues": [
+        {
+          "level": "info",
+          "code": "R001",
+          "message": "Current baseline is the unconfirmed bootstrap record.",
+          "severity": "info",
+          "path": ".ai-os/lanes/default/baseline-log/<bootstrap-id>.md",
+          "lane_id": "default"
+        },
+        {
+          "level": "info",
+          "code": "R002",
+          "message": "Lane tiers are unassessed, inconsistent, or below the required governance floor.",
+          "severity": "info",
+          "path": ".ai-os/lanes/default/lane.toml",
+          "lane_id": "default"
+        },
+        {
+          "level": "info",
+          "code": "R020",
+          "message": "Every active task must be terminal with complete AC, dependency, evidence, and delivery state.",
+          "severity": "info",
+          "path": ".ai-os/lanes/default/tasks.yaml",
+          "lane_id": "default"
+        }
+      ]
+    }
+  }
+}
+```
+<!-- doctor-report:end -->
