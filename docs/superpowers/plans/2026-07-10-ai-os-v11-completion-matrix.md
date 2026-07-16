@@ -195,7 +195,7 @@ The IDs below are a one-to-one reviewed catalog of the normative goal, non-goals
 | D18-R08 | Keep tiers, baseline, approval, evidence, and authority consistent everywhere | `node --test test/governance-schema.test.js test/contracts.test.js test/doctor-readiness.test.js` | Cross-surface governance contracts agree | Governance suites pass | pass |
 | D18-R09 | Make doctor fail closed for canonical formats and inspect every lane | `node --test test/doctor-parser.test.js test/doctor-layout.test.js test/doctor-readiness.test.js` | Malformed formats fail and all lanes report | Doctor suites pass | pass |
 | D18-R10 | Keep skill thin and examples/evals canonical | `node --test test/contracts.test.js test/examples.test.js test/evals.test.js` | All surface oracles pass | Surface suites pass | pass |
-| D18-R11 | Pass native tests, lint, diff, pack/tarball, coverage, and supported-platform CI | `npm test`; `npm run test:coverage`; `npm run lint`; `git diff --check`; `node scripts/verify-remote-evidence.js` | Local gates and nine current-head remote checks pass | Ordinary local gates pass; Node 24 coverage is below threshold and branch/PR CI is unavailable | blocked |
+| D18-R11 | Pass native tests, lint, diff, pack/tarball, coverage, and supported-platform CI | `npm test`; `npm run test:coverage`; `npm run lint`; `git diff --check`; `node scripts/verify-remote-evidence.js` | Local gates and nine current-head remote checks pass | All local gates pass, including Node 22 and exact Node 24 coverage; current-head branch/PR CI is unavailable | blocked |
 | D18-R12 | Apply repository security/release settings or prove feature unavailability without misleading claims | `node scripts/verify-repository-settings.js` | Current live settings satisfy desired state | Authenticated readback shows protection absent, Actions SHA pinning false, vulnerability/security settings disabled, and label missing | blocked |
 | D18-R13 | Report code, repository data, and runtime status separately with evidence | Final evidence comment and strict matrix validation | Three dimensions reference immutable current head | pending | pending |
 | D19-R01 | Complete test/release-truth foundation workstream with regression tests/review | `npm test` and branch history | Workstream contracts pass | Foundation commits and tests present | pass |
@@ -210,5 +210,5 @@ The IDs below are a one-to-one reviewed catalog of the normative goal, non-goals
 
 - Code/source: local implementation and local behavioral gates are green.
 - Repository data/settings: committed desired state exists; authenticated readback shows the reviewed settings have not been applied.
-- Runtime/CI: local runtime evidence is green; supported-platform PR checks require the pushed branch and draft PR.
+- Runtime/CI: local runtime evidence is green; the current local head is not pushed and supported-platform checks require a draft PR.
 - Release: v11 remains intentionally untagged and `Unreleased`; no release action is authorized by this matrix.
