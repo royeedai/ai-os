@@ -74,6 +74,33 @@ test("completion matrix parser supports escaped pipes and rejects malformed code
   assert.throws(() => matrix.splitMarkdownRow("| A | `unterminated |"), /unterminated/);
 });
 
+test("completion evidence references must exist inside the repository", () => {
+  const row = {
+    id: "D01-R01",
+    requirement: "fixture",
+    evidence: "`node --test test/completion.test.js`; `node scripts/verify-completion-matrix.js --allow-pending`; `npm test`",
+    expected: "pass",
+    actual: "pass",
+    status: "pass",
+  };
+  assert.deepEqual(matrix.evidenceReferences(row.evidence), [
+    "scripts/verify-completion-matrix.js",
+    "test/completion.test.js",
+  ]);
+  assert.doesNotThrow(() => matrix.verifyEvidenceReferences([row], repoRoot));
+  for (const evidence of [
+    "`node --test test/missing.test.js`",
+    "`node /test/completion.test.js`",
+    "`node test/../outside.test.js`",
+  ]) {
+    assert.throws(
+      () => matrix.verifyEvidenceReferences([{ ...row, evidence }], repoRoot),
+      /evidence reference/i,
+      evidence,
+    );
+  }
+});
+
 test("remote evidence validator locks the same nine blocking checks as branch protection", () => {
   assert.deepEqual([...remote.BLOCKING_CHECKS], EXPECTED_BLOCKING_CHECKS);
   assert.deepEqual(settings.desiredProtection.required_status_checks.contexts, EXPECTED_BLOCKING_CHECKS);

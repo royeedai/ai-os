@@ -38,6 +38,8 @@ const REQUIREMENT_IDS = Object.freeze(Object.entries(REQUIREMENT_COUNTS).flatMap
   ),
 ));
 const STATUSES = new Set(["pending", "pass", "fail", "blocked", "live"]);
+const EVIDENCE_PATH_PATTERN =
+  /(?:^|[\s`;])((?:\/)?(?:(?:\.github|bin|docs|evals|examples|framework|scripts|test)(?:\/[A-Za-z0-9._-]+)+|(?:CHANGELOG|CONTRIBUTING|PROJECT_PURPOSE|README|SECURITY)\.md|(?:RELEASED_VERSION|VERSION|package(?:-lock)?\.json)))(?=$|[\s`;])/gu;
 
 function splitMarkdownRow(line) {
   if (!line.startsWith("|") || !line.endsWith("|")) return null;
@@ -111,6 +113,37 @@ function verifyCatalog(rows) {
   }
 }
 
+function evidenceReferences(evidence) {
+  return [...new Set(
+    [...String(evidence).matchAll(EVIDENCE_PATH_PATTERN)].map((match) => match[1]),
+  )].sort();
+}
+
+function verifyEvidenceReferences(rows, repositoryRoot = repoRoot) {
+  const root = path.resolve(repositoryRoot);
+  for (const row of rows) {
+    for (const relativePath of evidenceReferences(row.evidence)) {
+      const normalized = path.posix.normalize(relativePath);
+      if (
+        normalized !== relativePath
+        || path.posix.isAbsolute(relativePath)
+        || normalized === ".."
+        || normalized.startsWith("../")
+      ) {
+        throw new Error(`${row.id} has unsafe evidence reference: ${relativePath}`);
+      }
+      const absolute = path.resolve(root, ...relativePath.split("/"));
+      const fromRoot = path.relative(root, absolute);
+      if (fromRoot === ".." || fromRoot.startsWith(`..${path.sep}`) || path.isAbsolute(fromRoot)) {
+        throw new Error(`${row.id} evidence reference escapes repository: ${relativePath}`);
+      }
+      if (!fs.existsSync(absolute)) {
+        throw new Error(`${row.id} evidence reference is missing: ${relativePath}`);
+      }
+    }
+  }
+}
+
 function runValidator(relativePath) {
   const result = spawnSync(process.execPath, [path.join(repoRoot, relativePath)], {
     cwd: repoRoot,
@@ -164,9 +197,11 @@ if (require.main === module) {
 module.exports = Object.freeze({
   REQUIREMENT_COUNTS,
   REQUIREMENT_IDS,
+  evidenceReferences,
   main,
   parseMatrix,
   splitMarkdownRow,
   verifyCatalog,
+  verifyEvidenceReferences,
   verifyRows,
 });
