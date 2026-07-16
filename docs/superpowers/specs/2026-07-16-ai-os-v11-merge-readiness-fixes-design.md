@@ -1,7 +1,7 @@
 # AI-OS v11 Merge-Readiness Fixes Design
 
-**Date:** 2026-07-16  
-**Status:** Approved  
+**Date:** 2026-07-16
+**Status:** Approved
 **Scope:** Source and local quality gates only. Remote GitHub settings and PR creation remain external follow-up actions.
 
 ## Problem

@@ -43,6 +43,7 @@ test("unreleased v11 changelog describes the implemented contract", () => {
     "layout schema 升为 **v10**",
     "`tasks.yaml` 模板精简（version 4）",
     "doctor 收敛为结构检查 + 两个语义警告",
+    "doctor、docs、evals、examples 与测试同步瘦身",
   ]) {
     assert.ok(!changelog.includes(stale), stale);
   }

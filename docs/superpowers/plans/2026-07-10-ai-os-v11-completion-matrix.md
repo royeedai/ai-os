@@ -155,7 +155,7 @@ The IDs below are a one-to-one reviewed catalog of the normative goal, non-goals
 | D14-R07 | Cover npm pack allowlist and tarball-install smoke | `node --test test/package.test.js` | Tarball is minimal and executable | Package suite passes | pass |
 | D14-R08 | Cover docs, examples, and eval matrix consistency | `node --test test/docs.test.js test/examples.test.js test/evals.test.js test/contracts.test.js` | Surfaces converge | Surface suites pass | pass |
 | D14-R09 | Cover release truth separation | `node --test test/release.test.js` | VERSION and RELEASED_VERSION semantics hold | Release suite passes | pass |
-| D14-R10 | Enforce 94 line, 72 branch, and 98 function coverage floors as supporting evidence | `npm run test:coverage` | Coverage thresholds pass | 368 tests and thresholds pass | pass |
+| D14-R10 | Enforce 94 line, 72 branch, and 98 function coverage floors as supporting evidence | `npm run test:coverage` | Coverage thresholds pass | Current full suite and all three thresholds pass | pass |
 | D15-R01 | Give CI explicit contents-read permissions | `node --test test/ci-config.test.js` | Workflow permissions are least privilege | CI config tests pass | pass |
 | D15-R02 | Pin every action to a reviewed full commit SHA | `node --test test/ci-config.test.js` | No mutable action refs | Pin tests pass | pass |
 | D15-R03 | Run ci, lint, full tests, diff-check, audit, and pack in supported quality jobs | `node --test test/ci-config.test.js` | Quality job contains all gates | CI tests pass | pass |
@@ -171,7 +171,7 @@ The IDs below are a one-to-one reviewed catalog of the normative goal, non-goals
 | D15-R13 | Protect critical paths with CODEOWNERS owned by royeedai | `node --test test/ci-config.test.js` | Installer, templates, workflows, metadata, and CODEOWNERS are owned | Ownership tests pass | pass |
 | D15-R14 | Configure dependency review where settings permit | `node --test test/ci-config.test.js` | Pinned blocking workflow exists | Config tests pass | pass |
 | D15-R15 | Configure advanced CodeQL where settings permit | `node --test test/ci-config.test.js` | Pinned least-privilege workflow exists | Config tests pass | pass |
-| D15-R16 | Apply and read back review, checks, conversation, force/delete, and code-owner repository rules | `node scripts/verify-repository-settings.js` | Live settings equal reviewed desired state or a feature is proven unavailable | GitHub authentication is invalid; no mutation/readback claimed | blocked |
+| D15-R16 | Apply and read back review, checks, conversation, force/delete, and code-owner repository rules | `node scripts/verify-repository-settings.js` | Live settings equal reviewed desired state or a feature is proven unavailable | Authenticated readback reaches GitHub; main protection returns 404, so desired rules are not applied | blocked |
 | D16-R01 | Require VERSION, package, lockfile, changelog target, and candidate tag agreement for every release | `node --test test/release.test.js test/docs.test.js` | Seven-claim checklist includes version agreement | Release policy tests pass | pass |
 | D16-R02 | Require docs pins to agree with RELEASED_VERSION before and after transition | `node --test test/release.test.js` | Pin transition is explicit | Release truth tests pass | pass |
 | D16-R03 | Require supported-platform CI and tarball smoke before release | `node --test test/docs.test.js test/ci-config.test.js` | Checklist names both | Policy tests pass | pass |
@@ -196,7 +196,7 @@ The IDs below are a one-to-one reviewed catalog of the normative goal, non-goals
 | D18-R09 | Make doctor fail closed for canonical formats and inspect every lane | `node --test test/doctor-parser.test.js test/doctor-layout.test.js test/doctor-readiness.test.js` | Malformed formats fail and all lanes report | Doctor suites pass | pass |
 | D18-R10 | Keep skill thin and examples/evals canonical | `node --test test/contracts.test.js test/examples.test.js test/evals.test.js` | All surface oracles pass | Surface suites pass | pass |
 | D18-R11 | Pass native tests, lint, diff, pack/tarball, coverage, and supported-platform CI | `npm test`; `npm run test:coverage`; `npm run lint`; `git diff --check`; `node scripts/verify-remote-evidence.js` | Local gates and nine current-head remote checks pass | All local gates pass, including Node 22 and exact Node 24 coverage; current-head branch/PR CI is unavailable | blocked |
-| D18-R12 | Apply repository security/release settings or prove feature unavailability without misleading claims | `node scripts/verify-repository-settings.js` | Current live settings satisfy desired state | Authenticated readback shows protection absent, Actions SHA pinning false, vulnerability/security settings disabled, and label missing | blocked |
+| D18-R12 | Apply repository security/release settings or prove feature unavailability without misleading claims | `node scripts/verify-repository-settings.js` | Current live settings satisfy desired state | Authenticated validator stops at main protection 404; remaining settings remain unverified by this command | blocked |
 | D18-R13 | Report code, repository data, and runtime status separately with evidence | Final evidence comment and strict matrix validation | Three dimensions reference immutable current head | pending | pending |
 | D19-R01 | Complete test/release-truth foundation workstream with regression tests/review | `npm test` and branch history | Workstream contracts pass | Foundation commits and tests present | pass |
 | D19-R02 | Complete installer safety/migration workstream with regression tests/review | Installer focused suites and migration probe | Workstream contracts pass | Installer suites and real v10 probe pass | pass |
@@ -209,6 +209,6 @@ The IDs below are a one-to-one reviewed catalog of the normative goal, non-goals
 ## Current closeout state
 
 - Code/source: local implementation and local behavioral gates are green.
-- Repository data/settings: committed desired state exists; authenticated readback shows the reviewed settings have not been applied.
+- Repository data/settings: committed desired state exists; main protection readback returns 404, and remaining settings are not claimed complete.
 - Runtime/CI: local runtime evidence is green; the current local head is not pushed and supported-platform checks require a draft PR.
 - Release: v11 remains intentionally untagged and `Unreleased`; no release action is authorized by this matrix.

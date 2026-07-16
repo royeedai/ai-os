@@ -12,7 +12,7 @@ This file tracks releases from v11.0.0 onward. For v5.x – v10.x history, see [
 
 ## 11.0.0 (Unreleased)
 
-**Major, breaking**. AI-OS 收敛为「核心默认工件 + 按需扩展工件」：默认安装只包含核心交付环（宪法 + shared root + lane 的 `lane.toml` / `MISSION` / `DESIGN` / `STATE` / `baseline-log/` / `tasks.yaml`），其余工件（`risk-register.md`、`release-plan.md`、`verification-matrix.yaml`、`specs/`、`design-pack/`、`evals/`）改为按需创建，schema 保留在 `docs/artifacts.md`。宪法、doctor、docs、evals、examples 与测试同步瘦身；设计锁定、证据化完成、baseline/CR 变更记录、memory 回流、session 恢复等 kernel 语义全部保留。
+**Major, breaking**. AI-OS 收敛为「核心默认工件 + 按需扩展工件」：默认安装只包含核心交付环（宪法 + shared root + lane 的 `lane.toml` / `MISSION` / `DESIGN` / `STATE` / `baseline-log/` / `tasks.yaml`），其余工件（`risk-register.md`、`release-plan.md`、`verification-matrix.yaml`、`specs/`、`design-pack/`、`evals/`）改为按需创建，schema 保留在 `docs/artifacts.md`。宪法、doctor、docs、evals、examples 与测试同步强化确定性 readiness、迁移安全和证据约束；设计锁定、baseline/CR 变更记录、memory 回流与 session 恢复等 kernel 语义继续保留。
 
 ### Changed
 

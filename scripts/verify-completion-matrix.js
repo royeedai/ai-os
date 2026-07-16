@@ -38,8 +38,27 @@ const REQUIREMENT_IDS = Object.freeze(Object.entries(REQUIREMENT_COUNTS).flatMap
   ),
 ));
 const STATUSES = new Set(["pending", "pass", "fail", "blocked", "live"]);
-const EVIDENCE_PATH_PATTERN =
-  /(?:^|[\s`;])((?:\/)?(?:(?:\.github|bin|docs|evals|examples|framework|scripts|test)(?:\/[A-Za-z0-9._-]+)+|(?:CHANGELOG|CONTRIBUTING|PROJECT_PURPOSE|README|SECURITY)\.md|(?:RELEASED_VERSION|VERSION|package(?:-lock)?\.json)))(?=$|[\s`;])/gu;
+const EVIDENCE_ROOT_FILES = new Set([
+  "CHANGELOG.md",
+  "CONTRIBUTING.md",
+  "PROJECT_PURPOSE.md",
+  "README.md",
+  "RELEASED_VERSION",
+  "SECURITY.md",
+  "VERSION",
+  "package-lock.json",
+  "package.json",
+]);
+const EVIDENCE_PREFIXES = Object.freeze([
+  ".github/",
+  "bin/",
+  "docs/",
+  "evals/",
+  "examples/",
+  "framework/",
+  "scripts/",
+  "test/",
+]);
 
 function splitMarkdownRow(line) {
   if (!line.startsWith("|") || !line.endsWith("|")) return null;
@@ -114,31 +133,80 @@ function verifyCatalog(rows) {
 }
 
 function evidenceReferences(evidence) {
-  return [...new Set(
-    [...String(evidence).matchAll(EVIDENCE_PATH_PATTERN)].map((match) => match[1]),
-  )].sort();
+  const references = new Set();
+  for (const codeSpan of String(evidence).matchAll(/`([^`\r\n]+)`/gu)) {
+    for (const rawToken of codeSpan[1].split(/\s+/u)) {
+      const token = rawToken
+        .replace(/^[("'[{<]+/u, "")
+        .replace(/[)"'\]},;:>]+$/u, "");
+      if (
+        token.length === 0
+        || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//u.test(token)
+        || /^refs\/(?:heads|remotes|tags)\//u.test(token)
+      ) {
+        continue;
+      }
+      if (
+        EVIDENCE_ROOT_FILES.has(token)
+        || token.includes("/")
+        || token.includes("\\")
+      ) {
+        references.add(token);
+      }
+    }
+  }
+  return [...references].sort();
 }
 
 function verifyEvidenceReferences(rows, repositoryRoot = repoRoot) {
-  const root = path.resolve(repositoryRoot);
+  const root = fs.realpathSync.native(path.resolve(repositoryRoot));
   for (const row of rows) {
     for (const relativePath of evidenceReferences(row.evidence)) {
       const normalized = path.posix.normalize(relativePath);
       if (
-        normalized !== relativePath
+        relativePath.includes("\\")
+        || normalized !== relativePath
         || path.posix.isAbsolute(relativePath)
         || normalized === ".."
         || normalized.startsWith("../")
       ) {
         throw new Error(`${row.id} has unsafe evidence reference: ${relativePath}`);
       }
+      if (
+        !EVIDENCE_ROOT_FILES.has(relativePath)
+        && !EVIDENCE_PREFIXES.some((prefix) => relativePath.startsWith(prefix))
+      ) {
+        throw new Error(`${row.id} has unsupported evidence reference: ${relativePath}`);
+      }
       const absolute = path.resolve(root, ...relativePath.split("/"));
       const fromRoot = path.relative(root, absolute);
       if (fromRoot === ".." || fromRoot.startsWith(`..${path.sep}`) || path.isAbsolute(fromRoot)) {
         throw new Error(`${row.id} evidence reference escapes repository: ${relativePath}`);
       }
-      if (!fs.existsSync(absolute)) {
-        throw new Error(`${row.id} evidence reference is missing: ${relativePath}`);
+      let stat;
+      try {
+        stat = fs.lstatSync(absolute);
+      } catch (error) {
+        if (!["ENOENT", "ENOTDIR"].includes(error.code)) throw error;
+        throw new Error(
+          `${row.id} evidence reference is missing: ${relativePath}`,
+          { cause: error },
+        );
+      }
+      if (stat.isSymbolicLink()) {
+        throw new Error(`${row.id} evidence reference is a symbolic link: ${relativePath}`);
+      }
+      if (!stat.isFile()) {
+        throw new Error(`${row.id} evidence reference is not a regular file: ${relativePath}`);
+      }
+      const real = fs.realpathSync.native(absolute);
+      const realFromRoot = path.relative(root, real);
+      if (
+        realFromRoot === ".."
+        || realFromRoot.startsWith(`..${path.sep}`)
+        || path.isAbsolute(realFromRoot)
+      ) {
+        throw new Error(`${row.id} evidence reference escapes repository: ${relativePath}`);
       }
     }
   }

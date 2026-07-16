@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { test, assert, repoRoot } = require("./helpers");
 const matrix = require("../scripts/verify-completion-matrix");
@@ -59,9 +60,13 @@ test("completion matrix owns one canonical row for every reviewed design require
     "test/manifest.test.js",
     "test/team-config.test.js",
     "test/compat-manifest.test.js",
+    "368 tests",
+    "GitHub authentication is invalid",
   ]) {
     assert.ok(!content.includes(removed), removed);
   }
+  assert.match(content, /main protection returns 404/);
+  assert.match(content, /remaining settings remain unverified/);
   const unresolved = rows.filter((row) => ["pending", "blocked"].includes(row.status)).length;
   assert.deepEqual(matrix.verifyRows(rows, { allowPending: true, runLiveValidators: false }), {
     requirements: 195,
@@ -97,17 +102,62 @@ test("completion evidence references must exist inside the repository", () => {
     "scripts/verify-completion-matrix.js",
     "test/completion.test.js",
   ]);
+  assert.deepEqual(matrix.evidenceReferences([
+    "`git ls-remote https://github.com/royeedai/ai-os.git refs/tags/v11.0.0`",
+    "`node test/completion.test.js,`",
+  ].join("; ")), ["test/completion.test.js"]);
   assert.doesNotThrow(() => matrix.verifyEvidenceReferences([row], repoRoot));
   for (const evidence of [
     "`node --test test/missing.test.js`",
-    "`node /test/completion.test.js`",
+    "`node /tmp/outside.js`",
+    "`node tests/missing.test.js`",
+    "`node ./test/missing.test.js`",
+    "`node test/missing.test.js,`",
     "`node test/../outside.test.js`",
+    "`node test\\missing.test.js`",
   ]) {
     assert.throws(
       () => matrix.verifyEvidenceReferences([{ ...row, evidence }], repoRoot),
       /evidence reference/i,
       evidence,
     );
+  }
+});
+
+test("completion evidence references must be regular files without symlink escape", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ai-os-matrix-root-"));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "ai-os-matrix-outside-"));
+  try {
+    fs.mkdirSync(path.join(root, "test"));
+    fs.writeFileSync(path.join(root, "test", "valid.test.js"), "valid\n");
+    fs.mkdirSync(path.join(root, "test", "directory.test.js"));
+    fs.writeFileSync(path.join(outside, "external.test.js"), "external\n");
+    fs.symlinkSync(
+      path.join(outside, "external.test.js"),
+      path.join(root, "test", "linked.test.js"),
+    );
+    const row = (reference) => [{
+      id: "D01-R01",
+      requirement: "fixture",
+      evidence: `\`node --test ${reference}\``,
+      expected: "pass",
+      actual: "pass",
+      status: "pass",
+    }];
+    assert.doesNotThrow(() => matrix.verifyEvidenceReferences(
+      row("test/valid.test.js"),
+      root,
+    ));
+    for (const reference of ["test/directory.test.js", "test/linked.test.js"]) {
+      assert.throws(
+        () => matrix.verifyEvidenceReferences(row(reference), root),
+        /regular file|symbolic link/i,
+        reference,
+      );
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
   }
 });
 
