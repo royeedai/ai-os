@@ -28,6 +28,26 @@ test("public install commands use the last real release", () => {
   }
 });
 
+test("unreleased v11 changelog describes the implemented contract", () => {
+  const changelog = read("CHANGELOG.md");
+  for (const required of [
+    "layout schema 升为 **v11**",
+    "`tasks.yaml` schema 升为 **version 5**",
+    "`delivery_ready`",
+    "v10 → v11",
+    "`npm run test:coverage`",
+  ]) {
+    assert.ok(changelog.includes(required), required);
+  }
+  for (const stale of [
+    "layout schema 升为 **v10**",
+    "`tasks.yaml` 模板精简（version 4）",
+    "doctor 收敛为结构检查 + 两个语义警告",
+  ]) {
+    assert.ok(!changelog.includes(stale), stale);
+  }
+});
+
 test("registry publication is explicitly disabled", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(pkg.private, true);

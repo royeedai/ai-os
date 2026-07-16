@@ -16,28 +16,50 @@ This file tracks releases from v11.0.0 onward. For v5.x – v10.x history, see [
 
 ### Changed
 
-- 分发宪法模板 `framework/.agents/templates/root/AGENTS.md` 精简（125 → ~100 行）：「12 组工件」改为「核心工件 + 按需工件」两段，绝对禁止 13 条合并为 8 条，删除密码 / 默认凭证等业务特定规则，多 Lane 与渐进加载章节压缩。
-- `tasks.yaml` 模板精简（version 4）：保留 `id` / `title` / `milestone` / `status` / `owner` / `priority` / `approval_required` / `depends_on` / `acceptance_refs` / `evidence_required` / `evidence_produced` / `change_scope`；删除结构化 `agent_run_review` / `fact_state_review` / `maintenance_review` / `handoff_to` / `context_refs` / `expected_return` / `impact_tags` 字段（其语义仍由宪法行为规则承载）。
-- layout schema 升为 **v10**（`LAYOUT_VERSION = "10"`）；`.gitignore` / `.gitattributes` 受管段落标题去掉版本号。
-- doctor 收敛为结构检查 + 两个语义警告：**W070**（baseline ID 与 baseline-log 不一致）、**W071**（task 缺 owner）。
-- `docs/` 收敛为 5 个文件：`artifacts.md`（核心 + 按需工件 schema）、`getting-started.md`、`cli.md`、`maintainers.md`、`interop.md`（原 `docs/interop/` 6 个文件合并）。
-- `evals/` 收敛为 11 个可确定解析的行为 oracle；`examples/` 收敛为 3 个场景（greenfield / brownfield-change / debug-bounded-fix）。模型矩阵只由 maintainer 手工记录，不引入产品遥测。
-- README、PROJECT_PURPOSE、官方 skill wrapper 同步新布局与新宪法。
+- layout schema 升为 **v11**（`LAYOUT_VERSION = "11"`）；稳定的
+  `.ai-os/framework.toml`、`.ai-os/managed-files.tsv` 与 vendored doctor
+  runtime 一起提交，framework-owned 文件由 source hash 绑定。
+- 安装器改为 ownership-aware 的完整预检、同目录 staging、原子提交与
+  rollback 流程；普通重装和 `--force` 都保留 project/session truth，并
+  对 v10 → v11 提供基于真实发布模板 hash 的有界迁移。
+- `tasks.yaml` schema 升为 **version 5**：approval、evidence、
+  delivery-state、dependency、acceptance 与 change-scope 使用一个精确的
+  canonical YAML 合约。
+- doctor 同时输出结构健康 `layout_ok` 与交付就绪 `delivery_ready`，并对
+  每个 active lane 确定性检查 baseline 生命周期、tier、task/AC、human
+  approval、evidence、Git ancestry/dirty state、影响范围及所需按需工件。
+- `STATE.md` 明确为可重建导航，不覆盖 committed lane truth；缺失为信息，
+  mirror 漂移为独立 warning。
+- 已存在的 risk、release、verification、spec、parity-map 与 eval 按需工件
+  使用本地确定性 schema 检查；未触发的按需工件仍不由安装器默认创建。
+- 分发宪法、官方 skill、README、CLI 文档、examples 与 11 个 eval oracle
+  同步 lane 选择、authority、governance trigger 和无遥测边界。
 
 ### Removed
 
-- 默认 lane 模板中的 `risk-register.md`、`release-plan.md`、`verification-matrix.yaml`、`specs/`、`design-pack/`、`evals/`（改为按需工件）。
-- doctor 语义警告 W072（AC 覆盖）、W074（high-risk 三件套）、W076（handoff 证据环）、W077（fact_state_review）、W078（agent_run_review）及其 tasks.yaml 深度解析代码。
-- `docs/constitution-spec.md`、`docs/problem-ledger.md`、`docs/codex-aios-field-feedback.md`、`docs/reverse-spec-url-intake.md`、`docs/change-evaluation-template.md`、`docs/interop/`（合并为 `docs/interop.md`）。
-- AI-OS 仓库自身不再提交 `.ai-os/` lane 状态（延续 Unreleased 中的维护边界调整）。
+- 安装项目中的旧 `.ai-os/bin/shared.js` 在其 bytes 命中 v10 compatibility
+  manifest 时安全移除，由只读 `doctor-shared.js` 替代。
+- 默认安装继续不包含 risk、release、verification、spec、design-pack 与
+  eval 工件；这些工件只在跨项目成立的 trigger 命中后创建。
+- AI-OS 源码仓库自身不创建或维护 `.ai-os/` lane 状态。
 
 ### Tests
 
-- `npm test`（install / doctor / shared / docs 四个测试文件同步新布局与新警告集）
+- `npm test`
+- `npm run test:coverage`（lines 94%、branches 72%、functions 98%）
 - `npm run lint`
+- `git diff --check`
+- `npm pack --dry-run --json`
+- `npm audit` 与 `npm audit --omit=dev`
 
 ### Migration
 
-- 已安装项目：使用固定发布版 `npx --yes github:royeedai/ai-os#v10.5.1 .` 安装宪法、模板与 vendored doctor。旧的 `risk-register.md` / `release-plan.md` / `verification-matrix.yaml` / `specs/` / `design-pack/` / `evals/` 不会被删除，作为已创建的按需工件继续有效；doctor 会对已存在的按需工件执行确定性结构检查。
-- 旧 `framework.toml`（schema v9）会触发 E002，按提示重装即可。
-- 依赖 W072 / W074 / W076 / W077 / W078 的 CI `--strict` 门禁需移除对应预期；对应语义由宪法行为规则承载。
+- 当前 v11 仍是未发布候选；所有面向用户的公共安装命令继续固定到真实发布版
+  `npx --yes github:royeedai/ai-os#v10.5.1 .`，直到单独授权 tag/release。
+- v11 发布后，同一安装入口会识别 v10.0.0 至 v10.5.1 的 canonical
+  metadata、模板和 managed block，执行 v10 → v11 迁移；baseline/CR
+  history、custom tasks、lane truth、IDE pointers 与已创建按需工件保持
+  byte-identical。
+- 自定义 `AGENTS.md`、未知 framework bytes、修改过的 AI-OS team-config
+  block 或不一致 migration context 会在任何 transaction write 前给出路径级
+  conflict，需要人工合并而不是猜测覆盖。
