@@ -106,9 +106,19 @@ test("completion evidence references must exist inside the repository", () => {
     "`git ls-remote https://github.com/royeedai/ai-os.git refs/tags/v11.0.0`",
     "`node test/completion.test.js,`",
   ].join("; ")), ["test/completion.test.js"]);
+  assert.deepEqual(matrix.evidenceReferences([
+    "plain source test/completion.test.js",
+    "[linked source](scripts/verify-completion-matrix.js)",
+  ].join("; ")), [
+    "scripts/verify-completion-matrix.js",
+    "test/completion.test.js",
+  ]);
   assert.doesNotThrow(() => matrix.verifyEvidenceReferences([row], repoRoot));
   for (const evidence of [
     "`node --test test/missing.test.js`",
+    "node --test test/missing.test.js",
+    "plain source test/missing.test.js",
+    "[linked source](test/missing.test.js)",
     "`node /tmp/outside.js`",
     "`node tests/missing.test.js`",
     "`node ./test/missing.test.js`",

@@ -134,26 +134,37 @@ function verifyCatalog(rows) {
 
 function evidenceReferences(evidence) {
   const references = new Set();
-  for (const codeSpan of String(evidence).matchAll(/`([^`\r\n]+)`/gu)) {
-    for (const rawToken of codeSpan[1].split(/\s+/u)) {
-      const token = rawToken
-        .replace(/^[("'[{<]+/u, "")
-        .replace(/[)"'\]},;:>]+$/u, "");
-      if (
-        token.length === 0
-        || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//u.test(token)
-        || /^refs\/(?:heads|remotes|tags)\//u.test(token)
-      ) {
-        continue;
-      }
-      if (
-        EVIDENCE_ROOT_FILES.has(token)
-        || token.includes("/")
-        || token.includes("\\")
-      ) {
-        references.add(token);
-      }
+  const addToken = (rawToken, explicitLink = false) => {
+    const token = rawToken
+      .replace(/^[`("'[{<]+/u, "")
+      .replace(/[`)"'\]},;:>]+$/u, "");
+    if (
+      token.length === 0
+      || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//u.test(token)
+      || /^refs\/(?:heads|remotes|tags)\//u.test(token)
+    ) {
+      return;
     }
+    const pathLike = (
+      explicitLink
+      || EVIDENCE_ROOT_FILES.has(token)
+      || EVIDENCE_PREFIXES.some((prefix) => token.startsWith(prefix))
+      || /^(?:\/|\.{1,2}\/|[A-Za-z]:[\\/])/u.test(token)
+      || token.includes("\\")
+      || /^[^/\s]+\/(?:[^/\s]+\/|[^/\s]*\.[^/\s]+$)/u.test(token)
+    );
+    if (pathLike) references.add(token);
+  };
+  let remaining = String(evidence);
+  remaining = remaining.replace(
+    /\[[^\]\r\n]*\]\(([^)\s]+)(?:\s+["'][^)\r\n]*["'])?\)/gu,
+    (_match, destination) => {
+      addToken(destination, true);
+      return " ";
+    },
+  );
+  for (const rawToken of remaining.split(/\s+/u)) {
+    addToken(rawToken);
   }
   return [...references].sort();
 }
