@@ -158,6 +158,7 @@ function runValidator(relativePath) {
 
 function verifyRows(rows, { allowPending = false, runLiveValidators = true } = {}) {
   verifyCatalog(rows);
+  verifyEvidenceReferences(rows);
   const failed = rows.filter((row) => row.status === "fail");
   if (failed.length) throw new Error(`failed requirements: ${failed.map((row) => row.id).join(", ")}`);
   const unresolved = rows.filter((row) => ["pending", "blocked"].includes(row.status));

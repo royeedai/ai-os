@@ -48,10 +48,20 @@ function liveProtection() {
 }
 
 test("completion matrix owns one canonical row for every reviewed design requirement", () => {
-  const rows = matrix.parseMatrix(fs.readFileSync(MATRIX_PATH, "utf8"));
+  const content = fs.readFileSync(MATRIX_PATH, "utf8");
+  const rows = matrix.parseMatrix(content);
   assert.equal(matrix.REQUIREMENT_IDS.length, 195);
   assert.equal(rows.length, matrix.REQUIREMENT_IDS.length);
   assert.deepEqual(rows.map((row) => row.id), [...matrix.REQUIREMENT_IDS]);
+  assert.doesNotThrow(() => matrix.verifyEvidenceReferences(rows, repoRoot));
+  for (const removed of [
+    "test/release-truth.test.js",
+    "test/manifest.test.js",
+    "test/team-config.test.js",
+    "test/compat-manifest.test.js",
+  ]) {
+    assert.ok(!content.includes(removed), removed);
+  }
   const unresolved = rows.filter((row) => ["pending", "blocked"].includes(row.status)).length;
   assert.deepEqual(matrix.verifyRows(rows, { allowPending: true, runLiveValidators: false }), {
     requirements: 195,
