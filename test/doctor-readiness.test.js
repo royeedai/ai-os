@@ -244,6 +244,70 @@ function confirmedRecord({ id = CONFIRMED_ID, previousId } = {}) {
   ].join("\n");
 }
 
+function changeRecord({
+  id = "CR-20260711-021000-change",
+  status = "proposed",
+  approval = "",
+  reviewStatus = "pending",
+  preventable = "",
+  rootCause = "",
+  suggestedGuard = "",
+  resultId = "",
+  affectedArtifacts = ["src/example.js"],
+  acceptanceDelta = ["AC-001"],
+} = {}) {
+  const list = (values) => values.length === 0
+    ? ": []"
+    : `:\n${values.map((value) => `  - ${value}`).join("\n")}`;
+  return `# ${id}
+
+- **Type**: change
+- **Status**: ${status}
+- **current_behavior**: current
+- **proposed_delta**: proposed
+- **affected_artifacts**${list(affectedArtifacts)}
+- **acceptance_delta**${list(acceptanceDelta)}
+- **approval**: ${approval || '""'}
+- **close_condition**: tests pass
+- **preventability_review**:
+  - **status**: ${reviewStatus}
+  - **preventable**: ${preventable || '""'}
+  - **root_cause**: ${rootCause || '""'}
+  - **suggested_guard**: ${suggestedGuard || '""'}
+- **result_baseline_id**: ${resultId || '""'}
+`;
+}
+
+function retrospectiveRecord({
+  id = "BL-20260711-021500-retrospective",
+  status = "closed",
+  sourceCrIds = ["CR-20260711-021000-change"],
+  findings = [],
+  changes = [],
+} = {}) {
+  const field = (name, values) => values.length === 0
+    ? `- **${name}**: []`
+    : `- **${name}**:\n${values.map((value) => `  - ${value}`).join("\n")}`;
+  return `# ${id}
+
+- **Type**: retrospective
+- **Status**: ${status}
+${field("source_cr_ids", sourceCrIds)}
+${field("preventable_findings", findings)}
+${field("suggested_framework_changes", changes)}
+`;
+}
+
+function assertRecordError(content, filename, pattern) {
+  assert.throws(
+    () => shared.parseBaselineRecord(content, filename),
+    (error) => (
+      error instanceof shared.GovernanceValidationError
+      && pattern.test(error.message)
+    ),
+  );
+}
+
 function validTasksDocument() {
   return shared.parseCanonicalYaml(`version: 5
 baseline_id: "${CONFIRMED_ID}"
@@ -513,6 +577,164 @@ test("parseBaselineRecord enforces the first-H1 record boundary and ignores H2 e
   );
 });
 
+test("parseBaselineRecord accepts bootstrap, change lifecycle, and retrospective records", () => {
+  const bootstrapId = "BL-20260711-010000-bootstrap-unconfirmed";
+  assert.deepEqual(
+    shared.parseBaselineRecord([
+      `# ${bootstrapId}`,
+      "",
+      "- **Type**: bootstrap",
+      "- **Status**: unconfirmed",
+      "- **Created At**: 2026-07-11T01:00:00.000Z",
+      "",
+    ].join("\n"), `${bootstrapId}.md`),
+    {
+      id: bootstrapId,
+      type: "bootstrap",
+      status: "unconfirmed",
+      created_at: "2026-07-11T01:00:00.000Z",
+    },
+  );
+
+  const variants = [
+    { status: "proposed" },
+    { status: "approved", approval: "Alice approved" },
+    {
+      status: "applied",
+      approval: "Alice approved",
+      reviewStatus: "completed",
+      preventable: "yes",
+      rootCause: "missing guard",
+      suggestedGuard: "add regression",
+      resultId: "BL-20260711-022000-result",
+    },
+    {
+      status: "rejected",
+      approval: "Alice rejected",
+      reviewStatus: "completed",
+      preventable: "no",
+      rootCause: "external constraint",
+      suggestedGuard: "none",
+    },
+  ];
+  for (const variant of variants) {
+    const id = `CR-20260711-021000-${variant.status}`;
+    const parsed = shared.parseBaselineRecord(
+      changeRecord({ id, ...variant }),
+      `${id}.md`,
+    );
+    assert.equal(parsed.id, id);
+    assert.equal(parsed.type, "change");
+    assert.equal(parsed.status, variant.status);
+    assert.deepEqual(parsed.affected_artifacts, ["src/example.js"]);
+    assert.deepEqual(parsed.acceptance_delta, ["AC-001"]);
+  }
+
+  const retrospectiveId = "BL-20260711-021500-retrospective";
+  assert.deepEqual(
+    shared.parseBaselineRecord(
+      retrospectiveRecord({
+        findings: ["missing acceptance guard"],
+        changes: ["add doctor check"],
+      }),
+      `${retrospectiveId}.md`,
+    ),
+    {
+      id: retrospectiveId,
+      type: "retrospective",
+      status: "closed",
+      source_cr_ids: ["CR-20260711-021000-change"],
+      preventable_findings: ["missing acceptance guard"],
+      suggested_framework_changes: ["add doctor check"],
+    },
+  );
+});
+
+test("parseBaselineRecord rejects malformed metadata envelopes", () => {
+  const id = "CR-20260711-021000-change";
+  for (const [content, filename, pattern] of [
+    [null, `${id}.md`, /content must be a string/],
+    [changeRecord({ id }), id, /filename must end in/],
+    ["not an H1\n", `${id}.md`, /start with the first H1/],
+    [`# ${id}\n# duplicate\n`, `${id}.md`, /exactly one H1/],
+    [changeRecord({ id }).replace("- **Status**: proposed", "- **Status**: proposed\n- **Status**: proposed"), `${id}.md`, /duplicate key Status/],
+    [`# ${id}\n\n  - **status**: pending\n`, `${id}.md`, /outside preventability_review/],
+    [`# ${id}\n\n  - orphan\n`, `${id}.md`, /no list field/],
+    [`# ${id}\n\nunsupported\n`, `${id}.md`, /unsupported syntax/],
+    [changeRecord({ id }).replace("- **Type**: change", "- **Type**: unknown"), `${id}.md`, /Type is invalid/],
+  ]) {
+    assertRecordError(content, filename, pattern);
+  }
+});
+
+test("parseBaselineRecord rejects invalid bootstrap and baseline declarations", () => {
+  const bootstrapId = "BL-20260711-010000-bootstrap-unconfirmed";
+  const bootstrap = [
+    `# ${bootstrapId}`,
+    "",
+    "- **Type**: bootstrap",
+    "- **Status**: unconfirmed",
+    "- **Created At**: 2026-07-11T01:00:00.000Z",
+    "",
+  ].join("\n");
+  for (const [content, filename, pattern] of [
+    [bootstrap.replace(bootstrapId, "BL-invalid"), "BL-invalid.md", /bootstrap record ID is invalid/],
+    [bootstrap.replace("- **Status**: unconfirmed", "- **Status**: confirmed"), `${bootstrapId}.md`, /status must be unconfirmed/],
+    [bootstrap.replace("01:00:00", "01:00:01"), `${bootstrapId}.md`, /must match its record ID/],
+    [confirmedRecord({ previousId: "not-a-baseline" }), `${CONFIRMED_ID}.md`, /previous_baseline_id/],
+    [confirmedRecord({ previousId: bootstrapId }).replace("confirmed_by**: Alice", "confirmed_by**: Codex"), `${CONFIRMED_ID}.md`, /human identity|reserved/],
+    [confirmedRecord({ previousId: bootstrapId }).replace(CONFIRMED_TIME, "not-a-time"), `${CONFIRMED_ID}.md`, /confirmed_at/],
+    [confirmedRecord({ previousId: bootstrapId }).replace("- **source_refs**:\n  - MISSION.md\n  - DESIGN.md", "- **source_refs**: []"), `${CONFIRMED_ID}.md`, /source_refs/],
+  ]) {
+    assertRecordError(content, filename, pattern);
+  }
+});
+
+test("parseBaselineRecord enforces change lifecycle and preventability rules", () => {
+  const id = "CR-20260711-021000-change";
+  const completed = {
+    id,
+    approval: "Alice approved",
+    reviewStatus: "completed",
+    preventable: "partial",
+    rootCause: "missing evidence",
+    suggestedGuard: "add test",
+  };
+  const invalid = [
+    [changeRecord({ id, status: "unknown" }), /status is invalid/],
+    [changeRecord({ id: "CR-invalid" }), /change request ID is invalid/],
+    [changeRecord({ id, affectedArtifacts: [] }), /affected_artifacts must be non-empty/],
+    [changeRecord({ id, affectedArtifacts: ["same", "same"] }), /affected_artifacts must be unique/],
+    [changeRecord({ id, acceptanceDelta: [] }), /acceptance_delta must be non-empty/],
+    [changeRecord({ id, reviewStatus: "unknown" }), /review status is invalid/],
+    [changeRecord({ id, preventable: "yes" }), /pending preventability review fields must be empty/],
+    [changeRecord({ ...completed, status: "applied", preventable: "maybe", resultId: "BL-20260711-022000-result" }), /invalid preventable value/],
+    [changeRecord({ ...completed, status: "applied", rootCause: "", resultId: "BL-20260711-022000-result" }), /root_cause/],
+    [changeRecord({ ...completed, status: "applied", suggestedGuard: "", resultId: "BL-20260711-022000-result" }), /suggested_guard/],
+    [changeRecord({ id, status: "proposed", approval: "Alice" }), /proposed change/],
+    [changeRecord({ id, status: "approved" }), /approved change/],
+    [changeRecord({ id, status: "approved", approval: "Alice", resultId: "BL-20260711-022000-result" }), /approved change/],
+    [changeRecord({ id, status: "applied", approval: "Alice", resultId: "BL-20260711-022000-result" }), /applied change/],
+    [changeRecord({ ...completed, status: "applied", resultId: "not-a-baseline" }), /applied change/],
+    [changeRecord({ ...completed, status: "rejected", resultId: "BL-20260711-022000-result" }), /rejected change/],
+  ];
+  for (const [content, pattern] of invalid) {
+    assertRecordError(content, `${content.match(/^# ([^\n]+)/u)[1]}.md`, pattern);
+  }
+});
+
+test("parseBaselineRecord enforces retrospective identity and source CRs", () => {
+  for (const [content, filename, pattern] of [
+    [retrospectiveRecord({ id: "BL-20260711-021500-not-retro" }), "BL-20260711-021500-not-retro.md", /filename is invalid/],
+    [retrospectiveRecord({ status: "open" }), "BL-20260711-021500-retrospective.md", /status must be closed/],
+    [retrospectiveRecord({ sourceCrIds: [] }), "BL-20260711-021500-retrospective.md", /source_cr_ids must be non-empty/],
+    [retrospectiveRecord({ sourceCrIds: ["not-a-cr"] }), "BL-20260711-021500-retrospective.md", /must contain CR IDs/],
+    [retrospectiveRecord({ sourceCrIds: ["CR-20260711-021000-change", "CR-20260711-021000-change"] }), "BL-20260711-021500-retrospective.md", /source_cr_ids must be unique/],
+  ]) {
+    assertRecordError(content, filename, pattern);
+  }
+});
+
 test("DESIGN acceptance extraction ignores decoys and returns the canonical live ID set", () => {
   const design = `# Design
 
@@ -754,11 +976,178 @@ test("local Git runner maps failures to stable reasons without exposing stderr",
   assert.equal(JSON.stringify(result).includes("attacker"), false);
 });
 
+test("local Git runner rejects invalid requests and bounds process failures", () => {
+  const request = {
+    operation: "inside-work-tree",
+    cwd: process.cwd(),
+    args: ["rev-parse", "--is-inside-work-tree"],
+    maxOutputBytes: 16,
+  };
+  let spawnCalls = 0;
+  const guarded = doctor.createLocalGitRunner({
+    monotonicNow: () => 100,
+    spawnSyncImpl() {
+      spawnCalls += 1;
+      return { status: 0, signal: null, stdout: Buffer.from("true\n") };
+    },
+  });
+  for (const [override, reason] of [
+    [{ operation: "unknown" }, "command-not-allowed"],
+    [{ args: ["status"] }, "command-not-allowed"],
+    [{ cwd: "relative" }, "invalid-working-directory"],
+    [{ maxOutputBytes: 0 }, "invalid-output-budget"],
+  ]) {
+    assert.deepEqual(guarded({ ...request, ...override }), {
+      state: "unavailable",
+      reason,
+    });
+  }
+  assert.equal(spawnCalls, 0);
+
+  let clockCall = 0;
+  const timedOut = doctor.createLocalGitRunner({
+    monotonicNow: () => (clockCall++ === 0 ? 100 : 201),
+    limits: { totalTimeoutMs: 100 },
+  });
+  assert.deepEqual(timedOut(request), {
+    state: "unavailable",
+    reason: "total-timeout",
+  });
+
+  function resultFrom(value) {
+    return doctor.createLocalGitRunner({
+      monotonicNow: () => 100,
+      spawnSyncImpl() {
+        if (value === "throw") throw new Error("unavailable");
+        return value;
+      },
+    })(request);
+  }
+  for (const [value, reason] of [
+    ["throw", "git-unavailable"],
+    [{ error: Object.assign(new Error("large"), { code: "ENOBUFS" }) }, "output-limit"],
+    [{ error: Object.assign(new Error("missing"), { code: "ENOENT" }) }, "git-unavailable"],
+    [null, "command-failed"],
+    [{ signal: "SIGTERM", stdout: Buffer.alloc(0) }, "command-failed"],
+    [{ status: 0, signal: null, stdout: Buffer.alloc(17) }, "output-limit"],
+  ]) {
+    assert.deepEqual(resultFrom(value), { state: "unavailable", reason });
+  }
+  assert.deepEqual(
+    resultFrom({ status: null, signal: null, stdout: "true\n" }),
+    { state: "completed", exit_code: null, stdout: Buffer.from("true\n") },
+  );
+});
+
+test("resolveGitState maps malformed or inconsistent Git metadata to stable reasons", () => {
+  const target = process.cwd();
+  const outputs = {
+    "inside-work-tree": Buffer.from("true\n"),
+    "repository-root": Buffer.from(`${target}\n`),
+    "project-prefix": Buffer.from("\n"),
+    "object-format": Buffer.from("sha1\n"),
+    head: Buffer.from(`${"a".repeat(40)}\n`),
+    status: Buffer.alloc(0),
+  };
+  const completed = (stdout, exitCode = 0) => ({
+    state: "completed",
+    exit_code: exitCode,
+    stdout,
+  });
+  function resolve(overrides = {}) {
+    return doctor.resolveGitState(target, {
+      runGit({ operation }) {
+        const value = Object.hasOwn(overrides, operation)
+          ? overrides[operation]
+          : outputs[operation];
+        return value && value.state ? value : completed(value);
+      },
+    });
+  }
+
+  assert.deepEqual(resolve({ "inside-work-tree": Buffer.from("false\n") }), {
+    state: "unavailable",
+    reason: "not-a-work-tree",
+  });
+  assert.deepEqual(resolve({
+    "inside-work-tree": { state: "unavailable", reason: "git-unavailable" },
+  }), {
+    state: "unavailable",
+    reason: "git-unavailable",
+  });
+  assert.deepEqual(resolve({
+    "inside-work-tree": completed(Buffer.from("true\n"), 1),
+  }), {
+    state: "unavailable",
+    reason: "command-failed",
+  });
+  assert.deepEqual(resolve({
+    "repository-root": { state: "unavailable", reason: "command-failed" },
+  }), {
+    state: "unavailable",
+    reason: "command-failed",
+  });
+  for (const [overrides, reason] of [
+    [{ "repository-root": Buffer.from("relative\n") }, "invalid-repository-root"],
+    [{ "project-prefix": Buffer.from("nested/\n") }, "project-outside-repository"],
+    [{ "object-format": Buffer.from("md5\n") }, "unsupported-object-format"],
+    [{ head: Buffer.from("bad\n") }, "invalid-head"],
+    [{ status: Buffer.from("unterminated") }, "invalid-git-output"],
+    [{ status: Buffer.from([0xff, 0x00]) }, "invalid-git-output"],
+    [{ "inside-work-tree": Buffer.from("true\r\n") }, "invalid-git-output"],
+    [{ "inside-work-tree": Buffer.from([0xff, 0x0a]) }, "invalid-git-output"],
+  ]) {
+    assert.deepEqual(resolve(overrides), { state: "unavailable", reason });
+  }
+});
+
 test("evidence Git envelope rejects non-list observed commits without throwing", () => {
   assert.deepEqual(
     doctor.resolveEvidenceGitEnvelope(process.cwd(), "default", null),
     { state: "unavailable", reason: "invalid-observed-commits" },
   );
+  assert.deepEqual(
+    doctor.resolveEvidenceGitEnvelope(process.cwd(), "default", ["not-a-sha"]),
+    { state: "unavailable", reason: "invalid-observed-commits" },
+  );
+});
+
+test("evidence Git envelope bounds changed-path records", () => {
+  const observed = "a".repeat(40);
+  const head = "b".repeat(40);
+  const gitState = {
+    state: "available",
+    repository: {
+      root: process.cwd(),
+      project_prefix: "",
+      object_format: "sha1",
+      head_sha: head,
+      dirty: false,
+    },
+  };
+  const result = doctor.resolveEvidenceGitEnvelope(
+    process.cwd(),
+    "default",
+    [observed],
+    {
+      gitState,
+      limits: { pathRecords: 1 },
+      runGit({ operation }) {
+        if (operation === "ancestor") {
+          return { state: "completed", exit_code: 0, stdout: Buffer.alloc(0) };
+        }
+        if (operation === "diff") {
+          return {
+            state: "completed",
+            exit_code: 0,
+            stdout: Buffer.from("first\0second\0"),
+          };
+        }
+        throw new Error(`unexpected operation: ${operation}`);
+      },
+    },
+  );
+  assert.deepEqual(result, { state: "unavailable", reason: "invalid-git-output" });
 });
 
 test("a confirmed assessed lane with evidence-only history is delivery-ready", () => {
