@@ -1,6 +1,15 @@
 "use strict";
 
-const { test, assert, readRepo } = require("./helpers");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+
+const repoRoot = path.resolve(__dirname, "..");
+
+function readRepo(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+}
 
 test("lockfile excludes vulnerable brace-expansion 5.0.0 through 5.0.5", () => {
   const lock = JSON.parse(readRepo("package-lock.json"));

@@ -1,185 +1,77 @@
+"use strict";
+
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
-const {
-  test,
-  assert,
-  repoRoot,
-  tmpDir,
-  cleanup,
-} = require("./helpers");
+const { afterEach, test } = require("node:test");
+const assert = require("node:assert/strict");
 
-test("package: tarball contains and installs the complete distribution", () => {
-  const packDir = tmpDir();
-  const consumerDir = fs.realpathSync.native(tmpDir());
-  const projectsRoot = fs.realpathSync.native(tmpDir());
-  const npmCache = fs.realpathSync.native(tmpDir());
-  const npmEnv = { ...process.env, npm_config_cache: npmCache };
-  const safeProjectDir = path.join(projectsRoot, "safe project with 空格");
-  const cliProjectDir = path.join(projectsRoot, "legacy CLI project with 空格");
+const repoRoot = path.resolve(__dirname, "..");
+const roots = new Set();
+const npx = process.platform === "win32" ? "npx.cmd" : "npx";
+const expectedFiles = [
+  "LICENSE",
+  "README.md",
+  "SECURITY.md",
+  "VERSION",
+  "bin/create-ai-os.js",
+  "bin/installer.js",
+  "framework/.agents/templates/root/AGENTS.md",
+  "package.json",
+];
 
-  try {
-    const pack = spawnSync("npm", ["pack", "--json", "--pack-destination", packDir], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: npmEnv,
-    });
-    assert.equal(pack.status, 0, pack.stderr);
+function temporaryRoot() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ai-os-package-"));
+  roots.add(root);
+  return root;
+}
 
-    const packResult = JSON.parse(pack.stdout);
-    assert.equal(packResult.length, 1);
-    const tarball = path.join(packDir, packResult[0].filename);
-    const packedFiles = packResult[0].files;
-    const files = packedFiles.map((entry) => entry.path);
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd || repoRoot,
+    env: options.env || process.env,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result;
+}
 
-    const required = [
-      "README.md",
-      "SECURITY.md",
-      "VERSION",
-      "docs/artifacts.md",
-      "framework/.agents/templates/root/AGENTS.md",
-      "framework/.agents/compat/v10-template-hashes.json",
-      "bin/create-ai-os.js",
-      "bin/ai-os-doctor.js",
-      "bin/doctor-shared.js",
-      "bin/installer.js",
-    ];
-    for (const name of required) assert.ok(files.includes(name), `package contains ${name}`);
-    assert.ok(!files.includes("bin/shared.js"), "package excludes the removed legacy installer helper");
-    assert.ok(!files.includes("AGENTS.md"), "repo maintainer guard is not distributed");
-    assert.ok(!files.includes("RELEASED_VERSION"), "repository release metadata is not distributed");
-    assert.ok(!files.some((name) => name.startsWith("docs/superpowers/")), "maintainer plans are not distributed");
+afterEach(() => {
+  for (const root of roots) fs.rmSync(root, { recursive: true, force: true });
+  roots.clear();
+});
 
-    const cliEntry = packedFiles.find((entry) => entry.path === "bin/create-ai-os.js");
-    assert.equal(cliEntry.mode & 0o111, 0o111, "packaged CLI is executable");
+test("package is a small zero-dependency lightweight installer", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  assert.equal(manifest.private, true);
+  assert.deepEqual(manifest.dependencies || {}, {});
+  assert.equal(manifest.bin["create-ai-os"], "./bin/create-ai-os.js");
+  assert.deepEqual(manifest.files, expectedFiles.slice(0, -1));
 
-    const listed = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    });
-    assert.equal(listed.status, 0, listed.stderr);
-    const expectedFiles = listed.stdout.split("\n").filter((name) => (
-      fs.existsSync(path.join(repoRoot, name))
-      && (
-        name.startsWith("bin/")
-        || name.startsWith("framework/")
-        || /^docs\/[^/]+[.]md$/.test(name)
-        || ["LICENSE", "README.md", "SECURITY.md", "VERSION"].includes(name)
-      )
-    ));
-    expectedFiles.push("package.json");
-    assert.deepEqual(files.sort(), expectedFiles.sort(), "package contains exactly the allowlisted files");
+  const report = JSON.parse(run("npm", ["pack", "--dry-run", "--json"]).stdout)[0];
+  assert.deepEqual(report.files.map((entry) => entry.path).sort(), expectedFiles);
+  assert.ok(report.unpackedSize <= 75_000, `unpacked package is ${report.unpackedSize} bytes`);
+});
 
-    const install = spawnSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], {
-      cwd: consumerDir,
-      encoding: "utf8",
-      env: npmEnv,
-    });
-    assert.equal(install.status, 0, install.stderr);
+test("packed CLI installs only AGENTS.md in an isolated consumer", () => {
+  const root = temporaryRoot();
+  const packDir = path.join(root, "pack");
+  const target = path.join(root, "consumer project");
+  const cache = path.join(root, "npm-cache");
+  fs.mkdirSync(packDir);
+  const pack = JSON.parse(run("npm", ["pack", "--json", "--pack-destination", packDir]).stdout)[0];
+  const tarball = path.join(packDir, pack.filename);
 
-    const cli = path.join(consumerDir, "node_modules", "create-ai-os", "bin", "create-ai-os.js");
-    const version = spawnSync(process.execPath, [cli, "--version"], { encoding: "utf8" });
-    assert.equal(version.status, 0, version.stderr);
-    assert.equal(version.stdout.trim(), "11.0.0");
+  run(npx, ["--yes", "--package", tarball, "create-ai-os", target], {
+    cwd: root,
+    env: { ...process.env, npm_config_cache: cache },
+  });
 
-    const packagedRoot = path.join(consumerDir, "node_modules", "create-ai-os");
-    const packagedArtifacts = path.join(packagedRoot, "docs", "artifacts.md");
-    fs.appendFileSync(packagedArtifacts, "\n<!-- installed-package provenance canary -->\n");
-    const installerPath = path.join(packagedRoot, "bin", "installer.js");
-    const installSource = String.raw`
-      const path = require("node:path");
-      const packagedRoot = process.argv[1];
-      const target = process.argv[2];
-      const installerPath = path.join(packagedRoot, "bin", "installer.js");
-      const installer = require(installerPath);
-      const result = installer.installProject(target, {
-        clock: () => new Date("2026-07-10T23:45:01.234Z"),
-      });
-      process.stdout.write(JSON.stringify({
-        cwd: process.cwd(),
-        installerPath: require.resolve(installerPath),
-        result,
-      }));
-    `;
-    const safeInstall = spawnSync(process.execPath, [
-      "-e",
-      installSource,
-      packagedRoot,
-      safeProjectDir,
-    ], {
-      cwd: consumerDir,
-      encoding: "utf8",
-    });
-    assert.equal(safeInstall.status, 0, safeInstall.stderr);
-    const safePayload = JSON.parse(safeInstall.stdout);
-    assert.equal(safePayload.cwd, consumerDir, "safe installer runs from the isolated consumer cwd");
-    assert.equal(
-      safePayload.installerPath,
-      installerPath,
-      "safe installer resolves from the installed tarball, not the repository",
-    );
-    const safeResult = safePayload.result;
-    const safeBaselineId = "BL-20260710-234501-bootstrap-unconfirmed";
-    const safeBaselineFile = `${safeBaselineId}.md`;
-    assert.equal(safeResult.baselineId, safeBaselineId);
-    assert.equal(safeResult.layoutVersion, "11");
-    assert.equal(
-      fs.readFileSync(path.join(safeProjectDir, ".ai-os", "framework.toml"), "utf8"),
-      [
-        "# AI-OS framework metadata",
-        'schema_version = "11"',
-        'layout_version = "11"',
-        'layout_mode = "shared-root-default-lane"',
-        'default_lane = "default"',
-        'framework_version = "11.0.0"',
-        "",
-      ].join("\n"),
-      "tarball installer emits stable metadata without timestamps",
-    );
-    assert.deepEqual(
-      fs.readFileSync(path.join(safeProjectDir, ".ai-os", "reference", "artifacts.md")),
-      fs.readFileSync(packagedArtifacts),
-      "tarball installer copies its packaged reference bytes",
-    );
-    assert.match(
-      fs.readFileSync(path.join(safeProjectDir, ".ai-os", "reference", "artifacts.md"), "utf8"),
-      /installed-package provenance canary/,
-    );
-    const safeRecords = fs.readdirSync(path.join(
-      safeProjectDir,
-      ".ai-os",
-      "lanes",
-      "default",
-      "baseline-log",
-    ));
-    assert.deepEqual(safeRecords, [safeBaselineFile]);
-    const safeBaseline = fs.readFileSync(path.join(
-      safeProjectDir,
-      ".ai-os",
-      "lanes",
-      "default",
-      "baseline-log",
-      safeBaselineFile,
-    ), "utf8");
-    assert.match(safeBaseline, /^- \*\*Status\*\*: unconfirmed$/m);
-    assert.doesNotMatch(safeBaseline, /Confirmed At/i);
-
-    const installed = spawnSync(process.execPath, [cli, "install", cliProjectDir], { encoding: "utf8" });
-    assert.equal(installed.status, 0, installed.stderr);
-    assert.ok(fs.existsSync(path.join(cliProjectDir, "AGENTS.md")));
-    assert.ok(fs.existsSync(path.join(cliProjectDir, ".ai-os/lanes/default/lane.toml")));
-    assert.deepEqual(
-      fs.readdirSync(path.join(cliProjectDir, ".ai-os", "bin")).sort(),
-      ["VERSION", "ai-os-doctor.js", "doctor-shared.js"],
-      "packaged CLI vendors only the local doctor runtime",
-    );
-
-    const doctor = spawnSync(process.execPath, [
-      path.join(cliProjectDir, ".ai-os/bin/ai-os-doctor.js"), cliProjectDir, "--json",
-    ], { encoding: "utf8" });
-    assert.equal(doctor.status, 0, doctor.stderr);
-    assert.equal(JSON.parse(doctor.stdout).ok, true);
-  } finally {
-    cleanup(packDir, consumerDir, projectsRoot, npmCache);
-  }
+  assert.deepEqual(fs.readdirSync(target), ["AGENTS.md"]);
+  const installed = fs.readFileSync(path.join(target, "AGENTS.md"), "utf8");
+  assert.match(installed, /^<!-- AI-OS:BEGIN -->$/m);
+  assert.match(installed, /^<!-- AI-OS:END -->$/m);
+  assert.doesNotMatch(installed, /lane|baseline|tasks[.]yaml|doctor|[.]ai-os/i);
 });

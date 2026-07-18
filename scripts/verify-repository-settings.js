@@ -130,18 +130,11 @@ function main() {
     assert.equal(response.json?.enabled, true, "private vulnerability reporting is enabled");
   }));
 
-  const label = ghResponse(`/repos/${REPOSITORY}/labels/framework-feedback`);
-  assert.equal(label.status, 200, "framework-feedback label exists");
-  assert.equal(label.json?.name, "framework-feedback");
-  assert.equal(String(label.json?.color || "").toLowerCase(), "0e8a16");
-  assert.equal(label.json?.description, "Preventable AI-OS delivery feedback");
-
   process.stdout.write(`${JSON.stringify({
     repository: REPOSITORY,
     protection: "match",
     actions_sha_pinning: true,
     security: outcomes,
-    label: label.json.name,
   })}\n`);
   return 0;
 }

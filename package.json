@@ -2,7 +2,7 @@
   "name": "create-ai-os",
   "version": "11.0.0",
   "private": true,
-  "description": "AI Delivery Constitution installer. Install the canonical lane-first artifact layout into any project.",
+  "description": "Install a lightweight AI delivery constitution into AGENTS.md.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/royeedai/ai-os.git"
@@ -20,13 +20,13 @@
     "lint": "eslint bin/ scripts/ test/"
   },
   "files": [
-    "bin",
-    "framework",
-    "docs/*.md",
-    "SECURITY.md",
     "LICENSE",
     "README.md",
-    "VERSION"
+    "SECURITY.md",
+    "VERSION",
+    "bin/create-ai-os.js",
+    "bin/installer.js",
+    "framework/.agents/templates/root/AGENTS.md"
   ],
   "license": "MIT",
   "devDependencies": {

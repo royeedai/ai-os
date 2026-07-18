@@ -58,7 +58,7 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - run: npm ci --ignore-scripts
-      - run: node --test test/path-safety.test.js test/package.test.js
+      - run: node --test test/light-install.test.js test/light-cli.test.js
 
   coverage:
     name: Coverage

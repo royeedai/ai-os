@@ -36,7 +36,6 @@ module.exports = [
     ignores: [
       "node_modules/**",
       "framework/**",
-      "examples/**",
       "evals/**",
       "docs/**",
     ],

@@ -755,7 +755,7 @@ npx --yes github:royeedai/ai-os doctor .
 
 ## 8.0.0 (2026-04-22) — Delivery Constitution refactor
 
-**Breaking**. v8 repositioned AI-OS as Delivery Constitution + 12-artifact set + minimal CLI. v7 users: run `npx create-ai-os upgrade .`; legacy v7 state tagged as `v7-legacy`. Full v7→v8→v9 migration narrative: [docs/migrate-to-v9.md](docs/migrate-to-v9.md).
+**Breaking**. v8 repositioned AI-OS as Delivery Constitution + 12-artifact set + minimal CLI. v7 users: run `npx create-ai-os upgrade .`; legacy v7 state tagged as `v7-legacy`. Full v7→v8→v9 migration narrative: [v9.1.0 migration guide](https://github.com/royeedai/ai-os/blob/v9.1.0/docs/migrate-to-v9.md).
 
 ### Migration
 

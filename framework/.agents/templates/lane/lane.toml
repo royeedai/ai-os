@@ -1,7 +1,0 @@
-id = "default"
-title = "默认交付线"
-status = "active"
-baseline_id = "{{INITIAL_BASELINE_ID}}"
-quality_tier = "unassessed"
-risk_tier = "unassessed"
-governance_tier = "unassessed"

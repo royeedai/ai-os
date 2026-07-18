@@ -7,11 +7,10 @@ const path = require("node:path");
 const {
   InstallConflictError,
   InstallFilesystemError,
-  InstallPlannerError,
   installProject,
 } = require("./installer");
 
-const PINNED_PUBLIC_INSTALL = "npx --yes github:royeedai/ai-os#v10.5.1 .";
+const REMOVED_COMMANDS = new Set(["doctor", "upgrade"]);
 
 function readFrameworkVersion() {
   try {
@@ -21,119 +20,66 @@ function readFrameworkVersion() {
   }
 }
 
-function printHelp(io, version) {
-  io.stdout.write(`create-ai-os v${version} — AI Delivery Constitution installer
+function printHelp(io, version = readFrameworkVersion()) {
+  io.stdout.write(`create-ai-os v${version} — lightweight AI delivery constitution
 
 Usage:
-  create-ai-os [target-dir]               Install AI-OS into the target (default: current dir)
-  create-ai-os install [target-dir]       Explicit install alias (same behavior)
-  create-ai-os doctor  [target-dir]       Check layout health and constitution compliance
+  create-ai-os [target-dir]
+  create-ai-os install [target-dir]
 
-Primary operations:
-  install   Default entrypoint plus explicit alias
-  doctor    Layout health and constitution compliance checks
+Installs or refreshes only an AI-OS managed block in AGENTS.md.
+Existing project-specific content outside the block is preserved.
 
 Options:
-  --force          Refresh framework-owned artifacts; preserve project/session files
-  --no-team-config Skip .gitignore / .gitattributes setup
-  --no-ide-files   Skip CLAUDE.md / GEMINI.md generation
   -h, --help       Show this help
   -v, --version    Show version
-
-The safe installer plans the complete change before writing and applies it transactionally.
-Daily zero-network health check after install:
-  node .ai-os/bin/ai-os-doctor.js .
 
 Docs: https://github.com/royeedai/ai-os
 `);
 }
 
-function parseInstallArgs(argv) {
-  const options = { force: false, teamConfig: true, ideFiles: true };
-  let target = null;
-
-  for (const arg of argv) {
-    if (arg === "-h" || arg === "--help") return { help: true, options, target };
-    if (arg === "--force") {
-      options.force = true;
-      continue;
-    }
-    if (arg === "--no-team-config") {
-      options.teamConfig = false;
-      continue;
-    }
-    if (arg === "--no-ide-files") {
-      options.ideFiles = false;
-      continue;
-    }
-    if (arg.startsWith("-")) throw new Error(`unknown option: ${arg}`);
-    if (target !== null) throw new Error(`unexpected argument: ${arg}`);
-    target = arg;
+function parseArgs(argv) {
+  const args = [...argv];
+  if (args[0] === "install") args.shift();
+  if (REMOVED_COMMANDS.has(args[0])) {
+    throw new Error(`the \`${args[0]}\` command was removed in v11`);
   }
-
-  return { help: false, options, target };
+  if (args.some((arg) => arg.startsWith("-"))) {
+    throw new Error(`unknown option: ${args.find((arg) => arg.startsWith("-"))}`);
+  }
+  if (args.length > 1) throw new Error(`unexpected argument: ${args[1]}`);
+  return path.resolve(args[0] || ".");
 }
 
-function installResultReport(targetDir, result) {
-  const warnings = Array.isArray(result.warnings) && result.warnings.length > 0
-    ? `\nWarnings:\n${result.warnings.map((warning) => `  - ${warning}`).join("\n")}\n`
-    : "";
-  return `Installation complete.
+function installReport(result) {
+  return `AI-OS lightweight constitution installed.
 
-  Target:    ${targetDir}
-  Baseline:  ${result.baselineId}
-  Layout:    ${result.layoutVersion}
-  Created:   ${result.created}
-  Replaced:  ${result.replaced}
-  Preserved: ${result.preserved}
-${warnings}
-Daily health check (zero network):
-  node .ai-os/bin/ai-os-doctor.js .
+  Target:    ${result.targetDir}
+  AGENTS.md: ${result.action}
 `;
 }
 
 function oneLineDiagnostic(error) {
-  const knownInstallError = error instanceof InstallConflictError
-    || error instanceof InstallFilesystemError
-    || error instanceof InstallPlannerError;
-  const raw = knownInstallError || error instanceof Error ? error.message : String(error);
-  return String(raw || "unknown failure").replace(/[\r\n]+/g, " ").trim();
-}
-
-function runInstall(argv, io, install) {
-  const parsed = parseInstallArgs(argv);
-  if (parsed.help) {
-    printHelp(io, readFrameworkVersion());
-    return 0;
-  }
-
-  const targetDir = path.resolve(parsed.target || ".");
-  const result = install(targetDir, parsed.options);
-  io.stdout.write(installResultReport(targetDir, result));
-  return 0;
+  const known = error instanceof InstallConflictError
+    || error instanceof InstallFilesystemError;
+  const raw = known || error instanceof Error ? error.message : String(error);
+  return String(raw || "unknown failure").replace(/[\r\n]+/gu, " ").trim();
 }
 
 function main(argv = process.argv.slice(2), io = process, install = installProject) {
   try {
-    if (argv[0] === "-h" || argv[0] === "--help") {
-      printHelp(io, readFrameworkVersion());
+    const effective = argv[0] === "install" ? argv.slice(1) : argv;
+    if (effective[0] === "-h" || effective[0] === "--help") {
+      printHelp(io);
       return 0;
     }
-    if (argv[0] === "-v" || argv[0] === "--version") {
+    if (effective[0] === "-v" || effective[0] === "--version") {
       io.stdout.write(`${readFrameworkVersion()}\n`);
       return 0;
     }
-    if (argv[0] === "upgrade") {
-      throw new Error(
-        `the \`upgrade\` command was removed in v10. Run \`${PINNED_PUBLIC_INSTALL}\` to install the pinned public release instead.`,
-      );
-    }
-    if (argv[0] === "doctor") {
-      const doctor = require("./ai-os-doctor");
-      return doctor.main(argv.slice(1), io);
-    }
-    if (argv[0] === "install") return runInstall(argv.slice(1), io, install);
-    return runInstall(argv, io, install);
+    const targetDir = parseArgs(argv);
+    io.stdout.write(installReport(install(targetDir)));
+    return 0;
   } catch (error) {
     io.stderr.write(`Error: ${oneLineDiagnostic(error)}\n`);
     return 1;
@@ -142,4 +88,4 @@ function main(argv = process.argv.slice(2), io = process, install = installProje
 
 if (require.main === module) process.exitCode = main();
 
-module.exports = { main };
+module.exports = Object.freeze({ main });

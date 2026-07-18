@@ -1,50 +1,45 @@
 "use strict";
 
+const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { installProject } = require("../bin/installer");
-const { afterEach, assert, cleanup, test, tmpDir } = require("./helpers");
-const { readRepo } = require("./contract-fixtures");
+const test = require("node:test");
 
-const roots = new Set();
+const ROOT = path.resolve(__dirname, "..");
+const CURRENT_DOCS = [
+  "AGENTS.md",
+  "README.md",
+  "PROJECT_PURPOSE.md",
+  "CONTRIBUTING.md",
+  "CHANGELOG.md",
+  "CHANGELOG-archive.md",
+  "docs/maintainers.md",
+  "framework/.agents/templates/root/AGENTS.md",
+  ...fs.readdirSync(path.join(ROOT, "evals"), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => `evals/${entry.name}`),
+];
 
-afterEach(() => {
-  cleanup(...roots);
-  roots.clear();
-});
-
-function localReferences(content) {
-  const values = new Set();
-  for (const match of content.matchAll(/`([^`]+)`/gu)) values.add(match[1]);
-  for (const match of content.matchAll(/\[[^\]]*\]\(([^)]+)\)/gu)) values.add(match[1]);
-  return [...values]
-    .map((value) => value.replaceAll("{laneId}", "default"))
-    .filter((value) => (
-      !value.includes(" ")
-      && !value.includes("*")
-      && (value === "AGENTS.md" || value.startsWith(".ai-os/"))
-    ));
+function localLinks(markdown) {
+  return [...markdown.matchAll(/\[[^\]]*\]\(([^)]+)\)/gu)]
+    .map((match) => match[1].trim())
+    .map((target) => target.startsWith("<") && target.endsWith(">") ? target.slice(1, -1) : target)
+    .filter((target) => !target.startsWith("#"))
+    .filter((target) => !/^[a-z][a-z\d+.-]*:/iu.test(target));
 }
 
-test("installed pointers and source skill resolve every local artifact reference", () => {
-  const root = fs.realpathSync.native(tmpDir());
-  roots.add(root);
-  installProject(root, { clock: () => new Date("2026-07-11T01:00:00.000Z") });
-  const surfaces = [
-    fs.readFileSync(path.join(root, "AGENTS.md"), "utf8"),
-    fs.readFileSync(path.join(root, "CLAUDE.md"), "utf8"),
-    fs.readFileSync(path.join(root, "GEMINI.md"), "utf8"),
-    readRepo("framework/skills/ai-os-delivery/SKILL.md"),
-  ];
-  for (const reference of new Set(surfaces.flatMap(localReferences))) {
-    const absolute = path.join(root, ...reference.replace(/\/$/u, "").split("/"));
-    const stat = fs.lstatSync(absolute);
-    assert.equal(stat.isSymbolicLink(), false, reference);
-    assert.ok(stat.isFile() || stat.isDirectory(), reference);
+test("all links in current documentation resolve", () => {
+  for (const relativePath of CURRENT_DOCS) {
+    const source = path.join(ROOT, relativePath);
+    const markdown = fs.readFileSync(source, "utf8");
+    for (const rawTarget of localLinks(markdown)) {
+      const fileTarget = decodeURIComponent(rawTarget.split("#", 1)[0]);
+      const resolved = path.resolve(path.dirname(source), fileTarget);
+      assert.ok(
+        resolved === ROOT || resolved.startsWith(`${ROOT}${path.sep}`),
+        `${relativePath}: link stays inside the repository: ${rawTarget}`,
+      );
+      assert.ok(fs.existsSync(resolved), `${relativePath}: ${rawTarget} resolves`);
+    }
   }
-  assert.equal(
-    fs.readFileSync(path.join(root, ".ai-os/reference/artifacts.md"), "utf8"),
-    readRepo("docs/artifacts.md"),
-  );
-  assert.doesNotMatch(surfaces.join("\n"), /`docs\/|\]\(docs\//u);
 });

@@ -2,7 +2,14 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { test, assert, repoRoot, readRepo } = require("./helpers");
+const assert = require("node:assert/strict");
+const test = require("node:test");
+
+const repoRoot = path.resolve(__dirname, "..");
+
+function readRepo(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+}
 
 const CHECKOUT_SHA = "df4cb1c069e1874edd31b4311f1884172cec0e10";
 const SETUP_NODE_SHA = "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e";
@@ -70,7 +77,7 @@ test("CI jobs preserve tag history and execute all required gates", () => {
   for (const command of ["npm ci --ignore-scripts", "npm test", "npm run lint", "git diff --check", "npm audit --omit=dev", "npm pack --dry-run --json"]) {
     assert.ok(quality.includes(`run: ${command}`), `quality runs ${command}`);
   }
-  assert.match(jobBlock(ci, "platform"), /node --test test\/path-safety\.test\.js test\/package\.test\.js/);
+  assert.match(jobBlock(ci, "platform"), /node --test test\/light-install\.test\.js test\/light-cli\.test\.js/);
   assert.match(jobBlock(ci, "coverage"), /npm run test:coverage/);
   assert.match(jobBlock(ci, "package-smoke"), /node --test test\/package\.test\.js/);
   assert.match(jobBlock(ci, "canary"), /npm run test:coverage/);

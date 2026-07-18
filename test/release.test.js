@@ -1,56 +1,43 @@
+"use strict";
+
+const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { test, assert, repoRoot } = require("./helpers");
+const test = require("node:test");
 
-const read = (relative) => fs.readFileSync(path.join(repoRoot, relative), "utf8");
+const ROOT = path.resolve(__dirname, "..");
 
-test("development and released versions are distinct truthful values", () => {
+function read(relativePath) {
+  return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
+}
+
+test("development and released versions remain distinct truthful values", () => {
+  const manifest = JSON.parse(read("package.json"));
+
   assert.equal(read("VERSION").trim(), "11.0.0");
   assert.equal(read("RELEASED_VERSION").trim(), "10.5.1");
-  assert.match(read("CHANGELOG.md"), /^## 11\.0\.0 \(Unreleased\)/m);
+  assert.equal(manifest.version, "11.0.0");
+  assert.equal(manifest.private, true);
 });
 
-test("public install commands use the last real release", () => {
-  const released = read("RELEASED_VERSION").trim();
-  const pin = `github:royeedai/ai-os#v${released}`;
-  for (const file of ["README.md", "docs/getting-started.md", "docs/cli.md",
-    "examples/greenfield-guided-product.md", "examples/brownfield-change-journey.md",
-    "CHANGELOG.md"]) {
-    assert.doesNotMatch(read(file), /#v11\.0\.0/);
-    assert.ok(read(file).includes(pin), `${file} pins ${pin}`);
-  }
-  const bareRegistryInvocation = new RegExp(`${["npx", "create-ai-os"].join(" ")}(?:\\s|$)`);
-  for (const file of ["README.md", "docs/getting-started.md", "docs/cli.md",
-    "examples/greenfield-guided-product.md", "examples/brownfield-change-journey.md",
-    "examples/debug-bounded-fix.md", "CHANGELOG.md"]) {
-    assert.doesNotMatch(read(file), bareRegistryInvocation);
-    assert.doesNotMatch(read(file), /install \. --force/);
-  }
+test("README pins public installs to v10.5.1 while v11 is unreleased", () => {
+  const readme = read("README.md");
+  const releasedPin = "github:royeedai/ai-os#v10.5.1";
+
+  assert.ok((readme.match(new RegExp(releasedPin, "gu")) || []).length >= 2);
+  assert.doesNotMatch(readme, /github:royeedai\/ai-os#v11\.0\.0/u);
+  assert.match(readme, /v11 尚未发布/);
+  assert.match(readme, /只创建或刷新[\s\S]*`AI-OS:BEGIN` \/ `AI-OS:END` block/);
 });
 
-test("unreleased v11 changelog describes the implemented contract", () => {
+test("unreleased v11 changelog describes the implemented breaking contract", () => {
   const changelog = read("CHANGELOG.md");
-  for (const required of [
-    "layout schema 升为 **v11**",
-    "`tasks.yaml` schema 升为 **version 5**",
-    "`delivery_ready`",
-    "v10 → v11",
-    "`npm run test:coverage`",
-  ]) {
-    assert.ok(changelog.includes(required), required);
-  }
-  for (const stale of [
-    "layout schema 升为 **v10**",
-    "`tasks.yaml` 模板精简（version 4）",
-    "doctor 收敛为结构检查 + 两个语义警告",
-    "doctor、docs、evals、examples 与测试同步瘦身",
-  ]) {
-    assert.ok(!changelog.includes(stale), stale);
-  }
-});
 
-test("registry publication is explicitly disabled", () => {
-  const pkg = JSON.parse(read("package.json"));
-  assert.equal(pkg.private, true);
-  assert.equal(pkg.engines.node, ">=22.13.0");
+  assert.match(changelog, /^## 11\.0\.0 \(Unreleased\)$/mu);
+  assert.match(changelog, /只安装 `AGENTS\.md` managed block/);
+  assert.match(changelog, /保留 `AGENTS\.md` 的 block 外内容/);
+  assert.match(changelog, /`\.ai-os\/` 及 lane、baseline、tasks、memory、STATE 等默认工件/);
+  assert.match(changelog, /doctor、安装后 runtime、IDE pointer、adapter、skill wrapper/);
+  assert.match(changelog, /`v10\.5\.1` 仍是已发布版本；`v11\.0\.0` 未发布/);
+  assert.match(changelog, /绝不自动合并、移动或删除/);
 });
